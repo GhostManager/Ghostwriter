@@ -156,6 +156,18 @@ class OplogListEntriesTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "oplog/oplog_detail.html")
 
+    def test_view_includes_default_source_control(self):
+        response = self.client_mgr.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="defaultSourceInput"')
+        self.assertContains(response, 'id="clearDefaultSourceBtn"')
+        self.assertContains(response, "Default source IP or hostname for new entries")
+        self.assertContains(response, "Cleared when the page reloads or closes.")
+        self.assertContains(response, "It is not stored or carried to another log")
+        self.assertContains(response, "It does not overwrite existing or copied entries")
+        self.assertNotContains(response, "data-user-id=")
+
     def test_view_displays_last_sanitization(self):
         OplogSanitization.objects.create(
             oplog=self.oplog,

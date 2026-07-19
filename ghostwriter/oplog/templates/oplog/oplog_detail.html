@@ -91,7 +91,27 @@
         </div>
 
         <div class="oplog-toolbar-right">
-            <div class="input-group input-group-sm" style="width:280px;">
+            <div class="input-group input-group-sm oplog-default-source-group">
+                <div class="input-group-prepend">
+                    <span class="input-group-text" id="default-source-addon">Default Source</span>
+                </div>
+                <input
+                    id="defaultSourceInput"
+                    type="text"
+                    class="form-control"
+                    placeholder="IP / hostname"
+                    aria-label="Default source IP or hostname for new entries"
+                    aria-describedby="default-source-addon"
+                    autocomplete="off"
+                    data-toggle="tooltip"
+                    data-placement="top"
+                    title="Used only for new entries created on this page. Cleared when the page reloads or closes."
+                >
+                <div class="input-group-append">
+                    <button id="clearDefaultSourceBtn" class="btn btn-outline-secondary" type="button" aria-label="Clear default source"><i class="fas fa-times"></i></button>
+                </div>
+            </div>
+            <div class="input-group input-group-sm oplog-filter-group">
                 <div class="input-group-prepend">
                     <span class="input-group-text" id="filter-addon"><i class="fas fa-filter"></i></span>
                 </div>
@@ -285,6 +305,18 @@
                                       <li><kbd>Esc</kbd> closes the details pane and deselects the entry, giving the table full width.</li>
                                       <li><kbd>Ctrl+N</kbd> creates a new entry.</li>
                                   </ul>
+                              </div>
+                          </div>
+                      </div>
+
+                      <div class="col-md-6 mb-3">
+                          <div class="card h-100">
+                              <div class="card-header py-2">
+                                  <i class="fas fa-laptop mr-1"></i> <strong>Default Source</strong>
+                              </div>
+                              <div class="card-body py-2">
+                                  <p class="card-text small mb-1">Enter the host you are working from in <strong>Default Source</strong>. Entries created with <strong>Create Entry</strong> or <kbd>Ctrl+N</kbd> will start with that value in Source IP / Hostname.</p>
+                                  <p class="card-text small mb-0">The value remains only on this page and clears when the page reloads or closes. It is not stored or carried to another log. It does not overwrite existing or copied entries. Use <i class="fas fa-times"></i> to clear it.</p>
                               </div>
                           </div>
                       </div>

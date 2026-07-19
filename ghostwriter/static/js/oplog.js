@@ -16,6 +16,8 @@ $(document).ready(function () {
     const $oplogTableNoEntries = $('#oplogTableNoEntries');
     const $oplogTableLoading = $('#oplogTableLoading');
     const $clearSearchBtn = $('#clearSearchBtn');
+    const $defaultSourceInput = $('#defaultSourceInput');
+    const $clearDefaultSourceBtn = $('#clearDefaultSourceBtn');
 
     // Track columns hidden by the user (overrides showByDefault: true)
     let hiddenLogTblColumns = JSON.parse(localStorage.getItem('hiddenLogTblColumns') || '[]');
@@ -659,12 +661,17 @@ $(document).ready(function () {
         displayToastTop({ type: 'success', string: 'Successfully cloned a log entry.', title: 'Oplog Update' });
     };
 
-    window.editEntry = function (entryId) {
+    window.editEntry = function (entryId, applyDefaultSource = false) {
         let safeId = sanitizeEntryId(entryId);
         if (safeId === null) return;
         let url = window.location.origin + '/oplog/entry/update/' + safeId;
         $('.oplog-form-div').load(url, function () {
             const $editModal = $('#edit-modal');
+            const defaultSource = $defaultSourceInput.val().trim();
+            const $sourceField = $editModal.find('input[name="source_ip"]');
+            if (applyDefaultSource && defaultSource && !$sourceField.val()) {
+                $sourceField.val(defaultSource).trigger('change');
+            }
             $editModal.find('.modal-body').scrollTop(0);
             $editModal.modal('show');
             formAjaxSubmit('#oplog-entry-form', '#edit-modal');
@@ -1087,7 +1094,7 @@ $(document).ready(function () {
                 if ($searchInput.val() !== '') {
                     fetch(true);
                     if (shouldAutoEdit) {
-                        editEntry(entryId);
+                        editEntry(entryId, true);
                     }
                     return;
                 }
@@ -1107,7 +1114,7 @@ $(document).ready(function () {
                     }
                     if (shouldAutoEdit) {
                         selectEntry(entryId);
-                        editEntry(entryId);
+                        editEntry(entryId, true);
                     }
                 } else {
                     // New entry: prepend to DOM first, then rebuild the tablesorter
@@ -1121,7 +1128,7 @@ $(document).ready(function () {
                     $newRow.fadeIn(400, function () {
                         if (shouldAutoEdit) {
                             selectEntry(entryId);
-                            editEntry(entryId);
+                            editEntry(entryId, true);
                         }
                     });
                 }
@@ -1463,6 +1470,10 @@ $(document).ready(function () {
     $clearSearchBtn.click(function () {
         $searchInput.val('');
         fetch(true);
+    });
+
+    $clearDefaultSourceBtn.click(function () {
+        $defaultSourceInput.val('').focus();
     });
 
     // --- Mute toggle ---
