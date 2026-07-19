@@ -2732,6 +2732,15 @@ class ServiceTokenTagAccessMixin:
         return super().authorize_service_token_action()
 
     def get_service_token_tag_queryset(self, model: str, cls):
+        if self.service_token_tag_action == ServiceTokenPermission.Action.UPDATE:
+            if model == "oplog_entry" and self.service_token_obj is not None:
+                oplog_ids = self.service_token_obj.permissions.filter(
+                    resource_type=ServiceTokenPermission.ResourceType.OPLOG,
+                    action=ServiceTokenPermission.Action.UPDATE,
+                ).values("resource_id")
+                return cls.objects.filter(oplog_id_id__in=oplog_ids)
+            return cls.objects.none()
+
         if model in self.service_token_global_library_models:
             if self.service_token_has_project_read_grant():
                 return cls.objects.all()
@@ -2755,34 +2764,6 @@ class ServiceTokenTagAccessMixin:
                 return cls.objects.filter(tag_scope)
             return cls.objects.none()
         return cls.objects.none()
-
-    def service_token_can_view_tag_object(self, model: str, obj) -> bool:
-        if model in self.service_token_global_library_models:
-            return self.service_token_has_project_read_grant()
-        if model == "project":
-            return self.service_token_can_read_project_id(obj.id)
-        if model == "report":
-            return self.service_token_can_read_project_id(obj.project_id)
-        if model in {"report_finding_link", "report_observation_link"}:
-            return self.service_token_can_read_project_id(obj.report.project_id)
-        if model == "oplog_entry":
-            return self.service_token_can_read_project_id(
-                obj.oplog_id.project_id
-            ) or self.service_token_has_permission(
-                ServiceTokenPermission.ResourceType.OPLOG,
-                ServiceTokenPermission.Action.READ,
-                obj.oplog_id_id,
-            )
-        return False
-
-    def service_token_can_edit_tag_object(self, model: str, obj) -> bool:
-        if model == "oplog_entry":
-            return self.service_token_has_permission(
-                ServiceTokenPermission.ResourceType.OPLOG,
-                ServiceTokenPermission.Action.UPDATE,
-                obj.oplog_id_id,
-            )
-        return False
 
 
 class GetTags(ServiceTokenTagAccessMixin, HasuraActionView):
@@ -2818,23 +2799,16 @@ class GetTags(ServiceTokenTagAccessMixin, HasuraActionView):
                 status=401,
             )
 
+        objs = cls.objects.all()
+        if self.service_token_obj is not None:
+            objs = self.get_service_token_tag_queryset(model, cls)
+
         try:
-            obj = cls.objects.get(id=self.input["id"])
+            obj = objs.get(id=self.input["id"])
         except ObjectDoesNotExist:
             return JsonResponse(
                 utils.generate_hasura_error_payload("Not Found", "ModelDoesNotExist"),
                 status=404,
-            )
-
-        if (
-            self.service_token_obj is not None
-            and not self.service_token_can_view_tag_object(model, obj)
-        ):
-            return JsonResponse(
-                utils.generate_hasura_error_payload(
-                    "Not allowed to view", "Unauthorized"
-                ),
-                status=403,
             )
 
         if (
@@ -2887,23 +2861,16 @@ class SetTags(ServiceTokenTagAccessMixin, HasuraActionView):
                 status=401,
             )
 
+        objs = cls.objects.all()
+        if self.service_token_obj is not None:
+            objs = self.get_service_token_tag_queryset(model, cls)
+
         try:
-            obj = cls.objects.get(id=self.input["id"])
+            obj = objs.get(id=self.input["id"])
         except ObjectDoesNotExist:
             return JsonResponse(
                 utils.generate_hasura_error_payload("Not Found", "ModelDoesNotExist"),
                 status=404,
-            )
-
-        if (
-            self.service_token_obj is not None
-            and not self.service_token_can_edit_tag_object(model, obj)
-        ):
-            return JsonResponse(
-                utils.generate_hasura_error_payload(
-                    "Not allowed to edit", "Unauthorized"
-                ),
-                status=403,
             )
 
         if (

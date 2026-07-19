@@ -5298,7 +5298,7 @@ class GetTagsTest(TestCase):
             data=self.data("service"),
         )
 
-        self.assertEquals(response.status_code, 403, response.content)
+        self.assertEquals(response.status_code, 404, response.content)
         self.assertNotIn("tags", response.json())
 
     def test_get_oplog_entry_tags_allowed_read_only_oplog_service_token(self):
@@ -5339,7 +5339,23 @@ class GetTagsTest(TestCase):
             ),
         )
 
-        self.assertEquals(response.status_code, 403, response.content)
+        missing_response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers={
+                "Hasura-Action-Secret": ACTION_SECRET,
+                "Authorization": f"Bearer {token}",
+            },
+            data=self.data(
+                "service",
+                model="oplog_entry",
+                object_id=999999999,
+            ),
+        )
+
+        self.assertEquals(response.status_code, 404, response.content)
+        self.assertEquals(missing_response.status_code, 404, missing_response.content)
+        self.assertEqual(response.json(), missing_response.json())
         self.assertNotIn("tags", response.json())
 
 
@@ -5473,7 +5489,24 @@ class SetTagsTest(TestCase):
             ),
         )
 
-        self.assertEquals(response.status_code, 403, response.content)
+        missing_response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers={
+                "Hasura-Action-Secret": ACTION_SECRET,
+                "Authorization": f"Bearer {token}",
+            },
+            data=self.data(
+                self.tags,
+                "service",
+                model="oplog_entry",
+                object_id=999999999,
+            ),
+        )
+
+        self.assertEquals(response.status_code, 404, response.content)
+        self.assertEquals(missing_response.status_code, 404, missing_response.content)
+        self.assertEqual(response.json(), missing_response.json())
         entry.refresh_from_db()
         self.assertEqual(set(entry.tags.names()), set())
 
