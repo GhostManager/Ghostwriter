@@ -168,6 +168,13 @@ class OplogListEntriesTests(TestCase):
         self.assertContains(response, "It does not overwrite existing or copied entries")
         self.assertNotContains(response, "data-user-id=")
 
+    def test_view_exposes_active_time_zone(self):
+        with timezone.override("America/Los_Angeles"):
+            response = self.client_mgr.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'data-time-zone="America/Los_Angeles"')
+
     def test_view_displays_last_sanitization(self):
         OplogSanitization.objects.create(
             oplog=self.oplog,

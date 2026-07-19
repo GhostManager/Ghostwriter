@@ -1,4 +1,22 @@
 /* JavaScript specific to the log entry view page goes here. */
+function formatOplogDateTimeForInput(date, timeZone) {
+    const parts = {};
+    const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: timeZone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hourCycle: 'h23',
+    });
+    formatter.formatToParts(date).forEach(part => {
+        if (part.type !== 'literal') parts[part.type] = part.value;
+    });
+    return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}`;
+}
+
 $(document).ready(function () {
     const $splitContainer = $('.oplog-split-container');
     const $listPane = $('#oplogListPane');
@@ -31,6 +49,7 @@ $(document).ready(function () {
 
     const oplog_name = $splitContainer.attr('data-oplog-name');
     const oplog_id = parseInt($splitContainer.attr('data-oplog-id'));
+    const oplogTimeZone = $splitContainer.attr('data-time-zone') || 'UTC';
 
     let socket = null;
     let allEntriesFetched = false;
@@ -1445,7 +1464,7 @@ $(document).ready(function () {
     });
 
     $(document).on('click', '.js-set-oplog-end-date-now', function () {
-        const currentDateTime = new Date().toISOString().slice(0, 19);
+        const currentDateTime = formatOplogDateTimeForInput(new Date(), oplogTimeZone);
         $(this).closest('.input-group').find('input[name="end_date"]').val(currentDateTime).trigger('change');
     });
 

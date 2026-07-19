@@ -1,9 +1,13 @@
 # Standard Libraries
 import logging
+from datetime import datetime
+from datetime import timezone as datetime_timezone
+from unittest.mock import patch
 
 # Django Imports
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
+from django.utils import timezone
 
 # Ghostwriter Libraries
 from ghostwriter.factories import (
@@ -124,6 +128,30 @@ class OplogEntryFormTests(TestCase):
         self.assertIn("no-auto-tinymce", form.fields["output"].widget.attrs["class"])
         self.assertNotIn("no-auto-tinymce", form.fields["description"].widget.attrs.get("class", ""))
         self.assertNotIn("no-auto-tinymce", form.fields["comments"].widget.attrs.get("class", ""))
+
+    @patch("ghostwriter.oplog.forms.timezone.now")
+    def test_datetime_initials_use_active_timezone(self, mock_now):
+        mock_now.return_value = datetime(
+            2026,
+            1,
+            15,
+            20,
+            30,
+            45,
+            tzinfo=datetime_timezone.utc,
+        )
+
+        with timezone.override("America/Los_Angeles"):
+            form = OplogEntryForm(oplog=self.oplog)
+
+            self.assertEqual(
+                form["start_date"].value().strftime("%Y-%m-%dT%H:%M:%S"),
+                "2026-01-15T12:30:45",
+            )
+            self.assertEqual(
+                form["end_date"].value().strftime("%Y-%m-%dT%H:%M:%S"),
+                "2026-01-15T12:30:45",
+            )
 
     def test_invalid_data(self):
         entry = OplogEntryFactory.create()

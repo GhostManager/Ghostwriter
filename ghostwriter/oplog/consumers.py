@@ -4,14 +4,13 @@
 import json
 import logging
 from copy import deepcopy
-from datetime import datetime
 from functools import reduce
 
 # Django Imports
 from django.db.models import TextField, Func, Subquery, OuterRef, Value, F
 from django.db.models.functions import Cast, Left
 from django.db.models.expressions import CombinedExpression
-from django.utils.timezone import make_aware
+from django.utils import timezone
 from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank, SearchVectorField
 
 # 3rd Party Libraries
@@ -116,8 +115,8 @@ def copy_oplog_entry(entry_id, user):
     if entry.oplog_id.project.user_can_edit(user):
         copy = deepcopy(entry)
         copy.pk = None
-        copy.start_date = make_aware(datetime.utcnow())
-        copy.end_date = make_aware(datetime.utcnow())
+        copy.start_date = timezone.now()
+        copy.end_date = timezone.now()
         copy.save()
         tags_to_copy = [
             t for t in entry.tags.all()

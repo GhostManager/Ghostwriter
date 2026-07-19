@@ -132,6 +132,7 @@
     <div class="oplog-split-container"
         data-oplog-name="{{ oplog.name }}"
         data-oplog-id="{{ oplog.id }}"
+        data-time-zone="{{ TIME_ZONE }}"
         data-oplog-export-url="{% url 'oplog:oplog_export' oplog.pk %}"
         data-csrf-token="{{ csrf_token }}"
         data-evidence-upload-base-url="/oplog/entry/"

@@ -2,15 +2,22 @@
 import json
 import logging
 from asgiref.sync import async_to_sync
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, patch
 
 # Django Imports
 from django.test import TestCase, TransactionTestCase
 
 # Ghostwriter Libraries
-from ghostwriter.factories import OplogFactory, ProjectAssignmentFactory, UserFactory
+from ghostwriter.factories import (
+    OplogEntryFactory,
+    OplogFactory,
+    ProjectAssignmentFactory,
+    UserFactory,
+)
 from ghostwriter.oplog.consumers import (
     OplogEntryConsumer,
+    copy_oplog_entry,
     create_oplog_entry,
     user_can_access_oplog,
 )
@@ -153,3 +160,15 @@ class OplogConsumerCreateTests(TransactionTestCase):
                 operator_name=self.other_user.username,
             ).exists()
         )
+
+    @patch("ghostwriter.oplog.consumers.timezone.now")
+    def test_copy_uses_current_instant(self, mock_now):
+        expected_now = datetime(2026, 1, 15, 20, 30, 45, tzinfo=timezone.utc)
+        mock_now.return_value = expected_now
+        entry = OplogEntryFactory(oplog_id=self.oplog)
+
+        async_to_sync(copy_oplog_entry)(entry.id, self.user)
+
+        copied_entry = OplogEntry.objects.filter(oplog_id=self.oplog).exclude(id=entry.id).get()
+        self.assertEqual(copied_entry.start_date, expected_now)
+        self.assertEqual(copied_entry.end_date, expected_now)
