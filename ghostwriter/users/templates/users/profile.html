@@ -195,7 +195,7 @@
                     </td>
                     <td>
                       <div class="btn-group" role="group" aria-label="API token actions">
-                        <a id="token-details-button-{{ key.id }}" class="btn btn-info btn-sm js-api-token-details js-token-details"
+                        <a id="token-details-button-{{ key.id }}" class="btn btn-info btn-sm token-action-button js-api-token-details js-token-details"
                            data-details-url="{% url 'api:ajax_token_details' key.id %}"
                            data-modal-selector="#api-token-details-modal"
                            data-content-selector="#api-token-details-modal-content"
@@ -206,7 +206,7 @@
                            href="javascript:void(0);">
                           Details
                         </a>
-                        <a id="token-expiry-button-{{ key.id }}" class="btn btn-secondary btn-sm js-edit-token-expiry" data-toggle="modal"
+                        <a id="token-expiry-button-{{ key.id }}" class="btn btn-secondary btn-sm token-action-button js-edit-token-expiry" data-toggle="modal"
                            data-target="#edit-token-expiry-modal" href="javascript:void(0);"
                            data-expiry-target-url="{% url 'api:update_token_expiry' key.id %}"
                            data-expiry-target-preview="{{ key.name }}"
@@ -219,13 +219,13 @@
                           {% csrf_token %}
                           {% if key.has_expired %}
                             <span class="d-flex" data-toggle="tooltip" tabindex="0" title="Extend expiry before regenerating this token.">
-                              <button id="token-regenerate-button-{{ key.id }}" class="btn btn-primary btn-sm rounded-0 h-100" type="submit" disabled>Regenerate</button>
+                              <button id="token-regenerate-button-{{ key.id }}" class="btn btn-primary btn-sm rounded-0 h-100 token-action-button" type="submit" disabled>Regenerate</button>
                             </span>
                           {% else %}
-                            <button id="token-regenerate-button-{{ key.id }}" class="btn btn-primary btn-sm rounded-0 h-100" type="submit">Regenerate</button>
+                            <button id="token-regenerate-button-{{ key.id }}" class="btn btn-primary btn-sm rounded-0 h-100 token-action-button" type="submit">Regenerate</button>
                           {% endif %}
                         </form>
-                        <a id="token-revoke-button-{{ key.id }}" class="btn btn-danger btn-sm js-confirm-revoke" data-toggle="modal"
+                        <a id="token-revoke-button-{{ key.id }}" class="btn btn-danger btn-sm token-action-button js-confirm-revoke" data-toggle="modal"
                            data-target="#confirm-revoke-modal" href="javascript:void(0);"
                            data-revoke-target-csrftoken="{{ csrf_token }}" data-revoke-target-url="{% url 'api:ajax_revoke_token' key.id %}"
                            data-revoke-target-id="{{ key.id }}" data-revoke-target-preview="{{ key.name }}">
@@ -282,7 +282,7 @@
                   </td>
                   <td>
                     <div class="btn-group" role="group" aria-label="Service token actions">
-                      <a id="service-token-details-button-{{ key.id }}" class="btn btn-info btn-sm js-service-token-details js-token-details"
+                      <a id="service-token-details-button-{{ key.id }}" class="btn btn-info btn-sm token-action-button js-service-token-details js-token-details"
                          data-details-url="{% url 'api:ajax_service_token_details' key.id %}"
                          data-modal-selector="#service-token-details-modal"
                          data-content-selector="#service-token-details-modal-content"
@@ -293,7 +293,7 @@
                          href="javascript:void(0);">
                         Details
                       </a>
-                      <a id="service-token-expiry-button-{{ key.id }}" class="btn btn-secondary btn-sm js-edit-token-expiry" data-toggle="modal"
+                      <a id="service-token-expiry-button-{{ key.id }}" class="btn btn-secondary btn-sm token-action-button js-edit-token-expiry" data-toggle="modal"
                          data-target="#edit-token-expiry-modal" href="javascript:void(0);"
                          data-expiry-target-url="{% url 'api:update_service_token_expiry' key.id %}"
                          data-expiry-target-preview="{{ key.name }}"
@@ -306,13 +306,13 @@
                         {% csrf_token %}
                         {% if key.has_expired %}
                           <span class="d-flex" data-toggle="tooltip" tabindex="0" title="Extend expiry before regenerating this token.">
-                            <button id="service-token-regenerate-button-{{ key.id }}" class="btn btn-primary btn-sm rounded-0 h-100" type="submit" disabled>Regenerate</button>
+                            <button id="service-token-regenerate-button-{{ key.id }}" class="btn btn-primary btn-sm rounded-0 h-100 token-action-button" type="submit" disabled>Regenerate</button>
                           </span>
                         {% else %}
-                          <button id="service-token-regenerate-button-{{ key.id }}" class="btn btn-primary btn-sm rounded-0 h-100" type="submit">Regenerate</button>
+                          <button id="service-token-regenerate-button-{{ key.id }}" class="btn btn-primary btn-sm rounded-0 h-100 token-action-button" type="submit">Regenerate</button>
                         {% endif %}
                       </form>
-                      <a id="service-token-revoke-button-{{ key.id }}" class="btn btn-danger btn-sm js-confirm-revoke" data-toggle="modal"
+                      <a id="service-token-revoke-button-{{ key.id }}" class="btn btn-danger btn-sm token-action-button js-confirm-revoke" data-toggle="modal"
                          data-target="#confirm-revoke-modal" href="javascript:void(0);"
                          data-revoke-target-csrftoken="{{ csrf_token }}" data-revoke-target-url="{% url 'api:ajax_revoke_service_token' key.id %}"
                          data-revoke-target-id="{{ key.id }}" data-revoke-target-preview="{{ key.name }}">

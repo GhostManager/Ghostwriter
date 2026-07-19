@@ -62,6 +62,7 @@ EXPECTED_SERVICE_ACTIONS = {
     "report_by_tag",
     "reportedFinding_by_tag",
     "reportedObservation_by_tag",
+    "setTags",
     "tags",
 }
 

@@ -264,6 +264,7 @@ actions:
         - name: Hasura-Action-Secret
           value_from_env: HASURA_ACTION_SECRET
     permissions:
+      - role: service
       - role: user
       - role: manager
     comment: Set Tags

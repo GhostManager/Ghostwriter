@@ -156,6 +156,25 @@ class OplogListEntriesTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "oplog/oplog_detail.html")
 
+    def test_view_includes_default_source_control(self):
+        response = self.client_mgr.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="defaultSourceInput"')
+        self.assertContains(response, 'id="clearDefaultSourceBtn"')
+        self.assertContains(response, "Default source IP or hostname for new entries")
+        self.assertContains(response, "Cleared when the page reloads or closes.")
+        self.assertContains(response, "It is not stored or carried to another log")
+        self.assertContains(response, "It does not overwrite existing or copied entries")
+        self.assertNotContains(response, "data-user-id=")
+
+    def test_view_exposes_active_time_zone(self):
+        with timezone.override("America/Los_Angeles"):
+            response = self.client_mgr.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'data-time-zone="America/Los_Angeles"')
+
     def test_view_displays_last_sanitization(self):
         OplogSanitization.objects.create(
             oplog=self.oplog,
@@ -773,6 +792,15 @@ class OplogEntryUpdateViewTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "oplog/snippets/oplogentry_form_inner.html")
+
+    def test_ajax_form_includes_end_date_now_button(self):
+        response = self.client_mgr.get(
+            self.uri, **{"HTTP_X_REQUESTED_WITH": "XMLHttpRequest"}
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "js-set-oplog-end-date-now")
+        self.assertContains(response, "Set end date and time to now")
 
 
 class OplogExportViewTests(TestCase):

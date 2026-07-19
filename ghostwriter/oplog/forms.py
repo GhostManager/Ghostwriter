@@ -1,23 +1,21 @@
 """This contains all the forms used by the Oplog application."""
 
-# Standard Libraries
-from datetime import datetime
-
 # Django Imports
 from django import forms
 from django.urls import reverse
-from django.utils.timezone import make_aware
+from django.utils import timezone
 
 # 3rd Party Libraries
+from crispy_forms.bootstrap import FieldWithButtons, StrictButton
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import HTML, ButtonHolder, Column, Field, Layout, Row, Submit
 
 # Ghostwriter Libraries
 from ghostwriter.api.utils import get_project_list
+from ghostwriter.commandcenter.forms import ExtraFieldsField
 from ghostwriter.oplog.models import Oplog, OplogEntry
 from ghostwriter.reporting.models import Evidence, Report
 from ghostwriter.rolodex.models import Project
-from ghostwriter.commandcenter.forms import ExtraFieldsField
 
 
 class OplogForm(forms.ModelForm):
@@ -106,11 +104,11 @@ class OplogEntryForm(forms.ModelForm):
         self.fields["tags"].widget.attrs["placeholder"] = "att&ck:T1059, att&ck:T1078, att&ck:T1086, objective:1, ..."
 
         self.fields["start_date"].widget.input_type = "datetime-local"
-        self.fields["start_date"].initial = make_aware(datetime.utcnow())
+        self.fields["start_date"].initial = timezone.now()
         self.fields["start_date"].label = "Start Date & Time"
         self.fields["start_date"].help_text = "Date and time the action started"
         self.fields["end_date"].widget.input_type = "datetime-local"
-        self.fields["end_date"].initial = make_aware(datetime.utcnow())
+        self.fields["end_date"].initial = timezone.now()
         self.fields["end_date"].label = "End Date & Time"
         self.fields["end_date"].help_text = "Date and time the action completed or halted"
         self.fields["extra_fields"].label = ""
@@ -146,7 +144,17 @@ class OplogEntryForm(forms.ModelForm):
         self.helper.layout = Layout(
             Row(
                 Column(Field("start_date", step=1), css_class="form-group col-6 mb-0"),
-                Column(Field("end_date", step=1), css_class="form-group col-6 mb-0"),
+                Column(
+                    FieldWithButtons(
+                        Field("end_date", step=1),
+                        StrictButton(
+                            "Now",
+                            css_class="btn btn-secondary js-set-oplog-end-date-now",
+                            title="Set end date and time to now",
+                        ),
+                    ),
+                    css_class="form-group col-6 mb-0",
+                ),
                 css_class="form-row",
             ),
             Row(

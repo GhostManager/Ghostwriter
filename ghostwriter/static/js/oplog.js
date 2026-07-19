@@ -1,4 +1,22 @@
 /* JavaScript specific to the log entry view page goes here. */
+function formatOplogDateTimeForInput(date, timeZone) {
+    const parts = {};
+    const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: timeZone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hourCycle: 'h23',
+    });
+    formatter.formatToParts(date).forEach(part => {
+        if (part.type !== 'literal') parts[part.type] = part.value;
+    });
+    return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}`;
+}
+
 $(document).ready(function () {
     const $splitContainer = $('.oplog-split-container');
     const $listPane = $('#oplogListPane');
@@ -16,6 +34,9 @@ $(document).ready(function () {
     const $oplogTableNoEntries = $('#oplogTableNoEntries');
     const $oplogTableLoading = $('#oplogTableLoading');
     const $clearSearchBtn = $('#clearSearchBtn');
+    const $defaultSourceInput = $('#defaultSourceInput');
+    const $clearDefaultSourceBtn = $('#clearDefaultSourceBtn');
+    const $createEntryButton = $('#createNewEntryButton');
 
     // Track columns hidden by the user (overrides showByDefault: true)
     let hiddenLogTblColumns = JSON.parse(localStorage.getItem('hiddenLogTblColumns') || '[]');
@@ -28,13 +49,14 @@ $(document).ready(function () {
 
     const oplog_name = $splitContainer.attr('data-oplog-name');
     const oplog_id = parseInt($splitContainer.attr('data-oplog-id'));
+    const oplogTimeZone = $splitContainer.attr('data-time-zone') || 'UTC';
 
     let socket = null;
     let allEntriesFetched = false;
     let errorDisplayed = false;
     let pendingOperation = null;
     let selectedEntryId = null;
-    let pendingAutoSelectCreate = false;
+    let pendingCreateModalRequestId = null;
 
     // Prevent deselecting the entry when a modal is open or in the process of closing.
     // Bootstrap closes non-fade modals synchronously, so hidden.bs.modal fires before our
@@ -641,10 +663,34 @@ $(document).ready(function () {
     window.deselectEntry = deselectEntry;
 
     // --- Global actions ---
+    function generateCreateRequestId() {
+        if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+            return window.crypto.randomUUID();
+        }
+        return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    }
+
+    function clearPendingCreate() {
+        pendingCreateModalRequestId = null;
+        $createEntryButton.removeClass('disabled').attr('aria-disabled', 'false');
+    }
+
     window.createEntry = function (id) {
-        pendingAutoSelectCreate = true;
-        socket.send(JSON.stringify({ action: 'create', oplog_id: id }));
-        displayToastTop({ type: 'success', string: 'Successfully added a log entry.', title: 'Oplog Update' });
+        if (pendingCreateModalRequestId !== null) return;
+
+        pendingCreateModalRequestId = generateCreateRequestId();
+        $createEntryButton.addClass('disabled').attr('aria-disabled', 'true');
+        try {
+            socket.send(JSON.stringify({
+                action: 'create',
+                oplog_id: id,
+                modal_request_id: pendingCreateModalRequestId,
+            }));
+        } catch (error) {
+            clearPendingCreate();
+            displayToastTop({ type: 'error', string: 'Could not create a log entry.', title: 'Oplog Update' });
+            console.error('[!] Failed to send create request: ', error);
+        }
     };
 
     window.deleteEntry = function ($ele) {
@@ -659,12 +705,17 @@ $(document).ready(function () {
         displayToastTop({ type: 'success', string: 'Successfully cloned a log entry.', title: 'Oplog Update' });
     };
 
-    window.editEntry = function (entryId) {
+    window.editEntry = function (entryId, applyDefaultSource = false) {
         let safeId = sanitizeEntryId(entryId);
         if (safeId === null) return;
         let url = window.location.origin + '/oplog/entry/update/' + safeId;
         $('.oplog-form-div').load(url, function () {
             const $editModal = $('#edit-modal');
+            const defaultSource = String($defaultSourceInput.val() || '').trim();
+            const $sourceField = $editModal.find('input[name="source_ip"]');
+            if (applyDefaultSource && defaultSource && !$sourceField.val()) {
+                $sourceField.val(defaultSource).trigger('change');
+            }
             $editModal.find('.modal-body').scrollTop(0);
             $editModal.modal('show');
             formAjaxSubmit('#oplog-entry-form', '#edit-modal');
@@ -1076,14 +1127,29 @@ $(document).ready(function () {
                     let firstId = $tableBody.find('tr').first().data('entry-id');
                     selectEntry(firstId);
                 }
+            } else if (message.action === 'create_modal_ack') {
+                if (message.modal_request_id !== pendingCreateModalRequestId) return;
+
+                clearPendingCreate();
+                if (!message.entry_id) {
+                    displayToastTop({ type: 'error', string: 'Could not create a log entry.', title: 'Oplog Update' });
+                    return;
+                }
+
+                if ($(`#entry-${message.entry_id}`).length > 0) {
+                    selectEntry(message.entry_id);
+                }
+                editEntry(message.entry_id, true);
+                displayToastTop({ type: 'success', string: 'Successfully added a log entry.', title: 'Oplog Update' });
             } else if (message.action === 'create') {
+                let entry = message.data;
+                let entryId = entry.id;
+
                 if ($searchInput.val() !== '') {
                     fetch(true);
                     return;
                 }
 
-                let entry = message.data;
-                let entryId = entry.id;
                 entryDataStore[entryId] = entry;
 
                 let $existing = $(`#entry-${entryId}`);
@@ -1106,12 +1172,7 @@ $(document).ready(function () {
                     $newRow.hide();
                     hideColumns();
                     $table.trigger('update', [true]);
-                    $newRow.fadeIn(400, function () {
-                        if (pendingAutoSelectCreate) {
-                            pendingAutoSelectCreate = false;
-                            selectEntry(entryId);
-                        }
-                    });
+                    $newRow.fadeIn(400);
                 }
                 updatePlaceholder();
             } else if (message.action === 'fetch_entry') {
@@ -1155,6 +1216,7 @@ $(document).ready(function () {
         };
 
         socket.onclose = function () {
+            clearPendingCreate();
             $connectionStatus.html('Disconnected');
             $connectionStatus.removeClass('connected').addClass('disconnected');
             if (!errorDisplayed) {
@@ -1401,6 +1463,11 @@ $(document).ready(function () {
         }
     });
 
+    $(document).on('click', '.js-set-oplog-end-date-now', function () {
+        const currentDateTime = formatOplogDateTimeForInput(new Date(), oplogTimeZone);
+        $(this).closest('.input-group').find('input[name="end_date"]').val(currentDateTime).trigger('change');
+    });
+
     $('#evidence-modal').on('hide.bs.modal', function () {
         $(this).find('.oplog-evidence-form-div').html('');
         $(this).removeData('pending-file');
@@ -1446,6 +1513,10 @@ $(document).ready(function () {
     $clearSearchBtn.click(function () {
         $searchInput.val('');
         fetch(true);
+    });
+
+    $clearDefaultSourceBtn.click(function () {
+        $defaultSourceInput.val('').focus();
     });
 
     // --- Mute toggle ---

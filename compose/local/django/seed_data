@@ -1,6 +1,11 @@
 #!/bin/ash
 
-JSON_FILES=$(find /app/ghostwriter -mindepth 2 -type d -name fixtures -exec find {} -type f -iname "*.json" \;)
+set -eu
+
+# Only initial.json files contain the application records that must be seeded during
+# a normal install or upgrade. Other JSON files under fixtures may be demo or test
+# data and must only be loaded by their dedicated management commands.
+JSON_FILES=$(find /app/ghostwriter -mindepth 2 -type d -name fixtures -exec find {} -type f -name "initial.json" \;)
 
 for json in $JSON_FILES
 do

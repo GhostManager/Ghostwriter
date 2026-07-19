@@ -5224,9 +5224,12 @@ class GetTagsTest(TestCase):
             headers["Authorization"] = f"Bearer {token}"
         return headers
 
-    def data(self, hasura_role="user"):
+    def data(self, hasura_role="user", model=None, object_id=None):
         return {
-            "input": {"model": "report_finding_link", "id": self.report_finding.id},
+            "input": {
+                "model": model or "report_finding_link",
+                "id": object_id or self.report_finding.id,
+            },
             "session_variables": {"x-hasura-role": hasura_role},
         }
 
@@ -5282,6 +5285,79 @@ class GetTagsTest(TestCase):
         body = response.json()
         self.assertEqual(set(body["tags"]), self.tags)
 
+    def test_get_report_finding_tags_rejects_other_project_service_token(self):
+        other_project = ProjectFactory()
+        token = create_project_read_service_token(self.user, other_project)
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers={
+                "Hasura-Action-Secret": ACTION_SECRET,
+                "Authorization": f"Bearer {token}",
+            },
+            data=self.data("service"),
+        )
+
+        self.assertEquals(response.status_code, 404, response.content)
+        self.assertNotIn("tags", response.json())
+
+    def test_get_oplog_entry_tags_allowed_read_only_oplog_service_token(self):
+        entry = OplogEntryFactory(tags=list(self.tags))
+        token = create_oplog_read_service_token(self.user, entry.oplog_id)
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers={
+                "Hasura-Action-Secret": ACTION_SECRET,
+                "Authorization": f"Bearer {token}",
+            },
+            data=self.data(
+                "service",
+                model="oplog_entry",
+                object_id=entry.id,
+            ),
+        )
+
+        self.assertEquals(response.status_code, 200, response.content)
+        self.assertEqual(set(response.json()["tags"]), self.tags)
+
+    def test_get_oplog_entry_tags_rejects_other_oplog_service_token(self):
+        entry = OplogEntryFactory(tags=list(self.tags))
+        other_entry = OplogEntryFactory()
+        token = create_oplog_read_service_token(self.user, other_entry.oplog_id)
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers={
+                "Hasura-Action-Secret": ACTION_SECRET,
+                "Authorization": f"Bearer {token}",
+            },
+            data=self.data(
+                "service",
+                model="oplog_entry",
+                object_id=entry.id,
+            ),
+        )
+
+        missing_response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers={
+                "Hasura-Action-Secret": ACTION_SECRET,
+                "Authorization": f"Bearer {token}",
+            },
+            data=self.data(
+                "service",
+                model="oplog_entry",
+                object_id=999999999,
+            ),
+        )
+
+        self.assertEquals(response.status_code, 404, response.content)
+        self.assertEquals(missing_response.status_code, 404, missing_response.content)
+        self.assertEqual(response.json(), missing_response.json())
+        self.assertNotIn("tags", response.json())
+
 
 class SetTagsTest(TestCase):
     @classmethod
@@ -5304,11 +5380,11 @@ class SetTagsTest(TestCase):
             headers["Authorization"] = f"Bearer {token}"
         return headers
 
-    def data(self, tags, hasura_role="user"):
+    def data(self, tags, hasura_role="user", model=None, object_id=None):
         v = {
             "input": {
-                "model": "report_finding_link",
-                "id": self.report_finding.id,
+                "model": model or "report_finding_link",
+                "id": object_id or self.report_finding.id,
                 "tags": list(tags),
             },
             "session_variables": {"x-hasura-role": hasura_role},
@@ -5349,6 +5425,90 @@ class SetTagsTest(TestCase):
         self.assertEquals(response.status_code, 200)
         self.report_finding.refresh_from_db()
         self.assertEqual(set(self.report_finding.tags.names()), self.tags)
+
+    def test_set_oplog_entry_tags_allowed_oplog_service_token(self):
+        entry = OplogEntryFactory()
+        token = create_oplog_rw_service_token(self.user, entry.oplog_id)
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers={
+                "Hasura-Action-Secret": ACTION_SECRET,
+                "Authorization": f"Bearer {token}",
+            },
+            data=self.data(
+                self.tags,
+                "service",
+                model="oplog_entry",
+                object_id=entry.id,
+            ),
+        )
+
+        self.assertEquals(response.status_code, 200, response.content)
+        entry.refresh_from_db()
+        self.assertEqual(set(entry.tags.names()), self.tags)
+
+    def test_set_oplog_entry_tags_rejects_read_only_service_token(self):
+        entry = OplogEntryFactory()
+        token = create_oplog_read_service_token(self.user, entry.oplog_id)
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers={
+                "Hasura-Action-Secret": ACTION_SECRET,
+                "Authorization": f"Bearer {token}",
+            },
+            data=self.data(
+                self.tags,
+                "service",
+                model="oplog_entry",
+                object_id=entry.id,
+            ),
+        )
+
+        self.assertEquals(response.status_code, 403, response.content)
+        entry.refresh_from_db()
+        self.assertEqual(set(entry.tags.names()), set())
+
+    def test_set_oplog_entry_tags_rejects_other_oplog_service_token(self):
+        entry = OplogEntryFactory()
+        other_entry = OplogEntryFactory()
+        token = create_oplog_rw_service_token(self.user, other_entry.oplog_id)
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers={
+                "Hasura-Action-Secret": ACTION_SECRET,
+                "Authorization": f"Bearer {token}",
+            },
+            data=self.data(
+                self.tags,
+                "service",
+                model="oplog_entry",
+                object_id=entry.id,
+            ),
+        )
+
+        missing_response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers={
+                "Hasura-Action-Secret": ACTION_SECRET,
+                "Authorization": f"Bearer {token}",
+            },
+            data=self.data(
+                self.tags,
+                "service",
+                model="oplog_entry",
+                object_id=999999999,
+            ),
+        )
+
+        self.assertEquals(response.status_code, 404, response.content)
+        self.assertEquals(missing_response.status_code, 404, missing_response.content)
+        self.assertEqual(response.json(), missing_response.json())
+        entry.refresh_from_db()
+        self.assertEqual(set(entry.tags.names()), set())
 
 
 class ObjectsByTagTests(TestCase):
