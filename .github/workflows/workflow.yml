@@ -46,6 +46,7 @@ jobs:
 
       - name: Generate coverage report
         run: |
+          mkdir -p coverage/reports
           docker compose -f ci.yml run --rm django coverage run manage.py test --exclude-tag=GitHub
           docker compose -f ci.yml run --rm django coverage xml -o coverage/reports/coverage.xml
 
@@ -70,7 +71,19 @@ jobs:
           name: coverage-report
           path: coverage/reports/coverage.xml
 
+      - name: Check Codecov token availability
+        id: codecov
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        run: |
+          if [[ -n "$CODECOV_TOKEN" ]]; then
+            echo "token_available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "token_available=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Upload coverage report to Codecov
+        if: steps.codecov.outputs.token_available == 'true'
         uses: codecov/codecov-action@v6
         with:
           token: ${{ secrets.CODECOV_TOKEN }}

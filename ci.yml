@@ -13,6 +13,7 @@ services:
       - .:/app
     environment:
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/ghostwriter
+      DJANGO_ACCOUNT_EMAIL_VERIFICATION: none
       DJANGO_SETTINGS_MODULE: config.settings.test
       HASURA_ACTION_SECRET: ci-action-secret
       POSTGRES_DB: ghostwriter
