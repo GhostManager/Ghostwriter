@@ -711,7 +711,7 @@ $(document).ready(function () {
         let url = window.location.origin + '/oplog/entry/update/' + safeId;
         $('.oplog-form-div').load(url, function () {
             const $editModal = $('#edit-modal');
-            const defaultSource = $defaultSourceInput.val().trim();
+            const defaultSource = String($defaultSourceInput.val() || '').trim();
             const $sourceField = $editModal.find('input[name="source_ip"]');
             if (applyDefaultSource && defaultSource && !$sourceField.val()) {
                 $sourceField.val(defaultSource).trigger('change');
