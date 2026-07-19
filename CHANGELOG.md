@@ -22,12 +22,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 * The oplog entry edit form will now open automatically when you create a new entry
+* Made oplog datetime values consistent with the server's timezone
+  * Ghostwriter defaults to UTC for the server
+  * New entries always started with the _Start Date & Time_ set to "now" in UTC (regardless of the server timezone)
+  * The datetime values are always stored in the database as UTC
+  * Now, the oplog is aware of the server's timezone and will use it for datetime entry
 
 ### Fixed
 
 * Fixed `loaddata` trying to also load the demo BloodHound JSON during a build
   * This caused an error that could be confused as a build failure
   * `loaddata` now only loads `initial.json`
+
+### Security
+
+* Updated the Hasura GraphQL container image to v2.45.6 to take advantage of bug and security fixes
 
 ## [7.2.2] - 17 July 2026
 
