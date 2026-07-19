@@ -1413,6 +1413,11 @@ $(document).ready(function () {
         }
     });
 
+    $(document).on('click', '.js-set-oplog-end-date-now', function () {
+        const currentDateTime = new Date().toISOString().slice(0, 19);
+        $(this).closest('.input-group').find('input[name="end_date"]').val(currentDateTime).trigger('change');
+    });
+
     $('#evidence-modal').on('hide.bs.modal', function () {
         $(this).find('.oplog-evidence-form-div').html('');
         $(this).removeData('pending-file');

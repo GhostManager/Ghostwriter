@@ -774,6 +774,15 @@ class OplogEntryUpdateViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "oplog/snippets/oplogentry_form_inner.html")
 
+    def test_ajax_form_includes_end_date_now_button(self):
+        response = self.client_mgr.get(
+            self.uri, **{"HTTP_X_REQUESTED_WITH": "XMLHttpRequest"}
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "js-set-oplog-end-date-now")
+        self.assertContains(response, "Set end date and time to now")
+
 
 class OplogExportViewTests(TestCase):
     """Collection of tests for :view:`oplog.OplogExport`."""

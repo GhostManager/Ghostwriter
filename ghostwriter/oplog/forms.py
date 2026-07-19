@@ -9,6 +9,7 @@ from django.urls import reverse
 from django.utils.timezone import make_aware
 
 # 3rd Party Libraries
+from crispy_forms.bootstrap import FieldWithButtons, StrictButton
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import HTML, ButtonHolder, Column, Field, Layout, Row, Submit
 
@@ -146,7 +147,17 @@ class OplogEntryForm(forms.ModelForm):
         self.helper.layout = Layout(
             Row(
                 Column(Field("start_date", step=1), css_class="form-group col-6 mb-0"),
-                Column(Field("end_date", step=1), css_class="form-group col-6 mb-0"),
+                Column(
+                    FieldWithButtons(
+                        Field("end_date", step=1),
+                        StrictButton(
+                            "Now",
+                            css_class="btn btn-secondary js-set-oplog-end-date-now",
+                            title="Set end date and time to now",
+                        ),
+                    ),
+                    css_class="form-group col-6 mb-0",
+                ),
                 css_class="form-row",
             ),
             Row(
