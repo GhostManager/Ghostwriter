@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [7.2.3] - 18 July 2026
+
+### Added
+
+* Added a _Now_ button to the _End Date_ field in the oplog entry form
+  * This button sets the field to the current date and time
+  * Useful for editing the end date of an action after a command finishes
+* Added a _Default Source_ field to logs
+  * Whatever string you set here will be set as the source IP/hostname for any new log entries
+  * Useful if you are manually logging multiple activities from the same system
+  * This is an experiment; if it is useful, we will explore this for other fields
+
+### Changed
+
+* The oplog entry edit form will now open automatically when you create a new entry
+
+### Fixed
+
+* Fixed `loaddata` trying to also load the demo BloodHound JSON during a build
+  * This caused an error that could be confused as a build failure
+  * `loaddata` now only loads `initial.json`
+
 ## [7.2.2] - 17 July 2026
 
 ### Added
