@@ -1,0 +1,115 @@
+name: Test CLI Installation
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 8 * * *"
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - "**.md"
+      - "**.mdx"
+      - "**.html"
+      - "**.css"
+      - "DOCS/**"
+  pull_request:
+    branches:
+      - master
+    paths:
+      - ".github/workflows/cli-install.yml"
+      - "ghostwriter-cli-*"
+      - "local.yml"
+      - "compose/**"
+      - "requirements/**"
+      - "config/settings/**"
+      - "ghostwriter/**/migrations/**"
+      - "javascript/package.json"
+      - "javascript/package-lock.json"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cli-install-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  install-smoke-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source code
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Prime Django image cache
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./compose/local/django/Dockerfile
+          load: true
+          tags: ghostwriter_local_django:latest
+          cache-from: type=gha,scope=local-django
+          cache-to: type=gha,mode=max,scope=local-django
+
+      - name: Install local development environment
+        run: |
+          chmod +x ghostwriter-cli-linux
+          ./ghostwriter-cli-linux install --mode local-dev
+
+      - name: Smoke test installation
+        run: |
+          expected_services="$(docker compose -f local.yml config --services | sort)"
+          for attempt in {1..60}; do
+            running_services="$(docker compose -f local.yml ps --services --status running | sort)"
+            if [[ "$running_services" == "$expected_services" ]]; then
+              break
+            fi
+            if [[ "$attempt" == "60" ]]; then
+              echo "Expected services:"
+              echo "$expected_services"
+              echo "Running services:"
+              echo "$running_services"
+              exit 1
+            fi
+            sleep 2
+          done
+          docker compose -f local.yml ps
+          curl --fail --show-error --silent --retry 60 --retry-all-errors --retry-delay 2 http://localhost:8000/status/simple/
+
+      - name: Run full test suite
+        if: github.event_name != 'pull_request'
+        run: |
+          docker compose -f local.yml run --rm django coverage run manage.py test --exclude-tag=GitHub
+          docker compose -f local.yml run --rm django coverage xml -o coverage/reports/coverage.xml
+
+      - name: Upload coverage report artifact
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-report
+          path: coverage/reports/coverage.xml
+
+      - name: Upload coverage report to Codecov
+        if: github.event_name != 'pull_request'
+        uses: codecov/codecov-action@v6
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          name: codecov-ghostwriter
+          fail_ci_if_error: true
+          verbose: true
+
+      - name: Collect service logs
+        if: failure()
+        run: docker compose -f local.yml logs --no-color > cli-install-logs.txt
+
+      - name: Upload service logs artifact
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: cli-install-service-logs
+          path: cli-install-logs.txt
