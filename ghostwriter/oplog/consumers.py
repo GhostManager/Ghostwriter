@@ -63,17 +63,26 @@ def create_oplog_entry(oplog_id, user):
     try:
         oplog = Oplog.objects.get(pk=oplog_id)
     except Oplog.DoesNotExist:
-        logger.warning("Failed to create log entry for log ID %s because that log ID does not exist.", oplog_id)
+        logger.warning(
+            "Failed to create log entry for log ID %s because that log ID does not exist.",
+            oplog_id,
+        )
         return
 
     if oplog.project.user_can_edit(user):
-        OplogEntry.objects.create(
-            oplog_id_id=oplog_id, operator_name=user.username, extra_fields=ExtraFieldSpec.initial_json(OplogEntry)
+        entry = OplogEntry.objects.create(
+            oplog_id_id=oplog_id,
+            operator_name=user.username,
+            extra_fields=ExtraFieldSpec.initial_json(OplogEntry),
         )
-    else:
-        logger.warning(
-            "User %s attempted to create a log entry for log ID %s without permission.", user.username, oplog_id
-        )
+        return entry.id
+
+    logger.warning(
+        "User %s attempted to create a log entry for log ID %s without permission.",
+        user.username,
+        oplog_id,
+    )
+    return None
 
 
 @database_sync_to_async
@@ -269,7 +278,20 @@ class OplogEntryConsumer(AsyncWebsocketConsumer):
             await copy_oplog_entry(oplog_entry_id, user)
 
         if json_data["action"] == "create":
-            await create_oplog_entry(json_data["oplog_id"], self.scope["user"])
+            modal_request_id = json_data.get("modal_request_id")
+            if not isinstance(modal_request_id, str):
+                modal_request_id = None
+            entry_id = await create_oplog_entry(json_data["oplog_id"], self.scope["user"])
+            if modal_request_id is not None:
+                await self.send(
+                    text_data=json.dumps(
+                        {
+                            "action": "create_modal_ack",
+                            "modal_request_id": modal_request_id,
+                            "entry_id": entry_id,
+                        }
+                    )
+                )
 
         if json_data["action"] == "sync":
             oplog_id = json_data["oplog_id"]

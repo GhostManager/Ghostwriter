@@ -18,6 +18,7 @@ $(document).ready(function () {
     const $clearSearchBtn = $('#clearSearchBtn');
     const $defaultSourceInput = $('#defaultSourceInput');
     const $clearDefaultSourceBtn = $('#clearDefaultSourceBtn');
+    const $createEntryButton = $('#createNewEntryButton');
 
     // Track columns hidden by the user (overrides showByDefault: true)
     let hiddenLogTblColumns = JSON.parse(localStorage.getItem('hiddenLogTblColumns') || '[]');
@@ -36,7 +37,7 @@ $(document).ready(function () {
     let errorDisplayed = false;
     let pendingOperation = null;
     let selectedEntryId = null;
-    let pendingAutoEditCreate = false;
+    let pendingCreateModalRequestId = null;
 
     // Prevent deselecting the entry when a modal is open or in the process of closing.
     // Bootstrap closes non-fade modals synchronously, so hidden.bs.modal fires before our
@@ -643,10 +644,34 @@ $(document).ready(function () {
     window.deselectEntry = deselectEntry;
 
     // --- Global actions ---
+    function generateCreateRequestId() {
+        if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+            return window.crypto.randomUUID();
+        }
+        return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    }
+
+    function clearPendingCreate() {
+        pendingCreateModalRequestId = null;
+        $createEntryButton.removeClass('disabled').attr('aria-disabled', 'false');
+    }
+
     window.createEntry = function (id) {
-        pendingAutoEditCreate = true;
-        socket.send(JSON.stringify({ action: 'create', oplog_id: id }));
-        displayToastTop({ type: 'success', string: 'Successfully added a log entry.', title: 'Oplog Update' });
+        if (pendingCreateModalRequestId !== null) return;
+
+        pendingCreateModalRequestId = generateCreateRequestId();
+        $createEntryButton.addClass('disabled').attr('aria-disabled', 'true');
+        try {
+            socket.send(JSON.stringify({
+                action: 'create',
+                oplog_id: id,
+                modal_request_id: pendingCreateModalRequestId,
+            }));
+        } catch (error) {
+            clearPendingCreate();
+            displayToastTop({ type: 'error', string: 'Could not create a log entry.', title: 'Oplog Update' });
+            console.error('[!] Failed to send create request: ', error);
+        }
     };
 
     window.deleteEntry = function ($ele) {
@@ -1083,19 +1108,26 @@ $(document).ready(function () {
                     let firstId = $tableBody.find('tr').first().data('entry-id');
                     selectEntry(firstId);
                 }
+            } else if (message.action === 'create_modal_ack') {
+                if (message.modal_request_id !== pendingCreateModalRequestId) return;
+
+                clearPendingCreate();
+                if (!message.entry_id) {
+                    displayToastTop({ type: 'error', string: 'Could not create a log entry.', title: 'Oplog Update' });
+                    return;
+                }
+
+                if ($(`#entry-${message.entry_id}`).length > 0) {
+                    selectEntry(message.entry_id);
+                }
+                editEntry(message.entry_id, true);
+                displayToastTop({ type: 'success', string: 'Successfully added a log entry.', title: 'Oplog Update' });
             } else if (message.action === 'create') {
                 let entry = message.data;
                 let entryId = entry.id;
-                let shouldAutoEdit = pendingAutoEditCreate;
-                if (shouldAutoEdit) {
-                    pendingAutoEditCreate = false;
-                }
 
                 if ($searchInput.val() !== '') {
                     fetch(true);
-                    if (shouldAutoEdit) {
-                        editEntry(entryId, true);
-                    }
                     return;
                 }
 
@@ -1112,10 +1144,6 @@ $(document).ready(function () {
                     if (selectedEntryId === entryId) {
                         renderDetail(entry);
                     }
-                    if (shouldAutoEdit) {
-                        selectEntry(entryId);
-                        editEntry(entryId, true);
-                    }
                 } else {
                     // New entry: prepend to DOM first, then rebuild the tablesorter
                     // cache from DOM order so the row stays at the top when no sort
@@ -1125,12 +1153,7 @@ $(document).ready(function () {
                     $newRow.hide();
                     hideColumns();
                     $table.trigger('update', [true]);
-                    $newRow.fadeIn(400, function () {
-                        if (shouldAutoEdit) {
-                            selectEntry(entryId);
-                            editEntry(entryId, true);
-                        }
-                    });
+                    $newRow.fadeIn(400);
                 }
                 updatePlaceholder();
             } else if (message.action === 'fetch_entry') {
@@ -1174,6 +1197,7 @@ $(document).ready(function () {
         };
 
         socket.onclose = function () {
+            clearPendingCreate();
             $connectionStatus.html('Disconnected');
             $connectionStatus.removeClass('connected').addClass('disconnected');
             if (!errorDisplayed) {
