@@ -1,6 +1,6 @@
 # Standard Libraries
 import logging
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone as datetime_timezone
 from io import StringIO
 from unittest.mock import patch
 from zoneinfo import ZoneInfo
@@ -59,21 +59,22 @@ class EditorShortcutsDateTests(TestCase):
         self.assertEqual(response.status_code, 302)
 
     @override_settings(DATE_FORMAT="Y/m/d")
-    @patch("ghostwriter.home.editor_shortcuts.timezone.localtime")
-    def test_view_returns_date_and_next_local_midnight(self, mock_localtime):
+    @patch("ghostwriter.home.editor_shortcuts.timezone.now")
+    def test_view_returns_date_and_next_utc_midnight(self, mock_now):
         local_timezone = ZoneInfo("America/Los_Angeles")
-        current_time = datetime(2026, 7, 21, 23, 59, 30, tzinfo=local_timezone)
-        mock_localtime.return_value = current_time
+        local_time = datetime(2026, 7, 21, 23, 59, 30, tzinfo=local_timezone)
+        current_time = local_time.astimezone(datetime_timezone.utc)
+        mock_now.return_value = local_time
 
         with timezone.override(local_timezone):
             response = self.client_auth.get(self.uri)
 
-        next_midnight = datetime(2026, 7, 22, tzinfo=local_timezone)
+        next_midnight = datetime(2026, 7, 23, tzinfo=datetime_timezone.utc)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
             response.json(),
             {
-                "date": "2026/07/21",
+                "date": "2026/07/22",
                 "expiresAt": round(next_midnight.timestamp() * 1000),
                 "serverTime": round(current_time.timestamp() * 1000),
                 "refreshUrl": self.uri,

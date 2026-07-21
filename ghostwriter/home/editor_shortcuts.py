@@ -1,7 +1,7 @@
 """Server-provided configuration for rich-text editor date shortcuts."""
 
 # Standard Libraries
-from datetime import datetime, time, timedelta
+from datetime import datetime, time, timedelta, timezone as datetime_timezone
 
 # Django Imports
 from django.conf import settings
@@ -10,12 +10,13 @@ from django.utils import dateformat, timezone
 
 
 def get_editor_shortcuts_date_config():
-    """Return the formatted current date and its next server-local rollover."""
-    current_time = timezone.localtime()
+    """Return the formatted current UTC date and its next UTC rollover."""
+    current_time = timezone.now().astimezone(datetime_timezone.utc)
     current_date = current_time.date()
-    next_midnight = timezone.make_aware(
-        datetime.combine(current_date + timedelta(days=1), time.min),
-        timezone.get_current_timezone(),
+    next_midnight = datetime.combine(
+        current_date + timedelta(days=1),
+        time.min,
+        tzinfo=datetime_timezone.utc,
     )
 
     return {

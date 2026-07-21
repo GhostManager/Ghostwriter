@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import {
+import DateTimeShortcuts, {
     createNowShortcutInputRule,
     createShortcutInputRegex,
     createTodayShortcutInputRule,
@@ -22,13 +22,25 @@ function runInputRule(
     to: number,
     token: string,
     delimiter: string,
-    delimiterAlreadyInserted = false
+    delimiterAlreadyInserted = false,
+    codeContext: "none" | "block" | "inline" = "none"
 ) {
     let insertion: { text: string; from: number; to: number } | undefined;
     const matchText = ` ${token}${delimiter}`;
     const rangeTo = delimiterAlreadyInserted ? to + delimiter.length : to;
     rule.handler({
         state: {
+            selection: {
+                $from: {
+                    parent: {
+                        type: { spec: { code: codeContext === "block" } },
+                    },
+                    marks: () =>
+                        codeContext === "inline"
+                            ? [{ type: { spec: { code: true } } }]
+                            : [],
+                },
+            },
             tr: {
                 insertText: (text: string, from: number, insertTo: number) => {
                     insertion = { text, from, to: insertTo };
@@ -104,6 +116,25 @@ test.describe("date and time rich-text shortcuts", () => {
                 throw unexpectedError;
             })
         ).toThrow(unexpectedError);
+    });
+
+    test("does not expand shortcuts in code blocks or inline code", () => {
+        const nowRule = createNowShortcutInputRule(() => "20:14:13 UTC");
+        const todayRule = createTodayShortcutInputRule(() => "21 Jul 2026");
+
+        expect(runInputRule(nowRule, 18, "@now", " ", false, "block")).toBe(
+            undefined
+        );
+        expect(
+            runInputRule(todayRule, 20, "@today", " ", false, "inline")
+        ).toBe(undefined);
+    });
+
+    test("can initialize without a browser window", () => {
+        expect(typeof window).toBe("undefined");
+        expect(() =>
+            DateTimeShortcuts.config.onCreate?.call({} as never)
+        ).not.toThrow();
     });
 
     test("replaces @now and preserves the triggering punctuation", () => {

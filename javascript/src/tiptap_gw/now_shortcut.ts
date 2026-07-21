@@ -1,4 +1,5 @@
 import { Extension, InputRule } from "@tiptap/core";
+import type { EditorState } from "@tiptap/pm/state";
 
 export const NOW_SHORTCUT_TOKEN = "@now";
 export const TIME_SHORTCUT_TOKEN = "@time";
@@ -67,12 +68,23 @@ export function formatNowShortcut(date: Date = new Date()): string {
     return `${parts.hour}:${parts.minute}:${parts.second} ${NOW_SHORTCUT_TIME_ZONE}`;
 }
 
+function isInCodeContext(state: EditorState): boolean {
+    const { $from } = state.selection;
+    return (
+        Boolean($from.parent.type.spec.code) ||
+        $from.marks().some((mark) => Boolean(mark.type.spec.code))
+    );
+}
+
 export function createNowShortcutInputRule(
     formatTimestamp: () => string = formatNowShortcut
 ): InputRule {
     return new InputRule({
         find: NOW_SHORTCUT_INPUT_REGEX,
         handler: ({ state, range, match }) => {
+            if (isInCodeContext(state)) {
+                return null;
+            }
             const replacement = formatTimestamp();
             if (!replacement) {
                 return null;
@@ -103,6 +115,9 @@ export function createTodayShortcutInputRule(
     return new InputRule({
         find: TODAY_SHORTCUT_INPUT_REGEX,
         handler: ({ state, range, match }) => {
+            if (isInCodeContext(state)) {
+                return null;
+            }
             const replacement = formatDate();
             if (!replacement) {
                 return null;
@@ -121,7 +136,9 @@ export function createTodayShortcutInputRule(
 const DateTimeShortcuts = Extension.create({
     name: "dateTimeShortcuts",
     onCreate() {
-        window.GW_EDITOR_SHORTCUTS?.activate();
+        if (typeof window !== "undefined") {
+            window.GW_EDITOR_SHORTCUTS?.activate();
+        }
     },
     addInputRules() {
         return [createNowShortcutInputRule(), createTodayShortcutInputRule()];

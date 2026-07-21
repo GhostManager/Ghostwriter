@@ -285,6 +285,9 @@
         try {
             return new RegExp('^(?:\\s|\\p{P})$', 'u');
         } catch (error) {
+            if (!(error instanceof SyntaxError)) {
+                throw error;
+            }
             return /^(?:\s|[\x21-\x2f\x3a-\x40\x5b-\x60\x7b-\x7e])$/;
         }
     }
