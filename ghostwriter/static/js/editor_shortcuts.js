@@ -55,6 +55,11 @@
         return true;
     }
 
+    const initialConfig = readConfig();
+    if (initialConfig) {
+        clockOffsetMs = initialConfig.serverTime - Date.now();
+    }
+
     function scheduleRefresh(config) {
         if (!isValidConfig(config)) {
             return false;
@@ -146,7 +151,7 @@
         }
 
         const config = readConfig();
-        if (!config || !setConfig(config)) {
+        if (!config) {
             return false;
         }
 

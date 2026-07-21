@@ -242,6 +242,67 @@ test.describe("date and time rich-text shortcuts", () => {
         expect(refreshRequests).toBe(1);
     });
 
+    test("uses the load-time clock offset when activation is delayed", async ({
+        page,
+    }) => {
+        const initialTime = Date.now();
+        let refreshRequests = 0;
+        const initialConfig = {
+            date: "21 Jul 2026",
+            expiresAt: initialTime + 1000,
+            serverTime: initialTime,
+            refreshUrl: "http://ghostwriter.test/refresh-date",
+        };
+        const refreshedConfig = {
+            date: "22 Jul 2026",
+            expiresAt: initialTime + 24 * 60 * 60 * 1000,
+            serverTime: initialTime + 2000,
+            refreshUrl: initialConfig.refreshUrl,
+        };
+
+        await page.route("http://ghostwriter.test/**", async (route) => {
+            const url = new URL(route.request().url());
+            if (url.pathname === "/refresh-date") {
+                refreshRequests += 1;
+                await route.fulfill({ json: refreshedConfig });
+                return;
+            }
+            await route.fulfill({
+                contentType: "text/html",
+                body: `<script id="gw-current-date" type="application/json">${JSON.stringify(initialConfig)}</script>`,
+            });
+        });
+
+        await page.goto("http://ghostwriter.test/");
+        await page.evaluate((now) => {
+            const clock = { now };
+            (
+                window as typeof window & {
+                    testEditorShortcutClock: typeof clock;
+                }
+            ).testEditorShortcutClock = clock;
+            Date.now = () => clock.now;
+        }, initialTime);
+        await page.addScriptTag({ path: browserShortcutScript });
+        await page.evaluate(() => {
+            (
+                window as typeof window & {
+                    testEditorShortcutClock: { now: number };
+                }
+            ).testEditorShortcutClock.now += 2000;
+        });
+
+        expect(
+            await page.evaluate(() => window.GW_EDITOR_SHORTCUTS?.currentDate())
+        ).toBe("");
+        await expect
+            .poll(() =>
+                page.evaluate(() => window.GW_EDITOR_SHORTCUTS?.currentDate())
+            )
+            .toBe(refreshedConfig.date);
+        expect(refreshRequests).toBe(1);
+    });
+
     test("rejects malformed refresh payloads without an immediate retry", async ({
         page,
     }) => {
