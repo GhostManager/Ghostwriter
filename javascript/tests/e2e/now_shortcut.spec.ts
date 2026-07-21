@@ -125,6 +125,7 @@ test.describe("date and time rich-text shortcuts", () => {
             GW_EDITOR_SHORTCUTS: {
                 activate: () => true,
                 currentDate: () => "2026/07/21",
+                refreshCurrentDate: () => Promise.resolve(true),
             },
         } as unknown as Window;
 

@@ -12,10 +12,11 @@ export const TODAY_SHORTCUT_INPUT_REGEX =
 
 declare global {
     interface Window {
-        GW_EDITOR_SHORTCUTS?: {
+        GW_EDITOR_SHORTCUTS?: Readonly<{
             activate: () => boolean;
             currentDate: () => string;
-        };
+            refreshCurrentDate: () => Promise<boolean>;
+        }>;
     }
 }
 
