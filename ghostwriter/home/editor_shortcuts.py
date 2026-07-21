@@ -9,9 +9,14 @@ from django.urls import reverse
 from django.utils import dateformat, timezone
 
 
+def _current_utc_time():
+    """Return the current time normalized to UTC."""
+    return timezone.now().astimezone(datetime_timezone.utc)
+
+
 def get_editor_shortcuts_date_config():
     """Return the formatted current UTC date and its next UTC rollover."""
-    current_time = timezone.now().astimezone(datetime_timezone.utc)
+    current_time = _current_utc_time()
     current_date = current_time.date()
     next_midnight = datetime.combine(
         current_date + timedelta(days=1),

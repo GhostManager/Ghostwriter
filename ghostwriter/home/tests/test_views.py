@@ -59,12 +59,12 @@ class EditorShortcutsDateTests(TestCase):
         self.assertEqual(response.status_code, 302)
 
     @override_settings(DATE_FORMAT="Y/m/d")
-    @patch("ghostwriter.home.editor_shortcuts.timezone.now")
-    def test_view_returns_date_and_next_utc_midnight(self, mock_now):
+    @patch("ghostwriter.home.editor_shortcuts._current_utc_time")
+    def test_view_returns_date_and_next_utc_midnight(self, mock_current_utc_time):
         local_timezone = ZoneInfo("America/Los_Angeles")
         local_time = datetime(2026, 7, 21, 23, 59, 30, tzinfo=local_timezone)
         current_time = local_time.astimezone(datetime_timezone.utc)
-        mock_now.return_value = local_time
+        mock_current_utc_time.return_value = current_time
 
         with timezone.override(local_timezone):
             response = self.client_auth.get(self.uri)
