@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * `@today` / `@date` inserts the date using Django’s configured `DATE_FORMAT`
   * Spaces and unicode punctuation trigger the expansion
   * There are guards in place so code blocks and email-like strings do not trigger expansion
-  * If an editor is left open over night, there is a trigger to refresh the date
+  * If an editor is left open overnight, there is a trigger to refresh the date
 
 ### Fixed
 
