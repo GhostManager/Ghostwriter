@@ -96,6 +96,16 @@ test.describe("date and time rich-text shortcuts", () => {
         expect(fallbackPattern.test("On @now—")).toBe(false);
     });
 
+    test("does not mask unexpected regular expression errors", () => {
+        const unexpectedError = new Error("Unexpected failure");
+
+        expect(() =>
+            createShortcutInputRegex("now|time", () => {
+                throw unexpectedError;
+            })
+        ).toThrow(unexpectedError);
+    });
+
     test("replaces @now and preserves the triggering punctuation", () => {
         const rule = createNowShortcutInputRule(() => "20:14:13 UTC");
         expect(runInputRule(rule, 18, "@now", ".")).toEqual({
