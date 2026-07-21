@@ -307,6 +307,25 @@
             : '';
     }
 
+    const GW_DATE_TIME_SHORTCUTS = [
+        {
+            token: GW_NOW_SHORTCUT_TOKEN,
+            replacement: gwFormatNowShortcut,
+        },
+        {
+            token: GW_TIME_SHORTCUT_TOKEN,
+            replacement: gwFormatNowShortcut,
+        },
+        {
+            token: GW_TODAY_SHORTCUT_TOKEN,
+            replacement: gwGetConfiguredCurrentDate,
+        },
+        {
+            token: GW_DATE_SHORTCUT_TOKEN,
+            replacement: gwGetConfiguredCurrentDate,
+        },
+    ];
+
     function gwExpandDateTimeShortcut(editor, event) {
         if (
             !GW_SHORTCUT_BOUNDARY_PATTERN.test(event.key) ||
@@ -338,29 +357,17 @@
             return false;
         }
 
-        const shortcuts = [
-            {
-                token: GW_NOW_SHORTCUT_TOKEN,
-                replacement: gwFormatNowShortcut,
-            },
-            {
-                token: GW_TIME_SHORTCUT_TOKEN,
-                replacement: gwFormatNowShortcut,
-            },
-            {
-                token: GW_TODAY_SHORTCUT_TOKEN,
-                replacement: gwGetConfiguredCurrentDate,
-            },
-            {
-                token: GW_DATE_SHORTCUT_TOKEN,
-                replacement: gwGetConfiguredCurrentDate,
-            },
-        ];
-        const shortcut = shortcuts.find(function (candidate) {
+        let shortcut = null;
+        for (const candidate of GW_DATE_TIME_SHORTCUTS) {
             const candidateStart = offset - candidate.token.length;
-            return candidateStart >= 0 &&
-                container.data.slice(candidateStart, offset) === candidate.token;
-        });
+            if (
+                candidateStart >= 0 &&
+                container.data.slice(candidateStart, offset) === candidate.token
+            ) {
+                shortcut = candidate;
+                break;
+            }
+        }
         if (!shortcut) {
             return false;
         }
