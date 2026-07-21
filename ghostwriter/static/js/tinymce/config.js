@@ -280,7 +280,16 @@
     const GW_NOW_SHORTCUT_TIME_ZONE = 'UTC';
     const GW_TODAY_SHORTCUT_TOKEN = '@today';
     const GW_DATE_SHORTCUT_TOKEN = '@date';
-    const GW_SHORTCUT_BOUNDARY_PATTERN = /^(?:\s|\p{P})$/u;
+
+    function gwCreateShortcutBoundaryPattern() {
+        try {
+            return new RegExp('^(?:\\s|\\p{P})$', 'u');
+        } catch (error) {
+            return /^(?:\s|[\x21-\x2f\x3a-\x40\x5b-\x60\x7b-\x7e])$/;
+        }
+    }
+
+    const GW_SHORTCUT_BOUNDARY_PATTERN = gwCreateShortcutBoundaryPattern();
 
     function gwFormatNowShortcut(date) {
         const parts = {};

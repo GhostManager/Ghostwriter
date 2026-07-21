@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 
 import {
     createNowShortcutInputRule,
+    createShortcutInputRegex,
     createTodayShortcutInputRule,
     formatNowShortcut,
     getConfiguredCurrentDate,
@@ -73,6 +74,26 @@ test.describe("date and time rich-text shortcuts", () => {
         expect(TODAY_SHORTCUT_INPUT_REGEX.test("email@today.")).toBe(false);
         expect(NOW_SHORTCUT_INPUT_REGEX.test("@now")).toBe(false);
         expect(NOW_SHORTCUT_INPUT_REGEX.test("@Now ")).toBe(false);
+    });
+
+    test("falls back to ASCII punctuation when Unicode properties are unsupported", () => {
+        const unsupportedUnicodeFactory = (pattern: string, flags?: string) => {
+            if (pattern.includes("\\p{P}")) {
+                throw new SyntaxError(
+                    "Unicode property escapes are unsupported"
+                );
+            }
+            return new RegExp(pattern, flags);
+        };
+        const fallbackPattern = createShortcutInputRegex(
+            "now|time",
+            unsupportedUnicodeFactory
+        );
+
+        expect(fallbackPattern.test("@now ")).toBe(true);
+        expect(fallbackPattern.test("On @time.")).toBe(true);
+        expect(fallbackPattern.test("(@now)")).toBe(true);
+        expect(fallbackPattern.test("On @now—")).toBe(false);
     });
 
     test("replaces @now and preserves the triggering punctuation", () => {

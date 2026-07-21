@@ -5,10 +5,34 @@ export const TIME_SHORTCUT_TOKEN = "@time";
 export const NOW_SHORTCUT_TIME_ZONE = "UTC";
 export const TODAY_SHORTCUT_TOKEN = "@today";
 export const DATE_SHORTCUT_TOKEN = "@date";
-export const NOW_SHORTCUT_INPUT_REGEX =
-    /(?:^|[\s\p{P}])(@(?:now|time))([\s\p{P}])$/u;
+
+type RegExpFactory = (pattern: string, flags?: string) => RegExp;
+
+const createRegExp: RegExpFactory = (pattern, flags) =>
+    new RegExp(pattern, flags);
+
+export function createShortcutInputRegex(
+    tokens: string,
+    regexpFactory: RegExpFactory = createRegExp
+): RegExp {
+    const unicodeBoundary = "(?:\\s|\\p{P})";
+    try {
+        return regexpFactory(
+            `(?:^|${unicodeBoundary})(@(?:${tokens}))(${unicodeBoundary})$`,
+            "u"
+        );
+    } catch (error) {
+        const asciiBoundary =
+            "(?:\\s|[\\x21-\\x2f\\x3a-\\x40\\x5b-\\x60\\x7b-\\x7e])";
+        return regexpFactory(
+            `(?:^|${asciiBoundary})(@(?:${tokens}))(${asciiBoundary})$`
+        );
+    }
+}
+
+export const NOW_SHORTCUT_INPUT_REGEX = createShortcutInputRegex("now|time");
 export const TODAY_SHORTCUT_INPUT_REGEX =
-    /(?:^|[\s\p{P}])(@(?:today|date))([\s\p{P}])$/u;
+    createShortcutInputRegex("today|date");
 
 declare global {
     interface Window {
