@@ -92,10 +92,11 @@ npm run build-frontend-prod     # Production build
 ## CI/CD
 
 **GitHub Actions** (`.github/workflows/`):
-1. **workflow.yml** - Main CI (push/PR to master): Builds dev env, runs tests with `--exclude-tag=GitHub`, uploads coverage to CodeCov (5-10 min)
-2. **codeql-analysis.yml** - Security scan (Python/JS, push/PR/weekly Thu 6:31 AM)
-3. **update-version.yml** - Version updates
-4. **inactive-issues.yml** - Issue automation
+1. **workflow.yml** - Fast PR CI: Builds the cached Django image, runs tests against the minimal `ci.yml` stack, and uploads coverage to Codecov
+2. **cli-install.yml** - Installer CI: Smoke-tests the full CLI installation for relevant PRs, then runs the full suite on `master`, nightly, and manual runs
+3. **codeql-analysis.yml** - Security scan (Python/JS, push/PR/weekly Thu 6:31 AM)
+4. **update-version.yml** - Version updates
+5. **inactive-issues.yml** - Issue automation
 
 **No pre-commit hooks.** Quality enforced via: manual linting → CI checks → code review
 
