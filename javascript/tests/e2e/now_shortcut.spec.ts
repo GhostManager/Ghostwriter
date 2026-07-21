@@ -241,4 +241,46 @@ test.describe("date and time rich-text shortcuts", () => {
             .toBe("22 Jul 2026");
         expect(refreshRequests).toBe(1);
     });
+
+    test("rejects malformed refresh payloads without an immediate retry", async ({
+        page,
+    }) => {
+        const now = Date.now();
+        let refreshRequests = 0;
+        const initialConfig = {
+            date: "21 Jul 2026",
+            expiresAt: now + 24 * 60 * 60 * 1000,
+            serverTime: now,
+            refreshUrl: "http://ghostwriter.test/refresh-date",
+        };
+
+        await page.route("http://ghostwriter.test/**", async (route) => {
+            const url = new URL(route.request().url());
+            if (url.pathname === "/refresh-date") {
+                refreshRequests += 1;
+                await route.fulfill({ json: { date: "22 Jul 2026" } });
+                return;
+            }
+            await route.fulfill({
+                contentType: "text/html",
+                body: `<script id="gw-current-date" type="application/json">${JSON.stringify(initialConfig)}</script>`,
+            });
+        });
+
+        await page.goto("http://ghostwriter.test/");
+        await page.addScriptTag({ path: browserShortcutScript });
+        await page.evaluate(() => window.GW_EDITOR_SHORTCUTS?.activate());
+
+        expect(
+            await page.evaluate(() =>
+                window.GW_EDITOR_SHORTCUTS?.refreshCurrentDate()
+            )
+        ).toBe(false);
+        await page.waitForTimeout(300);
+
+        expect(refreshRequests).toBe(1);
+        expect(
+            await page.evaluate(() => window.GW_EDITOR_SHORTCUTS?.currentDate())
+        ).toBe(initialConfig.date);
+    });
 });

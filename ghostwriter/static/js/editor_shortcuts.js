@@ -3,10 +3,28 @@
 
     const CONFIG_ELEMENT_ID = 'gw-current-date';
     const RETRY_DELAY_MS = 60 * 1000;
+    const STOP_REFRESH = {};
     let activated = false;
     let clockOffsetMs = 0;
     let refreshPromise = null;
     let refreshTimeoutId = null;
+
+    function isValidConfig(config) {
+        return Boolean(
+            config &&
+            typeof config === 'object' &&
+            typeof config.date === 'string' &&
+            config.date.length > 0 &&
+            Number.isFinite(config.expiresAt) &&
+            Number.isFinite(config.serverTime) &&
+            typeof config.refreshUrl === 'string' &&
+            config.refreshUrl.length > 0
+        );
+    }
+
+    function isFreshConfig(config) {
+        return isValidConfig(config) && config.expiresAt > config.serverTime;
+    }
 
     function readConfig() {
         const configElement = document.getElementById(CONFIG_ELEMENT_ID);
@@ -16,15 +34,7 @@
 
         try {
             const config = JSON.parse(configElement.textContent);
-            if (
-                typeof config.date !== 'string' ||
-                !Number.isFinite(config.expiresAt) ||
-                !Number.isFinite(config.serverTime) ||
-                typeof config.refreshUrl !== 'string'
-            ) {
-                return null;
-            }
-            return config;
+            return isValidConfig(config) ? config : null;
         } catch (error) {
             return null;
         }
@@ -36,7 +46,7 @@
 
     function setConfig(config) {
         const configElement = document.getElementById(CONFIG_ELEMENT_ID);
-        if (!configElement) {
+        if (!configElement || !isValidConfig(config)) {
             return false;
         }
 
@@ -46,12 +56,16 @@
     }
 
     function scheduleRefresh(config) {
+        if (!isValidConfig(config)) {
+            return false;
+        }
         if (refreshTimeoutId !== null) {
             window.clearTimeout(refreshTimeoutId);
         }
 
         const delay = Math.max(config.expiresAt - serverNow() + 250, 0);
         refreshTimeoutId = window.setTimeout(refreshCurrentDate, delay);
+        return true;
     }
 
     function scheduleRetry() {
@@ -59,6 +73,14 @@
             window.clearTimeout(refreshTimeoutId);
         }
         refreshTimeoutId = window.setTimeout(refreshCurrentDate, RETRY_DELAY_MS);
+    }
+
+    function stopRefreshing() {
+        if (refreshTimeoutId !== null) {
+            window.clearTimeout(refreshTimeoutId);
+            refreshTimeoutId = null;
+        }
+        activated = false;
     }
 
     function refreshCurrentDate() {
@@ -76,16 +98,25 @@
             credentials: 'same-origin',
             headers: {Accept: 'application/json'},
         }).then(function (response) {
+            if (response.redirected || response.status === 401 || response.status === 403) {
+                stopRefreshing();
+                return STOP_REFRESH;
+            }
             if (!response.ok) {
                 throw new Error(`Date shortcut refresh failed with status ${response.status}`);
             }
             return response.json();
         }).then(function (newConfig) {
+            if (newConfig === STOP_REFRESH) {
+                return false;
+            }
+            if (!isFreshConfig(newConfig)) {
+                throw new Error('Date shortcut refresh returned an invalid configuration');
+            }
             if (!setConfig(newConfig)) {
                 return false;
             }
-            scheduleRefresh(newConfig);
-            return true;
+            return scheduleRefresh(newConfig);
         }).catch(function () {
             scheduleRetry();
             return false;
