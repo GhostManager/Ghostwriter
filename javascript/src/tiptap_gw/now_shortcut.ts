@@ -13,6 +13,7 @@ export const TODAY_SHORTCUT_INPUT_REGEX =
 declare global {
     interface Window {
         GW_EDITOR_SHORTCUTS?: {
+            activate: () => boolean;
             currentDate: () => string;
         };
     }
@@ -91,6 +92,9 @@ export function createTodayShortcutInputRule(
 
 const DateTimeShortcuts = Extension.create({
     name: "dateTimeShortcuts",
+    onCreate() {
+        window.GW_EDITOR_SHORTCUTS?.activate();
+    },
     addInputRules() {
         return [createNowShortcutInputRule(), createTodayShortcutInputRule()];
     },

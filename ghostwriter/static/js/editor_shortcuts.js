@@ -3,6 +3,7 @@
 
     const CONFIG_ELEMENT_ID = 'gw-current-date';
     const RETRY_DELAY_MS = 60 * 1000;
+    let activated = false;
     let clockOffsetMs = 0;
     let refreshPromise = null;
     let refreshTimeoutId = null;
@@ -96,6 +97,7 @@
     }
 
     function currentDate() {
+        activate();
         const config = readConfig();
         if (!config) {
             return '';
@@ -107,14 +109,24 @@
         return config.date;
     }
 
+    function activate() {
+        if (activated) {
+            return true;
+        }
+
+        const config = readConfig();
+        if (!config || !setConfig(config)) {
+            return false;
+        }
+
+        activated = true;
+        scheduleRefresh(config);
+        return true;
+    }
+
     window.GW_EDITOR_SHORTCUTS = Object.freeze({
+        activate: activate,
         currentDate: currentDate,
         refreshCurrentDate: refreshCurrentDate,
     });
-
-    const initialConfig = readConfig();
-    if (initialConfig) {
-        setConfig(initialConfig);
-        scheduleRefresh(initialConfig);
-    }
 })();

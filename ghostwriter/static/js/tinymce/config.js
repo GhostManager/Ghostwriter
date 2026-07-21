@@ -534,6 +534,10 @@
         table_default_attributes: {class: 'table table-sm table-striped table-bordered'},
         table_header_type: 'sectionCells',
         setup: function(editor) {
+            if (window.GW_EDITOR_SHORTCUTS) {
+                window.GW_EDITOR_SHORTCUTS.activate();
+            }
+
             editor.ui.registry.addButton('codeInline', {
                 context: 'format',
                 icon: 'sourcecode',

@@ -123,6 +123,7 @@ test.describe("date and time rich-text shortcuts", () => {
     test("reads the Django-formatted date from the page configuration", () => {
         const currentWindow = {
             GW_EDITOR_SHORTCUTS: {
+                activate: () => true,
                 currentDate: () => "2026/07/21",
             },
         } as unknown as Window;
@@ -131,8 +132,11 @@ test.describe("date and time rich-text shortcuts", () => {
         expect(getConfiguredCurrentDate(undefined)).toBe("");
     });
 
-    test("refreshes an expired formatted date", async ({ page }) => {
+    test("does not refresh until an editor activates the shortcuts", async ({
+        page,
+    }) => {
         const now = Date.now();
+        let refreshRequests = 0;
         const initialConfig = {
             date: "21 Jul 2026",
             expiresAt: now - 1000,
@@ -149,6 +153,7 @@ test.describe("date and time rich-text shortcuts", () => {
         await page.route("http://ghostwriter.test/**", async (route) => {
             const url = new URL(route.request().url());
             if (url.pathname === "/refresh-date") {
+                refreshRequests += 1;
                 await route.fulfill({ json: refreshedConfig });
                 return;
             }
@@ -161,10 +166,16 @@ test.describe("date and time rich-text shortcuts", () => {
         await page.goto("http://ghostwriter.test/");
         await page.addScriptTag({ path: browserShortcutScript });
 
+        await page.waitForTimeout(300);
+        expect(refreshRequests).toBe(0);
+
+        await page.evaluate(() => window.GW_EDITOR_SHORTCUTS?.activate());
+
         await expect
             .poll(() =>
                 page.evaluate(() => window.GW_EDITOR_SHORTCUTS?.currentDate())
             )
             .toBe("22 Jul 2026");
+        expect(refreshRequests).toBe(1);
     });
 });
