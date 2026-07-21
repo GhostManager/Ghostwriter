@@ -275,6 +275,120 @@
         });
     }
 
+    const GW_NOW_SHORTCUT_TOKEN = '@now';
+    const GW_TIME_SHORTCUT_TOKEN = '@time';
+    const GW_NOW_SHORTCUT_TIME_ZONE = 'UTC';
+    const GW_TODAY_SHORTCUT_TOKEN = '@today';
+    const GW_DATE_SHORTCUT_TOKEN = '@date';
+    const GW_SHORTCUT_BOUNDARY_PATTERN = /^(?:\s|\p{P})$/u;
+
+    function gwFormatNowShortcut(date) {
+        const parts = {};
+        const formatter = new Intl.DateTimeFormat('en-US', {
+            timeZone: GW_NOW_SHORTCUT_TIME_ZONE,
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hourCycle: 'h23',
+        });
+
+        formatter.formatToParts(date || new Date()).forEach(function (part) {
+            if (part.type !== 'literal') {
+                parts[part.type] = part.value;
+            }
+        });
+
+        return `${parts.hour}:${parts.minute}:${parts.second} ${GW_NOW_SHORTCUT_TIME_ZONE}`;
+    }
+
+    function gwGetConfiguredCurrentDate() {
+        return window.GW_EDITOR_SHORTCUTS
+            ? window.GW_EDITOR_SHORTCUTS.currentDate()
+            : '';
+    }
+
+    function gwExpandDateTimeShortcut(editor, event) {
+        if (
+            !GW_SHORTCUT_BOUNDARY_PATTERN.test(event.key) ||
+            event.defaultPrevented ||
+            event.isComposing ||
+            event.ctrlKey ||
+            event.metaKey ||
+            event.altKey
+        ) {
+            return false;
+        }
+
+        const selectedNode = editor.selection.getNode();
+        if (
+            editor.dom.is(selectedNode, 'code,pre') ||
+            editor.dom.getParent(selectedNode, 'code,pre')
+        ) {
+            return false;
+        }
+
+        const range = editor.selection.getRng();
+        const container = range.startContainer;
+        const offset = range.startOffset;
+        if (
+            !range.collapsed ||
+            container.nodeType !== 3 ||
+            offset < GW_NOW_SHORTCUT_TOKEN.length
+        ) {
+            return false;
+        }
+
+        const shortcuts = [
+            {
+                token: GW_NOW_SHORTCUT_TOKEN,
+                replacement: gwFormatNowShortcut,
+            },
+            {
+                token: GW_TIME_SHORTCUT_TOKEN,
+                replacement: gwFormatNowShortcut,
+            },
+            {
+                token: GW_TODAY_SHORTCUT_TOKEN,
+                replacement: gwGetConfiguredCurrentDate,
+            },
+            {
+                token: GW_DATE_SHORTCUT_TOKEN,
+                replacement: gwGetConfiguredCurrentDate,
+            },
+        ];
+        const shortcut = shortcuts.find(function (candidate) {
+            const candidateStart = offset - candidate.token.length;
+            return candidateStart >= 0 &&
+                container.data.slice(candidateStart, offset) === candidate.token;
+        });
+        if (!shortcut) {
+            return false;
+        }
+
+        const tokenStart = offset - shortcut.token.length;
+        const textBeforeToken = container.data.slice(0, tokenStart);
+        if (
+            textBeforeToken &&
+            !GW_SHORTCUT_BOUNDARY_PATTERN.test(textBeforeToken.slice(-1))
+        ) {
+            return false;
+        }
+
+        const replacement = shortcut.replacement();
+        if (!replacement) {
+            return false;
+        }
+
+        event.preventDefault();
+        const replacementRange = range.cloneRange();
+        replacementRange.setStart(container, tokenStart);
+        editor.undoManager.transact(function () {
+            editor.selection.setRng(replacementRange);
+            editor.insertContent(`${replacement}${event.key}`);
+        });
+        return true;
+    }
+
     const GW_TINYMCE_DEFAULT_CONFIG = window.GW_TINYMCE_DEFAULT_CONFIG = {
         entity_encoding: 'raw',
         branding: false,
@@ -464,6 +578,10 @@
             });
 
             editor.on('keydown', function (event) {
+                if (gwExpandDateTimeShortcut(editor, event)) {
+                    return;
+                }
+
                 if (
                     event.key === 'Enter' &&
                     (event.ctrlKey || event.metaKey) &&
