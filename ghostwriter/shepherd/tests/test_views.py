@@ -271,6 +271,18 @@ class DomainListViewTests(TestCase):
         self.assertNotIn("</script>", match.group(1))
         self.assertIn(r"\u003C/script\u003E", match.group(1))
 
+    def test_tag_autocomplete_is_scoped_to_domains(self):
+        domain = DomainFactory._meta.model.objects.first()
+        domain.tags.add("domain-only-tag")
+        unrelated_project = ProjectFactory()
+        unrelated_project.tags.add("project-only-tag")
+
+        response = self.client_auth.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("domain-only-tag", response.context["tag_autocomplete_data"])
+        self.assertNotIn("project-only-tag", response.context["tag_autocomplete_data"])
+
     def test_domain_filtering(self):
         # Filter defaults to only showing available domains (id 1), so we should only see 3
         response = self.client_auth.get(self.uri)
@@ -855,6 +867,18 @@ class ServerListViewTests(TestCase):
         self.assertIn(payload, autocomplete)
         self.assertNotIn("</script>", match.group(1))
         self.assertIn(r"\u003C/script\u003E", match.group(1))
+
+    def test_tag_autocomplete_is_scoped_to_servers(self):
+        server = StaticServerFactory._meta.model.objects.first()
+        server.tags.add("server-only-tag")
+        unrelated_project = ProjectFactory()
+        unrelated_project.tags.add("project-only-tag")
+
+        response = self.client_auth.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("server-only-tag", response.context["tag_autocomplete_data"])
+        self.assertNotIn("project-only-tag", response.context["tag_autocomplete_data"])
 
     def test_server_filtering(self):
         # Filter defaults to only showing available servers (id 1), so we should only see 2

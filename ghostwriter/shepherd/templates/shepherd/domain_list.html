@@ -125,6 +125,7 @@
 {% block morescripts %}
   <script type="application/javascript" src="{% static 'js/table-columns.js' %}"></script>
   {{ autocomplete|json_script:"domain-autocomplete-data" }}
+  {{ tag_autocomplete_data|json_script:"domain-tag-autocomplete-data" }}
 
   {%  comment %} jQuery Tablesorter Script {% endcomment %}
   <script>
@@ -176,11 +177,7 @@
     });
 
     $(function () {
-      let availableTags = [
-        {% for tag in tags %}
-          '{{ tag.name|escapejs }}',
-        {% endfor %}
-      ];
+      const availableTags = JSON.parse(document.getElementById('domain-tag-autocomplete-data').textContent);
       $('#id_tags').autocomplete({
         source: availableTags
       });

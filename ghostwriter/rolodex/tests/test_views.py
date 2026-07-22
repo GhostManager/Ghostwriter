@@ -776,6 +776,8 @@ class ClientListViewTests(TestCase):
         tag_names = list(response.context["tags"].values_list("name", flat=True))
         self.assertIn("visible-tag", tag_names)
         self.assertNotIn("hidden-tag", tag_names)
+        self.assertIn("visible-tag", response.context["autocomplete_data"]["tags"])
+        self.assertNotIn("hidden-tag", response.context["autocomplete_data"]["tags"])
 
 
 class ClientCreateViewTests(TestCase):
@@ -978,6 +980,12 @@ class ProjectListViewTests(TestCase):
         tag_names = list(response.context["tags"].values_list("name", flat=True))
         self.assertIn("visible-project-tag", tag_names)
         self.assertNotIn("hidden-project-tag", tag_names)
+        self.assertIn(
+            "visible-project-tag", response.context["autocomplete_data"]["tags"]
+        )
+        self.assertNotIn(
+            "hidden-project-tag", response.context["autocomplete_data"]["tags"]
+        )
 
         response = self.client_mgr.get(f"{self.uri}?client=pops")
         self.assertEqual(response.status_code, 200)
