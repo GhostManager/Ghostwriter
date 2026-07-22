@@ -235,6 +235,7 @@ class TemplateTagTests(TestCase):
 
         self.assertNotIn(payload, rendered)
         self.assertIn(r"\u003C/script\u003E", rendered)
+        self.assertIn(f'id="extra-field-json-{field_spec.internal_name}"', rendered)
         self.assertIn("JSON.parse(dataElement.textContent)", rendered)
 
     def test_rich_text_extra_field_renders_report_evidence_previews(self):
