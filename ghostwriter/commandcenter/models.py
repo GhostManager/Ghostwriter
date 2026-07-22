@@ -611,6 +611,17 @@ class BannerConfiguration(SingletonModel):
     def __str__(self):
         return "Banner Settings"
 
+    @property
+    def safe_banner_link(self):
+        """Return the banner link only when it is a valid HTTP(S) URL."""
+        if not self.banner_link:
+            return ""
+        try:
+            URLValidator(schemes=["http", "https"])(self.banner_link)
+        except ValidationError:
+            return ""
+        return self.banner_link
+
     class Meta:
         verbose_name = "Banner Configuration"
 

@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+* Hardened user-controlled values rendered in JavaScript contexts to prevent stored cross-site scripting
+  * Autocomplete data is now serialized as inert JSON instead of being interpolated into JavaScript source
+  * Tag autocomplete suggestions are scoped to objects the current user can access
+  * Additional inline JavaScript values and activity-log rich-text previews are escaped or sanitized for their output context
+* Added matching Django and Hasura validation for domain and static server names while preserving user access to create and manage shared inventory
+
 ## [7.2.4] - 21 July 2026
 
 ### Added

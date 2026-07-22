@@ -3,6 +3,7 @@ import io
 import json
 import logging
 import os
+import re
 import zipfile
 from datetime import datetime, timedelta, timezone
 from xml.etree import ElementTree
@@ -211,6 +212,31 @@ class TemplateTagTests(TestCase):
         )
         field_spec = ExtraFieldSpec.objects.filter(target_model="reporting.Report")
         self.assertTrue(report_tags.has_non_rt_fields(field_spec))
+
+    def test_json_extra_field_is_serialized_as_inert_data(self):
+        field_spec = ExtraFieldSpecFactory(
+            internal_name="structured_data",
+            display_name="Structured Data",
+            type="json",
+            target_model=ExtraFieldModelFactory(
+                model_internal_name="reporting.Report",
+                model_display_name="Reports",
+            ),
+        )
+        payload = "</script><script>window.extraFieldXss=true</script>"
+
+        rendered = render_to_string(
+            "user_extra_fields/field.html",
+            {
+                "extra_fields": {"structured_data": {"value": payload}},
+                "field_spec": field_spec,
+            },
+        )
+
+        self.assertNotIn(payload, rendered)
+        self.assertIn(r"\u003C/script\u003E", rendered)
+        self.assertIn(f'id="extra-field-json-{field_spec.internal_name}"', rendered)
+        self.assertIn("JSON.parse(dataElement.textContent)", rendered)
 
     def test_rich_text_extra_field_renders_report_evidence_previews(self):
         report_config = ReportConfiguration.get_solo()
@@ -1000,6 +1026,9 @@ class FindingsListViewTests(TestCase):
         self.assertIn("visible-finding-tag", tag_names)
         self.assertNotIn("hidden-report-tag", tag_names)
         self.assertNotIn("hidden-project-tag", tag_names)
+        self.assertIn("visible-finding-tag", response.context["autocomplete_data"]["tags"])
+        self.assertNotIn("hidden-report-tag", response.context["autocomplete_data"]["tags"])
+        self.assertNotIn("hidden-project-tag", response.context["autocomplete_data"]["tags"])
 
     def test_search_report_findings(self):
         response = self.client_auth.get(self.uri + "?on_reports=on")
@@ -1031,6 +1060,10 @@ class FindingsListViewTests(TestCase):
         self.assertIn("visible-report-finding-tag", tag_names)
         self.assertNotIn("hidden-report-finding-tag", tag_names)
         self.assertNotIn("hidden-master-finding-tag", tag_names)
+        autocomplete_tags = response.context["autocomplete_data"]["tags"]
+        self.assertIn("visible-report-finding-tag", autocomplete_tags)
+        self.assertNotIn("hidden-report-finding-tag", autocomplete_tags)
+        self.assertNotIn("hidden-master-finding-tag", autocomplete_tags)
 
 
 class FindingDetailViewTests(TestCase):
@@ -1397,6 +1430,8 @@ class ReportsListViewTests(TestCase):
         tag_names = list(response.context["tags"].values_list("name", flat=True))
         self.assertIn("visible-report-tag", tag_names)
         self.assertNotIn("hidden-report-tag", tag_names)
+        self.assertIn("visible-report-tag", response.context["autocomplete_data"]["tags"])
+        self.assertNotIn("hidden-report-tag", response.context["autocomplete_data"]["tags"])
 
 
 class ReportDetailViewTests(TestCase):
@@ -1441,6 +1476,59 @@ class ReportDetailViewTests(TestCase):
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "reporting/report_detail.html")
+
+    def test_report_caption_configuration_is_safe_in_javascript_html(self):
+        report_config = ReportConfiguration.get_solo()
+        ReportConfiguration.objects.filter(pk=report_config.pk).update(
+            label_figure="Figure\u2028window.captionXss=true//",
+            prefix_figure="</p><img src=x onerror=window.captionHtmlXss=true>",
+        )
+
+        response = self.client_mgr.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response, r"Figure\u2028window.captionXss\u003Dtrue//"
+        )
+        self.assertContains(response, r"\u0026lt\u003B/p\u0026gt\u003B")
+        self.assertNotContains(response, "</p><img src=x")
+
+    def test_finding_autocomplete_serializes_severity_as_json(self):
+        payload = "Critical</script><script>window.severityXss=true</script>"
+        FindingFactory(severity=SeverityFactory(severity=payload))
+
+        response = self.client_mgr.get(self.uri)
+        content = force_str(response.content)
+        match = re.search(
+            r'<script id="report-detail-autocomplete-data" type="application/json">(.*?)</script>',
+            content,
+            re.DOTALL,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNotNone(match)
+        autocomplete = json.loads(match.group(1))
+        self.assertTrue(
+            any(payload in finding["value"] for finding in autocomplete["findings"])
+        )
+        self.assertNotIn("</script>", match.group(1))
+        self.assertIn(r"\u003C/script\u003E", match.group(1))
+
+    def test_evidence_filename_is_escaped_in_inline_javascript(self):
+        evidence = EvidenceFactory(report=self.report)
+        payload = "quote');window.evidenceFilenameXss=true;('.txt"
+        Evidence.objects.filter(pk=evidence.pk).update(
+            document=f"evidence/{self.report.pk}/{payload}"
+        )
+
+        response = self.client_mgr.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            r"quote\u0027)\u003Bwindow.evidenceFilenameXss\u003Dtrue\u003B(\u0027.txt",
+        )
+        self.assertNotContains(response, payload)
 
     def test_view_without_findings_does_not_initialize_severity_sortables(self):
         response = self.client_mgr.get(self.uri)
@@ -3473,6 +3561,34 @@ class ReportTemplateListViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "reporting/report_templates_list.html")
 
+    def test_tags_are_scoped_to_visible_templates(self):
+        self.templates[0].tags.add("visible-template-tag")
+
+        response = self.client_auth.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        tag_names = list(response.context["tags"].values_list("name", flat=True))
+        self.assertIn("visible-template-tag", tag_names)
+        self.assertNotIn("tag1", tag_names)
+        self.assertIn(
+            "visible-template-tag", response.context["autocomplete_data"]["tags"]
+        )
+        self.assertNotIn("tag1", response.context["autocomplete_data"]["tags"])
+
+    def test_template_filename_is_escaped_in_inline_javascript(self):
+        template = self.templates[0]
+        payload = "quote');window.templateFilenameXss=true;('.docx"
+        self.ReportTemplate.objects.filter(pk=template.pk).update(document=payload)
+
+        response = self.client_mgr.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            r"quote\u0027)\u003Bwindow.templateFilenameXss\u003Dtrue\u003B(\u0027.docx",
+        )
+        self.assertNotContains(response, payload)
+
     def test_template_filtering(self):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
@@ -5378,6 +5494,11 @@ class ObservationListViewTests(TestCase):
         self.assertNotIn("hidden-report-tag", tag_names)
         self.assertNotIn("hidden-project-tag", tag_names)
         self.assertNotIn("hidden-finding-tag", tag_names)
+        autocomplete_tags = response.context["autocomplete_data"]["tags"]
+        self.assertIn("visible-observation-tag", autocomplete_tags)
+        self.assertNotIn("hidden-report-tag", autocomplete_tags)
+        self.assertNotIn("hidden-project-tag", autocomplete_tags)
+        self.assertNotIn("hidden-finding-tag", autocomplete_tags)
 
     def test_tags_are_scoped_to_filtered_observation_queryset(self):
         other_observation = ObservationFactory(title="Other Observation")
@@ -5389,6 +5510,12 @@ class ObservationListViewTests(TestCase):
         tag_names = list(response.context["tags"].values_list("name", flat=True))
         self.assertIn("visible-observation-tag", tag_names)
         self.assertNotIn("other-observation-tag", tag_names)
+        self.assertIn(
+            "visible-observation-tag", response.context["autocomplete_data"]["tags"]
+        )
+        self.assertNotIn(
+            "other-observation-tag", response.context["autocomplete_data"]["tags"]
+        )
 
 
 class ObservationCreateViewTests(TestCase):

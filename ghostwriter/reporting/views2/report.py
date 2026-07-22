@@ -230,10 +230,17 @@ class ReportListView(RoleBasedAccessControlMixin, ListView):
     def get(self, request, *args, **kwarg):
         queryset = self.get_queryset()
         reports_filter = ReportFilter(request.GET, queryset=queryset)
+        tags = get_tags_for_queryset(queryset)
         return render(
             request,
             "reporting/report_list.html",
-            {"filter": reports_filter, "tags": get_tags_for_queryset(queryset)}
+            {
+                "filter": reports_filter,
+                "autocomplete_data": {
+                    "tags": list(tags.values_list("name", flat=True))
+                },
+                "tags": tags,
+            },
         )
 
 
@@ -361,10 +368,45 @@ class ReportDetailView(RoleBasedAccessControlMixin, DetailView):
         for obs in observations:
             self.observation_autocomplete.append(obs)
         ctx["observation_autocomplete"] = self.observation_autocomplete
+        ctx["autocomplete_data"] = {
+            "findings": [
+                {
+                    "value": self._autocomplete_label(
+                        finding.title,
+                        finding.tags.all(),
+                        prefix=f"{finding.severity} : ",
+                    ),
+                    "id": finding.pk,
+                    "url": reverse("reporting:ajax_assign_finding", args=[finding.pk]),
+                }
+                for finding in self.finding_autocomplete
+            ],
+            "observations": [
+                {
+                    "value": self._autocomplete_label(
+                        observation.title,
+                        observation.tags.all(),
+                    ),
+                    "id": observation.pk,
+                    "url": reverse(
+                        "reporting:ajax_assign_observation",
+                        args=[observation.pk],
+                    ),
+                }
+                for observation in self.observation_autocomplete
+            ],
+        }
         ctx["report_extra_fields_spec"] = ExtraFieldSpec.objects.filter(target_model=Report._meta.label)
         ctx["report_config"] = ReportConfiguration.get_solo()
 
         return ctx
+
+    @staticmethod
+    def _autocomplete_label(title, tags, prefix=""):
+        """Build the plain-text label displayed by a report autocomplete."""
+        tag_names = [tag.name for tag in tags]
+        tag_suffix = f" ({', '.join(tag_names)})" if tag_names else ""
+        return f"{prefix}{title}{tag_suffix}"
 
 
 class ReportCreate(RoleBasedAccessControlMixin, CreateView):
@@ -668,8 +710,20 @@ class ReportTemplateListView(RoleBasedAccessControlMixin, ListView):
         return queryset
 
     def get(self, request, *args, **kwarg):
-        templates_filter = ReportTemplateFilter(request.GET, queryset=self.get_queryset())
-        return render(request, "reporting/report_templates_list.html", {"filter": templates_filter})
+        queryset = self.get_queryset()
+        templates_filter = ReportTemplateFilter(request.GET, queryset=queryset)
+        tags = get_tags_for_queryset(queryset)
+        return render(
+            request,
+            "reporting/report_templates_list.html",
+            {
+                "filter": templates_filter,
+                "autocomplete_data": {
+                    "tags": list(tags.values_list("name", flat=True))
+                },
+                "tags": tags,
+            },
+        )
 
 
 class ReportTemplateDetailView(RoleBasedAccessControlMixin, DetailView):

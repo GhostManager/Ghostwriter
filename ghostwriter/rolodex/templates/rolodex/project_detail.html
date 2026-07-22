@@ -1365,7 +1365,8 @@
         let update_url = $objTable.attr('objectives-update-url');
         let project_id = $objTable.attr('project-id');
         let csrftoken = $objTable.attr('objectives-update-csrftoken');
-        let {{ group | lower }}_sortable = Sortable.create({{ group | lower }}_priority, {
+        const priority_{{ forloop.counter0 }}_element = document.getElementById('{{ group|lower|escapejs }}_priority');
+        let priority_{{ forloop.counter0 }}_sortable = Sortable.create(priority_{{ forloop.counter0 }}_element, {
           items: 'tbody > tr',
           group: 'priority',
           animation: 150,
@@ -1430,7 +1431,7 @@
           {% comment %} Element is dropped into the list from another list {% endcomment %}
           onAdd: function (event) {
             let placeholder = event.to.getElementsByClassName('priority-row-placeholder')[0];
-            let positions = {{ group | lower }}_sortable.toArray();
+            let positions = priority_{{ forloop.counter0 }}_sortable.toArray();
             $.ajaxSetup({
               beforeSend: function (xhr, settings) {
                 if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
@@ -1469,7 +1470,7 @@
 
           {% comment %} Changed sorting within list {% endcomment %}
           onUpdate: function (event) {
-            let positions = {{ group | lower }}_sortable.toArray();
+            let positions = priority_{{ forloop.counter0 }}_sortable.toArray();
             $.ajaxSetup({
               beforeSend: function (xhr, settings) {
                 if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
@@ -1493,7 +1494,7 @@
           {% comment %} Element is removed from the list into another list {% endcomment %}
           onRemove: function (event) {
             let placeholder = event.from.getElementsByClassName('priority-row-placeholder')[0];
-            let positions = {{ group | lower }}_sortable.toArray();
+            let positions = priority_{{ forloop.counter0 }}_sortable.toArray();
             $.ajaxSetup({
               beforeSend: function (xhr, settings) {
                 if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
@@ -1519,12 +1520,12 @@
             {% endcomment %}
             if (event.from.rows.length === 1) {
               let placeholder_row = event.from.insertRow(0)
-              placeholder_row.id = '{{ group|lower }}_placeholder'
+              placeholder_row.id = '{{ group|lower|escapejs }}_placeholder'
               placeholder_row.className = 'priority-row-placeholder'
-              placeholder_row.setAttribute('data-id', '{{ group|lower }}_placeholder')
+              placeholder_row.setAttribute('data-id', '{{ group|lower|escapejs }}_placeholder')
               let cell = placeholder_row.insertCell(0);
               cell.colSpan = 7
-              cell.innerHTML = 'Create a {{ group }} objective or drag-and-drop an objective here to update its priority.'
+              cell.textContent = 'Create a {{ group|escapejs }} objective or drag-and-drop an objective here to update its priority.'
             } else {
               if (placeholder !== undefined) {
                 placeholder.parentNode.parentNode.deleteRow(placeholder.rowIndex)
@@ -1551,7 +1552,7 @@
           },
         });
       } catch (error) {
-        console.log('No objectives found for the "{{ group | lower }}" group, so the sortable list is not initialized.');
+        console.log('No objectives found for the "{{ group|lower|escapejs }}" group, so the sortable list is not initialized.');
       }
     {% endfor %}
 
@@ -1749,8 +1750,8 @@
       {% comment %} Add project assignments {% endcomment %}
       {% for operator in project.projectassignment_set.all %}
         let operator_{{ operator.id }} = {
-          title: {% if operator.operator.name %}'{{ operator.operator.name|bleach }}'
-            {% else %}'{{ operator.operator.username|bleach }}'{% endif %},
+          title: {% if operator.operator.name %}'{{ operator.operator.name|escapejs }}'
+            {% else %}'{{ operator.operator.username|escapejs }}'{% endif %},
           allDay: true,
           startRecur: '{{ operator.start_date|date:"Y-m-d" }}',
           endRecur: '{{ operator.end_date|plus_days:1|date:"Y-m-d" }}',
@@ -1764,7 +1765,7 @@
       {% comment %} Add project objectives {% endcomment %}
       {% for objective in project.projectobjective_set.all %}
         let obj_{{  objective.id }} = {
-          title: '{{ objective.objective|striptags }}',
+          title: '{{ objective.objective|striptags|escapejs }}',
           allDay: true,
           start: '{{ objective.deadline|date:"Y-m-d" }}',
           end: '{{ objective.deadline|date:"Y-m-d" }}',
@@ -1777,7 +1778,7 @@
         {% if objective.projectsubtask_set.all %}
           {% for task in objective.projectsubtask_set.all %}
             let task_{{  task.id }} = {
-              title: '{{ task.task|striptags }}',
+              title: '{{ task.task|striptags|escapejs }}',
               allDay: true,
               start: '{{ task.deadline|date:"Y-m-d" }}',
               end: '{{ task.deadline|date:"Y-m-d" }}',

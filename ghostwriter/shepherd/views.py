@@ -24,7 +24,6 @@ from django.views.generic.list import ListView
 # 3rd Party Libraries
 from django_q.models import Task
 from django_q.tasks import async_task
-from taggit.models import Tag
 
 # Ghostwriter Libraries
 from ghostwriter.api.utils import (
@@ -40,7 +39,7 @@ from ghostwriter.commandcenter.models import (
     VirusTotalConfiguration,
 )
 from ghostwriter.commandcenter.views import ExtraFieldJsonView
-from ghostwriter.modules.shared import add_content_disposition_header
+from ghostwriter.modules.shared import add_content_disposition_header, get_tags_for_queryset
 from ghostwriter.rolodex.models import Client, Project
 from ghostwriter.shepherd.filters import DomainFilter, ServerFilter
 from ghostwriter.shepherd.forms import (
@@ -935,14 +934,17 @@ class DomainListView(RoleBasedAccessControlMixin, ListView):
         if len(data) == 0:
             data["domain_status"] = 1
             data["exclude_expired"] = True
-        domains_filter = DomainFilter(data, queryset=self.get_queryset(), request=self.request)
+        queryset = self.get_queryset()
+        domains_filter = DomainFilter(data, queryset=queryset, request=self.request)
+        tags = get_tags_for_queryset(queryset)
         return render(
             request,
             "shepherd/domain_list.html",
             {
                 "filter": domains_filter,
                 "autocomplete": self.autocomplete,
-                "tags": Tag.objects.all(),
+                "tag_autocomplete_data": list(tags.values_list("name", flat=True)),
+                "tags": tags,
             }
         )
 
@@ -1012,14 +1014,17 @@ class ServerListView(RoleBasedAccessControlMixin, ListView):
         data = request.GET.copy()
         if len(data) == 0:
             data["server_status"] = 1
-        servers_filter = ServerFilter(data, queryset=self.get_queryset(), request=self.request)
+        queryset = self.get_queryset()
+        servers_filter = ServerFilter(data, queryset=queryset, request=self.request)
+        tags = get_tags_for_queryset(queryset)
         return render(
             request,
             "shepherd/server_list.html",
             {
                 "filter": servers_filter,
                 "autocomplete": self.autocomplete,
-                "tags": Tag.objects.all(),
+                "tag_autocomplete_data": list(tags.values_list("name", flat=True)),
+                "tags": tags,
             }
         )
 

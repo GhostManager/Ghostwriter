@@ -93,41 +93,19 @@
     });
   </script>
 
+    {{ autocomplete_data|json_script:"project-autocomplete-data" }}
     {%  comment %} Enable autocomplete for the filter form {% endcomment %}
     <script>
       $(function () {
-        let availableClients = [
-          {% for entry in autocomplete %}
-            '{{ entry.client.name|escapejs }}',
-          {% endfor %}
-        ];
-        uniqueClients = Array.from(new Set(availableClients));
+        const autocompleteData = JSON.parse(document.getElementById('project-autocomplete-data').textContent);
         $('#id_client').autocomplete({
-          source: uniqueClients
+          source: autocompleteData.clients
         });
-      });
-    </script>
-
-    <script>
-      $(function () {
-        let availableCodenames = [
-          {% for entry in autocomplete %}
-            '{{ entry.codename|escapejs }}',
-          {% endfor %}
-        ];
         $('#id_codename').autocomplete({
-          source: availableCodenames
+          source: autocompleteData.codenames
         });
-      });
-
-      $(function () {
-        let availableTags = [
-          {% for tag in tags %}
-            '{{ tag.name|escapejs }}',
-          {% endfor %}
-        ];
         $('#id_tags').autocomplete({
-          source: availableTags
+          source: autocompleteData.tags
         });
       });
     </script>

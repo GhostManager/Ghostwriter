@@ -1239,7 +1239,12 @@ class ClientListView(RoleBasedAccessControlMixin, ListView):
         queryset = self.get_queryset()
         ctx["filter"] = ClientFilter(self.request.GET, queryset=queryset, request=self.request)
         ctx["autocomplete"] = self.autocomplete
-        ctx["tags"] = get_tags_for_queryset(queryset)
+        tags = get_tags_for_queryset(queryset)
+        ctx["tags"] = tags
+        ctx["autocomplete_data"] = {
+            "names": list(self.autocomplete.values_list("name", flat=True)),
+            "tags": list(tags.values_list("name", flat=True)),
+        }
         return ctx
 
 
@@ -1682,7 +1687,21 @@ class ProjectListView(RoleBasedAccessControlMixin, ListView):
             data["complete"] = 0
         ctx["filter"] = ProjectFilter(data, queryset=queryset, request=self.request)
         ctx["autocomplete"] = self.autocomplete
-        ctx["tags"] = get_tags_for_queryset(queryset)
+        tags = get_tags_for_queryset(queryset)
+        ctx["tags"] = tags
+        ctx["autocomplete_data"] = {
+            "clients": list(
+                self.autocomplete.order_by("client__name")
+                .values_list("client__name", flat=True)
+                .distinct()
+            ),
+            "codenames": list(
+                self.autocomplete.order_by("codename")
+                .values_list("codename", flat=True)
+                .distinct()
+            ),
+            "tags": list(tags.values_list("name", flat=True)),
+        }
         return ctx
 
 

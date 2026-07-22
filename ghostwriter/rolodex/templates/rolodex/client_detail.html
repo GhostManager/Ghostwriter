@@ -551,8 +551,8 @@
 
   <!-- Set Current Time for Timezone -->
   <script>
-    let client_datetime_str = new Date().toLocaleString('{{ LANGUAGE_CODE }}', {
-      timeZone: '{{ client.timezone }}',
+    let client_datetime_str = new Date().toLocaleString('{{ LANGUAGE_CODE|escapejs }}', {
+      timeZone: '{{ client.timezone|escapejs }}',
       timeZoneName: 'short'
     });
     $('.client-datetime').text(client_datetime_str);

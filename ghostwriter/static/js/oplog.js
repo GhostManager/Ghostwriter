@@ -273,7 +273,11 @@ $(document).ready(function () {
             if (spec.type === 'checkbox') {
                 toHtmlFunc = v => (v ? '<i class="fas fa-check"></i>' : '<i class="fas fa-times"></i>');
             } else if (spec.type === 'rich_text') {
-                toHtmlFunc = v => v;
+                toHtmlFunc = v => {
+                    if (!v) return '';
+                    let safe = (typeof DOMPurify !== 'undefined') ? DOMPurify.sanitize(v) : jsEscape(v);
+                    return jsEscape(truncateText($('<div>').html(safe).text(), 100));
+                };
             } else {
                 toHtmlFunc = jsEscape;
             }

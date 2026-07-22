@@ -256,6 +256,15 @@ class DomainFormTests(TestCase):
         form = self.form_data(**domain_dict)
         self.assertTrue(form.is_valid())
 
+    def test_rejects_script_delimiters_in_domain_name(self):
+        domain = DomainFactory()
+        domain_dict = domain.__dict__.copy()
+        domain_dict["name"] = "'+alert(1)+'"
+
+        form = self.form_data(**domain_dict)
+
+        self.assertEqual(form.errors["name"].as_data()[0].code, "invalid_domain_name")
+
     def test_invalid_dates(self):
         end_date = date.today()
         start_date = date.today() + timedelta(days=360)
@@ -571,6 +580,15 @@ class ServerFormTests(TestCase):
 
         form = self.form_data(**server)
         self.assertTrue(form.is_valid())
+
+    def test_rejects_script_delimiters_in_server_name(self):
+        server = self.server_dict.copy()
+        server["ip_address"] = "1.1.1.1"
+        server["name"] = "'+alert(1)+'"
+
+        form = self.form_data(**server)
+
+        self.assertEqual(form.errors["name"].as_data()[0].code, "invalid_server_name")
 
 
 class ServerCheckoutFormTests(TestCase):
