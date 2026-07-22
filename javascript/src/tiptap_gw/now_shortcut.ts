@@ -1,4 +1,4 @@
-import { Extension, InputRule } from "@tiptap/core";
+import { Extension, InputRule, type Editor } from "@tiptap/core";
 import type { EditorState } from "@tiptap/pm/state";
 
 export const NOW_SHORTCUT_TOKEN = "@now";
@@ -16,20 +16,23 @@ export function createShortcutInputRegex(
     tokens: string,
     regexpFactory: RegExpFactory = createRegExp
 ): RegExp {
-    const unicodeBoundary = "(?:\\s|\\p{P})";
+    const unicodeLeadingBoundary = "(?:\\s|\\p{P})";
+    const unicodeTriggerBoundary = "(?: |\\p{P})";
     try {
         return regexpFactory(
-            `(?:^|${unicodeBoundary})(@(?:${tokens}))(${unicodeBoundary})$`,
+            `(?:^|${unicodeLeadingBoundary})(@(?:${tokens}))(${unicodeTriggerBoundary})$`,
             "u"
         );
     } catch (error) {
         if (!(error instanceof SyntaxError)) {
             throw error;
         }
-        const asciiBoundary =
+        const asciiLeadingBoundary =
             "(?:\\s|[\\x21-\\x2f\\x3a-\\x40\\x5b-\\x60\\x7b-\\x7e])";
+        const asciiTriggerBoundary =
+            "(?: |[\\x21-\\x2f\\x3a-\\x40\\x5b-\\x60\\x7b-\\x7e])";
         return regexpFactory(
-            `(?:^|${asciiBoundary})(@(?:${tokens}))(${asciiBoundary})$`
+            `(?:^|${asciiLeadingBoundary})(@(?:${tokens}))(${asciiTriggerBoundary})$`
         );
     }
 }
@@ -44,6 +47,7 @@ declare global {
             activate: () => boolean;
             currentDate: () => string;
             refreshCurrentDate: () => Promise<boolean>;
+            resolveCurrentDate: () => Promise<string>;
         }>;
     }
 }
@@ -109,8 +113,48 @@ export function getConfiguredCurrentDate(
     return currentWindow?.GW_EDITOR_SHORTCUTS?.currentDate() ?? "";
 }
 
+export function resolveConfiguredCurrentDate(
+    currentWindow: Window | undefined = typeof window === "undefined"
+        ? undefined
+        : window
+): Promise<string> {
+    const resolveCurrentDate =
+        currentWindow?.GW_EDITOR_SHORTCUTS?.resolveCurrentDate;
+    return typeof resolveCurrentDate === "function"
+        ? resolveCurrentDate()
+        : Promise.resolve("");
+}
+
+type PendingDateShortcut = Readonly<{
+    from: number;
+    token: string;
+}>;
+
+type PendingDateShortcutHandler = (pending: PendingDateShortcut) => void;
+
+export function replacePendingDateShortcut(
+    editor: Editor,
+    pending: PendingDateShortcut,
+    replacement: string
+): boolean {
+    const to = pending.from + pending.token.length;
+    if (
+        !replacement ||
+        editor.isDestroyed ||
+        editor.state.doc.textBetween(pending.from, to) !== pending.token
+    ) {
+        return false;
+    }
+
+    editor.view.dispatch(
+        editor.state.tr.insertText(replacement, pending.from, to)
+    );
+    return true;
+}
+
 export function createTodayShortcutInputRule(
-    formatDate: () => string = getConfiguredCurrentDate
+    formatDate: () => string = getConfiguredCurrentDate,
+    handlePendingDate?: PendingDateShortcutHandler
 ): InputRule {
     return new InputRule({
         find: TODAY_SHORTCUT_INPUT_REGEX,
@@ -120,6 +164,10 @@ export function createTodayShortcutInputRule(
             }
             const replacement = formatDate();
             if (!replacement) {
+                handlePendingDate?.({
+                    from: range.from + match[0].lastIndexOf(match[1]),
+                    token: match[1],
+                });
                 return null;
             }
 
@@ -141,7 +189,22 @@ const DateTimeShortcuts = Extension.create({
         }
     },
     addInputRules() {
-        return [createNowShortcutInputRule(), createTodayShortcutInputRule()];
+        const editor = this.editor;
+        return [
+            createNowShortcutInputRule(),
+            createTodayShortcutInputRule(
+                getConfiguredCurrentDate,
+                (pending) => {
+                    void resolveConfiguredCurrentDate().then((replacement) => {
+                        replacePendingDateShortcut(
+                            editor,
+                            pending,
+                            replacement
+                        );
+                    });
+                }
+            ),
+        ];
     },
 });
 
