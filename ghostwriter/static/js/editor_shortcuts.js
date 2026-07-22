@@ -145,6 +145,21 @@
         return config.date;
     }
 
+    function resolveCurrentDate() {
+        const date = currentDate();
+        if (date) {
+            return Promise.resolve(date);
+        }
+
+        return refreshCurrentDate().then(function (refreshed) {
+            const config = readConfig();
+            if (!refreshed || !config || serverNow() >= config.expiresAt) {
+                return '';
+            }
+            return config.date;
+        });
+    }
+
     function activate() {
         if (activated) {
             return true;
@@ -164,5 +179,6 @@
         activate: activate,
         currentDate: currentDate,
         refreshCurrentDate: refreshCurrentDate,
+        resolveCurrentDate: resolveCurrentDate,
     });
 })();
