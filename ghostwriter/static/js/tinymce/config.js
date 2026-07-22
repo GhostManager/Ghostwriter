@@ -281,18 +281,22 @@
     const GW_TODAY_SHORTCUT_TOKEN = '@today';
     const GW_DATE_SHORTCUT_TOKEN = '@date';
 
-    function gwCreateShortcutBoundaryPattern() {
+    function gwCreateShortcutBoundaryPattern(includeAllWhitespace) {
+        const whitespacePattern = includeAllWhitespace ? '\\s' : ' ';
         try {
-            return new RegExp('^(?:\\s|\\p{P})$', 'u');
+            return new RegExp(`^(?:${whitespacePattern}|\\p{P})$`, 'u');
         } catch (error) {
             if (!(error instanceof SyntaxError)) {
                 throw error;
             }
-            return /^(?:\s|[\x21-\x2f\x3a-\x40\x5b-\x60\x7b-\x7e])$/;
+            return new RegExp(
+                `^(?:${whitespacePattern}|[\\x21-\\x2f\\x3a-\\x40\\x5b-\\x60\\x7b-\\x7e])$`
+            );
         }
     }
 
-    const GW_SHORTCUT_BOUNDARY_PATTERN = gwCreateShortcutBoundaryPattern();
+    const GW_SHORTCUT_BOUNDARY_PATTERN = gwCreateShortcutBoundaryPattern(true);
+    const GW_SHORTCUT_TRIGGER_PATTERN = gwCreateShortcutBoundaryPattern(false);
 
     function gwFormatNowShortcut(date) {
         const parts = {};
@@ -319,6 +323,39 @@
             : '';
     }
 
+    function gwResolveConfiguredCurrentDate() {
+        return window.GW_EDITOR_SHORTCUTS &&
+            typeof window.GW_EDITOR_SHORTCUTS.resolveCurrentDate === 'function'
+            ? window.GW_EDITOR_SHORTCUTS.resolveCurrentDate()
+            : Promise.resolve('');
+    }
+
+    function gwInsertPlainText(editor, text) {
+        editor.insertContent(editor.dom.encode(text));
+    }
+
+    function gwReplacePendingShortcut(editor, range, token, replacement) {
+        const editorBody = editor.getBody();
+        if (
+            !replacement ||
+            !editorBody ||
+            !editorBody.contains(range.commonAncestorContainer) ||
+            range.toString() !== token
+        ) {
+            return;
+        }
+
+        const activeRange = editor.selection.getRng().cloneRange();
+        editor.undoManager.transact(function () {
+            editor.selection.setRng(range);
+            gwInsertPlainText(editor, replacement);
+        });
+
+        if (editorBody.contains(activeRange.commonAncestorContainer)) {
+            editor.selection.setRng(activeRange);
+        }
+    }
+
     const GW_DATE_TIME_SHORTCUTS = [
         {
             token: GW_NOW_SHORTCUT_TOKEN,
@@ -331,16 +368,18 @@
         {
             token: GW_TODAY_SHORTCUT_TOKEN,
             replacement: gwGetConfiguredCurrentDate,
+            resolveReplacement: gwResolveConfiguredCurrentDate,
         },
         {
             token: GW_DATE_SHORTCUT_TOKEN,
             replacement: gwGetConfiguredCurrentDate,
+            resolveReplacement: gwResolveConfiguredCurrentDate,
         },
     ];
 
     function gwExpandDateTimeShortcut(editor, event) {
         if (
-            !GW_SHORTCUT_BOUNDARY_PATTERN.test(event.key) ||
+            !GW_SHORTCUT_TRIGGER_PATTERN.test(event.key) ||
             event.defaultPrevented ||
             event.isComposing ||
             event.ctrlKey ||
@@ -395,6 +434,18 @@
 
         const replacement = shortcut.replacement();
         if (!replacement) {
+            if (shortcut.resolveReplacement) {
+                const pendingRange = range.cloneRange();
+                pendingRange.setStart(container, tokenStart);
+                shortcut.resolveReplacement().then(function (resolvedReplacement) {
+                    gwReplacePendingShortcut(
+                        editor,
+                        pendingRange,
+                        shortcut.token,
+                        resolvedReplacement
+                    );
+                });
+            }
             return false;
         }
 
@@ -403,7 +454,7 @@
         replacementRange.setStart(container, tokenStart);
         editor.undoManager.transact(function () {
             editor.selection.setRng(replacementRange);
-            editor.insertContent(`${replacement}${event.key}`);
+            gwInsertPlainText(editor, `${replacement}${event.key}`);
         });
         return true;
     }
