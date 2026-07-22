@@ -9,6 +9,8 @@ import DateTimeShortcuts, {
     formatNowShortcut,
     getConfiguredCurrentDate,
     NOW_SHORTCUT_INPUT_REGEX,
+    replacePendingDateShortcut,
+    resolveConfiguredCurrentDate,
     TODAY_SHORTCUT_INPUT_REGEX,
 } from "../../src/tiptap_gw/now_shortcut";
 
@@ -85,6 +87,7 @@ test.describe("date and time rich-text shortcuts", () => {
         expect(NOW_SHORTCUT_INPUT_REGEX.test("email@now ")).toBe(false);
         expect(TODAY_SHORTCUT_INPUT_REGEX.test("email@today.")).toBe(false);
         expect(NOW_SHORTCUT_INPUT_REGEX.test("@now")).toBe(false);
+        expect(NOW_SHORTCUT_INPUT_REGEX.test("@now\n")).toBe(false);
         expect(NOW_SHORTCUT_INPUT_REGEX.test("@Now ")).toBe(false);
     });
 
@@ -106,6 +109,7 @@ test.describe("date and time rich-text shortcuts", () => {
         expect(fallbackPattern.test("On @time.")).toBe(true);
         expect(fallbackPattern.test("(@now)")).toBe(true);
         expect(fallbackPattern.test("On @now—")).toBe(false);
+        expect(fallbackPattern.test("@now\n")).toBe(false);
     });
 
     test("does not mask unexpected regular expression errors", () => {
@@ -182,17 +186,74 @@ test.describe("date and time rich-text shortcuts", () => {
         });
     });
 
-    test("reads the Django-formatted date from the page configuration", () => {
+    test("queues an unavailable date for replacement after refresh", () => {
+        let pending: { from: number; token: string } | undefined;
+        const rule = createTodayShortcutInputRule(
+            () => "",
+            (shortcut) => {
+                pending = shortcut;
+            }
+        );
+
+        expect(runInputRule(rule, 20, "@today", ",")).toBeUndefined();
+        expect(pending).toEqual({ from: 14, token: "@today" });
+    });
+
+    test("reads the Django-formatted date from the page configuration", async () => {
         const currentWindow = {
             GW_EDITOR_SHORTCUTS: {
                 activate: () => true,
                 currentDate: () => "2026/07/21",
                 refreshCurrentDate: () => Promise.resolve(true),
+                resolveCurrentDate: () => Promise.resolve("2026/07/21"),
             },
         } as unknown as Window;
 
         expect(getConfiguredCurrentDate(currentWindow)).toBe("2026/07/21");
         expect(getConfiguredCurrentDate(undefined)).toBe("");
+        await expect(resolveConfiguredCurrentDate(currentWindow)).resolves.toBe(
+            "2026/07/21"
+        );
+        await expect(resolveConfiguredCurrentDate(undefined)).resolves.toBe("");
+    });
+
+    test("replaces a pending date after its asynchronous refresh", () => {
+        let insertion: { text: string; from: number; to: number } | undefined;
+        let dispatched = false;
+        const transaction = {
+            insertText: (text: string, from: number, to: number) => {
+                insertion = { text, from, to };
+                return transaction;
+            },
+        };
+        const editor = {
+            state: {
+                doc: {
+                    textBetween: (from: number, to: number) =>
+                        from === 14 && to === 20 ? "@today" : "",
+                },
+                tr: transaction,
+            },
+            view: {
+                dispatch: () => {
+                    dispatched = true;
+                },
+            },
+        } as unknown as Parameters<typeof replacePendingDateShortcut>[0];
+
+        expect(
+            replacePendingDateShortcut(
+                editor,
+                { from: 14, token: "@today" },
+                "21 Jul 2026"
+            )
+        ).toBe(true);
+        expect(insertion).toEqual({
+            text: "21 Jul 2026",
+            from: 14,
+            to: 20,
+        });
+        expect(dispatched).toBe(true);
     });
 
     test("does not refresh until an editor activates the shortcuts", async ({
@@ -293,13 +354,10 @@ test.describe("date and time rich-text shortcuts", () => {
         });
 
         expect(
-            await page.evaluate(() => window.GW_EDITOR_SHORTCUTS?.currentDate())
-        ).toBe("");
-        await expect
-            .poll(() =>
-                page.evaluate(() => window.GW_EDITOR_SHORTCUTS?.currentDate())
+            await page.evaluate(() =>
+                window.GW_EDITOR_SHORTCUTS?.resolveCurrentDate()
             )
-            .toBe(refreshedConfig.date);
+        ).toBe(refreshedConfig.date);
         expect(refreshRequests).toBe(1);
     });
 
