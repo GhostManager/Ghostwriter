@@ -175,6 +175,27 @@ class OplogListEntriesTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'data-time-zone="America/Los_Angeles"')
 
+    @override_settings(DATE_FORMAT="Y/m/d")
+    @patch(
+        "ghostwriter.context_processors.get_editor_shortcuts_date_config",
+        return_value={
+            "date": "2026/07/21",
+            "expiresAt": 1784707200000,
+            "serverTime": 1784678400000,
+            "refreshUrl": "/ajax/editor-shortcuts/date",
+        },
+    )
+    def test_view_documents_date_time_shortcuts(self, _mock_date_config):
+        response = self.client_mgr.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "@now")
+        self.assertContains(response, "@time")
+        self.assertContains(response, "@today")
+        self.assertContains(response, "@date")
+        self.assertContains(response, 'id="gw-current-date"')
+        self.assertContains(response, '"2026/07/21"')
+
     def test_view_displays_last_sanitization(self):
         OplogSanitization.objects.create(
             oplog=self.oplog,

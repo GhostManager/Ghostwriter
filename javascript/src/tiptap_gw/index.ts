@@ -27,6 +27,7 @@ import TextAlign from "./text_align";
 import Caption from "./caption";
 import Footnote from "./footnote";
 import { PassiveVoiceDecoration } from "./passive_voice_decoration";
+import DateTimeShortcuts from "./now_shortcut";
 
 const EXTENSIONS: Extensions = [
     StarterKit.configure({
@@ -76,6 +77,7 @@ const EXTENSIONS: Extensions = [
     Caption,
     Footnote,
     PassiveVoiceDecoration,
+    DateTimeShortcuts,
 ];
 
 export default EXTENSIONS;

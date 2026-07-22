@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [7.2.4] - 21 July 2026
+
+### Added
+
+* Added shortcuts to the editors for easily inserting dates and times
+  * `@now` / `@time` inserts `HH:mm:ss UTC`
+  * `@today` / `@date` inserts the date using Django’s configured `DATE_FORMAT`
+  * Spaces and unicode punctuation trigger the expansion
+  * There are guards in place so code blocks and email-like strings do not trigger expansion
+  * If an editor is left open overnight, there is a trigger to refresh the date
+
+### Fixed
+
+* Fixed an issue where a blank line would be included after lists in report output
+
 ## [7.2.3] - 18 July 2026
 
 ### Added

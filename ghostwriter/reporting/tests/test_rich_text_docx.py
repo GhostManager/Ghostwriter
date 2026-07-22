@@ -79,6 +79,39 @@ def mk_test_docx(name, input, expected_output, p_style=None):
 class RichTextToDocxTests(SimpleTestCase):
     maxDiff = None
 
+    def test_trailing_empty_paragraph_after_list_is_omitted(self):
+        doc = docx.Document()
+        HtmlToDocx.run(
+            "<ul><li><p>dc01.gbi.local</p></li>"
+            "<li><p>fs01.gbi.local</p></li>"
+            "<li><p>portal.gbi.example</p></li></ul><p></p><p></p>",
+            doc,
+            None,
+        )
+
+        self.assertEqual(
+            [paragraph.text for paragraph in doc.paragraphs],
+            ["dc01.gbi.local", "fs01.gbi.local", "portal.gbi.example"],
+        )
+
+    def test_internal_empty_paragraph_is_preserved(self):
+        doc = docx.Document()
+        HtmlToDocx.run("<p>Before</p><p></p><p>After</p>", doc, None)
+
+        self.assertEqual(
+            [paragraph.text for paragraph in doc.paragraphs],
+            ["Before", "", "After"],
+        )
+
+    def test_trailing_hard_break_is_preserved(self):
+        doc = docx.Document()
+        HtmlToDocx.run("<p>Before</p><p><br></p>", doc, None)
+
+        self.assertEqual(
+            [paragraph.text for paragraph in doc.paragraphs],
+            ["Before", "\n"],
+        )
+
     def test_table_cell_paragraphs_remain_in_the_cell(self):
         doc = docx.Document()
         HtmlToDocx.run(
