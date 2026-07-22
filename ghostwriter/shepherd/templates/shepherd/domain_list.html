@@ -124,6 +124,7 @@
 
 {% block morescripts %}
   <script type="application/javascript" src="{% static 'js/table-columns.js' %}"></script>
+  {{ autocomplete|json_script:"domain-autocomplete-data" }}
 
   {%  comment %} jQuery Tablesorter Script {% endcomment %}
   <script>
@@ -168,11 +169,7 @@
 
     {%  comment %} Enable autocomplete for the filter form {% endcomment %}
     $(function () {
-      let availableDomains = [
-        {% for entry in autocomplete %}
-          '{{ entry|bleach }}',
-        {% endfor %}
-      ];
+      const availableDomains = JSON.parse(document.getElementById('domain-autocomplete-data').textContent);
       $("#id_domain").autocomplete({
         source: availableDomains
       });

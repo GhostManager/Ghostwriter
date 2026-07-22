@@ -469,7 +469,7 @@
             {% if banner_config.banner_title %}<h4 class="alert-heading mt-0">{{ banner_config.banner_title|bleach }}</h4>{% endif %}
             {{ banner_config.banner_message|bleach }}
             {% if banner_config.banner_link %}
-              <p class="mt-2 mb-0"><a href="{{ banner_config.banner_link|bleach }}" class="alert-link">Learn more</a></p>
+              <p class="mt-2 mb-0"><a href="{{ banner_config.banner_link }}" class="alert-link">Learn more</a></p>
             {% endif %}
           </div>
         </div>

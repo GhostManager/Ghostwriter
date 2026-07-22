@@ -10,11 +10,16 @@
 	  {% elif field_spec.type == "rich_text" %}
 	    <div class="rich-text-field-preview">{{ field_value|rich_text_preview:preview_report }}</div>
   {% elif field_spec.type == "json" %}
-    <pre><code id="jsonPreview"></code></pre>
+    <pre><code></code></pre>
+    {{ field_value|json_script }}
     <script>
-        $('#jsonPreview').jsonView({
-          '{{ field_spec.display_name }}': {{ field_value|json_pretty|safe }}
-        })
+      (function (script) {
+        const dataElement = script.previousElementSibling;
+        const previewElement = dataElement.previousElementSibling.querySelector('code');
+        $(previewElement).jsonView({
+          '{{ field_spec.display_name|escapejs }}': JSON.parse(dataElement.textContent)
+        });
+      })(document.currentScript);
     </script>
   {% else %}
     {%  if field_value is None %}No Value Set{% else %}{{ field_value }}{% endif %}
