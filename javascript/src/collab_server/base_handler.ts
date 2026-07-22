@@ -1,5 +1,9 @@
 import * as Y from "yjs";
-import { ApolloClient, TypedDocumentNode } from "@apollo/client";
+import {
+    ApolloClient,
+    OperationVariables,
+    TypedDocumentNode,
+} from "@apollo/client";
 
 /** Functions for loading, saving, and converting a type from/to YJS. */
 export type ModelHandler<T> = {
@@ -20,13 +24,20 @@ export type IdVars = { id: number };
  * @param setQuery The GraphQL query to save the model.
  * @param fillFields Function to set fields on a `Y.Doc` based on the results returned from the `getQuery`. Called in a YJS transaction.
  * @param mkQueryVars Function to get the parameters for the `setQuery` to save the model. Called in a YJS transaction.
+ * @param onSaveSuccess Optional callback to update handler state after the generated variables have been saved successfully.
  * @returns The model handler.
  */
-export function simpleModelHandler<GetRes, SetRes, SetQueryVars, T>(
+export function simpleModelHandler<
+    GetRes,
+    SetRes,
+    SetQueryVars extends OperationVariables,
+    T,
+>(
     getQuery: TypedDocumentNode<GetRes, IdVars>,
     setQuery: TypedDocumentNode<SetRes, SetQueryVars>,
     fillFields: (doc: Y.Doc, res: GetRes) => T,
-    mkQueryVars: (doc: Y.Doc, id: number, data: T) => SetQueryVars
+    mkQueryVars: (doc: Y.Doc, id: number, data: T) => SetQueryVars,
+    onSaveSuccess?: (queryVars: SetQueryVars, data: T) => void
 ): ModelHandler<T> {
     return {
         load: async (client, id) => {
@@ -47,17 +58,19 @@ export function simpleModelHandler<GetRes, SetRes, SetQueryVars, T>(
             return [doc, data!];
         },
         async save(client, id, doc, data) {
-            let queryVars;
+            let queryVars: SetQueryVars | undefined;
             doc.transact(() => {
                 queryVars = mkQueryVars(doc, id, data);
             });
+            const savedQueryVars = queryVars!;
             const res = await client.mutate({
                 mutation: setQuery,
-                variables: queryVars,
+                variables: savedQueryVars,
             });
             if (res.errors) {
                 throw res.errors;
             }
+            onSaveSuccess?.(savedQueryVars, data);
         },
     };
 }

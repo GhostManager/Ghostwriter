@@ -21,6 +21,7 @@ import FindingHandler from "./handlers/finding";
 import ReportFindingLinkHandler from "./handlers/report_finding_link";
 import ReportHandler from "./handlers/report";
 import ProjectHandler from "./handlers/project";
+import { setSaveError } from "./save_error";
 
 // Extend this with your model handlers. See how-to-collab.md.
 const HANDLERS_ARR: [string, ModelHandler<any>][] = [
@@ -35,10 +36,11 @@ const HANDLERS: Map<string, ModelHandler<any>> = new Map(HANDLERS_ARR);
 
 // Graphql Client
 
-const graphql_engine_hostname: string = env["HASURA_GRAPHQL_SERVER_HOSTNAME"] || "graphql_engine";
+const graphql_engine_hostname: string =
+    env["HASURA_GRAPHQL_SERVER_HOSTNAME"] || "graphql_engine";
 
 const httpLink = createHttpLink({
-    uri: "http://" + graphql_engine_hostname + ":8080/v1/graphql"
+    uri: "http://" + graphql_engine_hostname + ":8080/v1/graphql",
 });
 
 const authLink = setContext((_, { headers }) => {
@@ -240,17 +242,18 @@ const server = new Server({
             const docData = documentData.get(data.documentName);
             context.log.info("Saving document");
             const handler = HANDLERS.get(context.model)!;
-            await handler.save(gqlClient, context.id, data.document, docData);
+            await handler.save(
+                gqlClient,
+                context.id,
+                data.document,
+                docData
+            );
         } catch (e) {
             context.log.error({ msg: "Could not save document", err: e });
-            data.document.transact((tx) => {
-                tx.doc.get("serverInfo", Y.Map).set("saveError", true);
-            });
+            setSaveError(data.document, true);
             return;
         }
-        data.document.transact((tx) => {
-            tx.doc.get("serverInfo", Y.Map).set("saveError", false);
-        });
+        setSaveError(data.document, false);
     },
 
     async onDisconnect(data) {

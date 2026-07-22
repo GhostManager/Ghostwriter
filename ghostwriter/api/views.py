@@ -56,7 +56,11 @@ from ghostwriter.api.models import (
 )
 from ghostwriter.commandcenter.models import ExtraFieldModel, GeneralConfiguration
 from ghostwriter.modules import codenames
-from ghostwriter.modules.model_utils import set_finding_positions, to_dict
+from ghostwriter.modules.model_utils import (
+    normalize_finding_positions,
+    set_finding_positions,
+    to_dict,
+)
 from ghostwriter.modules.passive_voice.detector import get_detector
 from ghostwriter.modules.reportwriter.report.json import ExportReportJson
 from ghostwriter.oplog.models import OplogEntry, OplogEntryEvidence, OplogEntryRecording
@@ -1860,16 +1864,11 @@ class GraphqlReportFindingDeleteEvent(HasuraEventView):
 
     def post(self, request, *args, **kwargs):
         try:
-            findings_queryset = ReportFindingLink.objects.filter(
-                Q(report=self.old_data["report_id"])
-                & Q(severity=self.old_data["severity_id"])
+            normalize_finding_positions(
+                ReportFindingLink,
+                self.old_data["report_id"],
+                self.old_data["severity_id"],
             )
-            if findings_queryset:
-                counter = 1
-                for finding in findings_queryset:
-                    # Adjust position to close gap created by the removed finding
-                    findings_queryset.filter(id=finding.id).update(position=counter)
-                    counter += 1
         except Report.DoesNotExist:  # pragma: no cover
             # Report was deleted, so no need to adjust positions
             pass
