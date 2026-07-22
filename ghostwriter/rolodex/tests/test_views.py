@@ -35,6 +35,7 @@ from ghostwriter.factories import (
     ProjectAssignmentFactory,
     ProjectObjectiveFactory,
     ProjectScopeFactory,
+    ProjectSubtaskFactory,
     ServerHistoryFactory,
     StaticServerFactory,
     TransientServerFactory,
@@ -1152,6 +1153,22 @@ class ProjectDetailViewTests(TestCase):
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
+
+    def test_calendar_escapes_user_controlled_titles_for_javascript(self):
+        payload = "'+(function(){window.calendarXss=true})()+'</script>"
+        self.user.name = payload
+        self.user.save()
+        ProjectAssignmentFactory(project=self.project, operator=self.user)
+        objective = ProjectObjectiveFactory(project=self.project, objective=payload, deadline=date.today())
+        ProjectSubtaskFactory(parent=objective, task=payload, deadline=date.today())
+
+        response = self.client_mgr.get(self.uri)
+        content = force_str(response.content)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn(f"title: '{payload}'", content)
+        self.assertIn(r"\u0027", content)
+        self.assertIn(r"\u003C/script\u003E", content)
 
     def test_context_data_scopes_collab_jwt_to_project(self):
         response = self.client_mgr.get(self.uri)

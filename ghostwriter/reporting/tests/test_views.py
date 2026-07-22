@@ -212,6 +212,30 @@ class TemplateTagTests(TestCase):
         field_spec = ExtraFieldSpec.objects.filter(target_model="reporting.Report")
         self.assertTrue(report_tags.has_non_rt_fields(field_spec))
 
+    def test_json_extra_field_is_serialized_as_inert_data(self):
+        field_spec = ExtraFieldSpecFactory(
+            internal_name="structured_data",
+            display_name="Structured Data",
+            type="json",
+            target_model=ExtraFieldModelFactory(
+                model_internal_name="reporting.Report",
+                model_display_name="Reports",
+            ),
+        )
+        payload = "</script><script>window.extraFieldXss=true</script>"
+
+        rendered = render_to_string(
+            "user_extra_fields/field.html",
+            {
+                "extra_fields": {"structured_data": {"value": payload}},
+                "field_spec": field_spec,
+            },
+        )
+
+        self.assertNotIn(payload, rendered)
+        self.assertIn(r"\u003C/script\u003E", rendered)
+        self.assertIn("JSON.parse(dataElement.textContent)", rendered)
+
     def test_rich_text_extra_field_renders_report_evidence_previews(self):
         report_config = ReportConfiguration.get_solo()
         report_config.enable_borders = True
@@ -1441,6 +1465,51 @@ class ReportDetailViewTests(TestCase):
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "reporting/report_detail.html")
+
+    def test_report_caption_configuration_is_safe_in_javascript_html(self):
+        report_config = ReportConfiguration.get_solo()
+        ReportConfiguration.objects.filter(pk=report_config.pk).update(
+            label_figure="Figure\u2028window.captionXss=true//",
+            prefix_figure="</p><img src=x onerror=window.captionHtmlXss=true>",
+        )
+
+        response = self.client_mgr.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response, r"Figure\u2028window.captionXss\u003Dtrue//"
+        )
+        self.assertContains(response, r"\u0026lt\u003B/p\u0026gt\u003B")
+        self.assertNotContains(response, "</p><img src=x")
+
+    def test_finding_autocomplete_escapes_severity_for_javascript(self):
+        payload = "Critical'+window.severityXss=true+'"
+        FindingFactory(severity=SeverityFactory(severity=payload))
+
+        response = self.client_mgr.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            r"Critical\u0027+window.severityXss\u003Dtrue+\u0027",
+        )
+        self.assertNotContains(response, payload)
+
+    def test_evidence_filename_is_escaped_in_inline_javascript(self):
+        evidence = EvidenceFactory(report=self.report)
+        payload = "quote');window.evidenceFilenameXss=true;('.txt"
+        Evidence.objects.filter(pk=evidence.pk).update(
+            document=f"evidence/{self.report.pk}/{payload}"
+        )
+
+        response = self.client_mgr.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            r"quote\u0027)\u003Bwindow.evidenceFilenameXss\u003Dtrue\u003B(\u0027.txt",
+        )
+        self.assertNotContains(response, payload)
 
     def test_view_without_findings_does_not_initialize_severity_sortables(self):
         response = self.client_mgr.get(self.uri)
@@ -3472,6 +3541,20 @@ class ReportTemplateListViewTests(TestCase):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "reporting/report_templates_list.html")
+
+    def test_template_filename_is_escaped_in_inline_javascript(self):
+        template = self.templates[0]
+        payload = "quote');window.templateFilenameXss=true;('.docx"
+        self.ReportTemplate.objects.filter(pk=template.pk).update(document=payload)
+
+        response = self.client_mgr.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            r"quote\u0027)\u003Bwindow.templateFilenameXss\u003Dtrue\u003B(\u0027.docx",
+        )
+        self.assertNotContains(response, payload)
 
     def test_template_filtering(self):
         response = self.client_auth.get(self.uri)

@@ -816,6 +816,34 @@ class HasuraMetadataCollabRoleTests(SimpleTestCase):
 class HasuraMetadataUserRoleTests(SimpleTestCase):
     """Validate user-role Hasura metadata for app-level RBAC contracts."""
 
+    def test_inventory_mutations_validate_user_controlled_names(self):
+        expected_checks = {
+            "public_shepherd_domain.yaml": {
+                "name": {
+                    "_regex": (
+                        r"^(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+"
+                        r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.?$"
+                    )
+                }
+            },
+            "public_shepherd_staticserver.yaml": {
+                "name": {
+                    "_regex": r"^(?:[A-Za-z0-9](?:[A-Za-z0-9._-]{0,253}[A-Za-z0-9])?)?$"
+                }
+            },
+        }
+
+        for filename, expected_check in expected_checks.items():
+            table = load_yaml(HASURA_TABLE_DIR / filename)
+            for role in ("manager", "user"):
+                for permission_type in ("insert_permissions", "update_permissions"):
+                    permission = get_role_permission(table, role, permission_type)
+                    self.assertEqual(
+                        permission["permission"]["check"],
+                        expected_check,
+                        f"{filename}: {role} {permission_type}",
+                    )
+
     def test_reporting_library_graphql_names_match_editor_contract(self):
         expected_names = {
             "public_reporting_finding.yaml": "finding",
