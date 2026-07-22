@@ -11,16 +11,18 @@
 	    <div class="rich-text-field-preview">{{ field_value|rich_text_preview:preview_report }}</div>
   {% elif field_spec.type == "json" %}
     <pre><code></code></pre>
-    {{ field_value|json_script }}
-    <script>
-      (function (script) {
-        const dataElement = script.previousElementSibling;
-        const previewElement = dataElement.previousElementSibling.querySelector('code');
-        $(previewElement).jsonView({
-          '{{ field_spec.display_name|escapejs }}': JSON.parse(dataElement.textContent)
-        });
-      })(document.currentScript);
-    </script>
+    {% with data_element_id="extra-field-json-"|add:field_spec.internal_name %}
+      {{ field_value|json_script:data_element_id }}
+      <script>
+        (function (script) {
+          const dataElement = script.previousElementSibling;
+          const previewElement = dataElement.previousElementSibling.querySelector('code');
+          $(previewElement).jsonView({
+            '{{ field_spec.display_name|escapejs }}': JSON.parse(dataElement.textContent)
+          });
+        })(document.currentScript);
+      </script>
+    {% endwith %}
   {% else %}
     {%  if field_value is None %}No Value Set{% else %}{{ field_value }}{% endif %}
   {% endif %}
