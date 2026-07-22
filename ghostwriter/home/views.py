@@ -12,6 +12,8 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Prefetch, Q
 from django.http import HttpResponseNotAllowed, JsonResponse
 from django.shortcuts import redirect, render
+from django.views.decorators.cache import never_cache
+from django.views.decorators.http import require_GET
 from django.views.generic.edit import View
 
 # 3rd Party Libraries
@@ -20,6 +22,7 @@ from django_q.tasks import async_task
 
 # Ghostwriter Libraries
 from ghostwriter.api.utils import RoleBasedAccessControlMixin, get_project_list, verify_user_is_privileged
+from ghostwriter.home.editor_shortcuts import get_editor_shortcuts_date_config
 from ghostwriter.modules.health_utils import DjangoHealthChecks
 from ghostwriter.reporting.models import ReportFindingLink, ReportObservationLink
 from ghostwriter.rolodex.models import ProjectAssignment
@@ -28,6 +31,14 @@ User = get_user_model()
 
 # Using __name__ resolves to ghostwriter.home.views
 logger = logging.getLogger(__name__)
+
+
+@login_required
+@require_GET
+@never_cache
+def editor_shortcuts_date(request):
+    """Return the current server-formatted date for long-lived editor pages."""
+    return JsonResponse(get_editor_shortcuts_date_config())
 
 
 def _format_assignment_operator(assignment):

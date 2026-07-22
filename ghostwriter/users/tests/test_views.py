@@ -3,6 +3,7 @@ import logging
 import os
 from base64 import b64decode
 from io import BytesIO
+from unittest.mock import patch
 
 # Django Imports
 from django.conf import settings
@@ -234,6 +235,15 @@ class UserLoginViewTests(TestCase):
         response = self.client.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "account/login.html")
+
+    @patch("ghostwriter.context_processors.get_editor_shortcuts_date_config")
+    def test_anonymous_view_does_not_load_editor_shortcuts(self, mock_date_config):
+        response = self.client.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        mock_date_config.assert_not_called()
+        self.assertNotContains(response, 'id="gw-current-date"')
+        self.assertNotContains(response, "js/editor_shortcuts.js")
 
     def test_valid_credentials(self):
         response = self.client.post(self.uri, {"login": self.user.username, "password": PASSWORD})
