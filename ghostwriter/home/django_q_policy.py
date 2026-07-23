@@ -80,10 +80,9 @@ def parse_schedule_arguments(args_value, kwargs_value):
                 TypeError,
             ) as literal_error:
                 try:
-                    keywords = ast.parse(
-                        f"f({kwargs_value})", mode="eval"
-                    ).body.keywords
-                    if any(keyword.arg is None for keyword in keywords):
+                    call = ast.parse(f"f({kwargs_value})", mode="eval").body
+                    keywords = call.keywords
+                    if call.args or any(keyword.arg is None for keyword in keywords):
                         raise ValueError from literal_error
                     names = [keyword.arg for keyword in keywords]
                     if len(names) != len(set(names)):
@@ -102,22 +101,27 @@ def parse_schedule_arguments(args_value, kwargs_value):
     return args, kwargs
 
 
+def _get_mapping_setting(setting_name):
+    """Return a copy of a mapping-based policy setting."""
+    configured = getattr(settings, setting_name, {})
+    if not isinstance(configured, Mapping):
+        raise TaskPolicyError(f"{setting_name} must be a mapping")
+    return dict(configured)
+
+
 def get_command_policy():
     """Return a copy of the configured fixed-command mapping."""
-    commands = getattr(settings, "GHOSTWRITER_DJANGO_Q_COMMANDS", {})
-    if not isinstance(commands, Mapping):
-        raise TaskPolicyError("GHOSTWRITER_DJANGO_Q_COMMANDS must be a mapping")
-    return dict(commands)
+    return _get_mapping_setting("GHOSTWRITER_DJANGO_Q_COMMANDS")
 
 
 def get_schedule_policy():
     """Return configured schedule tasks, adding the command runner when needed."""
-    configured = getattr(settings, "GHOSTWRITER_DJANGO_Q_SCHEDULE_TASKS", {})
-    if not isinstance(configured, Mapping):
-        raise TaskPolicyError("GHOSTWRITER_DJANGO_Q_SCHEDULE_TASKS must be a mapping")
-    policy = dict(configured)
+    policy = _get_mapping_setting("GHOSTWRITER_DJANGO_Q_SCHEDULE_TASKS")
     commands = get_command_policy()
     if commands:
+        if not all(isinstance(name, str) and name for name in commands):
+            raise TaskPolicyError("Command names must be non-empty strings")
+        command_names = sorted(commands)
         policy[COMMAND_RUNNER] = {
             "label": "Run Approved System Command",
             "args": [
@@ -125,13 +129,13 @@ def get_schedule_policy():
                     "name": "command_name",
                     "type": "str",
                     "required": False,
-                    "choices": sorted(commands),
+                    "choices": command_names,
                 }
             ],
             "kwargs": {
                 "command_name": {
                     "type": "str",
-                    "choices": sorted(commands),
+                    "choices": command_names,
                 }
             },
             "required_parameters": ["command_name"],
@@ -141,47 +145,57 @@ def get_schedule_policy():
 
 def get_queue_policy():
     """Return the union of internal and administrator-schedulable tasks."""
-    configured = getattr(settings, "GHOSTWRITER_DJANGO_Q_INTERNAL_TASKS", {})
-    if not isinstance(configured, Mapping):
-        raise TaskPolicyError("GHOSTWRITER_DJANGO_Q_INTERNAL_TASKS must be a mapping")
-    policy = dict(configured)
+    policy = _get_mapping_setting("GHOSTWRITER_DJANGO_Q_INTERNAL_TASKS")
     policy.update(get_schedule_policy())
     return policy
 
 
 def get_hook_policy(schedule_only=False):
     """Return hooks permitted for schedules or for the complete queue."""
-    schedule_hooks = getattr(settings, "GHOSTWRITER_DJANGO_Q_SCHEDULE_HOOKS", {})
-    if not isinstance(schedule_hooks, Mapping):
-        raise TaskPolicyError("GHOSTWRITER_DJANGO_Q_SCHEDULE_HOOKS must be a mapping")
-    policy = dict(schedule_hooks)
+    policy = _get_mapping_setting("GHOSTWRITER_DJANGO_Q_SCHEDULE_HOOKS")
     if not schedule_only:
-        internal_hooks = getattr(settings, "GHOSTWRITER_DJANGO_Q_INTERNAL_HOOKS", {})
-        if not isinstance(internal_hooks, Mapping):
-            raise TaskPolicyError(
-                "GHOSTWRITER_DJANGO_Q_INTERNAL_HOOKS must be a mapping"
-            )
-        policy = dict(internal_hooks) | policy
+        internal_hooks = _get_mapping_setting("GHOSTWRITER_DJANGO_Q_INTERNAL_HOOKS")
+        policy = internal_hooks | policy
     return policy
+
+
+def _matches_policy_type(value, expected):
+    """Return whether a policy value exactly matches its declared type."""
+    if expected == "float":
+        return type(value) in (float, int)
+    expected_type = {"bool": bool, "int": int, "str": str}.get(expected)
+    return expected_type is not None and type(value) is expected_type
+
+
+def _validate_policy_bounds(name, specification, expected):
+    """Validate min/max constraints before comparing them to task values."""
+    for bound in ("min", "max"):
+        if bound in specification and not _matches_policy_type(
+            specification[bound], expected
+        ):
+            raise TaskPolicyError(f"Policy {bound} for {name} must be a {expected}")
+    if (
+        "min" in specification
+        and "max" in specification
+        and specification["min"] > specification["max"]
+    ):
+        raise TaskPolicyError(
+            f"Policy for {name} has a minimum greater than its maximum"
+        )
 
 
 def _validate_value(name, value, specification):
     if not isinstance(specification, Mapping):
         raise TaskPolicyError(f"Policy for {name} must be a mapping")
+    expected = specification.get("type")
+    if expected not in SUPPORTED_TYPES:
+        raise TaskPolicyError(f"Policy for {name} has an unsupported type")
+    _validate_policy_bounds(name, specification, expected)
     if value is None:
         if specification.get("nullable", False):
             return
         raise TaskPolicyError(f"{name} may not be null")
-
-    expected = specification.get("type")
-    if expected not in SUPPORTED_TYPES:
-        raise TaskPolicyError(f"Policy for {name} has an unsupported type")
-    expected_type = {"bool": bool, "float": float, "int": int, "str": str}[expected]
-    if expected == "float":
-        valid_type = type(value) in (float, int)
-    else:
-        valid_type = type(value) is expected_type
-    if not valid_type:
+    if not _matches_policy_type(value, expected):
         raise TaskPolicyError(f"{name} must be a {expected}")
 
     if "choices" in specification and value not in specification["choices"]:
@@ -285,43 +299,46 @@ def validate_schedule(schedule):
     return args, kwargs
 
 
+def _validate_command(name, command):
+    """Validate one fixed command definition."""
+    if not isinstance(name, str) or not name:
+        raise TaskPolicyError("Command names must be non-empty strings")
+    if not isinstance(command, Mapping):
+        raise TaskPolicyError(f"Command {name} must be a mapping")
+    argv = command.get("argv")
+    if (
+        not isinstance(argv, (list, tuple))
+        or not argv
+        or not all(isinstance(item, str) and item for item in argv)
+    ):
+        raise TaskPolicyError(f"Command {name} must define a non-empty string argv")
+    if not argv[0].startswith("/"):
+        raise TaskPolicyError(f"Command {name} must use an absolute executable path")
+    if "shell" in command:
+        raise TaskPolicyError(f"Command {name} may not configure a shell")
+    if "cwd" in command and (
+        not isinstance(command["cwd"], str) or not command["cwd"].startswith("/")
+    ):
+        raise TaskPolicyError(f"Command {name} working directory must be absolute")
+    if "timeout" in command and (
+        type(command["timeout"]) not in (float, int) or command["timeout"] <= 0
+    ):
+        raise TaskPolicyError(f"Command {name} timeout must be positive")
+    if "env" in command:
+        environment = command["env"]
+        if not isinstance(environment, Mapping) or not all(
+            isinstance(key, str) and isinstance(value, str)
+            for key, value in environment.items()
+        ):
+            raise TaskPolicyError(
+                f"Command {name} environment must contain only strings"
+            )
+
+
 def validate_command_policy():
     """Validate fixed command definitions without executing them."""
     for name, command in get_command_policy().items():
-        if not isinstance(name, str) or not name:
-            raise TaskPolicyError("Command names must be non-empty strings")
-        if not isinstance(command, Mapping):
-            raise TaskPolicyError(f"Command {name} must be a mapping")
-        argv = command.get("argv")
-        if (
-            not isinstance(argv, (list, tuple))
-            or not argv
-            or not all(isinstance(item, str) and item for item in argv)
-        ):
-            raise TaskPolicyError(f"Command {name} must define a non-empty string argv")
-        if not argv[0].startswith("/"):
-            raise TaskPolicyError(
-                f"Command {name} must use an absolute executable path"
-            )
-        if "shell" in command:
-            raise TaskPolicyError(f"Command {name} may not configure a shell")
-        if "cwd" in command and (
-            not isinstance(command["cwd"], str) or not command["cwd"].startswith("/")
-        ):
-            raise TaskPolicyError(f"Command {name} working directory must be absolute")
-        if "timeout" in command and (
-            type(command["timeout"]) not in (float, int) or command["timeout"] <= 0
-        ):
-            raise TaskPolicyError(f"Command {name} timeout must be positive")
-        if "env" in command:
-            environment = command["env"]
-            if not isinstance(environment, Mapping) or not all(
-                isinstance(key, str) and isinstance(value, str)
-                for key, value in environment.items()
-            ):
-                raise TaskPolicyError(
-                    f"Command {name} environment must contain only strings"
-                )
+        _validate_command(name, command)
 
 
 def _validate_policy_schema(path, specification):
@@ -344,8 +361,14 @@ def _validate_policy_schema(path, specification):
     ]:
         if not isinstance(value_specification, Mapping):
             raise TaskPolicyError(f"Policy for {path} {name} must be a mapping")
-        if value_specification.get("type") not in SUPPORTED_TYPES:
+        expected = value_specification.get("type")
+        if expected not in SUPPORTED_TYPES:
             raise TaskPolicyError(f"Policy for {path} {name} has an unsupported type")
+        _validate_policy_bounds(
+            f"{path} {name}",
+            value_specification,
+            expected,
+        )
         if name.startswith("argument "):
             parameter_name = value_specification.get("name")
             if parameter_name is not None and (
@@ -381,20 +404,74 @@ def _validate_policy_schema(path, specification):
         raise TaskPolicyError(f"Policy for {path} has invalid required parameters")
 
 
-def validate_policy_configuration():
-    """Validate every configured policy entry and return any errors."""
-    errors = []
+def _validate_task_policy_entry(path, specification):
+    """Validate one configured task path and its argument schema."""
+    callable_path(path)
+    _validate_policy_schema(path, specification)
+
+
+def _validate_hook_policy_entry(path, specification):
+    """Validate one configured hook path."""
+    callable_path(path)
+    if not isinstance(specification, Mapping):
+        raise TaskPolicyError(f"Hook policy for {path} must be a mapping")
+
+
+def _collect_policy_error(errors, validator, *args):
+    """Run one policy validation and append its error, if any."""
     try:
-        task_policies = (get_schedule_policy(), get_queue_policy())
-        for policy in task_policies:
-            for path, specification in policy.items():
-                callable_path(path)
-                _validate_policy_schema(path, specification)
-        for path, specification in get_hook_policy().items():
-            callable_path(path)
-            if not isinstance(specification, Mapping):
-                raise TaskPolicyError(f"Hook policy for {path} must be a mapping")
-        validate_command_policy()
+        return validator(*args)
     except TaskPolicyError as error:
         errors.append(str(error))
+        return None
+
+
+def validate_policy_configuration():
+    """Validate every configured policy entry and return all errors."""
+    errors = []
+    for setting_name in (
+        "GHOSTWRITER_DJANGO_Q_SCHEDULE_TASKS",
+        "GHOSTWRITER_DJANGO_Q_INTERNAL_TASKS",
+    ):
+        policy = _collect_policy_error(
+            errors,
+            _get_mapping_setting,
+            setting_name,
+        )
+        if policy is not None:
+            for path, specification in policy.items():
+                _collect_policy_error(
+                    errors,
+                    _validate_task_policy_entry,
+                    path,
+                    specification,
+                )
+
+    for setting_name in (
+        "GHOSTWRITER_DJANGO_Q_SCHEDULE_HOOKS",
+        "GHOSTWRITER_DJANGO_Q_INTERNAL_HOOKS",
+    ):
+        policy = _collect_policy_error(
+            errors,
+            _get_mapping_setting,
+            setting_name,
+        )
+        if policy is not None:
+            for path, specification in policy.items():
+                _collect_policy_error(
+                    errors,
+                    _validate_hook_policy_entry,
+                    path,
+                    specification,
+                )
+
+    commands = _collect_policy_error(
+        errors,
+        _get_mapping_setting,
+        "GHOSTWRITER_DJANGO_Q_COMMANDS",
+    )
+    if commands is not None:
+        for name, command in commands.items():
+            _collect_policy_error(errors, _validate_command, name, command)
+
     return errors
