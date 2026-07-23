@@ -24,7 +24,11 @@ at the end of a project. There is a task for this already in `tasks.py`, `ghostw
 
 ### Available Task Arguments
 
-Arguments may be supplied positionally in the _Arguments_ field or by name in the _Keyword arguments_ field. Do not provide the same parameter in both fields.
+Arguments may be supplied positionally in the _Arguments_ field or by name in
+the _Keyword arguments_ field. Both fields use Python literal syntax, so string
+values must be quoted. For example, enter `'nightly-backup'` in _Arguments_ or
+`command_name='nightly-backup'` in _Keyword arguments_. Do not provide the same
+parameter in both fields.
 
 | Function | Available parameters |
 | --- | --- |
