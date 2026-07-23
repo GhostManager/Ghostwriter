@@ -35,7 +35,7 @@ def validate_schedule_on_save(sender, instance, raw=False, **kwargs):
     try:
         validate_schedule(instance)
     except TaskPolicyError as error:
-        raise ValidationError({"func": str(error)}) from error
+        raise ValidationError(str(error)) from error
 
 
 def validate_task_before_enqueue(sender, task, **kwargs):
