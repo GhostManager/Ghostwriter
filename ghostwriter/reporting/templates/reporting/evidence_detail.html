@@ -9,13 +9,13 @@
     <ul class="breadcrumb">
       <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
       <li class="breadcrumb-item"><a
-        href="{% url 'rolodex:client_detail' evidence.associated_report.project.client.id %}">{{ evidence.associated_report.project.client.name }}</a>
+        href="{% url 'rolodex:client_detail' evidence.report.project.client.id %}">{{ evidence.report.project.client.name }}</a>
       </li>
       <li class="breadcrumb-item"><a
-        href="{% url 'rolodex:project_detail' evidence.associated_report.project.id %}">{{ evidence.associated_report.project.start_date }} {{ evidence.associated_report.project.project_type }}</a>
+        href="{% url 'rolodex:project_detail' evidence.report.project.id %}">{{ evidence.report.project.start_date }} {{ evidence.report.project.project_type }}</a>
       </li>
       <li class="breadcrumb-item"><a
-        href="{% url 'reporting:report_detail' evidence.associated_report.id %}">{{ evidence.associated_report }}</a>
+        href="{% url 'reporting:report_detail' evidence.report.id %}">{{ evidence.report }}</a>
       </li>
       <li class="breadcrumb-item active" aria-current="page">Evidence</li>
     </ul>
@@ -36,7 +36,7 @@
       <a class="dropdown-item icon edit-icon" href="{% url 'reporting:evidence_update' evidence.id %}">Edit</a>
       <a class="dropdown-item icon trash-icon" href="{% url 'reporting:evidence_delete' evidence.id %}">Delete</a>
       <a class="dropdown-item icon back-arrow-icon"
-         href="{% url 'reporting:report_detail' evidence.associated_report.id %}">Return to Report</a>
+         href="{% url 'reporting:report_detail' evidence.report.id %}">Return to Report</a>
     </div>
   </div>
 

@@ -1,0 +1,42 @@
+---
+title: "Auditing Log Sanitization"
+description: "Auditing log sanitization status in the interface or the API"
+---
+
+Admins and managers may "sanitize" a log to keep the metadata and timeline while removing sensitive information like
+internal hostnames from the client network and command arguments (e.g., passwords, hashes, hostnames). This is often
+done as part of end-of-assessment clean up or after a fixed data retention period. That means it is a good practice
+to audit the logs to ensure they have been sanitized as required.
+
+Sanitization status can be visually checked by visiting the log's page. The sanitization badge will be in the top bar
+if the log has ever been sanitized. Clicking it will open a modal with information about when the log was sanitized,
+by who, and which fields they selected.
+
+Automations can query an activity log's `sanitizations` relationship to retrieve its audit history. Each result
+includes when the log was sanitized, who requested it, and the selected fields. The `updatedAt` value on an entry
+changes when its content changes, so an automation can determine whether the latest sanitization remains current by
+comparing the newest entry update with the newest sanitization:
+
+* A log is currently sanitized when it has a sanitization record and its newest entry `updatedAt` is earlier than or
+equal to that record's `sanitizedAt`.
+* A log needs review when it has no sanitization record, or its newest entry `updatedAt` is later than `sanitizedAt`.
+
+For example, query the latest values for one log:
+
+```graphql
+query OplogSanitizationStatus($oplogId: Int!) {
+  oplog_by_pk(id: $oplogId) {
+    sanitizations(limit: 1, order_by: {sanitizedAt: desc}) {
+      sanitizedAt
+      sanitizedByName
+      fields
+    }
+    entries(limit: 1, order_by: {updatedAt: desc}) {
+      updatedAt
+    }
+  }
+}
+```
+
+Sanitization records are read-only through GraphQL. Sanitizing entries remains an authorized, manual action in the
+web interface.

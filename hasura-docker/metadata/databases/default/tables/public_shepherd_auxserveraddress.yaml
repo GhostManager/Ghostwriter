@@ -35,10 +35,19 @@ select_permissions:
   - role: manager
     permission:
       columns:
+        - id
         - ip_address
         - primary
         - static_server_id
       filter: {}
+  - role: service
+    permission:
+      columns: '*'
+      filter:
+        server:
+          serviceTokenStaticServerAccesses:
+            token_id:
+              _eq: X-Hasura-Service-Token-Id
   - role: user
     permission:
       columns:

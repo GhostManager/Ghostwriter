@@ -95,6 +95,23 @@ def mk_test_pptx(name, input, expected_output, add_suffix=True):
 class RichTextToPptxTests(SimpleTestCase):
     maxDiff = None
 
+    def test_trailing_empty_paragraph_after_list_is_omitted(self):
+        ppt = pptx.Presentation()
+        slide = ppt.slides.add_slide(ppt.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT])
+        shape = slide.shapes.placeholders[1]
+        shape.text_frame.clear()
+        HtmlToPptx.run(
+            "<ul><li><p>First</p></li><li><p>Second</p></li></ul><p></p>",
+            slide,
+            shape,
+        )
+        HtmlToPptx.delete_extra_paragraph(shape)
+
+        self.assertEqual(
+            [paragraph.text for paragraph in shape.text_frame.paragraphs],
+            ["First", "Second"],
+        )
+
     def test_safe_links_are_preserved(self):
         ppt = pptx.Presentation()
         slide = ppt.slides.add_slide(ppt.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT])

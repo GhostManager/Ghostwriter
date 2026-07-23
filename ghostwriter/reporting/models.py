@@ -290,7 +290,7 @@ class Finding(models.Model):
     def display_title(self) -> str:
         if self.title:
             return self.title
-        return "(Untitled Finding)"
+        return "Untitled Finding"
 
     def __str__(self):
         return f"[{self.severity}] {self.title}"
@@ -443,6 +443,28 @@ class ReportTemplate(models.Model):
 
     def __str__(self):
         return f"{self.name}"
+
+    def user_can_view(self, user) -> bool:
+        if not user.is_active:
+            return False
+        if user.is_privileged or self.client is None:
+            return True
+        return self.client.user_can_view(user)
+
+    def can_apply_to_project(self, project) -> bool:
+        """Return whether this template is global or scoped to the project's client."""
+        return self.client_id is None or self.client_id == project.client_id
+
+    def can_apply_to_report(self, report, doc_type=None) -> bool:
+        """Return whether this template's client and optional document type match a report."""
+        doc_type_matches = doc_type is None or (
+            self.doc_type_id is not None and self.doc_type.doc_type.lower() == doc_type.lower()
+        )
+        return doc_type_matches and self.can_apply_to_project(report.project)
+
+    def user_can_apply_to_report(self, user, report, doc_type=None) -> bool:
+        """Return whether the user can view this template and apply it to the report."""
+        return self.user_can_view(user) and self.can_apply_to_report(report, doc_type)
 
     def get_effective_evidence_image_alignment(self, report_config):
         template_alignment = _text_choice_from_stored_value(
@@ -670,12 +692,6 @@ class Report(models.Model):
         cls.objects.filter(filter_docx).update(docx_template=None)
         cls.objects.filter(filter_pptx).update(pptx_template=None)
 
-    def all_evidences(self):
-        """
-        Returns a queryset of all evidences attached to the report - both directly attached and through the findings.
-        """
-        return Evidence.objects.filter(Q(report__id=self.pk) | Q(finding__report__id=self.pk))
-
     def __str__(self):
         return f"{self.title}"
 
@@ -836,7 +852,7 @@ class ReportFindingLink(models.Model):
     def display_title(self) -> str:
         if self.title:
             return self.title
-        return "(Untitled Finding)"
+        return "Untitled Finding"
 
     @classmethod
     def user_can_create(cls, user, report) -> bool:
@@ -917,14 +933,13 @@ class ReportFindingLink(models.Model):
 
 
 def set_evidence_upload_destination(this, filename):
-    """Sets the `upload_to` destination to the evidence folder for the associated report ID."""
-    return os.path.join("evidence", str(this.associated_report.id), filename)
+    """Sets the `upload_to` destination to the evidence folder for the report ID."""
+    return os.path.join("evidence", str(this.report_id), filename)
 
 
 class Evidence(models.Model):
     """
-    Stores an individual evidence file, related to :model:`reporting.ReportFindingLink`
-    and :model:`users.User`.
+    Stores an individual evidence file, related to :model:`reporting.Report` and :model:`users.User`.
     """
 
     document = models.FileField(
@@ -956,37 +971,22 @@ class Evidence(models.Model):
     )
     tags = TaggableManager(blank=True)
     # Foreign Keys
-    finding = models.ForeignKey("ReportFindingLink", on_delete=models.CASCADE, null=True, blank=True)
-    report = models.ForeignKey("Report", on_delete=models.CASCADE, null=True, blank=True)
+    report = models.ForeignKey("Report", on_delete=models.CASCADE)
     uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
 
     class Meta:
-        ordering = ["finding", "report", "document"]
+        ordering = ["report", "document"]
         verbose_name = "Evidence"
         verbose_name_plural = "Evidence"
-
         constraints = [
-            models.CheckConstraint(
-                name="%(app_label)s_%(class)s_finding_or_report",
-                check=(
-                    models.Q(finding__isnull=True, report__isnull=False)
-                    | models.Q(finding__isnull=False, report__isnull=True)
-                ),
+            models.UniqueConstraint(
+                fields=["report", "friendly_name"],
+                name="reporting_evidence_unique_report_friendly_name",
             )
         ]
 
     def get_absolute_url(self):
         return reverse("reporting:evidence_detail", args=[str(self.id)])
-
-    @property
-    def associated_report(self):
-        """
-        The report associated with this evidence, either directly through `self.report` or indirectly through
-        `self.finding.report`.
-        """
-        if self.finding:
-            return self.finding.report
-        return self.report
 
     def __str__(self):
         return f"{self.friendly_name} @ {self.document.name}"
@@ -1104,7 +1104,7 @@ class Observation(models.Model):
     def display_title(self) -> str:
         if self.title:
             return self.title
-        return "(Untitled Observation)"
+        return "Untitled Observation"
 
     @classmethod
     def user_can_create(cls, user) -> bool:

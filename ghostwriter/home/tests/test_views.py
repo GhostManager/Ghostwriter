@@ -1,23 +1,29 @@
 # Standard Libraries
 import logging
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone as datetime_timezone
 from io import StringIO
+from unittest.mock import patch
+from zoneinfo import ZoneInfo
 
 # Django Imports
 from django.conf import settings
 from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.db.models import Q
-from django.test import Client, TestCase
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
+from django.utils import timezone
 
 # 3rd Party Libraries
 from allauth.mfa.totp.internal.auth import generate_totp_secret, TOTP
 
 # Ghostwriter Libraries
 from ghostwriter.factories import (
+    ClientInviteFactory,
     GroupFactory,
     ProjectAssignmentFactory,
     ProjectFactory,
+    ProjectInviteFactory,
     ProjectObjectiveFactory,
     ReportFactory,
     ReportFindingLinkFactory,
@@ -25,10 +31,61 @@ from ghostwriter.factories import (
     UserFactory,
 )
 from ghostwriter.home.templatetags import custom_tags
+from ghostwriter.reporting.models import ReportTemplate
 
 logging.disable(logging.CRITICAL)
 
 PASSWORD = "SuperNaturalReporting!"
+
+
+class EditorShortcutsDateTests(TestCase):
+    """Tests for refreshing server-formatted editor shortcut dates."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.uri = reverse("home:ajax_editor_shortcuts_date")
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    def test_view_requires_login(self):
+        response = self.client.get(self.uri)
+
+        self.assertEqual(response.status_code, 302)
+
+    @override_settings(DATE_FORMAT="Y/m/d")
+    @patch("ghostwriter.home.editor_shortcuts._current_utc_time")
+    def test_view_returns_date_and_next_utc_midnight(self, mock_current_utc_time):
+        local_timezone = ZoneInfo("America/Los_Angeles")
+        local_time = datetime(2026, 7, 21, 23, 59, 30, tzinfo=local_timezone)
+        current_time = local_time.astimezone(datetime_timezone.utc)
+        mock_current_utc_time.return_value = current_time
+
+        with timezone.override(local_timezone):
+            response = self.client_auth.get(self.uri)
+
+        next_midnight = datetime(2026, 7, 23, tzinfo=datetime_timezone.utc)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json(),
+            {
+                "date": "2026/07/22",
+                "expiresAt": round(next_midnight.timestamp() * 1000),
+                "serverTime": round(current_time.timestamp() * 1000),
+                "refreshUrl": self.uri,
+            },
+        )
+        self.assertIn("no-store", response.headers["Cache-Control"])
+
+    def test_view_rejects_post(self):
+        response = self.client_auth.post(self.uri)
+
+        self.assertEqual(response.status_code, 405)
 
 
 # Tests related to custom management commands
@@ -63,6 +120,25 @@ class ManagementCommandsTestCase(TestCase):
         out = self.call_command("ghostwriter/reporting/fixtures/initial.json", "--force")
         self.assertIn("Applying all fixtures.", out)
         self.assertIn("Found 17 new records to insert into the database.", out)
+
+    def test_loaddata_required_only_skips_optional_records(self):
+        out = self.call_command("ghostwriter/reporting/fixtures/initial.json", "--required-only")
+        self.assertIn("Found 15 new records to insert into the database.", out)
+        self.assertFalse(ReportTemplate.objects.exists())
+
+    def test_loaddata_required_only_does_not_restore_deleted_optional_records(self):
+        self.call_command("ghostwriter/reporting/fixtures/initial.json")
+        self.assertEqual(ReportTemplate.objects.count(), 2)
+
+        ReportTemplate.objects.all().delete()
+
+        out = self.call_command("ghostwriter/reporting/fixtures/initial.json", "--required-only")
+        self.assertIn("Found 3 new records to insert into the database.", out)
+        self.assertFalse(ReportTemplate.objects.exists())
+
+    def test_loaddata_force_and_required_only_are_rejected(self):
+        with self.assertRaisesMessage(CommandError, "--force and --required-only cannot be used together."):
+            self.call_command("ghostwriter/reporting/fixtures/initial.json", "--force", "--required-only")
 
 
 # Tests related to custom template tags and filters
@@ -223,6 +299,9 @@ class DashboardTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user = UserFactory(password=PASSWORD)
+        cls.manager = UserFactory(password=PASSWORD, role="manager")
+        cls.admin = UserFactory(password=PASSWORD, role="admin")
+        cls.other_user = UserFactory(password=PASSWORD, name="Other Operator")
 
         cls.Project = ProjectFactory._meta.model
         cls.ProjectAssignment = ProjectAssignmentFactory._meta.model
@@ -230,10 +309,34 @@ class DashboardTests(TestCase):
         cls.ReportObservationLink = ReportObservationLinkFactory._meta.model
 
         cls.current_project = ProjectFactory(
-            start_date=date.today() - timedelta(days=14), end_date=date.today(), complete=True
+            codename="CURRENT",
+            start_date=date.today() - timedelta(days=14),
+            end_date=date.today(),
+            complete=True,
         )
         cls.future_project = ProjectFactory(
-            start_date=date.today() + timedelta(days=14), end_date=date.today() + timedelta(days=28), complete=False
+            codename="FUTURE",
+            start_date=date.today() + timedelta(days=14),
+            end_date=date.today() + timedelta(days=28),
+            complete=False,
+        )
+        cls.other_project = ProjectFactory(
+            codename="OTHER",
+            start_date=date.today() + timedelta(days=7),
+            end_date=date.today() + timedelta(days=21),
+            complete=False,
+        )
+        cls.unassigned_project = ProjectFactory(
+            codename="UNASSIGNED",
+            start_date=date.today() + timedelta(days=21),
+            end_date=date.today() + timedelta(days=35),
+            complete=False,
+        )
+        cls.inaccessible_project = ProjectFactory(
+            codename="INACCESSIBLE",
+            start_date=date.today() + timedelta(days=28),
+            end_date=date.today() + timedelta(days=42),
+            complete=False,
         )
         ProjectAssignmentFactory(
             project=cls.current_project,
@@ -247,6 +350,22 @@ class DashboardTests(TestCase):
             start_date=date.today() + timedelta(days=14),
             end_date=date.today() + timedelta(days=28),
         )
+        ProjectAssignmentFactory(
+            project=cls.other_project,
+            operator=cls.other_user,
+            start_date=date.today() + timedelta(days=7),
+            end_date=date.today() + timedelta(days=21),
+        )
+        ProjectAssignmentFactory.create_batch(
+            3,
+            project=cls.unassigned_project,
+            operator=None,
+            start_date=date.today() + timedelta(days=21),
+            end_date=date.today() + timedelta(days=35),
+        )
+        ProjectInviteFactory(user=cls.user, project=cls.other_project)
+        ProjectInviteFactory(user=cls.user, project=cls.future_project)
+        ClientInviteFactory(user=cls.user, client=cls.unassigned_project.client)
 
         cls.report = ReportFactory(project=cls.current_project)
         ReportFindingLinkFactory.create_batch(3, report=cls.report, assigned_to=cls.user)
@@ -274,11 +393,27 @@ class DashboardTests(TestCase):
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
+        self.client_manager = Client()
+        self.client_admin = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_manager.login(username=self.manager.username, password=PASSWORD))
+        self.assertTrue(self.client_admin.login(username=self.admin.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_handles_assignment_without_dates(self):
+        ProjectAssignmentFactory(
+            project=self.future_project,
+            operator=self.user,
+            start_date=None,
+            end_date=None,
+        )
+
+        response = self.client_auth.get(self.uri)
+
         self.assertEqual(response.status_code, 200)
 
     def test_view_requires_login(self):
@@ -303,6 +438,68 @@ class DashboardTests(TestCase):
         self.assertEqual(response.context["active_projects"][0], self.active_projects[0])
         self.assertEqual(len(response.context["assigned_findings"]), 3)
         self.assertEqual(len(response.context["assigned_observations"]), 3)
+        self.assertEqual(len(response.context["calendar_events"]), 3)
+        self.assertEqual(
+            {event["extendedProps"]["calendarKind"] for event in response.context["calendar_events"]},
+            {"Project"},
+        )
+        self.assertEqual(
+            {event["url"] for event in response.context["calendar_events"]},
+            {
+                self.future_project.get_absolute_url(),
+                self.other_project.get_absolute_url(),
+                self.unassigned_project.get_absolute_url(),
+            },
+        )
+        future_project_event = next(
+            event
+            for event in response.context["calendar_events"]
+            if event["url"] == self.future_project.get_absolute_url()
+        )
+        self.assertIn(self.future_project.codename, future_project_event["title"])
+        self.assertIn(self.future_project.start_date.isoformat(), future_project_event["title"])
+        self.assertIn(self.future_project.end_date.isoformat(), future_project_event["title"])
+
+    def assert_privileged_calendar_shows_ongoing_projects(self, client):
+        response = client.get(self.uri)
+
+        calendar_events = response.context["calendar_events"]
+
+        self.assertEqual(len(calendar_events), 4)
+        self.assertEqual({event["extendedProps"]["calendarKind"] for event in calendar_events}, {"Project"})
+        self.assertEqual(
+            {event["url"] for event in calendar_events},
+            {
+                self.future_project.get_absolute_url(),
+                self.other_project.get_absolute_url(),
+                self.unassigned_project.get_absolute_url(),
+                self.inaccessible_project.get_absolute_url(),
+            },
+        )
+        other_project_event = next(
+            event for event in calendar_events if event["url"] == self.other_project.get_absolute_url()
+        )
+        self.assertIn(self.other_project.codename, other_project_event["title"])
+        self.assertIn(self.other_project.start_date.isoformat(), other_project_event["title"])
+        self.assertIn(self.other_project.end_date.isoformat(), other_project_event["title"])
+        self.assertEqual(len(other_project_event["extendedProps"]["assignedOperators"]), 1)
+        self.assertIn(self.other_user.name, other_project_event["extendedProps"]["assignedOperators"][0])
+        unassigned_project_events = [
+            event
+            for event in calendar_events
+            if event["url"] == self.unassigned_project.get_absolute_url()
+        ]
+        self.assertEqual(len(unassigned_project_events), 1)
+        self.assertEqual(
+            unassigned_project_events[0]["extendedProps"]["assignedOperators"],
+            ["No assigned operators"],
+        )
+
+    def test_managers_see_all_ongoing_projects_on_calendar(self):
+        self.assert_privileged_calendar_shows_ongoing_projects(self.client_manager)
+
+    def test_admins_see_all_ongoing_projects_on_calendar(self):
+        self.assert_privileged_calendar_shows_ongoing_projects(self.client_admin)
 
 
 class ManagementTests(TestCase):

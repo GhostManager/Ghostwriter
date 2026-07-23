@@ -4,14 +4,13 @@
 import json
 import logging
 from copy import deepcopy
-from datetime import datetime
 from functools import reduce
 
 # Django Imports
 from django.db.models import TextField, Func, Subquery, OuterRef, Value, F
 from django.db.models.functions import Cast, Left
 from django.db.models.expressions import CombinedExpression
-from django.utils.timezone import make_aware
+from django.utils import timezone
 from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank, SearchVectorField
 
 # 3rd Party Libraries
@@ -43,23 +42,46 @@ class TsVectorConcat(Func):
     output_field = SearchVectorField()
 
 
+def user_can_access_oplog(oplog_id, user):
+    """Return whether the user can connect to an oplog's WebSocket group."""
+    if not user.is_active:
+        return False
+    try:
+        oplog = Oplog.objects.get(pk=oplog_id)
+    except Oplog.DoesNotExist:
+        return False
+    return oplog.user_can_view(user)
+
+
+user_can_access_oplog_async = database_sync_to_async(user_can_access_oplog)
+
+
 @database_sync_to_async
 def create_oplog_entry(oplog_id, user):
     """Attempt to create a new log entry for the given log ID."""
     try:
         oplog = Oplog.objects.get(pk=oplog_id)
     except Oplog.DoesNotExist:
-        logger.warning("Failed to create log entry for log ID %s because that log ID does not exist.", oplog_id)
+        logger.warning(
+            "Failed to create log entry for log ID %s because that log ID does not exist.",
+            oplog_id,
+        )
         return
 
     if oplog.project.user_can_edit(user):
-        OplogEntry.objects.create(
-            oplog_id_id=oplog_id, operator_name=user.username, extra_fields=ExtraFieldSpec.initial_json(OplogEntry)
+        entry = OplogEntry.objects.create(
+            oplog_id_id=oplog_id,
+            operator_name=user.username,
+            extra_fields=ExtraFieldSpec.initial_json(OplogEntry),
         )
-    else:
-        logger.warning(
-            "User %s attempted to create a log entry for log ID %s without permission.", user.username, oplog_id
-        )
+        return entry.id
+
+    logger.warning(
+        "User %s attempted to create a log entry for log ID %s without permission.",
+        user.username,
+        oplog_id,
+    )
+    return None
 
 
 @database_sync_to_async
@@ -93,8 +115,8 @@ def copy_oplog_entry(entry_id, user):
     if entry.oplog_id.project.user_can_edit(user):
         copy = deepcopy(entry)
         copy.pk = None
-        copy.start_date = make_aware(datetime.utcnow())
-        copy.end_date = make_aware(datetime.utcnow())
+        copy.start_date = timezone.now()
+        copy.end_date = timezone.now()
         copy.save()
         tags_to_copy = [
             t for t in entry.tags.all()
@@ -227,10 +249,18 @@ class OplogEntryConsumer(AsyncWebsocketConsumer):
 
     async def connect(self):
         user = self.scope["user"]
-        if user.is_active:
-            oplog_id = self.scope["url_route"]["kwargs"]["pk"]
-            await self.channel_layer.group_add(str(oplog_id), self.channel_name)
-            await self.accept()
+        oplog_id = self.scope["url_route"]["kwargs"]["pk"]
+        if not await user_can_access_oplog_async(oplog_id, user):
+            logger.warning(
+                "User %s attempted to connect to oplog %s without permission.",
+                user,
+                oplog_id,
+            )
+            await self.close(code=4403)
+            return
+
+        await self.channel_layer.group_add(str(oplog_id), self.channel_name)
+        await self.accept()
 
     async def disconnect(self, close_code):
         logger.info("WebSocket disconnected with close code: %s", close_code)
@@ -247,7 +277,20 @@ class OplogEntryConsumer(AsyncWebsocketConsumer):
             await copy_oplog_entry(oplog_entry_id, user)
 
         if json_data["action"] == "create":
-            await create_oplog_entry(json_data["oplog_id"], self.scope["user"])
+            modal_request_id = json_data.get("modal_request_id")
+            if not isinstance(modal_request_id, str):
+                modal_request_id = None
+            entry_id = await create_oplog_entry(json_data["oplog_id"], self.scope["user"])
+            if modal_request_id is not None:
+                await self.send(
+                    text_data=json.dumps(
+                        {
+                            "action": "create_modal_ack",
+                            "modal_request_id": modal_request_id,
+                            "entry_id": entry_id,
+                        }
+                    )
+                )
 
         if json_data["action"] == "sync":
             oplog_id = json_data["oplog_id"]

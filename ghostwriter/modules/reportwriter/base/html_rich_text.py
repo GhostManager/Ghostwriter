@@ -11,6 +11,24 @@ from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
 
 _H = [f"h{n}" for n in range(1, 7)]
 
+
+def remove_trailing_empty_paragraphs(body):
+    """Remove editor-only trailing paragraphs from parsed rich text."""
+    for child in reversed(list(body.children)):
+        if isinstance(child, bs4.NavigableString):
+            if child.strip():
+                break
+            continue
+        if (
+            child.name == "p"
+            and not child.get_text(strip=True)
+            and child.find(True) is None
+        ):
+            child.extract()
+            continue
+        break
+
+
 def rich_text_template(
     env: jinja2.Environment,
     text: str,

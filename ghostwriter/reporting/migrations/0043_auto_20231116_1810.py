@@ -27,6 +27,6 @@ class Migration(migrations.Migration):
         ),
         migrations.AddConstraint(
             model_name='evidence',
-            constraint=models.CheckConstraint(check=models.Q(models.Q(('finding__isnull', True), ('report__isnull', False)), models.Q(('finding__isnull', False), ('report__isnull', True)), _connector='OR'), name='reporting_evidence_finding_or_report'),
+            constraint=models.CheckConstraint(condition=models.Q(models.Q(('finding__isnull', True), ('report__isnull', False)), models.Q(('finding__isnull', False), ('report__isnull', True)), _connector='OR'), name='reporting_evidence_finding_or_report'),
         ),
     ]

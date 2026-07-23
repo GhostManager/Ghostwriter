@@ -1,0 +1,33 @@
+table:
+  name: api_service_token_domain_access
+  schema: public
+configuration:
+  column_config:
+    domain_id:
+      custom_name: domainId
+    token_id:
+      custom_name: tokenId
+  custom_column_names:
+    domain_id: domainId
+    token_id: tokenId
+  custom_name: serviceTokenDomainAccess
+  custom_root_fields: {}
+object_relationships:
+  - name: domain
+    using:
+      manual_configuration:
+        column_mapping:
+          domain_id: id
+        insertion_order: null
+        remote_table:
+          name: shepherd_domain
+          schema: public
+select_permissions:
+  - role: service
+    permission:
+      columns:
+        - domain_id
+        - token_id
+      filter:
+        token_id:
+          _eq: X-Hasura-Service-Token-Id

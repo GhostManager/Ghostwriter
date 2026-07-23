@@ -66,6 +66,16 @@
 
     window.gwGetTinyMceThemeConfig = gwGetTinyMceThemeConfig;
 
+    function gwRequestFormSubmit(form) {
+        if (typeof form.requestSubmit === 'function') {
+            form.requestSubmit();
+        } else {
+            $(form).trigger('submit');
+        }
+    }
+
+    window.gwRequestFormSubmit = gwRequestFormSubmit;
+
     function gwApplyTinyMceTheme(editor) {
         if (!editor || editor.removed) {
             return;
@@ -100,7 +110,18 @@
             editor._gwTinyMceRefreshRafId = window.requestAnimationFrame(function () {
                 editor._gwTinyMceRefreshRafId = null;
                 if (!editor.removed && editor.initialized && editor.getBody()) {
+                    const activeElement = document.activeElement;
+                    const scrollContainer = editor.targetElm.closest('.modal-body');
+                    const scrollLeft = scrollContainer ? scrollContainer.scrollLeft : 0;
+                    const scrollTop = scrollContainer ? scrollContainer.scrollTop : 0;
                     editor.execCommand('mceAutoResize');
+                    if (activeElement && activeElement !== document.activeElement && activeElement.isConnected) {
+                        activeElement.focus({preventScroll: true});
+                    }
+                    if (scrollContainer) {
+                        scrollContainer.scrollLeft = scrollLeft;
+                        scrollContainer.scrollTop = scrollTop;
+                    }
                 }
             });
         }
@@ -254,6 +275,190 @@
         });
     }
 
+    const GW_NOW_SHORTCUT_TOKEN = '@now';
+    const GW_TIME_SHORTCUT_TOKEN = '@time';
+    const GW_NOW_SHORTCUT_TIME_ZONE = 'UTC';
+    const GW_TODAY_SHORTCUT_TOKEN = '@today';
+    const GW_DATE_SHORTCUT_TOKEN = '@date';
+
+    function gwCreateShortcutBoundaryPattern(includeAllWhitespace) {
+        const whitespacePattern = includeAllWhitespace ? '\\s' : ' ';
+        try {
+            return new RegExp(`^(?:${whitespacePattern}|\\p{P})$`, 'u');
+        } catch (error) {
+            if (!(error instanceof SyntaxError)) {
+                throw error;
+            }
+            return new RegExp(
+                `^(?:${whitespacePattern}|[\\x21-\\x2f\\x3a-\\x40\\x5b-\\x60\\x7b-\\x7e])$`
+            );
+        }
+    }
+
+    const GW_SHORTCUT_BOUNDARY_PATTERN = gwCreateShortcutBoundaryPattern(true);
+    const GW_SHORTCUT_TRIGGER_PATTERN = gwCreateShortcutBoundaryPattern(false);
+
+    function gwFormatNowShortcut(date) {
+        const parts = {};
+        const formatter = new Intl.DateTimeFormat('en-US', {
+            timeZone: GW_NOW_SHORTCUT_TIME_ZONE,
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hourCycle: 'h23',
+        });
+
+        formatter.formatToParts(date || new Date()).forEach(function (part) {
+            if (part.type !== 'literal') {
+                parts[part.type] = part.value;
+            }
+        });
+
+        return `${parts.hour}:${parts.minute}:${parts.second} ${GW_NOW_SHORTCUT_TIME_ZONE}`;
+    }
+
+    function gwGetConfiguredCurrentDate() {
+        return window.GW_EDITOR_SHORTCUTS
+            ? window.GW_EDITOR_SHORTCUTS.currentDate()
+            : '';
+    }
+
+    function gwResolveConfiguredCurrentDate() {
+        return window.GW_EDITOR_SHORTCUTS &&
+            typeof window.GW_EDITOR_SHORTCUTS.resolveCurrentDate === 'function'
+            ? window.GW_EDITOR_SHORTCUTS.resolveCurrentDate()
+            : Promise.resolve('');
+    }
+
+    function gwInsertPlainText(editor, text) {
+        editor.insertContent(editor.dom.encode(text));
+    }
+
+    function gwReplacePendingShortcut(editor, range, token, replacement) {
+        const editorBody = editor.getBody();
+        if (
+            !replacement ||
+            !editorBody ||
+            !editorBody.contains(range.commonAncestorContainer) ||
+            range.toString() !== token
+        ) {
+            return;
+        }
+
+        const activeRange = editor.selection.getRng().cloneRange();
+        editor.undoManager.transact(function () {
+            editor.selection.setRng(range);
+            gwInsertPlainText(editor, replacement);
+        });
+
+        if (editorBody.contains(activeRange.commonAncestorContainer)) {
+            editor.selection.setRng(activeRange);
+        }
+    }
+
+    const GW_DATE_TIME_SHORTCUTS = [
+        {
+            token: GW_NOW_SHORTCUT_TOKEN,
+            replacement: gwFormatNowShortcut,
+        },
+        {
+            token: GW_TIME_SHORTCUT_TOKEN,
+            replacement: gwFormatNowShortcut,
+        },
+        {
+            token: GW_TODAY_SHORTCUT_TOKEN,
+            replacement: gwGetConfiguredCurrentDate,
+            resolveReplacement: gwResolveConfiguredCurrentDate,
+        },
+        {
+            token: GW_DATE_SHORTCUT_TOKEN,
+            replacement: gwGetConfiguredCurrentDate,
+            resolveReplacement: gwResolveConfiguredCurrentDate,
+        },
+    ];
+
+    function gwExpandDateTimeShortcut(editor, event) {
+        if (
+            !GW_SHORTCUT_TRIGGER_PATTERN.test(event.key) ||
+            event.defaultPrevented ||
+            event.isComposing ||
+            event.ctrlKey ||
+            event.metaKey ||
+            event.altKey
+        ) {
+            return false;
+        }
+
+        const selectedNode = editor.selection.getNode();
+        if (
+            editor.dom.is(selectedNode, 'code,pre') ||
+            editor.dom.getParent(selectedNode, 'code,pre')
+        ) {
+            return false;
+        }
+
+        const range = editor.selection.getRng();
+        const container = range.startContainer;
+        const offset = range.startOffset;
+        if (
+            !range.collapsed ||
+            container.nodeType !== 3 ||
+            offset < GW_NOW_SHORTCUT_TOKEN.length
+        ) {
+            return false;
+        }
+
+        let shortcut = null;
+        for (const candidate of GW_DATE_TIME_SHORTCUTS) {
+            const candidateStart = offset - candidate.token.length;
+            if (
+                candidateStart >= 0 &&
+                container.data.slice(candidateStart, offset) === candidate.token
+            ) {
+                shortcut = candidate;
+                break;
+            }
+        }
+        if (!shortcut) {
+            return false;
+        }
+
+        const tokenStart = offset - shortcut.token.length;
+        const textBeforeToken = container.data.slice(0, tokenStart);
+        if (
+            textBeforeToken &&
+            !GW_SHORTCUT_BOUNDARY_PATTERN.test(textBeforeToken.slice(-1))
+        ) {
+            return false;
+        }
+
+        const replacement = shortcut.replacement();
+        if (!replacement) {
+            if (shortcut.resolveReplacement) {
+                const pendingRange = range.cloneRange();
+                pendingRange.setStart(container, tokenStart);
+                shortcut.resolveReplacement().then(function (resolvedReplacement) {
+                    gwReplacePendingShortcut(
+                        editor,
+                        pendingRange,
+                        shortcut.token,
+                        resolvedReplacement
+                    );
+                });
+            }
+            return false;
+        }
+
+        event.preventDefault();
+        const replacementRange = range.cloneRange();
+        replacementRange.setStart(container, tokenStart);
+        editor.undoManager.transact(function () {
+            editor.selection.setRng(replacementRange);
+            gwInsertPlainText(editor, `${replacement}${event.key}`);
+        });
+        return true;
+    }
+
     const GW_TINYMCE_DEFAULT_CONFIG = window.GW_TINYMCE_DEFAULT_CONFIG = {
         entity_encoding: 'raw',
         branding: false,
@@ -399,6 +604,10 @@
         table_default_attributes: {class: 'table table-sm table-striped table-bordered'},
         table_header_type: 'sectionCells',
         setup: function(editor) {
+            if (window.GW_EDITOR_SHORTCUTS) {
+                window.GW_EDITOR_SHORTCUTS.activate();
+            }
+
             editor.ui.registry.addButton('codeInline', {
                 context: 'format',
                 icon: 'sourcecode',
@@ -440,6 +649,25 @@
                 gwApplyTinyMceTheme(editor);
                 gwScheduleTinyMceLayoutRefresh(editor);
                 gwObserveTinyMceTheme();
+            });
+
+            editor.on('keydown', function (event) {
+                if (gwExpandDateTimeShortcut(editor, event)) {
+                    return;
+                }
+
+                if (
+                    event.key === 'Enter' &&
+                    (event.ctrlKey || event.metaKey) &&
+                    editor.targetElm.closest('[data-submit-on-mod-enter]')
+                ) {
+                    const form = editor.targetElm.closest('form');
+                    if (form) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        gwRequestFormSubmit(form);
+                    }
+                }
             });
 
             editor.on('remove', function () {
@@ -581,44 +809,196 @@
         },
     };
 
-    /*
-    Initiate TinyMCE targeting ``textarea.enable-evidence-upload`` inputs
-
-    This must be initiated first because the default config will initiate all ``textarea`` inputs
-    */
-
-    $(() => tinymce.init(gwGetTinyMceThemeConfig(GW_TINYMCE_FINDING_CONFIG)));
-
-    /*
-    Initiate TinyMCE targeting all ``textarea`` inputs
-
-    The init is wrapped in a function, so it can be called to reinitialize TinyMCE as needed
-
-    Editors must be reinitialized when an empty formset form is copied and added to a form
-    */
-
-    function tinyInit() {
-        tinymce.init(gwGetTinyMceThemeConfig(GW_TINYMCE_BASIC_CONFIG));
+    function gwShouldAutoInitTinyMce(textarea) {
+        return !textarea.classList.contains('empty-form') &&
+            !textarea.classList.contains('no-auto-tinymce') &&
+            !textarea.closest('[id^="empty-form-"]');
     }
-    $(tinyInit);
 
-    $(document).on('shown.bs.modal shown.bs.collapse', function () {
-        tinymce.editors.forEach(function (editor) {
-            if (gwEditorNeedsThemeReinit(editor) && gwIsTinyMceEditorVisible(editor)) {
+    function gwIsInInactiveTab(textarea) {
+        const tabPane = textarea.closest('.tab-pane');
+        return tabPane && !tabPane.classList.contains('active');
+    }
+
+    function gwIsInTabPane(textarea) {
+        return !!textarea.closest('.tab-pane');
+    }
+
+    function gwHasTinyMceEditor(textarea) {
+        return tinymce.editors.some(function (editor) {
+            return editor.targetElm === textarea || (textarea.id && editor.id === textarea.id);
+        });
+    }
+
+    function gwRestoreWindowScroll(scrollX, scrollY) {
+        const restore = function () {
+            window.scrollTo(scrollX, scrollY);
+        };
+
+        restore();
+        window.requestAnimationFrame(function () {
+            restore();
+            window.setTimeout(restore, 100);
+            window.setTimeout(restore, 300);
+        });
+    }
+
+    function gwInitTinyMceTextarea(textarea) {
+        const sourceConfig = textarea.classList.contains('enable-evidence-upload')
+            ? GW_TINYMCE_FINDING_CONFIG
+            : GW_TINYMCE_BASIC_CONFIG;
+        const config = {
+            ...gwGetTinyMceThemeConfig(sourceConfig),
+            target: textarea,
+        };
+        const minimumHeightContainer = textarea.closest('[data-tinymce-min-height]');
+        if (minimumHeightContainer) {
+            const minimumHeight = Number.parseInt(minimumHeightContainer.dataset.tinymceMinHeight, 10);
+            if (Number.isFinite(minimumHeight)) {
+                config.min_height = minimumHeight;
+            }
+        }
+        delete config.selector;
+        const initResult = tinymce.init(config);
+        return initResult && typeof initResult.then === 'function' ? initResult : Promise.resolve(initResult);
+    }
+
+    function gwInitTinyMceTextareas(container, options) {
+        const root = container || document;
+        const includeInactiveTabs = options && options.includeInactiveTabs;
+        const skipTabPanes = options && options.skipTabPanes;
+        const preserveScroll = options && options.preserveScroll;
+        const scrollX = window.scrollX;
+        const scrollY = window.scrollY;
+        const textareas = root.matches && root.matches('textarea')
+            ? [root]
+            : Array.from(root.querySelectorAll('textarea'));
+
+        const initPromises = textareas.reduce(function (initPromises, textarea) {
+            if (
+                gwShouldAutoInitTinyMce(textarea) &&
+                !gwHasTinyMceEditor(textarea) &&
+                (!skipTabPanes || !gwIsInTabPane(textarea)) &&
+                (includeInactiveTabs || !gwIsInInactiveTab(textarea))
+            ) {
+                initPromises.push(gwInitTinyMceTextarea(textarea));
+            }
+            return initPromises;
+        }, []);
+
+        if (preserveScroll && initPromises.length) {
+            Promise.all(initPromises).finally(function () {
+                gwRestoreWindowScroll(scrollX, scrollY);
+            });
+        }
+
+        return initPromises;
+    }
+
+    function gwRefreshTinyMceEditors(container, options) {
+        const root = container || document;
+        const scheduleLayoutRefresh = options && options.scheduleLayoutRefresh;
+
+        tinymce.editors.slice().forEach(function (editor) {
+            if (!editor || editor.removed) {
+                return;
+            }
+
+            if (root !== document && editor.targetElm && !root.contains(editor.targetElm)) {
+                return;
+            }
+
+            if (gwEditorNeedsThemeReinit(editor) && (gwIsTinyMceEditorVisible(editor) || editor.hasFocus())) {
                 gwReinitializeTinyMceEditor(editor);
                 return;
             }
-            gwScheduleTinyMceLayoutRefresh(editor);
+
+            if (scheduleLayoutRefresh) {
+                gwScheduleTinyMceLayoutRefresh(editor);
+            }
         });
+    }
+
+    function gwStartInitialTinyMceScrollLock(scrollX, scrollY) {
+        const bodyStyle = document.body.style;
+        const originalPosition = bodyStyle.position;
+        const originalTop = bodyStyle.top;
+        const originalLeft = bodyStyle.left;
+        const originalRight = bodyStyle.right;
+        const originalWidth = bodyStyle.width;
+
+        bodyStyle.position = 'fixed';
+        bodyStyle.top = `-${scrollY}px`;
+        bodyStyle.left = '0';
+        bodyStyle.right = '0';
+        bodyStyle.width = '100%';
+
+        return function () {
+            bodyStyle.position = originalPosition;
+            bodyStyle.top = originalTop;
+            bodyStyle.left = originalLeft;
+            bodyStyle.right = originalRight;
+            bodyStyle.width = originalWidth;
+            window.scrollTo(scrollX, scrollY);
+        };
+    }
+
+    window.gwInitTinyMceTextareas = gwInitTinyMceTextareas;
+    window.tinyInit = function (container, options) {
+        return gwInitTinyMceTextareas(container || document, options);
+    };
+
+    $(function () {
+        const scrollX = window.scrollX;
+        const scrollY = window.scrollY;
+        const stopInitialScrollLock = gwStartInitialTinyMceScrollLock(scrollX, scrollY);
+        const initPromises = gwInitTinyMceTextareas(document);
+        let initialScrollLockFinished = false;
+        const finishInitialScrollLock = function () {
+            if (initialScrollLockFinished) {
+                return;
+            }
+            initialScrollLockFinished = true;
+            stopInitialScrollLock();
+        };
+
+        if (!initPromises.length) {
+            finishInitialScrollLock();
+            return;
+        }
+
+        Promise.all(initPromises).finally(function () {
+            window.requestAnimationFrame(function () {
+                window.setTimeout(finishInitialScrollLock, 1500);
+            });
+        });
+        window.setTimeout(finishInitialScrollLock, 3000);
+    });
+
+    $(document).on('shown.bs.tab', function (event) {
+        const selector = $(event.target).data('target') || $(event.target).attr('href');
+        if (selector) {
+            const pane = document.querySelector(selector);
+            if (pane) {
+                const scrollX = window.scrollX;
+                const scrollY = window.scrollY;
+                gwInitTinyMceTextareas(pane, {includeInactiveTabs: true, preserveScroll: true});
+                gwRefreshTinyMceEditors(pane);
+                gwRestoreWindowScroll(scrollX, scrollY);
+            }
+        }
+    });
+
+    $(document).on('focusin pointerdown', '.tab-pane textarea', function () {
+        gwInitTinyMceTextareas(this, {includeInactiveTabs: true});
+    });
+
+    $(document).on('shown.bs.modal shown.bs.collapse', function (event) {
+        gwInitTinyMceTextareas(event.target, {includeInactiveTabs: true});
+        gwRefreshTinyMceEditors(event.target, {scheduleLayoutRefresh: true});
     });
 
 })($ || django.jQuery);
-
-function tinymceLogInit() {
-    let logConfig = { ...GW_TINYMCE_BASIC_CONFIG };
-    logConfig.selector = '.modal-content textarea:not(.empty-form textarea, .empty-form, .no-auto-tinymce)';
-    tinymce.init(gwGetTinyMceThemeConfig(logConfig));
-}
 
 function tinymceRemove() {
     tinymce.remove();

@@ -112,6 +112,25 @@ select_permissions:
         - severity_id
         - title
       filter: {}
+  - role: service
+    permission:
+      columns:
+        - finding_type_id
+        - id
+        - severity_id
+        - cvss_vector
+        - cvss_score
+        - extra_fields
+        - description
+        - finding_guidance
+        - host_detection_techniques
+        - impact
+        - mitigation
+        - network_detection_techniques
+        - references
+        - replication_steps
+        - title
+      filter: {}
   - role: user
     permission:
       columns: '*'

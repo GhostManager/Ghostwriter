@@ -5,6 +5,331 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Security
+
+* Hardened user-controlled values rendered in JavaScript contexts to prevent stored cross-site scripting
+  * Autocomplete data is now serialized as inert JSON instead of being interpolated into JavaScript source
+  * Tag autocomplete suggestions are scoped to objects the current user can access
+  * Additional inline JavaScript values and activity-log rich-text previews are escaped or sanitized for their output context
+* Added matching Django and Hasura validation for domain and static server names while preserving user access to create and manage shared inventory
+
+## [7.2.4] - 21 July 2026
+
+### Added
+
+* Added shortcuts to the editors for easily inserting dates and times
+  * `@now` / `@time` inserts `HH:mm:ss UTC`
+  * `@today` / `@date` inserts the date using Django’s configured `DATE_FORMAT`
+  * Spaces and unicode punctuation trigger the expansion
+  * There are guards in place so code blocks and email-like strings do not trigger expansion
+  * If an editor is left open overnight, there is a trigger to refresh the date
+
+### Fixed
+
+* Fixed an issue where a blank line would be included after lists in report output
+
+## [7.2.3] - 18 July 2026
+
+### Added
+
+* Added a _Now_ button to the _End Date_ field in the oplog entry form
+  * This button sets the field to the current date and time
+  * Useful for editing the end date of an action after a command finishes
+* Added a _Default Source_ field to logs
+  * Whatever string you set here will be set as the source IP/hostname for any new log entries
+  * Useful if you are manually logging multiple activities from the same system
+  * This is an experiment; if it is useful, we will explore this for other fields
+
+### Changed
+
+* The oplog entry edit form will now open automatically when you create a new entry
+* Made oplog datetime values consistent with the server's timezone
+  * Ghostwriter defaults to UTC for the server
+  * New entries always started with the _Start Date & Time_ set to "now" in UTC (regardless of the server timezone)
+  * The datetime values are always stored in the database as UTC
+  * Now, the oplog is aware of the server's timezone and will use it for datetime entry
+
+### Fixed
+
+* Fixed `loaddata` trying to also load the demo BloodHound JSON during a build
+  * This caused an error that could be confused as a build failure
+  * `loaddata` now only loads `initial.json`
+
+### Security
+
+* Updated the Hasura GraphQL container image to v2.45.6 to take advantage of bug and security fixes
+
+## [7.2.2] - 17 July 2026
+
+### Added
+
+* Added a `category_value` filter to parse domain categories for presenting in the interface
+  * The filter handles more than just the basic `{"source": "category"}` pairings from VirusTotal
+  * Ensures the result is a string that can be safely passed through `bleach`
+* Added a management command to populate a test database for test environments and demonstrations
+  * This new command applies Ghostwriter's database fixtures and then populates a deterministic test database
+  * The goal is to populate the database with data that looks real enough to immediately jump into a "live" environment
+  * It also creates a custom field of each type on every model that supports custom fields
+  * More information in the wiki
+* Added sanitization auditing and status to activity logs
+  * Each completed, on-demand sanitization records its time, requesting user, and selected fields
+  * Log entries now track material updates, allowing Ghostwriter and GraphQL clients to identify logs changed since their most recent sanitization
+  * The activity-log header displays sanitization status and details, including when it is no longer current
+
+### Fixed
+
+* Fixed heading bookmarks not appearing in Word's bookmark list when using Insert > Bookmark (Fixes #707; Closes #792)
+  * Ghostwriter now emits two bookmarks over each heading’s text, a visible name and a hidden `_Refname` alias
+  * Captions keep only `_Refname`, and `{{.ref}}` keeps targeting `_Refname`
+  * This preserves old templates while making only headings appear in Word’s normal bookmark list
+* Fixed oplog edit modal scrolling to the bottom on open under certain conditions
+* Fixed some collab editor styling and form handling
+* Fixed multi-line table cells not rendering properly in reports
+
+## [7.2.1] - 9 July 2026
+
+### Added
+
+* Added support for a new `--required-only` for loading seed data
+  * Fixtures can now be flagged with `"required": false`
+  * The `loaddata` command will not load fixtures marked as such when the flag is set
+* Added option to scope a service token by client
+  * This works similarly to _All Accessible Projects_ but filters the access by one or more clients
+  * The token will have access to all current and future user-accessible projects under the selected client(s)
+* Added preview modals for findings and observations on reports
+  * These now have _Preview_ buttons in their dropdown menus
+* Added jinja2 rendering to field preview modals for finding, observation, report, and project fields
+  * Continuing preview enhancements from v7.2.0, previews now render Jinja2 templating using the report context
+  * Clicking the _Preview_ buttons will now trigger the modal and a _Rendering rich text preview..._ loading message
+  * It will take a moment to generate the context and render any Jinja2
+  * If there are syntax errors, rendering will fail and there will be an error message
+* Added configuration options to the General Settings to control maximum token lifetime and credential rotation
+  * Maximum Token Lifetime in Days (default: 365) limits how far into the future a token expiry date may be set
+  * Require Token Rotation to Extend Expiry (default: True) forces token rotation when extending expiry
+* Added the option to regenerate API and service tokens to immediately roll the credential and receive a new token
+
+### Changed
+
+* **Updated Ghostwriter CLI Binaries**: Updated the pre-built Ghostwriter CLI binaries to v1.0.1
+* Marked the starter templates as non-required so they will not re-appear during updates and container builds if deleted
+* Adjusted the Docker service configurations to cap log file size to 30MB (maximum of 3 files * 10MB each)
+  * This caps the size of all logs to ~240MB
+* Preview modals for rich-text fields now render references, captions, and client logo objects
+  * References will be represented by your figure label and a placeholder—e.g., `Figure #`
+  * Captions will also use the configured caption label and prefix and show the caption text–e.g., `Figure # — Caption Contents`
+  * Client logo objects will insert the client logo when available
+    * Logos are set to a static 6.5" width to align with Office's default width and keep very large or wide logos under control
+* When editing an API token's expiration date, the form and back-end now enforce the *Maximum Token Lifetime in Days* setting
+* The `whoami` query now works with service tokens
+* Changed the Hasura GraphQL build to add a copy of BusyBox for health checks
+  * The Hasura base image uses Ubuntu Jammy, and installing `curl` during emulated `linux/arm64` builds can trigger `libc-bin` post-installation failures under QEMU
+  * The Hasura image no longer runs `apt-get` just to provide a health check command
+  * Hasura health checks now use the bundled BusyBox `wget` probe instead of `curl`
+
+### Fixed
+
+* Removed tags from autocomplete suggestions in filters so they work as expected when selecting them (Fixes #927)
+
+### Security
+
+* Adjusted WebSocket consumers to check object access to match access controls used elsewhere
+  * Please see security advisory for details: [https://github.com/GhostManager/Ghostwriter/security/advisories/GHSA-f6w3-9v9c-5364](https://github.com/GhostManager/Ghostwriter/security/advisories/GHSA-f6w3-9v9c-5364)
+
+## [7.2.0] - 30 June 2026
+
+### Added
+
+* Added Playwright as a local dev package for end-to-end testing
+* Added evidence metadata parser coverage for collaborative editor evidence loading
+
+### Changed
+
+* **Breaking:** All evidence now attaches to a report object and is available to all findings and other report fields
+* XLSX report exports now populate the "Supporting Evidence" column from report evidence references used by each finding
+  * This includes first-class evidence objects, legacy `{{.Evidence Name}}` tags, `{{.ref Evidence Name}}` references, and `{{.caption Evidence Name}}` captions
+* Collaborative editor evidence loading now validates report metadata before querying evidence and keeps the evidence tool disabled only until report-scoped evidence context is ready
+  * Users can still upload and insert report evidence from finding, observation, and report extra field editors
+* Previews of extra fields now more closely match your report configuration
+  * Image evidence will appear in accordance with your border, image width, and alignment configurations
+  * Captions will appear above or below evidence based on the configured location
+  * Text evidence now matches other code blocks as they typically do in the final reports
+    * They no longer inherit a border based on the border configuration
+    * They are now the full width of the content instead of bound to the evidence width intended for images
+* The extra fields section of the report dashboard now presents fields as cards for easier review and access
+* Loading of JSON extra fields is now "lazy" to defend page performance when these fields contain large JSON blobs
+  * The JSON data is also removed after closing the preview to maintain page performance
+
+### Fixed
+
+* Fixed severity colors appearing incorrect in xlsx reports
+
+### Removed
+
+* **Breaking:** Removed finding-level evidence ownership
+  * Existing finding-owned evidence migrates to the owning report
+  * In case of friendly name collisions, the migration adjusts the friendly name as needed to preserve both evidence records
+  * References to renamed migrated evidence update in the source finding's rich-text fields and extra fields
+  * The evidence upload API and Hasura metadata no longer accept non-empty `finding` or `findingId` evidence associations
+
+## [7.1.3] - 26 June 2026
+
+### Changed
+
+* Optimized service-token GraphQL user-resolution permissions for large project queries
+  * Service-token access now resolves related project users through a database-backed access view instead of repeatedly expanding a large Hasura permission tree
+  * Project and operation log service-token scopes remain unchanged
+
+### Fixed
+
+* Fixed icons on filter fields not displaying properly
+
+## [7.1.2] - 24 June 2026
+
+### Fixed
+
+* Fixed `datetime-local` rendering for white card and deconfliction edit forms so saved timestamps display reliably in older browsers (Closes #917)
+
+### Security
+
+* Fixed additional client-scoped report template authorization bypasses in template swapping, report generation, archive generation, linting, and lint result endpoints
+  * Report template selection now only accepts global templates or templates scoped to the report project's client
+  * This fix includes two temporary breaking changes for the API while we work on a custom endpoint to handle this new business logic:
+    * **Breaking:** The GraphQL API no longer allows `user` or `manager` roles to set report template ID columns directly when creating or updating reports
+    * **Breaking:** The GraphQL API no longer allows `user` or `manager` roles to update a report's project ID column directly
+
+## [7.1.1] - 18 June 2026
+
+### Fixed
+
+* Fixed project collaborative notes failing to load for users with project access (Fixes #913)
+  * The collaborative editor JWT is now scoped to the project so assigned users, project invitees, client invitees, managers, and admins can edit shared project notes
+
+### Security
+
+* Fixed an authorization bypass that allowed authenticated users to download client-scoped report templates by direct URL
+  * Template downloads now use the same client access check as the template detail page
+  * Please see security advisory for details: [https://github.com/GhostManager/Ghostwriter/security/advisories/GHSA-hx63-6fvp-4rpv](https://github.com/GhostManager/Ghostwriter/security/advisories/GHSA-hx63-6fvp-4rpv)
+
+## [7.1.0] - 16 June 2026
+
+### Added
+
+* Added a workflow to check the GraphQL codegen whenever models change to ensure there is no drift (Closes #849)
+* Added tracking for the active report in the browser's localstorage along with a mechanism to re-activate the report on user login
+
+### Changed
+
+* Switched from `docxtpl` to a Ghostwriter fork to implement performance improvements (Fixes #585; Closes #822)
+  * Implemented changes in the upstream `docxtpl` development branch
+  * Will consider returning to using the Pypi package when the new maintainers are able to merge the development changes and begin tagging releases
+* Updated Django to v5.2 with groundwork completed for Django v6.x (Closes #824)
+  * Going slow with version upgrades to ensure there are no issues with dependencies
+* The dashboard calendar will now show all projects accessible to the user (Closes #871)
+  * For most users, the calendar will not appear to have changed, except for now including more details
+  * For managers and others with access to more projects, they will now be able to see how all their projects relate to each other in the calendar
+* Improved operation log narrative outline insertion for report fields
+  * Preserves formatted comments, inserts operation log output as code blocks, and keeps linked evidence with matching `{{.ref ...}}` lines
+  * Formats commands as inline code and user context as italic text in inserted narrative lines
+  * Uses only the operation log output field for output blocks, not attached terminal recording text
+
+### Fixed
+
+* Adjusted how the TinyMCE editors load to fix pages sometimes scrolling down to newly initialized TinyMCE fields
+
+## [7.0.2] - 10 June 2026
+
+### Fixed
+
+* Fixed evidence listings inside the collab editor for privileged users
+  * The list of evidence could appear empty for admins and managers if they were not assigned to the related project
+  * Permissions checked for project data access via invites and assignments, but missed access from the privileged roles
+
+## [7.0.1] - 10 June 2026
+
+### Fixed
+
+* Fixed API database migrations breaking when the existing database has many existing API tokens
+
+## [7.0.0] - 3 June 2026
+
+### Breaking Changes
+
+* User-managed API tokens are now opaque `gwat_` credentials instead of JWTs
+  * Existing user-managed JWT API tokens must be rotated to receive an opaque API token
+  * API token expiry edits rotate the token prefix, secret hash, and UUID identifier, which immediately invalidates the previous credential
+* Django admin can no longer create user-bound API tokens
+  * Use service principals and service tokens for non-human integrations
+  * Admin-created user-bound API tokens should be replaced with user-created API tokens or scoped service tokens, depending on whether the credential should act as a user or as a non-human service
+* Login and collaborative editor JWTs now use explicit JWT typing and are accepted only by their intended authentication paths
+  * Collaborative editor JWTs authenticate to Hasura only as a restricted `collab` role for the editor's required read-only queries
+  * Login JWTs require a tracked, unrevoked user session bound by the `jti` claim
+* Service-token GraphQL access now uses the new `service` role and scoped service-token permissions instead of inheriting a creating user's permissions
+
+### Added
+
+* **Scoped Service Tokens**: Added service principals and service tokens for non-human automation credentials (Closes #881)
+  * Service principals represent durable integrations or automation services
+  * Service tokens are opaque `gwst_` credentials with hashed secrets, expiration, revocation, and last-used tracking
+  * Service token permissions are assigned to the token instead of inheriting the creating user's permissions
+  * Added operation log read/write tokens scoped to one operation log and its entries
+  * Added project read-only tokens scoped to selected projects or all projects the creator can access now and later
+* **Service Token GraphQL Access**: Added a Hasura `service` role for scoped service-token access
+  * The shared `service` role exposes a combined service-token schema; each token's grants still determine which protected rows and Actions it can use
+  * Project read access is backed by database views that validate the service token, service principal, creator status, and current project access
+  * Service tokens can read project-related data, project-linked operation logs, evidence, reports, findings, observations, and public libraries
+  * Service tokens can call selected read-oriented GraphQL Actions when their token grants allow the target resource, including report generation, evidence and recording downloads, tag lookups, and extra field specs
+* Added service-token management to the Django admin
+* Added documentation for API tokens, service tokens, and service-principal concepts
+* Added user-session tracking for login JWTs so administrators can revoke active GraphQL sessions
+* Added a management command to clean up expired Django sessions and tracked GraphQL login sessions
+
+### Changed
+
+* Reworked the user profile page to organize API tokens and service tokens into clearer cards
+  * API tokens are described as user-bound automation credentials
+  * Service tokens are described as scoped non-human credentials
+  * Expired tokens can be hidden, and that preference is remembered in local storage
+  * Token expiry dates now use warning styling when expiring within seven days and expired styling after expiration
+  * API tokens now show last-used timestamps alongside service tokens
+  * API tokens now have lazy-loaded details modals showing the token user's current project access
+* Added profile controls for editing API token and service token expiry dates
+  * API token expiry edits now generate a replacement opaque token so the previous credential stops working immediately
+* Added service-token detail modals that show service principal, project read access, direct operation-log access, stale project grants, and token access summaries
+* Improved dark-mode styling for disabled fields
+* Made the sidebar toggle tab sticky while scrolling
+* Added the `DJANGO_MFA_PASSKEY_LOGIN_ENABLED` environment variable for controlling passkey login support
+* API tokens are now opaque `gwat_` credentials with hashed secrets instead of user-managed JWTs
+  * Editing an API token expiry rotates the token prefix, secret hash, and UUID identifier
+* Login and collaborative editor JWTs now use explicit JWT typing
+  * Login JWTs bind their `jti` claim to a tracked user-session identifier
+  * Collaborative editor JWTs use a dedicated token type and restricted Hasura role
+
+### Fixed
+
+* Fixed observation library create/edit/delete permissions not being checked for the `user` role in the GraphQL API
+* Fixed token tables showing as empty when **Hide Expired** hides every API token or service token
+* Fixed hyperlinks not working properly in open Office alternatives like LibreOffice (Fixes #890; Thanks to @wexew-ware)
+
+### Security
+
+* Updated Django from 4.2.16 to 4.2.30 to address CVE-2026-3902 in `ASGIRequest` (Fixes #896)
+* Added service-token authorization helpers for Django-backed Hasura Actions so service tokens are denied by default unless an action explicitly opts in
+* Login JWT validation now checks the tracked user session after verifying the JWT signature and expiration so sessions can be revoked on demand
+* Collaborative editor JWTs are restricted to a dedicated Hasura role and accepted by the collaborative editor permission-check endpoint
+* API token validation now verifies the opaque token secret against a stored hash and rejects revoked, expired, or inactive-user tokens
+* API token expiry edits now invalidate the previous credential and show the replacement token once
+* Service-token validation now uses explicit secret-checking terminology internally and keeps full lifecycle validation on the manager path
+* Added Hasura metadata validation tests to catch service-role permission drift, legacy service-token headers, and unexpected service mutations
+* Added validation for service-token permission resource, action, and constraint combinations
+
+## [6.3.6] - 26 May 2026
+
+### Fixed
+
+* Fixed creating a new client with an incomplete point of contact causing a server error instead of displaying required-field validation errors (Fixes #889)
+
 ## [6.3.5] - 7 May 2026
 
 ### Fixed

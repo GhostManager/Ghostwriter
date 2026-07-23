@@ -26,6 +26,7 @@ services:
       - IPYTHONDIR=${IPYTHONDIR}
       - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
       - DJANGO_MFA_ALWAYS_REVEAL_BACKUP_TOKENS=${DJANGO_MFA_ALWAYS_REVEAL_BACKUP_TOKENS}
+      - DJANGO_MFA_PASSKEY_LOGIN_ENABLED=${DJANGO_MFA_PASSKEY_LOGIN_ENABLED:-true}
       - DJANGO_ACCOUNT_ALLOW_REGISTRATION=${DJANGO_ACCOUNT_ALLOW_REGISTRATION}
       - DJANGO_ACCOUNT_EMAIL_VERIFICATION=${DJANGO_ACCOUNT_EMAIL_VERIFICATION}
       - DJANGO_ADMIN_URL=${DJANGO_ADMIN_URL}
@@ -63,7 +64,7 @@ services:
       - REDIS_URL=redis://${REDIS_HOST}:${REDIS_PORT}/0
       - WEB_CONCURRENCY=${DJANGO_WEB_CONCURRENCY}
     healthcheck:
-      test: curl --insecure --fail https://nginx/status/simple/ || exit 1
+      test: curl --fail http://django:8000/status/simple/ || exit 1
       interval: ${HEALTHCHECK_INTERVAL}
       timeout: ${HEALTHCHECK_TIMEOUT}
       retries: ${HEALTHCHECK_RETRIES}
@@ -149,7 +150,7 @@ services:
       postgres:
         condition: service_healthy
       django:
-        condition: service_started
+        condition: service_healthy
     restart: unless-stopped
     volumes:
       - ./ssl:/etc/ssl/certs
@@ -178,7 +179,7 @@ services:
       - HASURA_GRAPHQL_SERVER_PORT=${HASURA_GRAPHQL_SERVER_PORT}
       - NO_PROXY=django
     healthcheck:
-      test: curl --insecure --fail http://graphql_engine:8080/healthz || exit 1
+      test: /usr/local/bin/busybox wget -q -O /dev/null http://127.0.0.1:8080/healthz || exit 1
       interval: ${HEALTHCHECK_INTERVAL}
       timeout: ${HEALTHCHECK_TIMEOUT}
       retries: ${HEALTHCHECK_RETRIES}

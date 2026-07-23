@@ -9,7 +9,18 @@ type OplogChoice = {
 };
 
 type OutlineBlock =
+    | {
+          type: "narrative";
+          timestamp: string;
+          tool: string;
+          command: string;
+          user_context: string;
+          dest: string;
+          has_comments: boolean;
+      }
     | { type: "paragraph"; text: string }
+    | { type: "html"; html: string }
+    | { type: "code"; text: string }
     | { type: "evidence"; evidence_id: number };
 
 type ToastLevel = "success" | "warning" | "error" | "info";
@@ -39,6 +50,42 @@ function getOplogChoices(): OplogChoice[] {
 
 function getGenerateUrl(): string {
     return document.getElementById("report-oplog-outline-url")?.textContent ?? "";
+}
+
+function buildNarrativeContent(block: Extract<OutlineBlock, { type: "narrative" }>) {
+    const content: Array<{
+        type: "text";
+        text: string;
+        marks?: Array<{ type: string }>;
+    }> = [
+        {
+            type: "text",
+            text: `${block.timestamp}, the assessment team used ${block.tool}`,
+        },
+    ];
+
+    if (block.command) {
+        content.push(
+            { type: "text", text: " (" },
+            { type: "text", text: block.command, marks: [{ type: "code" }] },
+            { type: "text", text: ")" }
+        );
+    }
+
+    content.push(
+        { type: "text", text: " as " },
+        {
+            type: "text",
+            text: block.user_context,
+            marks: [{ type: "italic" }],
+        },
+        {
+            type: "text",
+            text: ` against ${block.dest}.${block.has_comments ? " Comments:" : ""}`,
+        }
+    );
+
+    return content;
 }
 
 export default function OplogOutlineButton({ editor }: { editor: Editor }) {
@@ -221,25 +268,51 @@ async function appendOutline(
             return;
         }
 
-        editor
-            .chain()
-            .focus("end")
-            .insertContent(
-                blocks.map((block) =>
-                    block.type === "paragraph"
-                        ? {
-                              type: "paragraph",
-                              content: block.text
-                                  ? [{ type: "text", text: block.text }]
-                                  : [],
-                          }
-                        : {
-                              type: "evidence",
-                              attrs: { id: block.evidence_id },
-                          }
-                )
-            )
-            .run();
+        blocks.forEach((block) => {
+            if (block.type === "narrative") {
+                editor
+                    .chain()
+                    .focus("end")
+                    .insertContent({
+                        type: "paragraph",
+                        content: buildNarrativeContent(block),
+                    })
+                    .run();
+            } else if (block.type === "paragraph") {
+                editor
+                    .chain()
+                    .focus("end")
+                    .insertContent({
+                        type: "paragraph",
+                        content: block.text
+                            ? [{ type: "text", text: block.text }]
+                            : [],
+                    })
+                    .run();
+            } else if (block.type === "html") {
+                editor.chain().focus("end").insertContent(block.html).run();
+            } else if (block.type === "code") {
+                editor
+                    .chain()
+                    .focus("end")
+                    .insertContent({
+                        type: "codeBlock",
+                        content: block.text
+                            ? [{ type: "text", text: block.text }]
+                            : [],
+                    })
+                    .run();
+            } else {
+                editor
+                    .chain()
+                    .focus("end")
+                    .insertContent({
+                        type: "evidence",
+                        attrs: { id: block.evidence_id },
+                    })
+                    .run();
+            }
+        });
         close();
     } catch (error) {
         console.error(error);

@@ -1,0 +1,33 @@
+table:
+  name: api_service_token_user_access
+  schema: public
+configuration:
+  column_config:
+    token_id:
+      custom_name: tokenId
+    user_id:
+      custom_name: userId
+  custom_column_names:
+    token_id: tokenId
+    user_id: userId
+  custom_name: serviceTokenUserAccess
+  custom_root_fields: {}
+object_relationships:
+  - name: user
+    using:
+      manual_configuration:
+        column_mapping:
+          user_id: id
+        insertion_order: null
+        remote_table:
+          name: users_user
+          schema: public
+select_permissions:
+  - role: service
+    permission:
+      columns:
+        - token_id
+        - user_id
+      filter:
+        token_id:
+          _eq: X-Hasura-Service-Token-Id

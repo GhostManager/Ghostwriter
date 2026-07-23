@@ -70,25 +70,39 @@ class CheckoutFormTests(TestCase):
         cls.available_status = DomainStatusFactory(domain_status="Available")
         cls.unavailable_status = DomainStatusFactory(domain_status="Unavailable")
         cls.domain = DomainFactory(
+            name="checkout-available.example",
             expiration=date.today() + timedelta(days=360),
             expired=False,
             auto_renew=True,
             domain_status=cls.available_status,
         )
         cls.unavailable_domain = DomainFactory(
+            name="checkout-unavailable.example",
             domain_status=cls.unavailable_status,
             expiration=date.today() + timedelta(days=360),
             expired=False,
             auto_renew=True,
         )
         cls.expired_domain = DomainFactory(
-            expiration=date.today() - timedelta(days=30), auto_renew=False, expired=False
+            name="checkout-expired.example",
+            expiration=date.today() - timedelta(days=30),
+            auto_renew=False,
+            expired=False,
+            domain_status=cls.available_status,
         )
         cls.auto_renew_expired_domain = DomainFactory(
-            expiration=date.today() - timedelta(days=30), auto_renew=True, expired=False
+            name="checkout-auto-renew-expired.example",
+            expiration=date.today() - timedelta(days=30),
+            auto_renew=True,
+            expired=False,
+            domain_status=cls.available_status,
         )
         cls.set_expired_domain = DomainFactory(
-            expiration=date.today() + timedelta(days=30), auto_renew=True, expired=True
+            name="checkout-set-expired.example",
+            expiration=date.today() + timedelta(days=30),
+            auto_renew=True,
+            expired=True,
+            domain_status=cls.available_status,
         )
         cls.project = ProjectFactory()
         cls.user = UserFactory(password=PASSWORD)
@@ -241,6 +255,15 @@ class DomainFormTests(TestCase):
 
         form = self.form_data(**domain_dict)
         self.assertTrue(form.is_valid())
+
+    def test_rejects_script_delimiters_in_domain_name(self):
+        domain = DomainFactory()
+        domain_dict = domain.__dict__.copy()
+        domain_dict["name"] = "'+alert(1)+'"
+
+        form = self.form_data(**domain_dict)
+
+        self.assertEqual(form.errors["name"].as_data()[0].code, "invalid_domain_name")
 
     def test_invalid_dates(self):
         end_date = date.today()
@@ -557,6 +580,15 @@ class ServerFormTests(TestCase):
 
         form = self.form_data(**server)
         self.assertTrue(form.is_valid())
+
+    def test_rejects_script_delimiters_in_server_name(self):
+        server = self.server_dict.copy()
+        server["ip_address"] = "1.1.1.1"
+        server["name"] = "'+alert(1)+'"
+
+        form = self.form_data(**server)
+
+        self.assertEqual(form.errors["name"].as_data()[0].code, "invalid_server_name")
 
 
 class ServerCheckoutFormTests(TestCase):

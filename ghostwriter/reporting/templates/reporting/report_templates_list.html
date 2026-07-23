@@ -94,7 +94,7 @@
                 onclick="openModal('#template_detail_{{ template.id }}')"
               ></span>
               <a class="icon download-icon" href="javascript:void(0)"
-                 onclick="downloadTemplate({{ template.id }}, '{{ template.filename }}')" title="Download template"></a>
+                 onclick="downloadTemplate({{ template.id }}, '{{ template.filename|escapejs }}')" title="Download template"></a>
               {% if template.protected and request.user|is_privileged or not template.protected %}
                 <a class="icon edit-icon"
                    href="{% url 'reporting:template_update' template.id %}"></a>
@@ -175,15 +175,12 @@
     }
   </script>
 
+  {{ autocomplete_data|json_script:"report-template-autocomplete-data" }}
   <script>
     $(function () {
-      let availableTags = [
-        {% for tag in tags %}
-          '{{ tag.name|escapejs }}',
-        {% endfor %}
-      ];
+      const autocompleteData = JSON.parse(document.getElementById('report-template-autocomplete-data').textContent);
       $('#id_tags').autocomplete({
-        source: availableTags
+        source: autocompleteData.tags
       });
     });
   </script>

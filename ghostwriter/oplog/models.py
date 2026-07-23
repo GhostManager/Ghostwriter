@@ -6,25 +6,26 @@ import os
 import re
 from datetime import datetime
 
-# 3rd Party Libraries
-import bleach
-from bleach.css_sanitizer import CSSSanitizer
-
 # Django Imports
 from django import forms
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.urls import reverse
+from django.utils import timezone
 
 # 3rd Party Libraries
+import bleach
+from bleach.css_sanitizer import CSSSanitizer
 from taggit.managers import TaggableManager
 
+# Ghostwriter Libraries
 from ghostwriter.reporting.models import Evidence
 from ghostwriter.rolodex.models import Project
 
 # Using __name__ resolves to ghostwriter.oplog.models
 logger = logging.getLogger(__name__)
+
 
 def _sanitize_rich_field(value):
     """Strip disallowed HTML tags and attributes from a rich-text field value."""
@@ -111,6 +112,47 @@ class Oplog(models.Model):
         return cls.user_viewable(user)
 
 
+class OplogSanitization(models.Model):
+    """Records one completed sanitization of an :class:`Oplog`."""
+
+    oplog = models.ForeignKey(
+        Oplog,
+        on_delete=models.CASCADE,
+        related_name="sanitizations",
+        help_text="The activity log that was sanitized.",
+    )
+    sanitized_at = models.DateTimeField(default=timezone.now, editable=False)
+    sanitized_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="oplog_sanitizations",
+        help_text="The user who requested the sanitization.",
+    )
+    sanitized_by_name = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="A display-name snapshot of the user who requested the sanitization.",
+    )
+    fields = models.JSONField(
+        default=list, help_text="The entry fields included in this sanitization."
+    )
+
+    class Meta:
+        ordering = ["-sanitized_at", "-id"]
+        verbose_name = "Activity log sanitization"
+        verbose_name_plural = "Activity log sanitizations"
+        indexes = [
+            models.Index(
+                fields=["oplog", "-sanitized_at"], name="oplog_oplog_oplog_i_824f5e_idx"
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.oplog} sanitized at {self.sanitized_at}"
+
+
 class OplogEntry(models.Model):
     """Stores an individual log entry, related to :model:`oplog.Oplog`."""
 
@@ -189,6 +231,7 @@ class OplogEntry(models.Model):
     )
     tags = TaggableManager(blank=True)
     extra_fields = models.JSONField(default=dict)
+    updated_at = models.DateTimeField(default=timezone.now, editable=False)
 
     # Foreign Keys
     oplog_id = models.ForeignKey(
@@ -211,6 +254,10 @@ class OplogEntry(models.Model):
         verbose_name_plural = "Activity log entries"
         indexes = [
             models.Index(fields=["oplog_id", "entry_identifier"]),
+            models.Index(
+                fields=["oplog_id", "-updated_at"],
+                name="oplog_oplog_oplog_i_0bf5d6_idx",
+            ),
         ]
 
     @classmethod
@@ -240,12 +287,16 @@ class OplogEntry(models.Model):
     def clean(self, *args, **kwargs):
         if isinstance(self.start_date, str):
             try:
-                self.start_date = datetime.strptime(self.start_date, "%Y-%m-%d %H:%M:%S")
+                self.start_date = datetime.strptime(
+                    self.start_date, "%Y-%m-%d %H:%M:%S"
+                )
             except ValidationError:
                 logger.exception("Received an invalid time value: %s", self.start_date)
                 self.start_date = self.initial_start_date
             except ValueError:
-                logger.exception("Received an incomplete time value: %s", self.start_date)
+                logger.exception(
+                    "Received an incomplete time value: %s", self.start_date
+                )
                 self.start_date = self.initial_start_date
 
         if isinstance(self.end_date, str):
@@ -298,7 +349,9 @@ class OplogEntryEvidence(models.Model):
 
 def set_recording_upload_destination(instance, filename):
     """Sets the ``upload_to`` destination for recordings under the associated project ID."""
-    return os.path.join("recordings", str(instance.oplog_entry.oplog_id.project_id), filename)
+    return os.path.join(
+        "recordings", str(instance.oplog_entry.oplog_id.project_id), filename
+    )
 
 
 class OplogEntryRecording(models.Model):

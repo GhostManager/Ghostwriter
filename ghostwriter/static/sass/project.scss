@@ -38,3 +38,22 @@ $red: #b94a48;
   border-color: $dark-pink;
   color: $red;
 }
+
+@keyframes gw-formset-new-highlight {
+  0% {
+    border-color: rgba(80, 176, 113, 0.95);
+    box-shadow: 0 0 0 3px rgba(80, 176, 113, 0.35);
+  }
+
+  100% {
+    border-color: inherit;
+    box-shadow: 0 0 0 0 rgba(80, 176, 113, 0);
+  }
+}
+
+.formset-new-highlight .form-control,
+.formset-new-highlight .custom-select,
+.formset-new-highlight .select2-selection,
+.formset-new-highlight .tox.tox-tinymce {
+  animation: gw-formset-new-highlight 1800ms ease-out;
+}

@@ -3,9 +3,10 @@ import logging
 import json
 from socket import gaierror
 
-from django.http import HttpResponseRedirect, JsonResponse
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
+from django.utils.html import escape
 from django.views import View
 from django.views.generic.detail import SingleObjectMixin
 from django.views.generic.edit import UpdateView
@@ -19,7 +20,11 @@ from asgiref.sync import async_to_sync
 
 from ghostwriter.api.utils import ForbiddenJsonResponse, RoleBasedAccessControlMixin
 from ghostwriter.commandcenter.models import ExtraFieldSpec
-from ghostwriter.commandcenter.views import CollabModelUpdate
+from ghostwriter.commandcenter.templatetags.extra_fields import expand_evidence_and_sanitize
+from ghostwriter.commandcenter.utils import has_rich_text_content, render_rich_text_value, wrap_plain_value
+from ghostwriter.commandcenter.views import CollabModelUpdate, ExtraFieldRichTextPreviewView
+from ghostwriter.modules.reportwriter.base import ReportExportError, ReportExportTemplateError
+from ghostwriter.modules.reportwriter.report.json import ExportReportJson
 from ghostwriter.reporting.forms import AssignReportFindingForm
 from ghostwriter.reporting.models import Finding, FindingType, Report, ReportFindingLink, Severity
 from ghostwriter.rolodex.models import ProjectAssignment
@@ -210,6 +215,168 @@ class ReportFindingLinkUpdate(CollabModelUpdate):
     template_name = "reporting/report_finding_link_update.html"
     unauthorized_redirect = "home:dashboard"
     has_extra_fields = Finding
+
+
+class ReportFindingLinkExtraFieldRichTextPreview(ExtraFieldRichTextPreviewView):
+    """
+    Rich-text preview for a finding linked to a report.
+
+    Uses the full report export context so that ``project``, ``client``,
+    ``finding``, and evidence references all resolve correctly.
+    """
+    model = ReportFindingLink
+    extra_field_spec_model = Finding
+
+    def build_exporter(self, obj):
+        return ExportReportJson(obj.report)
+
+    def extract_rendered_field(self, exporter, base_context, field_name):
+        pk = self.kwargs["pk"]
+        for finding in base_context.get("findings", []):
+            if finding.get("id") == pk:
+                value = finding.get("extra_fields", {}).get(field_name)
+                if value is None:
+                    return ""
+                return str(value.__html__()) if hasattr(value, "__html__") else str(value)
+        return ""
+
+    def get_report_for_evidence(self, obj):
+        return obj.report
+
+    def get_client(self, obj):
+        return obj.report.project.client
+
+
+class ReportFindingLinkPreview(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    """Render a full preview of a reported finding with Jinja2 resolved."""
+
+    model = ReportFindingLink
+
+    def test_func(self):
+        return self.get_object().user_can_view(self.request.user)
+
+    def handle_no_permission(self):
+        return HttpResponse(
+            '<div class="alert alert-danger">You do not have permission to access that.</div>',
+            content_type="text/html",
+            status=403,
+        )
+
+    # Ordered list of (serialized field key, display label) for the preview.
+    RICH_TEXT_SECTIONS = [
+        ("affected_entities_rt", "Affected Entities"),
+        ("description_rt", "Description"),
+        ("impact_rt", "Impact"),
+        ("mitigation_rt", "Mitigation"),
+        ("replication_steps_rt", "Replication Steps"),
+        ("host_detection_techniques_rt", "Host Detection Techniques"),
+        ("network_detection_techniques_rt", "Network Detection Techniques"),
+        ("references_rt", "References"),
+    ]
+
+    def get(self, request, *args, **kwargs):
+        obj = self.get_object()
+        report = obj.report
+        client = report.project.client
+
+        try:
+            exporter = ExportReportJson(
+                report,
+                include_bloodhound=report.include_bloodhound_data,
+            )
+            base_context = exporter.map_rich_texts()
+        except ReportExportTemplateError as error:
+            return HttpResponse(
+                '<div class="alert alert-danger">'
+                f"<strong>Template Error</strong><br>{escape(str(error))}"
+                "</div>",
+                content_type="text/html",
+            )
+        except ReportExportError as error:
+            logger.warning(
+                "Export error building preview for finding %s on report %s: %s",
+                obj.pk,
+                report.pk,
+                error,
+            )
+            return HttpResponse(
+                '<div class="alert alert-danger">'
+                "<strong>Preview Error</strong><br>"
+                "An unexpected error occurred while rendering this preview.</div>",
+                content_type="text/html",
+            )
+
+        finding_data = None
+        for f in base_context.get("findings", []):
+            if f.get("id") == obj.pk:
+                finding_data = f
+                break
+
+        if finding_data is None:
+            return HttpResponse(
+                '<div class="alert alert-warning">Finding not found in report data.</div>',
+                content_type="text/html",
+            )
+
+        parts = []
+        title = escape(finding_data.get("title", "Untitled Finding"))
+        severity = escape(str(finding_data.get("severity", "")))
+        severity_color = escape(str(finding_data.get("severity_color", "6c757d")))
+        cvss_score = finding_data.get("cvss_score")
+        cvss_vector = escape(str(finding_data.get("cvss_vector", "")))
+        finding_type = escape(str(finding_data.get("finding_type", "")))
+
+        parts.append(f"<h2>{title}</h2>")
+
+        badges = []
+        if severity:
+            sev_badge = (
+                f'<span class="badge badge-pill" '
+                f'style="background-color: #{severity_color}; color: #fff;">'
+                f"{severity}"
+                "</span>"
+            )
+            badges.append(sev_badge)
+        if cvss_vector and cvss_score not in (None, ""):
+            badges.append(
+                f'<span class="badge badge-pill badge-dark"'
+                f' style="cursor: help; background-color: #{severity_color}; color: #fff;" data-toggle="tooltip"'
+                f' data-placement="bottom" title="{cvss_vector}">'
+                f"CVSS: {cvss_score}</span>"
+            )
+        if finding_type:
+            badges.append(
+                f'<span class="badge badge-pill badge-primary">{finding_type}</span>'
+            )
+        if badges:
+            parts.append(f'<div class="mb-3 text-center">{" ".join(badges)}</div>')
+
+        parts.append("<hr>")
+
+        for key, label in self.RICH_TEXT_SECTIONS:
+            html = render_rich_text_value(finding_data.get(key))
+            if not has_rich_text_content(html):
+                continue
+            sanitized = expand_evidence_and_sanitize(html, report, client=client)
+            parts.append(f"<h3>{escape(label)}</h3>")
+            parts.append(sanitized)
+
+        extra_fields = finding_data.get("extra_fields", {})
+        ef_display_names = {
+            spec.internal_name: spec.display_name
+            for spec in ExtraFieldSpec.objects.filter(target_model=Finding._meta.label)
+        }
+        for ef_key, ef_value in extra_fields.items():
+            html = render_rich_text_value(ef_value)
+            if not has_rich_text_content(html):
+                continue
+            html = wrap_plain_value(ef_value, html)
+            sanitized = expand_evidence_and_sanitize(html, report, client=client)
+            label = escape(ef_display_names.get(ef_key, ef_key))
+            parts.append(f"<h3>{label}</h3>")
+            parts.append(sanitized)
+
+        return HttpResponse("\n".join(parts), content_type="text/html")
 
 
 class ReportFindingStatusUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, View):

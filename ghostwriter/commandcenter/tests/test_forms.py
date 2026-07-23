@@ -11,6 +11,7 @@ from ghostwriter.commandcenter.admin import ExtraFieldSpecInlineFormSet
 from ghostwriter.commandcenter.models import ExtraFieldModel, ExtraFieldSpec
 from ghostwriter.commandcenter.forms import ExtraFieldsField, ExtraFieldsWidget, ReportConfigurationForm
 from ghostwriter.factories import (
+    ClientFactory,
     ExtraFieldSpecFactory,
     ReportConfigurationFactory,
     ReportDocxTemplateFactory,
@@ -127,6 +128,13 @@ class ReportConfigurationFormTests(TestCase):
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0].code, "invalid")
 
+        config["default_docx_template_id"] = ReportDocxTemplateFactory(client=ClientFactory()).pk
+
+        form = self.form_data(**config)
+        errors = form.errors["default_docx_template"].as_data()
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0].code, "invalid_choice")
+
     def test_clean_default_pptx_template(self):
         config = self.config.__dict__.copy()
         form = self.form_data(**config)
@@ -139,6 +147,13 @@ class ReportConfigurationFormTests(TestCase):
         errors = form.errors["default_pptx_template"].as_data()
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0].code, "invalid")
+
+        config["default_pptx_template_id"] = ReportPptxTemplateFactory(client=ClientFactory()).pk
+
+        form = self.form_data(**config)
+        errors = form.errors["default_pptx_template"].as_data()
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0].code, "invalid_choice")
 
     def test_clean_outline_tags_normalizes_and_deduplicates_rules(self):
         config = self.config.__dict__.copy()
@@ -298,6 +313,24 @@ class ExtraFieldFormTest(TestCase):
         self.assertTrue(field_data["test_field_bool"])
         data = field.clean(field_data)
         self.assertTrue(data["test_field_bool"])
+
+    def test_checkbox_widget_uses_custom_switch_markup(self):
+        ExtraFieldSpec.objects.create(
+            target_model=self.model,
+            internal_name="test_field_bool",
+            display_name="Test Field 4",
+            type="checkbox",
+        )
+        widget = ExtraFieldsWidget("test.TestModel")
+
+        rendered = widget.render("testform", {"test_field_bool": True}, attrs={"id": "id_testform"})
+
+        self.assertIn('class="mb-3 custom-control custom-switch"', rendered)
+        self.assertIn('class="custom-control-input"', rendered)
+        self.assertIn("checked", rendered)
+        self.assertIn('for="id_testform_test_field_bool"', rendered)
+        self.assertIn('class="custom-control-label form-check-label"', rendered)
+        self.assertIn("Test Field 4", rendered)
 
     def test_checkbox_false(self):
         ExtraFieldSpec.objects.create(

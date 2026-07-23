@@ -6,6 +6,16 @@
 
 {% block pagetitle %}Account{% endblock %}
 
+{% block breadcrumbs %}
+  <nav aria-label="breadcrumb">
+    <ul class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'users:user_detail' request.user.username %}">Your Profile</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Manage Emails</li>
+    </ul>
+  </nav>
+{% endblock %}
+
 {% block inner %}
     <h2>{% trans "Email Addresses" %}</h2>
 

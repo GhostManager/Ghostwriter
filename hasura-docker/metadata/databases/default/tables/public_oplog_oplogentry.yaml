@@ -21,6 +21,8 @@ configuration:
       custom_name: startDate
     user_context:
       custom_name: userContext
+    updated_at:
+      custom_name: updatedAt
   custom_column_names:
     dest_ip: destIp
     end_date: endDate
@@ -31,6 +33,7 @@ configuration:
     source_ip: sourceIp
     start_date: startDate
     user_context: userContext
+    updated_at: updatedAt
   custom_name: oplogEntry
   custom_root_fields: {}
 object_relationships:
@@ -41,6 +44,26 @@ insert_permissions:
   - role: manager
     permission:
       check: {}
+      columns:
+        - command
+        - comments
+        - description
+        - dest_ip
+        - end_date
+        - entry_identifier
+        - extra_fields
+        - operator_name
+        - oplog_id_id
+        - output
+        - source_ip
+        - start_date
+        - tool
+        - user_context
+  - role: service
+    permission:
+      check:
+        oplog_id_id:
+          _eq: X-Hasura-Create-OplogEntry-Oplog-Id
       columns:
         - command
         - comments
@@ -105,8 +128,21 @@ select_permissions:
         - source_ip
         - start_date
         - tool
+        - updated_at
         - user_context
       filter: {}
+  - role: service
+    permission:
+      columns: '*'
+      filter:
+        _or:
+          - oplog_id_id:
+              _eq: X-Hasura-Read-Oplog-Id
+          - log:
+              project:
+                serviceTokenProjectAccesses:
+                  token_id:
+                    _eq: X-Hasura-Service-Token-Id
   - role: user
     permission:
       columns: '*'
@@ -144,6 +180,29 @@ update_permissions:
         - user_context
       filter: {}
       check: {}
+  - role: service
+    permission:
+      columns:
+        - command
+        - comments
+        - description
+        - dest_ip
+        - end_date
+        - entry_identifier
+        - extra_fields
+        - operator_name
+        - oplog_id_id
+        - output
+        - source_ip
+        - start_date
+        - tool
+        - user_context
+      filter:
+        oplog_id_id:
+          _eq: X-Hasura-Update-OplogEntry-Oplog-Id
+      check:
+        oplog_id_id:
+          _eq: X-Hasura-Update-OplogEntry-Oplog-Id
   - role: user
     permission:
       columns:
@@ -193,6 +252,11 @@ delete_permissions:
   - role: manager
     permission:
       filter: {}
+  - role: service
+    permission:
+      filter:
+        oplog_id_id:
+          _eq: X-Hasura-Delete-OplogEntry-Oplog-Id
   - role: user
     permission:
       filter:

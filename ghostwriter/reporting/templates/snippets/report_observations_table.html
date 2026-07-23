@@ -82,6 +82,10 @@
                     data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
             <div id="observation-dropdown-menu-{{ observation.id }}" class="dropdown-menu"
                  aria-labelledby="observation-dropdown-btn-{{ observation.id }}">
+              <a class="dropdown-item icon view-icon js-observation-preview" href="javascript:void(0);"
+                 data-observation-preview-url="{% url 'reporting:observation_preview' observation.id %}"
+                 data-observation-title="{{ observation.title }}"
+                 data-toggle="modal" data-target="#observation-preview-modal">Preview</a>
               <a class="dropdown-item icon edit-icon"
                  href="{% url 'reporting:local_observation_edit' observation.id %}">Edit</a>
               <a class="dropdown-item icon user-icon"

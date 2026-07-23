@@ -6,7 +6,7 @@ import { extraFieldsFromYdoc, extraFieldsToYdoc } from "../extra_fields";
 
 const GET = gql(`
     query GET_REPORT_OBSERVATION_LINK($id: bigint!) {
-        reporting_reportobservationlink_by_pk(id: $id) {
+        reportedObservation_by_pk(id: $id) {
             title, description, extraFields
         }
         tags(model: "report_observation_link", id: $id) {
@@ -26,7 +26,7 @@ const SET = gql(`
         $tags:[String!]!,
         $extraFields:jsonb!,
     ) {
-        update_reporting_reportobservationlink_by_pk(pk_columns:{id:$id}, _set:{
+        update_reportedObservation_by_pk(pk_columns:{id:$id}, _set:{
             title: $title,
             description: $description,
             extraFields: $extraFields,
@@ -43,7 +43,7 @@ const ReportObservationLinkHandler = simpleModelHandler(
     GET,
     SET,
     (doc, res) => {
-        const obj = res.reporting_reportobservationlink_by_pk;
+        const obj = res.reportedObservation_by_pk;
         if (!obj) throw new Error("No object");
 
         const plain_fields = doc.get("plain_fields", Y.Map);

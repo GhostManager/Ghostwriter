@@ -6,6 +6,7 @@ from crispy_forms.layout import TEMPLATE_PACK, Field, LayoutObject
 
 # Django Imports
 from django.template.loader import render_to_string
+from django.utils.text import slugify
 
 
 class Formset(LayoutObject):
@@ -39,7 +40,7 @@ class Formset(LayoutObject):
         # crispy_forms/layout.py:302 requires us to have a fields property
         self.fields = []
 
-    def render(self, form, form_style, context, template_pack=TEMPLATE_PACK):
+    def render(self, form, context, template_pack=TEMPLATE_PACK, **kwargs):
         formset = context.get(self.formset_context_name)
         helper = context.get(self.helper_context_name)
         object_name = self.object_context_name
@@ -74,10 +75,21 @@ class CustomTab(Container):
     # link_css_class = ""
 
     def __init__(self, name, *fields, **kwargs):
-        super().__init__(*fields, **kwargs)
-        self.name = name
-        self.fields = list(fields)
-        self.link_css_class = kwargs.get("link_css_class", None)
+        link_css_class = kwargs.pop("link_css_class", None)
+        tab_hash_id = kwargs.pop("css_id", None) or slugify(name, allow_unicode=True)
+        super().__init__(name, *fields, css_id=f"tab-pane-{tab_hash_id}", **kwargs)
+        self.link_css_class = link_css_class
+        self.tab_hash = f"#{tab_hash_id}"
+
+    def render(self, form, context, template_pack=TEMPLATE_PACK, **kwargs):
+        css_classes = self.css_class.split()
+        if self.active:
+            if "active" not in css_classes:
+                css_classes.append("active")
+        else:
+            css_classes = [css_class for css_class in css_classes if css_class != "active"]
+        self.css_class = " ".join(css_classes)
+        return super().render(form, context, template_pack, **kwargs)
 
     def render_link(self, template_pack=TEMPLATE_PACK, **kwargs):
         """

@@ -1,9 +1,11 @@
 # Standard Libraries
 import random
-from datetime import date, timedelta, timezone
+from datetime import date, timedelta
+from datetime import timezone as datetime_timezone
 
 # Django Imports
 from django.contrib.auth import get_user_model
+from django.contrib.auth.hashers import make_password
 from django.db.models.signals import post_save
 from django.utils import timezone
 
@@ -548,11 +550,7 @@ class BaseEvidenceFactory(factory.django.DjangoModelFactory):
                 self.tags.add(tag)
 
 
-class EvidenceOnFindingFactory(BaseEvidenceFactory):
-    finding = factory.SubFactory(ReportFindingLinkFactory)
-
-
-class EvidenceOnReportFactory(BaseEvidenceFactory):
+class EvidenceFactory(BaseEvidenceFactory):
     report = factory.SubFactory(ReportFactory)
 
 
@@ -662,7 +660,7 @@ class OplogEntryEvidenceFactory(factory.django.DjangoModelFactory):
         model = "oplog.OplogEntryEvidence"
 
     oplog_entry = factory.SubFactory(OplogEntryFactory)
-    evidence = factory.SubFactory(EvidenceOnReportFactory)
+    evidence = factory.SubFactory(EvidenceFactory)
 
 
 class OplogEntryRecordingFactory(factory.django.DjangoModelFactory):
@@ -674,6 +672,37 @@ class OplogEntryRecordingFactory(factory.django.DjangoModelFactory):
         filename="test.cast",
         data=b'{"version": 3, "term": {"cols": 80, "rows": 24}}\n[0.5, "o", "Hello, world!"]\n',
     )
+
+
+class ServicePrincipalFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "api.ServicePrincipal"
+
+    name = Faker("sentence")
+    service_type = "integration"
+    created_by = factory.SubFactory(UserFactory)
+
+
+class ServiceTokenFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "api.ServiceToken"
+
+    name = Faker("sentence")
+    token_prefix = factory.Sequence(lambda n: f"prefix{n}")
+    secret_hash = factory.LazyFunction(lambda: make_password("service-secret"))
+    created_by = factory.SubFactory(UserFactory)
+    service_principal = factory.SubFactory(ServicePrincipalFactory)
+
+
+class ServiceTokenPermissionFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "api.ServiceTokenPermission"
+
+    token = factory.SubFactory(ServiceTokenFactory)
+    resource_type = "oplog"
+    resource_id = factory.Sequence(lambda n: n + 1)
+    action = "read"
+    constraints = {}
 
 
 # Shepherd Factories
@@ -953,7 +982,7 @@ class BannerConfigurationFactory(factory.django.DjangoModelFactory):
     banner_message = Faker("sentence")
     banner_link = Faker("url")
     public_banner = Faker("boolean")
-    expiry_date = Faker("date_time", tzinfo=timezone.utc)
+    expiry_date = Faker("date_time", tzinfo=datetime_timezone.utc)
 
 
 class DeconflictionStatusFactory(factory.django.DjangoModelFactory):
@@ -968,9 +997,9 @@ class DeconflictionFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "rolodex.Deconfliction"
 
-    report_timestamp = Faker("date_time", tzinfo=timezone.utc)
-    alert_timestamp = Faker("date_time", tzinfo=timezone.utc)
-    response_timestamp = Faker("date_time", tzinfo=timezone.utc)
+    report_timestamp = Faker("date_time", tzinfo=datetime_timezone.utc)
+    alert_timestamp = Faker("date_time", tzinfo=datetime_timezone.utc)
+    response_timestamp = Faker("date_time", tzinfo=datetime_timezone.utc)
     title = Faker("sentence")
     description = Faker("rich_text")
     alert_source = Faker("word")
@@ -982,7 +1011,7 @@ class WhiteCardFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "rolodex.WhiteCard"
 
-    issued = Faker("date_time", tzinfo=timezone.utc)
+    issued = Faker("date_time", tzinfo=datetime_timezone.utc)
     title = Faker("user_name")
     description = Faker("rich_text")
     project = factory.SubFactory(ProjectFactory)

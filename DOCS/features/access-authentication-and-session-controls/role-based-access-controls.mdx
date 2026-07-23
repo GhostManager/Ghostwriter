@@ -8,7 +8,8 @@ title: "Role-Based Access Controls"
 Explanation of Ghostwriter's role-based access controls
 
 <Check>
-In Ghostwriter \<= v3.x, the role-based access controls described on this page apply *only to the GraphQL API*. In those older versions, user privileges are equivalent to every account having the `manager` role.
+In Ghostwriter \<= v3.x, the role-based access controls described on this page apply *only to the GraphQL API*. In those older versions, user privileges are
+equivalent to every account having the `manager` role.
 </Check>
 
 ## Introduction
@@ -24,7 +25,9 @@ User roles are the primary authorization mechanism. There are three user roles:
 A Ghostwriter administrator sets a user's role in the admin panel. All accounts are assigned the `user` role by default.
 
 <Info>
-If you look in the Hasura GraphQL console, you will also see a `public` role. Only Hasura uses this role. An unauthenticated request (i.e., any request that lacks a valid JWT in a request's `Authorization` header) is considered to have the `public` role. Specific webhook endpoints (e.g., `login`) are accessible to this role.
+If you look in the Hasura GraphQL console, you will also see a `public` role. Only Hasura uses this role. An unauthenticated request (i.e., any request that
+lacks a valid token in a request's `Authorization` header) is considered to have the `public` role. Specific webhook endpoints (e.g., `login`) are accessible to
+this role.
 </Info>
 
 The roles carry the following privileges:
@@ -39,17 +42,19 @@ The `user` role can only access project and related client data if they:
 
 * have been invited to access the project
 
-Otherwise, this role has the standard permissions you might expect. They can edit or delete their comments, update their profiles, and view the shared information in the various libraries (e.g., findings, domains).
+Otherwise, this role has the standard permissions you might expect. They can edit or delete their comments, update their profiles, and view the shared information
+in the various libraries (e.g., findings, domains).
 
-When viewing the project history for a domain or server, an account with the `user` role will only see project details if they can access the project or the related client.
+When viewing the project history for a domain or server, an account with the `user` role will only see project details if they can access the project.
 
 <Info>
-Someone with the `manager` or `admin` role can invite a user to access a client or project via the _Invitations_ tabs on the client dashboard or the _People_ tab on the project dashboard. If the user is invited to a project, they will automatically be granted access to the related client but not the client's other projects.
+A `user` account can be granted special access to clients and projects via the invite system. Read below for details.
 </Info>
 
 #### Augmenting User Permission
 
-An admin can augment user permissions in the admin console. By default, the `user` role cannot edit, update, or delete entries in the Findings or Observation libraries.
+An admin can augment user permissions in the admin console. By default, the `user` role cannot edit, update, or delete entries in the shared Findings or
+Observation libraries. If you need to allow a user to maintain these records, grant them the necessary permissions in the admin console under their user record.
 
 ### Manager Role Privileges
 
@@ -69,8 +74,35 @@ Users with thr `manager` role can invite users to have full access to a client o
 
 ### Admin Role Privileges
 
-The `admin` role is only used by the GraphQL API. This role has complete access to everything available via the API. This role can create and manage users and modify fields not exposed to other roles.
+The `admin` role is only used by the GraphQL API. This role has complete access to everything available via the API. This role can create and manage users and
+modify fields not exposed to other roles.
 
 <Warning>
 Use great care when assigning this role to an account. In general, a user should only ever be a `manager` or a `user`.
 </Warning>
+
+## Client and Project Invitations
+
+Someone with the `manager` or `admin` role can invite a user to access a client or project via the _Invitations_ tabs on a client dashboard or the _People_ tab
+on a project dashboard. Invitations help grant access to records without requiring the user be _assigned_ as if they are working on the project. That means
+invitations are helpful tools for granting access to a client or project without altering the shape of the project team.
+
+Client invitations are powerful. A client invite grants access to that client and *all of that client's projects*. This is your shortcut for granting someone
+access to every project for a client, including any future projects.
+
+Project invitations grant access to the related client record and the target project, but not the client's other projects. It's very similar to a project assignment,
+but it does not change the shape of the project team. A project assignment and invitation have the same project-level boundary: the user can access the related
+client record and assigned project, but not the client's other projects (unless they also have a client invite or another project-specific grant).
+
+Invitations can be retracted at any time. The only impact is loss of access for the user.
+
+### Invitation Case Study
+
+For example, if the _ClientA_ has five projects, _Project1-5_, and a user is assigned to _Project5_, they cannot see _Project1-4_. If you want them to be able to
+review a previous project to prepare for this new project, you could invite them to _Project4_. That user would now be able to access _ClientA_, _Project4_,
+and _Project5_.
+
+If you needed them to be able to review all previous projects, a client invitation would be simpler than inviting the user to each individual project. However,
+it would also grant them access to any future projects under that client. That's when you may want to retract the client invitation at the end of the project.
+
+Client invites are also a good option for regular users who might be managing a specific client and need access to all current and future projects.

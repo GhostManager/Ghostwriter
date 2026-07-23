@@ -3,12 +3,6 @@
 # Django Imports
 from django.apps import AppConfig
 
-# 3rd Party Libraries
-from health_check.plugins import plugin_dir
-
-# Ghostwriter Libraries
-from ghostwriter.modules.health_utils import HasuraBackend
-
 
 class StatusConfig(AppConfig):
     name = "ghostwriter.status"
@@ -18,4 +12,3 @@ class StatusConfig(AppConfig):
             import ghostwriter.status.signals  # noqa F401 isort:skip
         except ImportError:
             pass
-        plugin_dir.register(HasuraBackend)

@@ -10,7 +10,7 @@
         {{ field_spec.display_name }}
       </h6>
       <div class="mt-2 col-3 text-md-center align-middle offset-2">
-        {% include "user_extra_fields/field.html" with extra_fields=object.extra_fields field_spec=field_spec %}
+        {% include "user_extra_fields/field.html" with extra_fields=object.extra_fields field_spec=field_spec preview_report=False %}
       </div>
     </div>
   {% endif %}

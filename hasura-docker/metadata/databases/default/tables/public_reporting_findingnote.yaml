@@ -46,6 +46,16 @@ select_permissions:
         - timestamp
         - note
       filter: {}
+  - role: service
+    permission:
+      columns:
+        - finding_id
+        - id
+        - operator_id
+        - timestamp
+        - note
+      filter: {}
+    comment: ""
   - role: user
     permission:
       columns: '*'

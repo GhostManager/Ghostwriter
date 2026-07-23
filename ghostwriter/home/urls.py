@@ -18,6 +18,11 @@ urlpatterns = [
 # URLs for AJAX test functions
 urlpatterns += [
     path(
+        "ajax/editor-shortcuts/date",
+        views.editor_shortcuts_date,
+        name="ajax_editor_shortcuts_date",
+    ),
+    path(
         "ajax/management/test/aws",
         views.TestAWSConnection.as_view(),
         name="ajax_test_aws",

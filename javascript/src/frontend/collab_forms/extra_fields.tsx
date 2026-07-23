@@ -1,13 +1,13 @@
 import { useMemo } from "react";
 import {
-    CheckboxInput,
     IntegerInput,
     NumberInput,
     PlainTextInput,
 } from "./plain_editors/input";
+import { usePlainField } from "./plain_editors/field";
 import JsonEditor from "./plain_editors/json_editor";
 import RichTextEditor from "./rich_text_editor";
-import { XmlFragment } from "yjs";
+import * as Y from "yjs";
 import { HocuspocusProvider } from "@hocuspocus/provider";
 import { Editor } from "@tiptap/core";
 
@@ -49,7 +49,9 @@ export default function ExtraFieldsSection(props: {
             {specs.length > 0 && props.header}
             {specs.map((spec) => (
                 <div className="form-group col-md-12" key={spec.internal_name}>
-                    <label>{spec.display_name}</label>
+                    {spec.type !== "checkbox" && (
+                        <label>{spec.display_name}</label>
+                    )}
                     <ExtraFieldInput {...props} spec={spec} />
                     {spec.description && (
                         <small className="form-text text-muted">
@@ -76,12 +78,10 @@ export function ExtraFieldInput(props: {
     switch (props.spec.type) {
         case "checkbox":
             return (
-                <CheckboxInput
+                <CheckboxExtraField
                     connected={props.connected}
-                    provider={props.provider}
                     map={map}
-                    mapKey={props.spec.internal_name}
-                    inputProps={{ className: "form-control mb-3" }}
+                    spec={props.spec}
                 />
             );
         case "float":
@@ -121,9 +121,9 @@ export function ExtraFieldInput(props: {
             );
         case "rich_text":
             let frag = map.get(props.spec.internal_name);
-            if (!(frag instanceof XmlFragment)) {
+            if (!(frag instanceof Y.XmlFragment)) {
                 if (!props.connected) return <p>Loading...</p>;
-                frag = new XmlFragment();
+                frag = new Y.XmlFragment();
                 map.set(props.spec.internal_name, frag);
             }
 
@@ -131,7 +131,7 @@ export function ExtraFieldInput(props: {
                 <RichTextEditor
                     connected={props.connected}
                     provider={props.provider}
-                    fragment={frag as XmlFragment}
+                    fragment={frag as Y.XmlFragment}
                     toolbarExtra={props.toolbarExtra}
                 />
             );
@@ -151,4 +151,43 @@ export function ExtraFieldInput(props: {
             );
             return null;
     }
+}
+
+function CheckboxExtraField(props: {
+    connected: boolean;
+    map: Y.Map<any>;
+    spec: ExtraFieldSpec;
+}) {
+    const [docValue, setDocValue] = usePlainField<boolean | undefined>(
+        props.map,
+        props.spec.internal_name,
+        undefined
+    );
+
+    if (!props.connected && docValue === undefined) {
+        return <p className="form-text text-muted mb-3">Loading...</p>;
+    }
+
+    const inputId = `extra-field-${props.spec.internal_name}`;
+
+    return (
+        <div className="custom-control custom-switch mb-3">
+            <input
+                className="custom-control-input"
+                id={inputId}
+                type="checkbox"
+                disabled={!props.connected}
+                checked={docValue ?? false}
+                onChange={(ev) => {
+                    setDocValue((ev.target as HTMLInputElement).checked);
+                }}
+            />
+            <label
+                className="custom-control-label form-check-label"
+                htmlFor={inputId}
+            >
+                {props.spec.display_name}
+            </label>
+        </div>
+    );
 }

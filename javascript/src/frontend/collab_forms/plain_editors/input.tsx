@@ -174,7 +174,7 @@ export function CheckboxInput(props: {
     provider: HocuspocusProvider;
     map?: Y.Map<any>;
     mapKey: string;
-    inputProps?: React.HTMLAttributes<HTMLInputElement>;
+    inputProps?: React.InputHTMLAttributes<HTMLInputElement>;
     defaultValue?: boolean;
 }) {
     const map = useMemo(

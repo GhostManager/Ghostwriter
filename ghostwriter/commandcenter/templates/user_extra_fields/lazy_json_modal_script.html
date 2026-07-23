@@ -1,0 +1,70 @@
+<script>
+  const jsonPreviewPlaceholder = '<p class="text-muted mb-0">JSON content will load when this preview opens.</p>';
+  const jsonPreviewLoading = (
+    '<div class="text-center text-muted py-5" role="status" aria-live="polite">' +
+    '<i class="fas fa-spinner fa-spin fa-2x mb-3" aria-hidden="true"></i>' +
+    '<p class="mb-0">Loading JSON content...</p>' +
+    '</div>'
+  );
+
+  $('.extra-field-modal-content[data-lazy-json-url]').closest('.modal').on('show.bs.modal', function () {
+    const $modal = $(this);
+    const $content = $modal.find('.extra-field-modal-content[data-lazy-json-url]');
+    const jsonUrl = $content.data('lazy-json-url');
+    const minimumJsonLoadingMs = 350;
+    const loadId = `${Date.now()}-${Math.random()}`;
+    const abortController = window.AbortController ? new AbortController() : null;
+
+    $content.data('jsonLoadId', loadId);
+    $content.data('jsonAbortController', abortController);
+    $content.html(jsonPreviewLoading);
+    $modal.one('shown.bs.modal', function () {
+      const loadingStartedAt = performance.now();
+      requestAnimationFrame(function () {
+        fetch(jsonUrl, {
+          method: 'GET',
+          credentials: 'same-origin',
+          signal: abortController ? abortController.signal : undefined,
+        })
+          .then(response => {
+            if (!response.ok) {
+              throw new Error('Unable to load JSON content.');
+            }
+            return response.json();
+          })
+          .then(data => {
+            const remainingLoadingMs = Math.max(0, minimumJsonLoadingMs - (performance.now() - loadingStartedAt));
+            setTimeout(function () {
+              if ($content.data('jsonLoadId') !== loadId || !$modal.hasClass('show')) {
+                return;
+              }
+              const fieldName = data.field || $content.data('json-field-name') || 'JSON';
+              const $code = $('<code></code>');
+              const $pre = $('<pre></pre>').append($code);
+              $content.empty().append($pre);
+              $code.jsonView({[fieldName]: data.value});
+            }, remainingLoadingMs);
+          })
+          .catch(error => {
+            if (error.name === 'AbortError' || $content.data('jsonLoadId') !== loadId) {
+              return;
+            }
+            console.error(error);
+            $content.html('<p class="burned mb-0">Unable to load JSON content.</p>');
+          });
+      });
+    });
+  });
+
+  $('.extra-field-modal-content[data-lazy-json-url]').closest('.modal').on('hide.bs.modal', function () {
+    const $content = $(this).find('.extra-field-modal-content[data-lazy-json-url]');
+    const abortController = $content.data('jsonAbortController');
+
+    if (abortController) {
+      abortController.abort();
+    }
+    $content.removeData('jsonAbortController');
+    $content.removeData('jsonLoadId');
+    $content.html(jsonPreviewPlaceholder);
+  });
+</script>

@@ -1,4 +1,22 @@
 /* JavaScript specific to the log entry view page goes here. */
+function formatOplogDateTimeForInput(date, timeZone) {
+    const parts = {};
+    const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: timeZone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hourCycle: 'h23',
+    });
+    formatter.formatToParts(date).forEach(part => {
+        if (part.type !== 'literal') parts[part.type] = part.value;
+    });
+    return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}`;
+}
+
 $(document).ready(function () {
     const $splitContainer = $('.oplog-split-container');
     const $listPane = $('#oplogListPane');
@@ -16,6 +34,9 @@ $(document).ready(function () {
     const $oplogTableNoEntries = $('#oplogTableNoEntries');
     const $oplogTableLoading = $('#oplogTableLoading');
     const $clearSearchBtn = $('#clearSearchBtn');
+    const $defaultSourceInput = $('#defaultSourceInput');
+    const $clearDefaultSourceBtn = $('#clearDefaultSourceBtn');
+    const $createEntryButton = $('#createNewEntryButton');
 
     // Track columns hidden by the user (overrides showByDefault: true)
     let hiddenLogTblColumns = JSON.parse(localStorage.getItem('hiddenLogTblColumns') || '[]');
@@ -28,13 +49,14 @@ $(document).ready(function () {
 
     const oplog_name = $splitContainer.attr('data-oplog-name');
     const oplog_id = parseInt($splitContainer.attr('data-oplog-id'));
+    const oplogTimeZone = $splitContainer.attr('data-time-zone') || 'UTC';
 
     let socket = null;
     let allEntriesFetched = false;
     let errorDisplayed = false;
     let pendingOperation = null;
     let selectedEntryId = null;
-    let pendingAutoSelectCreate = false;
+    let pendingCreateModalRequestId = null;
 
     // Prevent deselecting the entry when a modal is open or in the process of closing.
     // Bootstrap closes non-fade modals synchronously, so hidden.bs.modal fires before our
@@ -251,7 +273,11 @@ $(document).ready(function () {
             if (spec.type === 'checkbox') {
                 toHtmlFunc = v => (v ? '<i class="fas fa-check"></i>' : '<i class="fas fa-times"></i>');
             } else if (spec.type === 'rich_text') {
-                toHtmlFunc = v => v;
+                toHtmlFunc = v => {
+                    if (!v) return '';
+                    let safe = (typeof DOMPurify !== 'undefined') ? DOMPurify.sanitize(v) : jsEscape(v);
+                    return jsEscape(truncateText($('<div>').html(safe).text(), 100));
+                };
             } else {
                 toHtmlFunc = jsEscape;
             }
@@ -480,15 +506,22 @@ $(document).ready(function () {
             oplog_entry_extra_fields_spec.forEach(spec => {
                 let val = entry.extra_fields[spec.internal_name];
                 if (val === undefined || val === null || val.toString().trim() === '') return;
+                if ((spec.type === 'integer' || spec.type === 'float') && val === 0) return;
 
                 html += `<div class="oplog-detail-section">`;
                 html += `<div class="oplog-detail-label">${jsEscape(spec.display_name)}</div>`;
 
                 if (spec.type === 'checkbox') {
-                    html += val ? '<i class="fas fa-check text-success"></i> Yes' : '<i class="fas fa-times text-danger"></i> No';
+                    let checkHtml = val ? '<i class="fas fa-check text-success"></i> Yes' : '<i class="fas fa-times text-danger"></i> No';
+                    html += `<div style="text-align: left;">${checkHtml}</div>`;
                 } else if (spec.type === 'rich_text') {
                     let safeVal = (typeof DOMPurify !== 'undefined') ? DOMPurify.sanitize(val) : jsEscape(val);
                     html += `<div class="oplog-rich-content">${safeVal}</div>`;
+                } else if (spec.type === 'integer') {
+                    html += `<div class="oplog-rich-content">${jsEscape(val)}</div>`;
+                } else if (spec.type === 'float') {
+                    let display = Number.isInteger(val) ? val.toFixed(1) : String(val);
+                    html += `<div class="oplog-rich-content">${jsEscape(display)}</div>`;
                 } else {
                     html += `<div class="oplog-rich-content">${jsEscape(val)}</div>`;
                 }
@@ -634,10 +667,34 @@ $(document).ready(function () {
     window.deselectEntry = deselectEntry;
 
     // --- Global actions ---
+    function generateCreateRequestId() {
+        if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+            return window.crypto.randomUUID();
+        }
+        return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    }
+
+    function clearPendingCreate() {
+        pendingCreateModalRequestId = null;
+        $createEntryButton.removeClass('disabled').attr('aria-disabled', 'false');
+    }
+
     window.createEntry = function (id) {
-        pendingAutoSelectCreate = true;
-        socket.send(JSON.stringify({ action: 'create', oplog_id: id }));
-        displayToastTop({ type: 'success', string: 'Successfully added a log entry.', title: 'Oplog Update' });
+        if (pendingCreateModalRequestId !== null) return;
+
+        pendingCreateModalRequestId = generateCreateRequestId();
+        $createEntryButton.addClass('disabled').attr('aria-disabled', 'true');
+        try {
+            socket.send(JSON.stringify({
+                action: 'create',
+                oplog_id: id,
+                modal_request_id: pendingCreateModalRequestId,
+            }));
+        } catch (error) {
+            clearPendingCreate();
+            displayToastTop({ type: 'error', string: 'Could not create a log entry.', title: 'Oplog Update' });
+            console.error('[!] Failed to send create request: ', error);
+        }
     };
 
     window.deleteEntry = function ($ele) {
@@ -652,13 +709,19 @@ $(document).ready(function () {
         displayToastTop({ type: 'success', string: 'Successfully cloned a log entry.', title: 'Oplog Update' });
     };
 
-    window.editEntry = function (entryId) {
+    window.editEntry = function (entryId, applyDefaultSource = false) {
         let safeId = sanitizeEntryId(entryId);
         if (safeId === null) return;
         let url = window.location.origin + '/oplog/entry/update/' + safeId;
         $('.oplog-form-div').load(url, function () {
-            $('#edit-modal').modal('toggle');
-            tinymceLogInit();
+            const $editModal = $('#edit-modal');
+            const defaultSource = String($defaultSourceInput.val() || '').trim();
+            const $sourceField = $editModal.find('input[name="source_ip"]');
+            if (applyDefaultSource && defaultSource && !$sourceField.val()) {
+                $sourceField.val(defaultSource).trigger('change');
+            }
+            $editModal.find('.modal-body').scrollTop(0);
+            $editModal.modal('show');
             formAjaxSubmit('#oplog-entry-form', '#edit-modal');
         });
     };
@@ -1068,14 +1131,29 @@ $(document).ready(function () {
                     let firstId = $tableBody.find('tr').first().data('entry-id');
                     selectEntry(firstId);
                 }
+            } else if (message.action === 'create_modal_ack') {
+                if (message.modal_request_id !== pendingCreateModalRequestId) return;
+
+                clearPendingCreate();
+                if (!message.entry_id) {
+                    displayToastTop({ type: 'error', string: 'Could not create a log entry.', title: 'Oplog Update' });
+                    return;
+                }
+
+                if ($(`#entry-${message.entry_id}`).length > 0) {
+                    selectEntry(message.entry_id);
+                }
+                editEntry(message.entry_id, true);
+                displayToastTop({ type: 'success', string: 'Successfully added a log entry.', title: 'Oplog Update' });
             } else if (message.action === 'create') {
+                let entry = message.data;
+                let entryId = entry.id;
+
                 if ($searchInput.val() !== '') {
                     fetch(true);
                     return;
                 }
 
-                let entry = message.data;
-                let entryId = entry.id;
                 entryDataStore[entryId] = entry;
 
                 let $existing = $(`#entry-${entryId}`);
@@ -1098,12 +1176,7 @@ $(document).ready(function () {
                     $newRow.hide();
                     hideColumns();
                     $table.trigger('update', [true]);
-                    $newRow.fadeIn(400, function () {
-                        if (pendingAutoSelectCreate) {
-                            pendingAutoSelectCreate = false;
-                            selectEntry(entryId);
-                        }
-                    });
+                    $newRow.fadeIn(400);
                 }
                 updatePlaceholder();
             } else if (message.action === 'fetch_entry') {
@@ -1147,6 +1220,7 @@ $(document).ready(function () {
         };
 
         socket.onclose = function () {
+            clearPendingCreate();
             $connectionStatus.html('Disconnected');
             $connectionStatus.removeClass('connected').addClass('disconnected');
             if (!errorDisplayed) {
@@ -1352,28 +1426,50 @@ $(document).ready(function () {
 
     // --- AJAX form submit ---
     let formAjaxSubmit = function (form, modal) {
+        let submissionPending = false;
         $(form).submit(function (e) {
             e.preventDefault();
+            if (submissionPending) return;
+            submissionPending = true;
             $.ajax({
                 type: $(this).attr('method'),
                 url: $(this).attr('action'),
                 data: $(this).serialize(),
                 success: function (xhr) {
                     if ($(xhr).find('.has-error').length > 0) {
+                        submissionPending = false;
                         $(modal).find('.oplog-form-div').html(xhr);
                         formAjaxSubmit(form, modal);
                     } else {
-                        $(modal).modal('toggle');
+                        $(modal).modal('hide');
                     }
                     tinymceRemove();
                 },
-                error: function () {},
+                error: function () {
+                    submissionPending = false;
+                },
             });
         });
     };
 
     $('#edit-modal').on('hide.bs.modal', function () {
         tinymceRemove();
+    });
+
+    $('#edit-modal').on('keydown', function (event) {
+        if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+            const form = this.querySelector('form');
+            if (form) {
+                event.preventDefault();
+                event.stopPropagation();
+                window.gwRequestFormSubmit(form);
+            }
+        }
+    });
+
+    $(document).on('click', '.js-set-oplog-end-date-now', function () {
+        const currentDateTime = formatOplogDateTimeForInput(new Date(), oplogTimeZone);
+        $(this).closest('.input-group').find('input[name="end_date"]').val(currentDateTime).trigger('change');
     });
 
     $('#evidence-modal').on('hide.bs.modal', function () {
@@ -1423,6 +1519,10 @@ $(document).ready(function () {
         fetch(true);
     });
 
+    $clearDefaultSourceBtn.click(function () {
+        $defaultSourceInput.val('').focus();
+    });
+
     // --- Mute toggle ---
     $('.js-toggle-mute').click(function () {
         let $toggleLink = $(this);
@@ -1442,10 +1542,13 @@ $(document).ready(function () {
             dataType: 'json',
             data: { oplog: oplogId },
             success: function (data) {
+                let $notificationStatus = $('#oplog-notification-status');
                 if (data.toggle) {
                     $toggleLink.removeClass('notification-bell-icon').addClass('silenced-notification-icon').text('Notifications: Off');
+                    $notificationStatus.show();
                 } else {
                     $toggleLink.removeClass('silenced-notification-icon').addClass('notification-bell-icon').text('Notifications: On');
+                    $notificationStatus.hide();
                 }
                 if (data.message) {
                     displayToastTop({ type: data.result, string: data.message, title: 'Log Update' });

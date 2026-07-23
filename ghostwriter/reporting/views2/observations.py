@@ -8,11 +8,11 @@ from django.shortcuts import redirect, render
 from django.http import HttpRequest, HttpResponse
 from django.urls import reverse, reverse_lazy
 from django.db.models import Q
-from taggit.models import Tag
 
 from ghostwriter.api.utils import RoleBasedAccessControlMixin
 from ghostwriter.commandcenter.models import ExtraFieldSpec
-from ghostwriter.commandcenter.views import CollabModelUpdate
+from ghostwriter.commandcenter.views import CollabModelUpdate, ExtraFieldJsonView
+from ghostwriter.modules.shared import get_tags_for_queryset
 from ghostwriter.reporting.filters import ObservationFilter
 from ghostwriter.reporting.models import Observation
 
@@ -50,11 +50,21 @@ class ObservationList(RoleBasedAccessControlMixin, ListView):
         return observations
 
     def get(self, request: HttpRequest, *args, **kwarg) -> HttpResponse:
-        observation_filter = ObservationFilter(request.GET, queryset=self.get_queryset(), request=self.request)
+        queryset = self.get_queryset()
+        observation_filter = ObservationFilter(request.GET, queryset=queryset, request=self.request)
+        tags = get_tags_for_queryset(queryset)
         return render(
             request,
             "reporting/observation_list.html",
-            {"filter": observation_filter, "autocomplete": self.autocomplete, "tags": Tag.objects.all(),},
+            {
+                "filter": observation_filter,
+                "autocomplete": self.autocomplete,
+                "autocomplete_data": {
+                    "titles": [observation.title for observation in self.autocomplete],
+                    "tags": list(tags.values_list("name", flat=True)),
+                },
+                "tags": tags,
+            },
         )
 
 
@@ -75,7 +85,12 @@ class ObservationDetail(RoleBasedAccessControlMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
+        ctx["observation_extra_fields_spec"] = ExtraFieldSpec.objects.filter(target_model=Observation._meta.label)
         return ctx
+
+
+class ObservationExtraFieldJson(ExtraFieldJsonView):
+    model = Observation
 
 
 class ObservationCreate(RoleBasedAccessControlMixin, View):

@@ -86,7 +86,10 @@
                         cnt--;
                         let item = $('<li />')
                             .append(span('"', 'q'))
-                            .append(key)
+                            .append($('<span />', {
+                                'class': 'prop',
+                                text: key
+                            }))
                             .append(span('"', 'q'))
                             .append(': ')
                             .append(genBlock(data, level + 1));

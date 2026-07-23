@@ -1,20 +1,22 @@
 # Standard Libraries
 import logging
+from datetime import datetime
+from datetime import timezone as datetime_timezone
+from unittest.mock import patch
 
 # Django Imports
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
+from django.utils import timezone
 
 # Ghostwriter Libraries
 from ghostwriter.factories import (
-    EvidenceOnFindingFactory,
-    EvidenceOnReportFactory,
+    EvidenceFactory,
     OplogEntryFactory,
     OplogFactory,
     ProjectAssignmentFactory,
     ProjectFactory,
     ReportFactory,
-    ReportFindingLinkFactory,
     UserFactory,
 )
 from ghostwriter.modules.model_utils import to_dict
@@ -119,6 +121,38 @@ class OplogEntryFormTests(TestCase):
         form = self.form_data(**to_dict(entry), instance=entry)
         self.assertTrue(form.is_valid())
 
+    def test_command_and_output_are_plaintext_fields(self):
+        form = OplogEntryForm(oplog=self.oplog)
+
+        self.assertIn("no-auto-tinymce", form.fields["command"].widget.attrs["class"])
+        self.assertIn("no-auto-tinymce", form.fields["output"].widget.attrs["class"])
+        self.assertNotIn("no-auto-tinymce", form.fields["description"].widget.attrs.get("class", ""))
+        self.assertNotIn("no-auto-tinymce", form.fields["comments"].widget.attrs.get("class", ""))
+
+    @patch("ghostwriter.oplog.forms.timezone.now")
+    def test_datetime_initials_use_active_timezone(self, mock_now):
+        mock_now.return_value = datetime(
+            2026,
+            1,
+            15,
+            20,
+            30,
+            45,
+            tzinfo=datetime_timezone.utc,
+        )
+
+        with timezone.override("America/Los_Angeles"):
+            form = OplogEntryForm(oplog=self.oplog)
+
+            self.assertEqual(
+                form["start_date"].value().strftime("%Y-%m-%dT%H:%M:%S"),
+                "2026-01-15T12:30:45",
+            )
+            self.assertEqual(
+                form["end_date"].value().strftime("%Y-%m-%dT%H:%M:%S"),
+                "2026-01-15T12:30:45",
+            )
+
     def test_invalid_data(self):
         entry = OplogEntryFactory.create()
         start_date = entry.start_date
@@ -187,7 +221,7 @@ class OplogEvidenceFormTests(TestCase):
 
     def test_clean_rejects_duplicate_friendly_name(self):
         """Submitting evidence with a friendly name already used in the same report triggers a ValidationError."""
-        EvidenceOnReportFactory(friendly_name="Duplicate Evidence", report=self.report)
+        EvidenceFactory(friendly_name="Duplicate Evidence", report=self.report)
         file = SimpleUploadedFile("evidence.png", b"img data", content_type="image/png")
         form = OplogEvidenceForm(
             project=self.project,
@@ -201,7 +235,7 @@ class OplogEvidenceFormTests(TestCase):
     def test_clean_allows_same_friendly_name_different_report(self):
         """Same friendly name on a different report is allowed."""
         other_report = ReportFactory(project=self.project)
-        EvidenceOnReportFactory(friendly_name="Shared Name", report=self.report)
+        EvidenceFactory(friendly_name="Shared Name", report=self.report)
         file = SimpleUploadedFile("evidence.png", b"img data", content_type="image/png")
         form = OplogEvidenceForm(
             project=self.project,
@@ -210,23 +244,9 @@ class OplogEvidenceFormTests(TestCase):
         )
         self.assertTrue(form.is_valid())
 
-    def test_clean_rejects_duplicate_friendly_name_from_finding_evidence(self):
-        """Finding-level evidence on the same report also blocks duplicate friendly names."""
-        finding = ReportFindingLinkFactory(report=self.report)
-        EvidenceOnFindingFactory(friendly_name="Duplicate Evidence", finding=finding)
-        file = SimpleUploadedFile("evidence.png", b"img data", content_type="image/png")
-        form = OplogEvidenceForm(
-            project=self.project,
-            data={"friendly_name": "Duplicate Evidence", "report": self.report.pk, "caption": "Test"},
-            files={"document": file},
-        )
-        self.assertFalse(form.is_valid())
-        self.assertIn("__all__", form.errors)
-        self.assertIn("friendly name already exists", form.errors["__all__"][0])
-
     def test_clean_allows_update_existing_instance(self):
         """Updating an existing evidence instance does not falsely trigger the duplicate check."""
-        evidence = EvidenceOnReportFactory(friendly_name="Existing Evidence", report=self.report)
+        evidence = EvidenceFactory(friendly_name="Existing Evidence", report=self.report)
         file = SimpleUploadedFile("evidence.png", b"img data", content_type="image/png")
         form = OplogEvidenceForm(
             project=self.project,

@@ -2,6 +2,7 @@
 
 import json
 from dataclasses import dataclass
+from datetime import timedelta
 from typing import Any, Callable, NamedTuple
 from urllib.parse import urlparse
 
@@ -12,6 +13,7 @@ from django.db.transaction import atomic
 from django import forms
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator, URLValidator
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 # 3rd Party Libraries
@@ -543,6 +545,8 @@ class VirusTotalConfiguration(SingletonModel):
 
 
 class GeneralConfiguration(SingletonModel):
+    DEFAULT_TOKEN_MAX_LIFETIME_DAYS = 365
+
     default_timezone = TimeZoneField(
         "Default Timezone",
         default="America/Los_Angeles",
@@ -554,6 +558,21 @@ class GeneralConfiguration(SingletonModel):
         default="ghostwriter.local",
         help_text="Hostname or IP address for Ghostwriter (used for links in notifications)",
     )
+    token_extend_requires_rotation = models.BooleanField(
+        default=True,
+        verbose_name="Require Token Rotation to Extend Expiry",
+        help_text="Require API and service token expiry extensions to rotate the opaque credential",
+    )
+    token_max_lifetime_days = models.PositiveIntegerField(
+        default=DEFAULT_TOKEN_MAX_LIFETIME_DAYS,
+        validators=[MinValueValidator(1)],
+        verbose_name="Maximum Token Lifetime in Days",
+        help_text="Maximum allowed lifetime for new API and service token expiries",
+    )
+
+    def token_max_expiry_date(self):
+        """Return the current datetime plus the maximum token lifetime in days."""
+        return timezone.now() + timedelta(days=self.token_max_lifetime_days)
 
     def __str__(self):
         return "General Settings"
@@ -591,6 +610,17 @@ class BannerConfiguration(SingletonModel):
 
     def __str__(self):
         return "Banner Settings"
+
+    @property
+    def safe_banner_link(self):
+        """Return the banner link only when it is a valid HTTP(S) URL."""
+        if not self.banner_link:
+            return ""
+        try:
+            URLValidator(schemes=["http", "https"])(self.banner_link)
+        except ValidationError:
+            return ""
+        return self.banner_link
 
     class Meta:
         verbose_name = "Banner Configuration"
@@ -885,7 +915,7 @@ class ExtraFieldSpec(models.Model):
                 name="commandcenter_extrafieldspec_unique_position_per_model",
             ),
             models.CheckConstraint(
-                check=Q(position__gte=1) | Q(position__isnull=True),
+                condition=Q(position__gte=1) | Q(position__isnull=True),
                 name="commandcenter_extrafieldspec_position_gte_1",
             ),
         ]

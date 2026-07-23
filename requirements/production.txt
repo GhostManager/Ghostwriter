@@ -2,9 +2,9 @@
 
 -r ./base.txt
 
-gunicorn==20.1.0  # https://github.com/benoitc/gunicorn
+gunicorn==26.0.0  # https://github.com/benoitc/gunicorn
 Collectfast==2.2.0  # https://github.com/antonagestam/collectfast
 
 # Django
 # ------------------------------------------------------------------------------
-django-anymail[mailgun]==8.5  # https://github.com/anymail/django-anymail
+django-anymail[mailgun]==15.0  # https://github.com/anymail/django-anymail

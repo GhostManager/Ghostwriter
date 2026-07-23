@@ -1,15 +1,17 @@
 import { faPaperclip } from "@fortawesome/free-solid-svg-icons/faPaperclip";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Editor } from "@tiptap/core";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import EvidenceModal from "./modal";
 import { useEditorState } from "@tiptap/react";
+import { EvidencesContext } from "../../../../tiptap_gw/evidence";
 
 // null = closed, "new" = inserting, number = editing existing, { file } = paste-triggered upload
 type ModalState = null | "new" | number | { file: File };
 
 export default function EvidenceButton({ editor }: { editor: Editor }) {
     const [modalState, setModalState] = useState<ModalState>(null);
+    const evidences = useContext(EvidencesContext);
 
     const { enabled, active } = useEditorState({
         editor,
@@ -77,10 +79,11 @@ export default function EvidenceButton({ editor }: { editor: Editor }) {
             <button
                 tabIndex={-1}
                 title={"Evidence"}
-                disabled={!enabled}
+                disabled={!enabled || !evidences}
                 className={active ? "is-active" : undefined}
                 onClick={(e) => {
                     e.preventDefault();
+                    if (!evidences) return;
                     const active = editor.isActive("evidence");
                     if (active) {
                         setModalState(editor.getAttributes("evidence").id);

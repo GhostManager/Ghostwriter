@@ -47,6 +47,22 @@ from ghostwriter.rolodex.models import (
 # Number of "extra" formsets created by default
 # Higher numbers can increase page load times with WYSIWYG editors
 EXTRAS = 0
+DATETIME_LOCAL_FORMAT = "%Y-%m-%dT%H:%M:%S"
+DATETIME_LOCAL_MINUTES_FORMAT = "%Y-%m-%dT%H:%M"
+
+
+def configure_datetime_local_field(field):
+    """Render and parse datetimes in the format expected by datetime-local inputs."""
+    field.widget = forms.DateTimeInput(
+        attrs=field.widget.attrs.copy(),
+        format=DATETIME_LOCAL_FORMAT,
+    )
+    field.widget.input_type = "datetime-local"
+    field.input_formats = [
+        DATETIME_LOCAL_FORMAT,
+        DATETIME_LOCAL_MINUTES_FORMAT,
+        *field.input_formats,
+    ]
 
 
 # Custom inline formsets for nested forms
@@ -929,7 +945,7 @@ class WhiteCardForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
-        self.fields["issued"].widget.input_type = "datetime-local"
+        configure_datetime_local_field(self.fields["issued"])
         self.fields["issued"].label = "Issued Date & Time"
         self.fields["description"].widget.attrs["rows"] = 5
         self.fields["description"].widget.attrs[
@@ -1519,9 +1535,9 @@ class DeconflictionForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
-        self.fields["report_timestamp"].widget.input_type = "datetime-local"
-        self.fields["alert_timestamp"].widget.input_type = "datetime-local"
-        self.fields["response_timestamp"].widget.input_type = "datetime-local"
+        configure_datetime_local_field(self.fields["report_timestamp"])
+        configure_datetime_local_field(self.fields["alert_timestamp"])
+        configure_datetime_local_field(self.fields["response_timestamp"])
         self.fields["report_timestamp"].label = "Date & Time of Report"
         self.fields["alert_timestamp"].label = "Date & Time the Alert Triggered"
         self.fields["response_timestamp"].label = "Date & Time of Your Response"

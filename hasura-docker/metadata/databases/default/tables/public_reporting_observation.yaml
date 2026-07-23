@@ -7,6 +7,7 @@ configuration:
       custom_name: extraFields
   custom_column_names:
     extra_fields: extraFields
+  custom_name: observation
   custom_root_fields: {}
 insert_permissions:
   - role: manager
@@ -18,13 +19,31 @@ insert_permissions:
         - title
   - role: user
     permission:
-      check: {}
+      check:
+        _exists:
+          _table:
+            name: users_user
+            schema: public
+          _where:
+            _and:
+              - id:
+                  _eq: X-Hasura-User-Id
+              - enable_observation_create:
+                  _eq: true
       columns:
         - description
         - extra_fields
         - title
 select_permissions:
   - role: manager
+    permission:
+      columns:
+        - id
+        - title
+        - extra_fields
+        - description
+      filter: {}
+  - role: service
     permission:
       columns:
         - id
@@ -56,11 +75,31 @@ update_permissions:
         - extra_fields
         - title
       filter: {}
-      check: {}
+      check:
+        _exists:
+          _table:
+            name: users_user
+            schema: public
+          _where:
+            _and:
+              - id:
+                  _eq: X-Hasura-User-Id
+              - enable_observation_edit:
+                  _eq: true
 delete_permissions:
   - role: manager
     permission:
       filter: {}
   - role: user
     permission:
-      filter: {}
+      filter:
+        _exists:
+          _table:
+            name: users_user
+            schema: public
+          _where:
+            _and:
+              - id:
+                  _eq: X-Hasura-User-Id
+              - enable_observation_delete:
+                  _eq: true

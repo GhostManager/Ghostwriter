@@ -3,6 +3,7 @@
 
 {% block admin_change_form_document_ready %}
 {{ block.super }}
+{% include "snippets/editor_shortcuts_config.html" %}
 {% if original.is_collab_editable %}
     <script type="module" src="{% static 'assets/admin_tiptap.js' %}"></script>
     <link rel="stylesheet" href="{% static 'assets/collab_common.css' %}">

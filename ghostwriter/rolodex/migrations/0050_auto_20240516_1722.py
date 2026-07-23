@@ -20,6 +20,7 @@ def replace_null_required_fields(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
+        ('reporting', '0001_initial'),
         ('rolodex', '0049_extra_fields_db_default'),
     ]
 

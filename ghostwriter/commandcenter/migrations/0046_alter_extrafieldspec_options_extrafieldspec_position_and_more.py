@@ -64,7 +64,7 @@ class Migration(migrations.Migration):
         migrations.AddConstraint(
             model_name="extrafieldspec",
             constraint=models.CheckConstraint(
-                check=models.Q(
+                condition=models.Q(
                     ("position__gte", 1), ("position__isnull", True), _connector="OR"
                 ),
                 name="commandcenter_extrafieldspec_position_gte_1",

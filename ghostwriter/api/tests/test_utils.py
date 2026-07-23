@@ -8,6 +8,7 @@ from django.test import TestCase
 
 # Ghostwriter Libraries
 from ghostwriter.api import utils
+from ghostwriter.api.models import UserSession
 from ghostwriter.factories import UserFactory
 
 # 3rd Party Libraries
@@ -28,19 +29,89 @@ class JwtUtilsTests(TestCase):
     def setUp(self):
         pass
 
-    def test_generate_jwt(self):
+    def test_generate_jwt_requires_explicit_token_type(self):
+        with self.assertRaisesMessage(
+            ValueError,
+            "generate_jwt() requires an explicit token_type",
+        ):
+            utils.generate_jwt(self.user)
+
+    def test_jwt_encode_requires_explicit_token_type(self):
+        with self.assertRaisesMessage(
+            ValueError,
+            "jwt_encode() requires an explicit token_type",
+        ):
+            utils.jwt_encode({"sub": str(self.user.id)})
+
+    def test_generate_jwt_rejects_user_type_without_jti(self):
+        with self.assertRaisesMessage(
+            ValueError,
+            "User login JWTs require a tracked session identifier",
+        ):
+            utils.generate_jwt(self.user, token_type=utils.USER_JWT_TYPE)
+
+    def test_generate_jwt_with_collab_type(self):
+        session_count = UserSession.objects.count()
         try:
-            payload, encoded_payload = utils.generate_jwt(self.user)
+            payload, encoded_payload = utils.generate_jwt(
+                self.user,
+                token_type=utils.COLLAB_JWT_TYPE,
+            )
         except AttributeError:
             self.fail("generate_jwt() raised an AttributeError unexpectedly!")
+        self.assertEqual(utils.get_jwt_type(encoded_payload), utils.COLLAB_JWT_TYPE)
+        self.assertNotIn("jti", payload)
+        self.assertEqual(UserSession.objects.count(), session_count)
+
+    def test_generate_jwt_adds_extra_claims(self):
+        payload, encoded_payload = utils.generate_jwt(
+            self.user,
+            token_type=utils.COLLAB_JWT_TYPE,
+            extra_claims={utils.COLLAB_MODEL_CLAIM: "report"},
+        )
+
+        self.assertEqual(payload[utils.COLLAB_MODEL_CLAIM], "report")
+        self.assertEqual(
+            utils.get_jwt_payload(encoded_payload)[utils.COLLAB_MODEL_CLAIM],
+            "report",
+        )
+
+    def test_generate_jwt_rejects_extra_claims_overwriting_standard_claims(self):
+        with self.assertRaisesMessage(
+            ValueError,
+            "extra_claims cannot replace standard JWT claims: sub",
+        ):
+            utils.generate_jwt(
+                self.user,
+                token_type=utils.COLLAB_JWT_TYPE,
+                extra_claims={"sub": "other"},
+            )
 
     def test_generate_jwt_with_expiration(self):
         expiration = datetime(2099, 1, 1).timestamp()
-        payload, encoded_payload = utils.generate_jwt(self.user, exp=expiration)
-        self.assertTrue(payload["exp"], expiration)
+        payload, encoded_payload = utils.generate_jwt(
+            self.user,
+            exp=expiration,
+            token_type=utils.COLLAB_JWT_TYPE,
+        )
+        self.assertEqual(payload["exp"], expiration)
+
+    def test_generate_jwt_with_type_and_jti(self):
+        payload, encoded_payload = utils.generate_jwt(
+            self.user,
+            token_type=utils.USER_JWT_TYPE,
+            jti="session-id",
+        )
+
+        self.assertEqual(utils.get_jwt_type(encoded_payload), utils.USER_JWT_TYPE)
+        self.assertEqual(payload["jti"], "session-id")
+        self.assertEqual(utils.get_jwt_payload(encoded_payload)["jti"], "session-id")
 
     def test_get_jwt_payload(self):
-        payload, encoded_payload = utils.generate_jwt(self.user)
+        payload, encoded_payload = utils.generate_jwt(
+            self.user,
+            token_type=utils.COLLAB_JWT_TYPE,
+        )
         try:
             self.assertTrue(utils.get_jwt_payload(encoded_payload))
         except AttributeError:
@@ -59,7 +130,10 @@ class JwtUtilsTests(TestCase):
             self.fail("get_jwt_payload() raised an AttributeError unexpectedly!")
 
     def test_get_user_from_token(self):
-        payload, encoded_payload = utils.generate_jwt(self.user)
+        payload, encoded_payload = utils.generate_jwt(
+            self.user,
+            token_type=utils.COLLAB_JWT_TYPE,
+        )
         user_obj = utils.get_user_from_token(payload)
         try:
             self.assertEqual(user_obj, self.user)

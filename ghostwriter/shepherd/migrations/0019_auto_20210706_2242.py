@@ -12,7 +12,7 @@ class Migration(migrations.Migration):
         migrations.AddConstraint(
             model_name="domainserverconnection",
             constraint=models.CheckConstraint(
-                check=models.Q(
+                condition=models.Q(
                     models.Q(("static_server__isnull", False), ("transient_server__isnull", True)),
                     models.Q(("static_server__isnull", True), ("transient_server__isnull", False)),
                     _connector="OR",

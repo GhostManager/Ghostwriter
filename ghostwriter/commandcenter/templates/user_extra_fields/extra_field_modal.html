@@ -3,15 +3,28 @@
 {% if field_spec.type == "rich_text" or field_spec.type == "json" %}
   <div id="field_spec_{{ field_spec.internal_name }}" class="modal fade" tabindex="-1" role="dialog">
     <div class="modal-dialog modal-super-sized modal-dialog-scrollable" role="document">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">{{ field_spec.display_name }}</h5>
+        <div class="modal-content">
+          <div class="modal-header">
+          <div>
+            <h5 class="modal-title">{{ field_spec.display_name }}</h5>
+            {% if field_spec.type == "rich_text" %}
+              <p class="text-muted small mb-0">
+                This preview closely approximates report output using the report configuration and selected Word template settings.
+              </p>
+            {% endif %}
+          </div>
           <button type="button" class="close" data-dismiss="modal" aria-label="Close">
             <span aria-hidden="true">&times;</span>
           </button>
         </div>
-        <div class="modal-body extra-field-modal-content">
-          {% include "user_extra_fields/field.html" with extra_fields=extra_fields field_spec=field_spec %}
+        <div class="modal-body extra-field-modal-content"{% if field_spec.type == "json" and lazy_json_url %} data-lazy-json-url="{{ lazy_json_url }}" data-json-field-name="{{ field_spec.display_name }}"{% elif field_spec.type == "rich_text" and lazy_richtext_url %} data-lazy-richtext-url="{{ lazy_richtext_url }}"{% endif %}>
+          {% if field_spec.type == "json" and lazy_json_url %}
+            <p class="text-muted mb-0">JSON content will load when this preview opens.</p>
+          {% elif field_spec.type == "rich_text" and lazy_richtext_url %}
+            <p class="text-muted mb-0">Rich text preview will load when this preview opens.</p>
+          {% else %}
+            {% include "user_extra_fields/field.html" with extra_fields=extra_fields field_spec=field_spec preview_report=preview_report %}
+          {% endif %}
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary col-3" data-dismiss="modal">Close</button>

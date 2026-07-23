@@ -123,6 +123,7 @@
   {
     "model": "reporting.reporttemplate",
     "pk": 1,
+    "required": false,
     "fields": {
       "name": "Default Word Template",
       "document": "/app/ghostwriter/media/templates/template.docx",
@@ -139,6 +140,7 @@
   {
     "model": "reporting.reporttemplate",
     "pk": 2,
+    "required": false,
     "fields": {
       "name": "Default PowerPoint Template",
       "document": "/app/ghostwriter/media/templates/template.pptx",

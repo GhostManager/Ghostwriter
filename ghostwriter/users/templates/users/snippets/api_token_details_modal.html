@@ -1,0 +1,50 @@
+{% load bleach_tags %}
+
+<div class="modal-header">
+  <h5 class="modal-title" id="api-token-details-modal-label">{{ key.name|bleach }} Access Details</h5>
+  <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+    <span aria-hidden="true">&times;</span>
+  </button>
+</div>
+<div class="modal-body text-left">
+  <div class="row">
+    <div class="col-md-6 mb-3">
+      <p class="bold mb-1">User</p>
+      <p class="mb-0">{{ key.user.username|bleach }}</p>
+    </div>
+    <div class="col-md-6 mb-3">
+      <p class="bold mb-1">Access Summary</p>
+      <p class="mb-0">User API token</p>
+    </div>
+  </div>
+
+  <div class="alert alert-info">
+    This API token authenticates as {{ key.user.username|bleach }} and carries all current Ghostwriter permissions for that user. Any action or project the user can access can also be accessed with this token.
+  </div>
+
+  <h6 class="bold">Current Project Access</h6>
+  {% if project_access %}
+    <p class="text-muted">The token can currently access every project listed below because the token user can access them.</p>
+    <div class="list-group mb-3">
+      {% for project in project_access %}
+        <div class="list-group-item">
+          {% if project.codename %}
+            <a class="bold" href="{{ project.get_absolute_url }}">{{ project.codename|bleach|upper }}</a>
+          {% elif project.client.short_name %}
+            <a class="bold" href="{{ project.get_absolute_url }}">{{ project.client.short_name|bleach|upper }}</a>
+          {% else %}
+            <a class="bold" href="{{ project.get_absolute_url }}">{{ project.client.name|bleach|upper }}</a>
+          {% endif %}
+          <div class="text-muted small">
+            {{ project.client.name|bleach }} - {{ project.project_type.project_type|bleach }} - {{ project.start_date|date:"DATE_FORMAT" }} to {{ project.end_date|date:"DATE_FORMAT" }}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="text-muted">The token user does not currently have project access.</p>
+  {% endif %}
+</div>
+<div class="modal-footer">
+  <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+</div>

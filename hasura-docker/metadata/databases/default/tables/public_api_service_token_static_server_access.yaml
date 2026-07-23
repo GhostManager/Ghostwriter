@@ -1,0 +1,33 @@
+table:
+  name: api_service_token_static_server_access
+  schema: public
+configuration:
+  column_config:
+    server_id:
+      custom_name: serverId
+    token_id:
+      custom_name: tokenId
+  custom_column_names:
+    server_id: serverId
+    token_id: tokenId
+  custom_name: serviceTokenStaticServerAccess
+  custom_root_fields: {}
+object_relationships:
+  - name: staticServer
+    using:
+      manual_configuration:
+        column_mapping:
+          server_id: id
+        insertion_order: null
+        remote_table:
+          name: shepherd_staticserver
+          schema: public
+select_permissions:
+  - role: service
+    permission:
+      columns:
+        - server_id
+        - token_id
+      filter:
+        token_id:
+          _eq: X-Hasura-Service-Token-Id

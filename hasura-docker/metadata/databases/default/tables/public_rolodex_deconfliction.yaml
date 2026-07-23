@@ -86,6 +86,14 @@ select_permissions:
         - report_timestamp
         - response_timestamp
       filter: {}
+  - role: service
+    permission:
+      columns: '*'
+      filter:
+        project:
+          serviceTokenProjectAccesses:
+            token_id:
+              _eq: X-Hasura-Service-Token-Id
   - role: user
     permission:
       columns:

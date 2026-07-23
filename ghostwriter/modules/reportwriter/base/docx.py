@@ -401,7 +401,7 @@ class ExportDocxBase(ExportBase):
                 if variable not in lint_data:
                     warnings.append("Potential undefined variable: {!r}".format(variable))
 
-            document_styles = exporter.word_doc.styles
+            document_styles = exporter.word_doc.get_docx().styles
             for style in EXPECTED_STYLES:
                 if style not in document_styles:
                     warnings.append("Template is missing a recommended style (see documentation): " + style)

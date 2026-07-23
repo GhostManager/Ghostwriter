@@ -13,7 +13,7 @@ from ghostwriter.factories import (
     ClientFactory,
     ClientInviteFactory,
     DocTypeFactory,
-    EvidenceOnReportFactory,
+    EvidenceFactory,
     ProjectAssignmentFactory,
     ReportFactory,
     ReportFindingLinkFactory,
@@ -79,7 +79,6 @@ class ApiEvidenceFormTests(TestCase):
     def setUpTestData(cls):
         cls.report = ReportFactory()
         cls.other_report = ReportFactory()
-        cls.finding = ReportFindingLinkFactory()
         cls.user = UserFactory(password=PASSWORD)
         ProjectAssignmentFactory(operator=cls.user, project=cls.report.project)
 
@@ -100,17 +99,21 @@ class ApiEvidenceFormTests(TestCase):
         report_queryset=None,
         **kwargs,
     ):
+        data = {
+            "friendly_name": friendly_name,
+            "description": description,
+            "caption": caption,
+            "tags": tags,
+            "report": report.pk if report is not None else None,
+            "file_base64": file_base64,
+            "filename": filename,
+        }
+        if finding is not None:
+            data["finding"] = finding.pk
+        data.update(kwargs)
+
         return ApiEvidenceForm(
-            data={
-                "friendly_name": friendly_name,
-                "description": description,
-                "caption": caption,
-                "tags": tags,
-                "finding": finding,
-                "report": report,
-                "file_base64": file_base64,
-                "filename": filename,
-            },
+            data=data,
             user_obj=user_obj,
             report_queryset=report_queryset,
         )
@@ -130,7 +133,7 @@ class ApiEvidenceFormTests(TestCase):
         )
         self.assertTrue(form.is_valid())
 
-    def test_finding_and_report(self):
+    def test_report_required_and_finding_rejected(self):
         form = self.form_data(
             friendly_name="Test Finding & Report",
             description="Test Description",
@@ -145,14 +148,15 @@ class ApiEvidenceFormTests(TestCase):
         )
         errors = form.errors.as_data()
         self.assertFalse(form.is_valid())
-        self.assertEqual(len(errors), 2)
+        self.assertEqual(len(errors), 1)
+        self.assertIn("report", errors)
 
         form = self.form_data(
             friendly_name="Test Finding & Report",
             description="Test Description",
             caption="Test Caption",
             tags="Test, Tag",
-            finding=self.finding,
+            finding=ReportFindingLinkFactory(),
             report=self.report,
             filename="test.txt",
             file_base64="dGVzdA==",
@@ -162,6 +166,26 @@ class ApiEvidenceFormTests(TestCase):
         errors = form.errors.as_data()
         self.assertFalse(form.is_valid())
         self.assertEqual(len(errors), 1)
+        self.assertEqual(errors["report"][0].code, "finding_evidence_removed")
+
+    def test_empty_legacy_finding_values_are_ignored(self):
+        for field_name, value in (("finding", None), ("finding", ""), ("findingId", None), ("findingId", "")):
+            with self.subTest(field_name=field_name, value=value):
+                form = ApiEvidenceForm(
+                    data={
+                        "friendly_name": f"Test {field_name} {value!r}",
+                        "description": "Test Description",
+                        "caption": "Test Caption",
+                        "tags": "Test, Tag",
+                        "report": self.report.pk,
+                        "filename": "test.txt",
+                        "file_base64": "dGVzdA==",
+                        field_name: value,
+                    },
+                    user_obj=self.user,
+                    report_queryset=get_reports_list(self.user),
+                )
+                self.assertTrue(form.is_valid(), form.errors.as_data())
 
     def test_invalid_extension(self):
         form = self.form_data(
@@ -199,7 +223,7 @@ class ApiEvidenceFormTests(TestCase):
         self.assertEqual(len(errors), 1)
 
     def test_duplicate_friendly_name(self):
-        evidence = EvidenceOnReportFactory(report=self.report, friendly_name="Duplicate Test")
+        EvidenceFactory(report=self.report, friendly_name="Duplicate Test")
         form = self.form_data(
             friendly_name="Duplicate Test",
             description="Test Description",

@@ -31,10 +31,14 @@ class ExportBase:
     jinja_undefined_variables: set[str] | None
     extra_fields_spec_cache: dict[str, Iterable[ExtraFieldSpec]]
     evidences_by_id: dict
+    preview_extra_field_model_label: str | None
+    preview_extra_field_name: str | None
 
     def __init__(self, input_object: Any, *, is_raw=False, jinja_debug=False):
         self.evidences_by_id = {}
         self.extra_fields_spec_cache = {}
+        self.preview_extra_field_model_label = None
+        self.preview_extra_field_name = None
 
         if jinja_debug:
             self.jinja_env, self.jinja_undefined_variables = prepare_jinja2_env(debug=True)
@@ -110,6 +114,14 @@ class ExportBase:
             if field.internal_name not in extra_fields:
                 extra_fields[field.internal_name] = field.empty_value()
             if field.type == "rich_text":
+                if (
+                    self.preview_extra_field_model_label
+                    and (
+                        model._meta.label != self.preview_extra_field_model_label
+                        or field.internal_name != self.preview_extra_field_name
+                    )
+                ):
+                    continue
                 extra_fields[field.internal_name] = self.create_lazy_template(
                     f"extra field {field.internal_name} of {location}",
                     str(extra_fields[field.internal_name]),

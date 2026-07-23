@@ -3,22 +3,26 @@
 # Standard Libraries
 import json
 import logging
-import os
 from asgiref.sync import async_to_sync
-from datetime import datetime
 from socket import gaierror
 
 # Django Imports
+from django.db import transaction
 from django.db.models.signals import m2m_changed, post_delete, post_save, pre_save
 from django.dispatch import receiver
-from django.utils.timezone import make_aware
+from django.utils import timezone
 
 # 3rd Party Libraries
 from channels.layers import get_channel_layer
 
 # Ghostwriter Libraries
 from ghostwriter.modules.custom_serializers import OplogEntrySerializer
-from ghostwriter.oplog.models import Oplog, OplogEntry, OplogEntryEvidence, OplogEntryRecording
+from ghostwriter.oplog.models import (
+    Oplog,
+    OplogEntry,
+    OplogEntryEvidence,
+    OplogEntryRecording,
+)
 
 # Using __name__ resolves to ghostwriter.rolodex.signals
 logger = logging.getLogger(__name__)
@@ -31,9 +35,9 @@ def oplog_pre_save(sender, instance, **kwargs):
     :model:`oplog.OplogEntry`.
     """
     if not instance.start_date:
-        instance.start_date = make_aware(datetime.utcnow())
+        instance.start_date = timezone.now()
     if not instance.end_date:
-        instance.end_date = make_aware(datetime.utcnow())
+        instance.end_date = timezone.now()
 
     instance.clean()
 
@@ -50,7 +54,9 @@ def signal_oplog_entry(sender, instance, **kwargs):
         serialized_entry = OplogEntrySerializer(instance).data
         json_message = json.dumps({"action": "create", "data": serialized_entry})
 
-        async_to_sync(channel_layer.group_send)(str(oplog_id), {"type": "send_oplog_entry", "text": json_message})
+        async_to_sync(channel_layer.group_send)(
+            str(oplog_id), {"type": "send_oplog_entry", "text": json_message}
+        )
     except gaierror:  # pragma: no cover
         # WebSocket are unavailable (unit testing)
         pass
@@ -69,7 +75,9 @@ def signal_oplog_entry_tags(sender, instance, **kwargs):
             serialized_entry = OplogEntrySerializer(instance).data
             json_message = json.dumps({"action": "create", "data": serialized_entry})
 
-            async_to_sync(channel_layer.group_send)(str(oplog_id), {"type": "send_oplog_entry", "text": json_message})
+            async_to_sync(channel_layer.group_send)(
+                str(oplog_id), {"type": "send_oplog_entry", "text": json_message}
+            )
         except gaierror:  # pragma: no cover
             # WebSocket are unavailable (unit testing)
             pass
@@ -86,7 +94,9 @@ def delete_oplog_entry(sender, instance, **kwargs):
         oplog_id = instance.oplog_id.id
         entry_id = instance.id
         json_message = json.dumps({"action": "delete", "data": entry_id})
-        async_to_sync(channel_layer.group_send)(str(oplog_id), {"type": "send_oplog_entry", "text": json_message})
+        async_to_sync(channel_layer.group_send)(
+            str(oplog_id), {"type": "send_oplog_entry", "text": json_message}
+        )
     except Oplog.DoesNotExist:  # pragma: no cover
         # Oplog has been deleted and this is a cascading delete
         pass
@@ -134,7 +144,9 @@ def recording_saved(sender, instance, created, **kwargs):
         oplog_id = entry.oplog_id.id
         serialized_entry = OplogEntrySerializer(entry).data
         json_message = json.dumps({"action": "create", "data": serialized_entry})
-        async_to_sync(channel_layer.group_send)(str(oplog_id), {"type": "send_oplog_entry", "text": json_message})
+        async_to_sync(channel_layer.group_send)(
+            str(oplog_id), {"type": "send_oplog_entry", "text": json_message}
+        )
     except gaierror:  # pragma: no cover
         pass
 
@@ -147,11 +159,16 @@ def delete_recording_file(sender, instance, **kwargs):
     :model:`oplog.OplogEntryRecording` is deleted.
     """
     if instance.recording_file:
-        try:
-            if os.path.isfile(instance.recording_file.path):
-                os.remove(instance.recording_file.path)
-        except Exception:  # pragma: no cover
-            logger.warning("Could not delete recording file: %s", instance.recording_file.name)
+        storage = instance.recording_file.storage
+        recording_name = instance.recording_file.name
+
+        def delete_file_after_commit():
+            try:
+                storage.delete(recording_name)
+            except Exception:  # pragma: no cover
+                logger.warning("Could not delete recording file: %s", recording_name)
+
+        transaction.on_commit(delete_file_after_commit)
     try:
         entry = OplogEntry.objects.get(pk=instance.oplog_entry_id)
         entry.tags.remove("recording")
@@ -159,7 +176,9 @@ def delete_recording_file(sender, instance, **kwargs):
         oplog_id = entry.oplog_id.id
         serialized_entry = OplogEntrySerializer(entry).data
         json_message = json.dumps({"action": "create", "data": serialized_entry})
-        async_to_sync(channel_layer.group_send)(str(oplog_id), {"type": "send_oplog_entry", "text": json_message})
+        async_to_sync(channel_layer.group_send)(
+            str(oplog_id), {"type": "send_oplog_entry", "text": json_message}
+        )
     except OplogEntry.DoesNotExist:
         # Entry was cascade-deleted; the WebSocket "delete" message was already sent
         pass

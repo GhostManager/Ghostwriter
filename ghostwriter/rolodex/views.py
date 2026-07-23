@@ -44,7 +44,8 @@ from ghostwriter.api.utils import (
     verify_user_is_privileged,
 )
 from ghostwriter.commandcenter.models import BloodHoundConfiguration, ExtraFieldSpec, ReportConfiguration
-from ghostwriter.commandcenter.views import CollabModelUpdate
+from ghostwriter.commandcenter.views import CollabModelUpdate, ExtraFieldJsonView, ExtraFieldRichTextPreviewView
+
 from ghostwriter.modules import codenames
 from ghostwriter.modules.model_utils import to_dict
 from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
@@ -1238,7 +1239,12 @@ class ClientListView(RoleBasedAccessControlMixin, ListView):
         queryset = self.get_queryset()
         ctx["filter"] = ClientFilter(self.request.GET, queryset=queryset, request=self.request)
         ctx["autocomplete"] = self.autocomplete
-        ctx["tags"] = get_tags_for_queryset(queryset)
+        tags = get_tags_for_queryset(queryset)
+        ctx["tags"] = tags
+        ctx["autocomplete_data"] = {
+            "names": list(self.autocomplete.values_list("name", flat=True)),
+            "tags": list(tags.values_list("name", flat=True)),
+        }
         return ctx
 
 
@@ -1307,6 +1313,10 @@ class ClientDetailView(RoleBasedAccessControlMixin, DetailView):
         return ctx
 
 
+class ClientExtraFieldJson(ExtraFieldJsonView):
+    model = Client
+
+
 class ClientCreate(RoleBasedAccessControlMixin, CreateView):
     """
     Create an individual :model:`rolodex.Client`.
@@ -1350,6 +1360,7 @@ class ClientCreate(RoleBasedAccessControlMixin, CreateView):
         return ctx
 
     def get(self, request, *args, **kwargs):
+        self.object = None
         self.contacts = ClientContactFormSet(prefix="poc")
         self.contacts.extra = 1
         self.invites = ClientInviteFormSet(prefix="invite")
@@ -1357,6 +1368,7 @@ class ClientCreate(RoleBasedAccessControlMixin, CreateView):
         return super().get(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
+        self.object = None
         form = self.get_form()
         self.contacts = ClientContactFormSet(request.POST, prefix="poc")
         self.invites = ClientInviteFormSet(request.POST, prefix="invite")
@@ -1675,7 +1687,21 @@ class ProjectListView(RoleBasedAccessControlMixin, ListView):
             data["complete"] = 0
         ctx["filter"] = ProjectFilter(data, queryset=queryset, request=self.request)
         ctx["autocomplete"] = self.autocomplete
-        ctx["tags"] = get_tags_for_queryset(queryset)
+        tags = get_tags_for_queryset(queryset)
+        ctx["tags"] = tags
+        ctx["autocomplete_data"] = {
+            "clients": list(
+                self.autocomplete.order_by("client__name")
+                .values_list("client__name", flat=True)
+                .distinct()
+            ),
+            "codenames": list(
+                self.autocomplete.order_by("codename")
+                .values_list("codename", flat=True)
+                .distinct()
+            ),
+            "tags": list(tags.values_list("name", flat=True)),
+        }
         return ctx
 
 
@@ -1707,6 +1733,7 @@ class ProjectDetailView(RoleBasedAccessControlMixin, DetailView):
             self.request.user,
             object.pk,
             None,
+            CollabModelUpdate.collab_jwt_claims("project", object),
         ))
 
         bhc = BloodHoundConfiguration.get_solo()
@@ -1720,6 +1747,26 @@ class ProjectDetailView(RoleBasedAccessControlMixin, DetailView):
             ctx["bh_api"] = None
 
         return ctx
+
+
+class ProjectExtraFieldJson(ExtraFieldJsonView):
+    model = Project
+
+
+class ProjectExtraFieldRichTextPreview(ExtraFieldRichTextPreviewView):
+    model = Project
+
+    def build_exporter(self, obj):
+        return ExportProjectJson(obj)
+
+    def extract_rendered_field(self, exporter, base_context, field_name):
+        value = base_context.get("project", {}).get("extra_fields", {}).get(field_name)
+        if value is None:
+            return ""
+        return str(value.__html__()) if hasattr(value, "__html__") else str(value)
+
+    def get_client(self, obj):
+        return obj.client
 
 
 class ProjectCreate(RoleBasedAccessControlMixin, CreateView):

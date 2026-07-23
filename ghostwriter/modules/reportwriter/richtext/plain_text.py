@@ -1,6 +1,13 @@
-import bs4
+# Standard Libraries
 from io import StringIO
 
+# 3rd Party Libraries
+import bs4
+
+# Ghostwriter Libraries
+from ghostwriter.modules.reportwriter.base.html_rich_text import (
+    remove_trailing_empty_paragraphs,
+)
 from ghostwriter.modules.reportwriter.richtext.ooxml import strip_text_whitespace
 
 
@@ -9,6 +16,7 @@ def html_to_plain_text(text: str, evidences) -> str:
     tag = soup.find("body")
     if tag is None:
         return ""
+    remove_trailing_empty_paragraphs(tag)
     out = StringIO()
     _build_html_str(tag, evidences, out)
 

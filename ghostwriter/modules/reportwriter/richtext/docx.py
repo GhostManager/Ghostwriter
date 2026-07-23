@@ -9,7 +9,6 @@ from django.conf import settings
 
 # 3rd Party Libraries
 import docx
-from docx.enum.dml import MSO_THEME_COLOR_INDEX
 from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_COLOR_INDEX
 from docx.image.exceptions import UnrecognizedImageError
 from docx.oxml.shared import OxmlElement, qn
@@ -39,6 +38,18 @@ EVIDENCE_IMAGE_ALIGNMENT_MAP = {
     EvidenceImageAlignment.RIGHT: WD_ALIGN_PARAGRAPH.RIGHT,
 }
 
+# Word limits bookmark names to 40 characters; hidden aliases add ``_Ref``.
+WORD_BOOKMARK_BASE_NAME_MAX_LENGTH = 36
+WORD_BOOKMARK_INVALID_CHARACTERS = re.compile(r"[^A-Za-z0-9_]")
+
+
+def normalize_bookmark_name(name: str) -> str:
+    """Return a Word-safe name with room for Ghostwriter's ``_Ref`` prefix."""
+    name = WORD_BOOKMARK_INVALID_CHARACTERS.sub("_", name)
+    if not name or not name[0].isalpha():
+        name = "Bookmark_" + name
+    return name[:WORD_BOOKMARK_BASE_NAME_MAX_LENGTH]
+
 
 class HtmlToDocx(BaseHtmlToOOXML):
     """
@@ -57,6 +68,11 @@ class HtmlToDocx(BaseHtmlToOOXML):
         if par is not None and style.get("hyperlink_url"):
             # For Word, this code is modified from this issue:
             #   https://github.com/python-openxml/python-docx/issues/384
+            # OOXML schema note: <w:hyperlink> is a valid child of <w:p>
+            # (per CT_P / EG_PContent), not of <w:r>. Wrapping it in an outer
+            # <w:r> produces malformed XML that Word silently recovers from
+            # but LibreOffice drops on import, breaking the link.
+
             # Get an ID from the ``document.xml.rels`` file
             part = par.part
             r_id = part.relate_to(
@@ -70,24 +86,41 @@ class HtmlToDocx(BaseHtmlToOOXML):
                 docx.oxml.shared.qn("r:id"),
                 r_id,
             )
-            # Create the ``w:r`` and ``w:rPr`` elements
+
+            # Create the inner ``w:r`` and ``w:rPr`` that hold the link text.
+            # Styling must be applied to THIS run, not an outer wrapper,
+            # because this is the run that contains the visible text.
             new_run = docx.oxml.shared.OxmlElement("w:r")
             rPr = docx.oxml.shared.OxmlElement("w:rPr")
+
+            # Apply Hyperlink styling. If the template defines a "Hyperlink"
+            # character style, reference it; otherwise emit direct color +
+            # underline as a fallback so the link is visually distinguishable
+            # even without the style definition.
+            if "Hyperlink" in self.doc.styles:
+                rStyle = docx.oxml.shared.OxmlElement("w:rStyle")
+                rStyle.set(docx.oxml.shared.qn("w:val"), "Hyperlink")
+                rPr.append(rStyle)
+            else:
+                color = docx.oxml.shared.OxmlElement("w:color")
+                color.set(docx.oxml.shared.qn("w:val"), "0563C1")
+                rPr.append(color)
+                u = docx.oxml.shared.OxmlElement("w:u")
+                u.set(docx.oxml.shared.qn("w:val"), "single")
+                rPr.append(u)
+
             new_run.append(rPr)
             self.text_tracking.append_text_to_run(new_run, str(el))
             hyperlink.append(new_run)
-            # Create a new Run object and add the hyperlink into it
-            run = par.add_run()
-            run._r.append(hyperlink)
-            # A workaround for the lack of a hyperlink style
-            if "Hyperlink" in self.doc.styles:
-                try:
-                    run.style = "Hyperlink"
-                except KeyError:
-                    pass
-            else:
-                run.font.color.theme_color = MSO_THEME_COLOR_INDEX.HYPERLINK
-                run.font.underline = True
+
+            # Trigger run-tracking bookkeeping by calling add_run(), then
+            # replace the empty <w:r> it created with our <w:hyperlink>.
+            # This keeps text_tracking's state machine in sync while still
+            # producing schema-valid XML where <w:hyperlink> is a direct
+            # child of <w:p>.
+            placeholder = par.add_run()
+            placeholder._r.addprevious(hyperlink)
+            placeholder._r.getparent().remove(placeholder._r)
         else:
             super().text(el, par=par, style=style, **kwargs)
 
@@ -127,18 +160,22 @@ class HtmlToDocx(BaseHtmlToOOXML):
 
         bookmark_name = el.attrs.get("data-bookmark", el.attrs.get("id"))
         if bookmark_name and heading_paragraph.runs:
-            tag = heading_paragraph.runs[0]._r
-            start = docx.oxml.shared.OxmlElement("w:bookmarkStart")
-            start.set(docx.oxml.ns.qn("w:id"), str(self.current_bookmark_id))
-            start.set(docx.oxml.ns.qn("w:name"), "_Ref" + bookmark_name)
-            tag.insert(0, start)
+            bookmark_name = normalize_bookmark_name(bookmark_name)
+            # The visible bookmark supports Word's bookmark list and internal
+            # links. The hidden alias preserves existing {{.ref}} targets.
+            self._add_heading_bookmark(heading_paragraph, bookmark_name)
+            self._add_heading_bookmark(heading_paragraph, "_Ref" + bookmark_name)
 
-            tag = heading_paragraph.runs[-1]._r
-            end = docx.oxml.shared.OxmlElement("w:bookmarkEnd")
-            end.set(docx.oxml.ns.qn("w:id"), str(self.current_bookmark_id))
-            end.set(docx.oxml.ns.qn("w:name"), "_Ref" + bookmark_name)
-            tag.append(end)
-            self.current_bookmark_id += 1
+    def _add_heading_bookmark(self, paragraph, bookmark_name):
+        start = docx.oxml.shared.OxmlElement("w:bookmarkStart")
+        start.set(docx.oxml.ns.qn("w:id"), str(self.current_bookmark_id))
+        start.set(docx.oxml.ns.qn("w:name"), bookmark_name)
+        paragraph.runs[0]._r.addprevious(start)
+
+        end = docx.oxml.shared.OxmlElement("w:bookmarkEnd")
+        end.set(docx.oxml.ns.qn("w:id"), str(self.current_bookmark_id))
+        paragraph.runs[-1]._r.addnext(end)
+        self.current_bookmark_id += 1
 
     tag_h1 = _tag_h
     tag_h2 = _tag_h
@@ -153,7 +190,14 @@ class HtmlToDocx(BaseHtmlToOOXML):
             # <p> nested in another block element like blockquote, use or copy the paragraph object
             if any(run.text for run in par.runs):
                 # Paragraph has things in it already, make a new one but copy the style
-                par = self.doc.add_paragraph(style=par.style)
+                # Add the paragraph to the same container as the current one.
+                # In a table cell, ``self.doc.add_paragraph`` adds it after the
+                # table, rather than in the cell.
+                parent = par._parent
+                if hasattr(parent, "add_paragraph"):
+                    par = parent.add_paragraph(style=par.style)
+                else:
+                    par = self.doc.add_paragraph(style=par.style)
         else:
             # Top level <p>
             par = self.doc.add_paragraph()
@@ -505,7 +549,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
                 continue
 
         if ref:
-            ref = f"_Ref{ref}"
+            ref = f"_Ref{normalize_bookmark_name(ref)}"
         else:
             ref = f"_Ref{random.randint(10000000, 99999999)}"
 
@@ -672,6 +716,8 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         par_caption.add_run(self.title_except(caption_text))
 
     def make_cross_ref(self, par, ref: str):
+        ref = normalize_bookmark_name(ref)
+
         # Start the field character run for the label and number
         run = par.add_run()
         r = run._r

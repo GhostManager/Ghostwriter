@@ -23,6 +23,7 @@
             "group": "Getting Started",
             "pages": [
               "getting-started/quickstart",
+              "getting-started/populating-a-demo-database",
               "getting-started/updating-ghostwriter",
               {
                 "group": "Managing the Server with Ghostwriter CLI",
@@ -41,6 +42,7 @@
                 "group": "Access, Authentication, & Session Controls",
                 "pages": [
                   "features/access-authentication-and-session-controls",
+                  "features/access-authentication-and-session-controls/user-profile-and-tokens",
                   "features/access-authentication-and-session-controls/single-sign-on",
                   "features/access-authentication-and-session-controls/multi-factor-authentication",
                   "features/access-authentication-and-session-controls/role-based-access-controls",
@@ -108,7 +110,8 @@
                   "features/operation-logs/linking-evidence-to-entries",
                   "features/operation-logs/attaching-terminal-recordings",
                   "features/operation-logs/setting-up-automated-logging",
-                  "features/operation-logs/exporting-importing-oplogs"
+                  "features/operation-logs/exporting-importing-oplogs",
+                  "features/operation-logs/auditing-oplogs"
                 ]
               },
               {

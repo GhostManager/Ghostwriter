@@ -32,13 +32,12 @@ FROM python:3.10.20-alpine3.23
 
 RUN \
   --mount=type=cache,target=/var/cache/apk/ \
-  apk add libpq
+  apk add libpq curl
 
 RUN \
   --mount=type=bind,target=/wheels,source=/wheels,from=build \
-  --mount=type=bind,target=/requirements,source=/requirements,from=build \
   --mount=type=cache,target=/root/.cache/pip \
-  pip install --find-links=/wheels -r /requirements/production.txt
+  pip install --no-index --find-links=/wheels /wheels/*.whl
 
 # Download spaCy model for passive voice detection
 # Default to English, can be overridden via SPACY_MODEL build arg
