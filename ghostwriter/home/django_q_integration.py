@@ -64,7 +64,8 @@ def call_allowed_hook(sender, instance, **kwargs):
         hook(instance)
     except TaskPolicyError as error:
         logger.error("Blocked Django Q result hook for task %s: %s", instance.pk, error)
-    except Exception:
+    except Exception:  # pylint: disable=broad-exception-caught
+        # Hooks are best-effort and must not disrupt task-result persistence.
         logger.exception(
             "Approved Django Q result hook failed for task %s", instance.pk
         )

@@ -73,16 +73,21 @@ def parse_schedule_arguments(args_value, kwargs_value):
                 if not isinstance(parsed, Mapping):
                     raise ValueError
                 kwargs = dict(parsed)
-            except (RecursionError, SyntaxError, ValueError, TypeError):
+            except (
+                RecursionError,
+                SyntaxError,
+                ValueError,
+                TypeError,
+            ) as literal_error:
                 try:
                     keywords = ast.parse(
                         f"f({kwargs_value})", mode="eval"
                     ).body.keywords
                     if any(keyword.arg is None for keyword in keywords):
-                        raise ValueError
+                        raise ValueError from literal_error
                     names = [keyword.arg for keyword in keywords]
                     if len(names) != len(set(names)):
-                        raise ValueError
+                        raise ValueError from literal_error
                     kwargs = {
                         keyword.arg: ast.literal_eval(keyword.value)
                         for keyword in keywords

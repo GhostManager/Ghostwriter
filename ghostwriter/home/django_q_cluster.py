@@ -63,12 +63,14 @@ def restricted_scheduler(broker=None):
                         schedule.pk,
                         error,
                     )
-                except Exception:
+                except Exception:  # pylint: disable=broad-exception-caught
+                    # Isolate unexpected failures so later schedules are still checked.
                     q_scheduler.logger.exception(
                         "Could not create a task from Django Q schedule %s",
                         schedule.pk,
                     )
-    except Exception:
+    except Exception:  # pylint: disable=broad-exception-caught
+        # The scheduler is a process boundary and must survive backend failures.
         q_scheduler.logger.exception("Could not inspect Django Q schedules")
 
 
@@ -180,7 +182,11 @@ def restricted_worker(task_queue, result_queue, timer, timeout=q_worker.Conf.TIM
                 func_name,
                 error,
             )
-        except (Exception, q_worker.TimeoutException) as error:
+        except (  # pylint: disable=broad-exception-caught
+            Exception,
+            q_worker.TimeoutException,
+        ) as error:
+            # Task callables may raise any exception; workers record the failure.
             if isinstance(error, q_worker.TimeoutException):
                 timeout_error = True
             result = (f"{error} : {traceback.format_exc()}", False)
