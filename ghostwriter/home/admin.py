@@ -159,7 +159,7 @@ class RestrictedScheduleAdmin(django_q_admin.ScheduleAdmin):
     """Django Q schedule admin constrained by server-side policy."""
 
     form = RestrictedScheduleForm
-    readonly_fields = ("cluster", "intended_date_kwarg")
+    readonly_fields = ("intended_date_kwarg",)
 
 
 for django_q_model in (Schedule, Success, Failure):
