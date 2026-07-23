@@ -12,3 +12,8 @@ class HomeConfig(AppConfig):
             import ghostwriter.home.signals  # noqa F401 isort:skip
         except ImportError:
             pass
+
+        # Ghostwriter Libraries
+        from ghostwriter.home.django_q_integration import install_django_q_restrictions
+
+        install_django_q_restrictions()

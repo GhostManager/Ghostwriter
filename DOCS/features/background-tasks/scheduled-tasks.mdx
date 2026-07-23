@@ -6,15 +6,123 @@ description: "Configuring tasks to run repeatedly on a schedule"
 
 ## Scheduling a Task
 
-Tasks are scheduled in the Django admin panel under _Django Q_ and _Scheduled Tasks_. Add a new task, give the task a name, and tell it which function to run. Functions must be prefixed with `tasks.` to tell Django Q to pull the functions from `tasks.py`. The final requirement is a schedule. Tasks can be run once or repeatedly (e.g. minutes, hourly, daily, weekly).
+Tasks are scheduled in the Django admin panel under _Django Q_ and _Scheduled Tasks_. Add a new task, give the task a name, select one of the server-approved
+functions, and configure its schedule. Tasks can run once or repeatedly (e.g. minutes, hourly, daily, weekly). You can schedule them by time or using `cron`.
 
 <Info>
-To schedule the `release_servers()` function inside `tasks.py`, you would enter the function name as: `tasks.release_servers`
+The function and hook lists are controlled by a server-side allowlist. An administrator who only has access to the admin panel cannot add Python functions
+or system commands to these lists.
 </Info>
-You can provide arguments for the functions as needed. Ghostwriter's scheduled tasks do not require arguments, but some have optional arguments. For example, the `scan_servers()` function accepts an `active_only` argument to restrict scanning only to servers that have been checked out for a project.
+
+You can provide approved arguments for functions that accept them. Ghostwriter rejects unknown arguments and values with the wrong type. For example,
+`ghostwriter.shepherd.tasks.scan_servers` accepts `only_active=True` to restrict scanning to servers that are in use.
 
 ### Example Scheduled Task
 
-Visit the Django Q database from the admin panel to access the _Scheduled Tasks_. You may wish to create a scheduled task to automatically release domains at the end of a project. There is a task for this already in `tasks.py`, `ghostwriter.shepherd.tasks.release_domains`.
+Visit the Django Q database from the admin panel to access the _Scheduled Tasks_. For example, you may wish to create a scheduled task to automatically release domains
+at the end of a project. There is a task for this already in `tasks.py`, `ghostwriter.shepherd.tasks.release_domains`. It appears in the dropdown as _Release Domains_.
 
-This example executes `ghostwriter.shepherd.tasks.release_domains` under the name `Domain Release` every day at 15:39 UTC with no additional args or kwargs.
+### Available Task Arguments
+
+Arguments may be supplied positionally in the _Arguments_ field or by name in the _Keyword arguments_ field. Do not provide the same parameter in both fields.
+
+| Function | Available parameters |
+| --- | --- |
+| `ghostwriter.reporting.tasks.archive_projects` | None |
+| `ghostwriter.rolodex.tasks.check_project_freshness` | None |
+| `ghostwriter.shepherd.tasks.check_domains` | `domain_id`: positive integer or `None`; omit it to check every domain |
+| `ghostwriter.shepherd.tasks.check_expiration` | None |
+| `ghostwriter.shepherd.tasks.fetch_namecheap_domains` | None |
+| `ghostwriter.shepherd.tasks.release_domains` | `no_action`: boolean; `True` previews without releasing |
+| `ghostwriter.shepherd.tasks.release_servers` | `no_action`: boolean; `True` previews without releasing |
+| `ghostwriter.shepherd.tasks.review_cloud_infrastructure` | `aws_only_running`: boolean; `do_only_running`: boolean |
+| `ghostwriter.shepherd.tasks.scan_servers` | `only_active`: boolean; `True` scans only servers in use |
+| `ghostwriter.shepherd.tasks.update_dns` | `domain`: positive integer or `None`; omit it to update every domain |
+| `ghostwriter.modules.oplog_monitors.review_active_logs` | `hours`: integer from 1 through 8,760; defaults to 24 |
+| `ghostwriter.home.django_q_tasks.clear_expired_sessions` | None |
+| Fixed system-command runner | `command_name`: one of the names in `GHOSTWRITER_DJANGO_Q_COMMANDS` |
+
+## Configuring the Server Allowlist
+
+Ghostwriter includes its prebuilt scheduled tasks in the default policy. Server operators can replace or extend `GHOSTWRITER_DJANGO_Q_SCHEDULE_TASKS` from a settings
+fragment such as `settings/10-django-q-policy.py`. The Ghostwriter CLI mounts the `settings` directory read-only into the web and queue containers.
+
+```python
+GHOSTWRITER_DJANGO_Q_SCHEDULE_TASKS = {
+    **GHOSTWRITER_DJANGO_Q_SCHEDULE_TASKS,
+    "organization.tasks.refresh_inventory": {
+        "label": "Refresh Organization Inventory",
+        "args": [],
+        "kwargs": {
+            "active_only": {"type": "bool"},
+        },
+    },
+}
+```
+
+Task entries use exact dotted callable paths. Prefixes and wildcards are not supported. Argument policies support `bool`, `float`, `int`, and `str` values, along with
+`name`, `required`, `required_parameters`, `nullable`, `choices`, `min`, and `max` restrictions. A named positional argument can also appear in `kwargs`, allowing
+administrators to use either input style. Set `allow_any_arguments` only for a trusted function that performs its own strict input validation.
+
+Result hooks use the separate `GHOSTWRITER_DJANGO_Q_SCHEDULE_HOOKS` mapping. Ghostwriter exposes its built-in `ghostwriter.modules.notifications_slack.send_slack_complete_msg`
+hook by default. Generic execution functions such as `os.system`, `subprocess.run`, and `django.core.management.call_command` should never be allowlisted.
+
+### Fixed System Commands
+
+Server operators can expose a fixed command by adding it to `GHOSTWRITER_DJANGO_Q_COMMANDS`:
+
+```python
+GHOSTWRITER_DJANGO_Q_COMMANDS = {
+    "nightly-backup": {
+        "argv": ["/usr/local/bin/ghostwriter-backup", "--quiet"],
+        "timeout": 1800,
+        "cwd": "/app",
+        "env": {},
+    },
+}
+```
+
+The executable path and all arguments are fixed in the server configuration. Commands run without a shell and with only the explicitly configured environment. The admin
+panel permits selecting the command name but does not permit editing the executable, arguments, working directory, or environment.
+
+Restart both the Ghostwriter web and queue services after changing the policy. Changes are intentionally not loaded from the database or admin panel.
+
+### Auditing Existing Schedules
+
+The task allowlist is deployment-specific, so Ghostwriter does not use a Django
+data migration to modify existing schedules. Instead, use the policy audit
+command as an operational migration when upgrading or enabling a more
+restrictive policy.
+
+For the safest rollout:
+
+1. Stop the Django Q cluster so an old scheduler or worker cannot execute tasks
+   during the upgrade.
+2. Deploy the new Ghostwriter code and the intended server-side allowlist.
+3. Audit the existing schedules:
+
+```sh
+python manage.py audit_django_q_policy --check
+```
+
+4. Add any legitimate custom tasks reported by the audit to the server-side
+   allowlist, or pause every schedule that does not satisfy the current policy:
+
+```sh
+python manage.py audit_django_q_policy --pause-disallowed
+```
+
+5. Restart the Ghostwriter web and Django Q services.
+
+Disallowed schedules are paused by setting `repeats=0`; they are not deleted.
+This preserves their configuration for later review. If a disallowed schedule
+is missed by the audit, the restricted scheduler pauses it when it becomes due.
+A task already present in the queue is checked again by the worker and recorded
+as a failed task without importing or executing the denied function. Historical
+successful and failed task records remain available, but the admin panel cannot
+resubmit them unless they satisfy the current policy.
+
+<Warning>
+The allowlist limits administrators who only control the application or Django admin panel. Anyone who can modify the server configuration, application code, queue,
+database, or application secrets is already inside the server trust boundary.
+</Warning>

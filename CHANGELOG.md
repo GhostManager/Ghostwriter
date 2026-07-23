@@ -14,6 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * Tag autocomplete suggestions are scoped to objects the current user can access
   * Additional inline JavaScript values and activity-log rich-text previews are escaped or sanitized for their output context
 * Added matching Django and Hasura validation for domain and static server names while preserving user access to create and manage shared inventory
+* Restricted Django Q scheduled tasks to a server-controlled allowlist (Closes #911)
+  * The admin panel now exposes only approved functions, Slack notification hooks, and validated task arguments
+  * Optional system commands must be configured as fixed argument vectors on the server and run without a shell
+  * Schedule saves, queue submissions, result hooks, and worker execution enforce the policy independently
+  * Added `audit_django_q_policy` to identify or pause existing schedules that do not satisfy the configured policy
 
 ## [7.2.4] - 21 July 2026
 
