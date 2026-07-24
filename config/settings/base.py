@@ -425,6 +425,132 @@ Q_CLUSTER = {
     "redis": env("QCLUSTER_CONNECTION", default={"host": "redis", "port": 6379, "db": 0}),
 }
 
+# Only tasks in this server-side policy can be created through the Django Q
+# schedule admin. Deployments can replace or extend this dictionary from a
+# settings fragment in ``production.d``. Argument specifications are enforced
+# when a schedule is saved, when it is enqueued, and again by the queue worker.
+GHOSTWRITER_DJANGO_Q_SCHEDULE_TASKS = {
+    "ghostwriter.reporting.tasks.archive_projects": {
+        "label": "Archive Completed Projects",
+        "args": [],
+        "kwargs": {},
+    },
+    "ghostwriter.rolodex.tasks.check_project_freshness": {
+        "label": "Check Project Freshness",
+        "args": [],
+        "kwargs": {},
+    },
+    "ghostwriter.shepherd.tasks.check_domains": {
+        "label": "Check Domain Categorization",
+        "args": [
+            {
+                "name": "domain_id",
+                "type": "int",
+                "nullable": True,
+                "min": 1,
+                "required": False,
+            }
+        ],
+        "kwargs": {"domain_id": {"type": "int", "nullable": True, "min": 1}},
+    },
+    "ghostwriter.shepherd.tasks.check_expiration": {
+        "label": "Check Domain Expiration",
+        "args": [],
+        "kwargs": {},
+    },
+    "ghostwriter.shepherd.tasks.fetch_namecheap_domains": {
+        "label": "Synchronize Namecheap Domains",
+        "args": [],
+        "kwargs": {},
+    },
+    "ghostwriter.shepherd.tasks.release_domains": {
+        "label": "Release Domains",
+        "args": [{"name": "no_action", "type": "bool", "required": False}],
+        "kwargs": {"no_action": {"type": "bool"}},
+    },
+    "ghostwriter.shepherd.tasks.release_servers": {
+        "label": "Release Servers",
+        "args": [{"name": "no_action", "type": "bool", "required": False}],
+        "kwargs": {"no_action": {"type": "bool"}},
+    },
+    "ghostwriter.shepherd.tasks.review_cloud_infrastructure": {
+        "label": "Review Cloud Infrastructure",
+        "args": [
+            {"name": "aws_only_running", "type": "bool", "required": False},
+            {"name": "do_only_running", "type": "bool", "required": False},
+        ],
+        "kwargs": {
+            "aws_only_running": {"type": "bool"},
+            "do_only_running": {"type": "bool"},
+        },
+    },
+    "ghostwriter.shepherd.tasks.scan_servers": {
+        "label": "Scan Servers",
+        "args": [{"name": "only_active", "type": "bool", "required": False}],
+        "kwargs": {"only_active": {"type": "bool"}},
+    },
+    "ghostwriter.shepherd.tasks.update_dns": {
+        "label": "Update DNS Records",
+        "args": [
+            {
+                "name": "domain",
+                "type": "int",
+                "nullable": True,
+                "min": 1,
+                "required": False,
+            }
+        ],
+        "kwargs": {"domain": {"type": "int", "nullable": True, "min": 1}},
+    },
+    "ghostwriter.modules.oplog_monitors.review_active_logs": {
+        "label": "Review Active Operation Logs",
+        "args": [
+            {
+                "name": "hours",
+                "type": "int",
+                "min": 1,
+                "max": 8760,
+                "required": False,
+            }
+        ],
+        "kwargs": {"hours": {"type": "int", "min": 1, "max": 8760}},
+    },
+    "ghostwriter.home.django_q_tasks.clear_expired_sessions": {
+        "label": "Clear Expired Sessions",
+        "args": [],
+        "kwargs": {},
+    },
+}
+
+# These tasks are queued by Ghostwriter itself. They are accepted by the queue
+# worker but are intentionally omitted from the schedule admin choices.
+GHOSTWRITER_DJANGO_Q_INTERNAL_TASKS = {
+    "ghostwriter.shepherd.tasks.namecheap_reset_dns": {"allow_any_arguments": True},
+    "ghostwriter.shepherd.tasks.test_aws_keys": {"allow_any_arguments": True},
+    "ghostwriter.shepherd.tasks.test_digital_ocean": {"allow_any_arguments": True},
+    "ghostwriter.shepherd.tasks.test_namecheap": {"allow_any_arguments": True},
+    "ghostwriter.shepherd.tasks.test_slack_webhook": {"allow_any_arguments": True},
+    "ghostwriter.shepherd.tasks.test_virustotal": {"allow_any_arguments": True},
+}
+
+# Hooks have their own execution path in Django Q and must be independently
+# constrained. The built-in Slack completion hook is safe to expose to schedules.
+GHOSTWRITER_DJANGO_Q_INTERNAL_HOOKS = {
+    "ghostwriter.modules.notifications_slack.send_slack_complete_msg": {
+        "label": "Send Slack Completion Message"
+    }
+}
+GHOSTWRITER_DJANGO_Q_SCHEDULE_HOOKS = {
+    "ghostwriter.modules.notifications_slack.send_slack_complete_msg": {
+        "label": "Send Slack Completion Message"
+    }
+}
+
+# Optional fixed commands configured by a server operator. When this mapping is
+# non-empty, the schedule admin exposes the restricted command runner. Each
+# command must use a fixed absolute argv and is always executed with shell=False.
+GHOSTWRITER_DJANGO_Q_COMMANDS = {}
+
 # SETTINGS
 # ------------------------------------------------------------------------------
 # All settings are stored in singleton models in the CommandCenter app

@@ -7,7 +7,7 @@ description: "Modifying and then deploying code changes"
 
 While running Ghostwriter using `local.yml`, you can make changes on the fly without needing to run any Docker commands. Django smartly restarts the server when it detects a file change. Also, the local deployment mounts Ghostwriter's directory on your host, so changes to the code (Python or templates) will be live once the file is saved.
 
-The `build, stop, rm, up -d` commands need to be run only if you add a new library or if you add a new task to **tasks.py**  **(only after initially adding the new function, not each time you change the function).
+The `build, stop, rm, up -d` commands need to be run only if you add a new library or if you add a new task to **tasks.py** **(only after initially adding the new function, not each time you change the function).** A new queued task must also be added to `GHOSTWRITER_DJANGO_Q_INTERNAL_TASKS` or `GHOSTWRITER_DJANGO_Q_SCHEDULE_TASKS`, as appropriate.
 
 `docker-compose -f local.yml stop; docker-compose -f local.yml rm -f; docker-compose -f local.yml build; docker-compose -f local.yml up -d`
 
