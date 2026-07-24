@@ -117,11 +117,11 @@ def resubmit_allowed_tasks(model_admin, request, queryset):
         try:
             async_task(
                 task.func,
-                *task.args or (),
+                *(task.args or ()),
                 hook=task.hook,
                 group=task.group,
                 cluster=task.cluster,
-                **task.kwargs or {},
+                **(task.kwargs or {}),
             )
         except TaskPolicyError:
             denied += 1
