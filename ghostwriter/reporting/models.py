@@ -63,6 +63,7 @@ class EvidenceImageAlignmentOverride(models.TextChoices):
 class Severity(models.Model):
     """Stores an individual severity rating."""
 
+    @staticmethod
     def get_default_weight():
         """
         Return the default weight for a new :model:`reporting.Severity` instance.
