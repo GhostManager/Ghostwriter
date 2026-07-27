@@ -103,7 +103,7 @@ class TemplateTagTests(TestCase):
     def setUpTestData(cls):
         cls.ProjectObjective = ProjectObjectiveFactory._meta.model
         cls.project = ProjectFactory()
-        for x in range(3):
+        for _ in range(3):
             ProjectObjectiveFactory(project=cls.project)
 
         cls.server = StaticServerFactory()

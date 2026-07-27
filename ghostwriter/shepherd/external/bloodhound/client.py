@@ -493,7 +493,7 @@ class APIClient:
                     grouped[unique_key]["principals"].append(_build_target_entry(finding, severity))
 
         # Now we set the ``severity`` at the top level based on the highest severity of its target(s)
-        for finding_key, finding_value in grouped.items():
+        for _, finding_value in grouped.items():
             highest_severity = "Low"
             for target in finding_value["principals"]:
                 target_severity = target.get("severity", "Low")

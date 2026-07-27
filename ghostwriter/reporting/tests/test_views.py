@@ -123,7 +123,7 @@ class TemplateTagTests(TestCase):
     def setUpTestData(cls):
         cls.ReportFindingLink = ReportFindingLinkFactory._meta.model
         cls.report = ReportFactory()
-        for x in range(3):
+        for _ in range(3):
             ReportFindingLinkFactory(report=cls.report)
 
     def setUp(self):
