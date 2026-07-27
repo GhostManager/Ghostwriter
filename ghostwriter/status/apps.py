@@ -15,5 +15,7 @@ class StatusConfig(AppConfig):
     def ready(self):
         try:
             import ghostwriter.status.signals  # noqa F401 isort:skip
-        except ImportError:
+        except ModuleNotFoundError as exception:
+            if exception.name != "ghostwriter.status.signals":
+                raise
             logger.debug("No Status signal handlers are configured.")

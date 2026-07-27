@@ -15,5 +15,7 @@ class CommandCenterConfig(AppConfig):
     def ready(self):
         try:
             import ghostwriter.commandcenter.signals  # noqa F401 isort:skip
-        except ImportError:
+        except ModuleNotFoundError as exception:
+            if exception.name != "ghostwriter.commandcenter.signals":
+                raise
             logger.debug("No CommandCenter signal handlers are configured.")

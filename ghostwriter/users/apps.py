@@ -17,5 +17,7 @@ class UsersConfig(AppConfig):
     def ready(self):
         try:
             import ghostwriter.users.signals  # noqa F401 isort:skip
-        except ImportError:
+        except ModuleNotFoundError as exception:
+            if exception.name != "ghostwriter.users.signals":
+                raise
             logger.debug("No Users signal handlers are configured.")
