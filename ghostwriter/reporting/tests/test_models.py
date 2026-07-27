@@ -732,7 +732,7 @@ class ReportFindingLinkModelTests(TestCase):
         self.assertFalse(blank_finding.exists_in_finding_library)
 
         # Test a finding that's linked to a library finding
-        cloned_finding = FindingFactory(title="Blank Finding Not in the Library")
+        _ = FindingFactory(title="Blank Finding Not in the Library")
         self.assertTrue(blank_finding.exists_in_finding_library)
 
 

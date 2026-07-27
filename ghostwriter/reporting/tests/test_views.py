@@ -1674,7 +1674,7 @@ class ReportOplogOutlineGenerateTests(TestCase):
             comments="<p><strong>Initial foothold</strong> confirmed.</p>",
             tags=["report"],
         )
-        entry_two = OplogEntryFactory(
+        _ = OplogEntryFactory(
             oplog_id=self.oplog,
             start_date=second_start,
             tool="",
