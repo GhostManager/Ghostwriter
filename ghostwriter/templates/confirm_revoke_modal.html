@@ -89,7 +89,13 @@
               cell.colSpan = 7
               cell.innerHTML = 'Add ' + placeholder_group + ' findings or drag-and-drop a finding here to update its severity.'
             } else {
-              $targetTable.hide();
+              let $tokenSection = $targetTable.closest('.js-token-table-section');
+              if ($tokenSection.length) {
+                $targetTable.closest('.js-token-table-responsive').addClass('d-none');
+                $tokenSection.find('.js-token-table-empty-alert').removeClass('d-none');
+              } else {
+                $targetTable.hide();
+              }
             }
           }
           update_badges();

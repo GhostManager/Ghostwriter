@@ -507,7 +507,9 @@
           let visibleRows = $rows.filter(function () {
             return $(this).css('display') !== 'none';
           }).length;
-          let allRowsHidden = hideCheckbox.prop('checked') && $rows.length > 0 && visibleRows === 0;
+          let allRowsHidden = $rows.length === 0 || (
+            hideCheckbox.prop('checked') && visibleRows === 0
+          );
 
           replaceTokenTableState($tableResponsive, $hiddenAlert, allRowsHidden, animate);
         });
