@@ -428,7 +428,7 @@ class ReportTemplateModelTests(TestCase):
 
         template.save()
 
-        self.assertTrue(template._current_template.path not in template.document.path)
+        self.assertNotIn(template._current_template.path, template.document.path)
         self.assertFalse(os.path.exists(template._current_template.path))
         self.assertTrue(os.path.exists(template.document.path))
 

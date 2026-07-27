@@ -1041,9 +1041,7 @@ class FindingsListViewTests(TestCase):
     def test_search_report_findings(self):
         response = self.client_auth.get(self.uri + "?on_reports=on")
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(
-            len(response.context["filter"].qs) == len(self.accessibleReportFindings)
-        )
+        self.assertEqual(len(response.context["filter"].qs), len(self.accessibleReportFindings))
 
         response = self.client_auth.get(self.uri + "?on_reports=on&not_cloned=on")
         self.assertEqual(response.status_code, 200)
