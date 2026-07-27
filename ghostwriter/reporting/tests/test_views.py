@@ -570,8 +570,6 @@ class EvidenceInjectionTests(TestCase):
         so without |escapejs a crafted extension (e.g. containing a newline or
         backslash) could break the surrounding JS string literal.
         """
-        import re
-
         template_path = os.path.normpath(
             os.path.join(
                 os.path.dirname(__file__),
