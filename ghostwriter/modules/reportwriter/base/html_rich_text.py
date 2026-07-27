@@ -151,6 +151,7 @@ class LazilyRenderedTemplate(RichTextBase):
     rendering: bool
 
     def __init__(self, template: jinja2.Template, location: str | None, context: dict):
+        super().__init__()
         self.template = template
         self.context = context
         self.location = location
@@ -189,6 +190,7 @@ class HtmlAndObject(RichTextBase):
     obj: Any
 
     def __init__(self, html: str, obj, location: str | None = None):
+        super().__init__()
         self.html = html
         self.obj = obj
         self.location = location

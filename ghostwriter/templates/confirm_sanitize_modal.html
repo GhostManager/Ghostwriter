@@ -16,7 +16,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-        <button type="submit" class="btn btn-danger" data-dismiss="modal" id="confirm-sanitize-button-modal">Sanitize
+        <button type="button" class="btn btn-danger" data-dismiss="modal" id="confirm-sanitize-button-modal">Sanitize
         </button>
       </div>
     </div>
@@ -42,7 +42,7 @@
     let targetId = $target.attr('sanitize-target-id');
     let $previewContent = $('#key_name_' + targetId);
 
-    if ($previewContent) {
+    if ($previewContent.length) {
       $('#object-preview-content').html(escapeHtml($previewContent.text()));
     }
   });
@@ -86,19 +86,14 @@
 
     let formData = $('#sanitize-checklist-form').serializeArray();
     formData = JSON.stringify(formData);
-    console.log(formData)
 
-    $.ajaxSetup({
-      beforeSend: function (xhr, settings) {
-        if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-          xhr.setRequestHeader('X-CSRFToken', csrftoken);
-        }
-      }
-    });
     $.ajax({
       url: url,
       type: 'POST',
       dataType: 'json',
+      headers: {
+        'X-CSRFToken': csrftoken,
+      },
       data: {
         'target': targetId,
         'fields': formData,

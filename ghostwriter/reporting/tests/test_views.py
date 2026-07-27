@@ -13,7 +13,7 @@ from django.contrib.messages import get_messages
 from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.template.loader import render_to_string
-from django.test import Client, TestCase
+from django.test import Client, SimpleTestCase, TestCase
 from django.test import override_settings
 from django.urls import reverse
 from django.utils.dateformat import format as dateformat
@@ -87,6 +87,16 @@ logging.disable(logging.CRITICAL)
 PASSWORD = "SuperNaturalReporting!"
 
 
+class ReportObservationLinkDeleteUrlTests(SimpleTestCase):
+    """Tests for the reported-observation delete URL."""
+
+    def test_url_uses_correct_observation_spelling(self):
+        self.assertEqual(
+            reverse("reporting:ajax_delete_local_observation", kwargs={"pk": 1}),
+            "/reporting/ajax/observation/delete/1",
+        )
+
+
 class IndexViewTests(TestCase):
     """Collection of tests for :view:`reporting.index`."""
 
@@ -123,7 +133,7 @@ class TemplateTagTests(TestCase):
     def setUpTestData(cls):
         cls.ReportFindingLink = ReportFindingLinkFactory._meta.model
         cls.report = ReportFactory()
-        for x in range(3):
+        for _ in range(3):
             ReportFindingLinkFactory(report=cls.report)
 
     def setUp(self):
@@ -147,10 +157,10 @@ class TemplateTagTests(TestCase):
         deleted_evidence = EvidenceFactory()
         os.remove(deleted_evidence.document.path)
 
-        self.assertTrue(report_tags.get_file_type(img_evidence) == "image")
-        self.assertTrue(report_tags.get_file_type(txt_evidence) == "text")
-        self.assertTrue(report_tags.get_file_type(unknown_evidence) == "unknown")
-        self.assertTrue(report_tags.get_file_type(deleted_evidence) == "missing")
+        self.assertEqual(report_tags.get_file_type(img_evidence), "image")
+        self.assertEqual(report_tags.get_file_type(txt_evidence), "text")
+        self.assertEqual(report_tags.get_file_type(unknown_evidence), "unknown")
+        self.assertEqual(report_tags.get_file_type(deleted_evidence), "missing")
 
         self.assertEqual(report_tags.get_file_content(txt_evidence), "lorem ipsum")
         self.assertEqual(
@@ -570,8 +580,6 @@ class EvidenceInjectionTests(TestCase):
         so without |escapejs a crafted extension (e.g. containing a newline or
         backslash) could break the surrounding JS string literal.
         """
-        import re
-
         template_path = os.path.normpath(
             os.path.join(
                 os.path.dirname(__file__),
@@ -999,17 +1007,17 @@ class FindingsListViewTests(TestCase):
     def test_lists_all_findings(self):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(len(response.context["filter"].qs) == len(self.findings))
+        self.assertEqual(len(response.context["filter"].qs), len(self.findings))
 
     def test_search_findings(self):
         response = self.client_auth.get(self.uri + "?finding=Finding+2")
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(len(response.context["filter"].qs) == 1)
+        self.assertEqual(len(response.context["filter"].qs), 1)
 
     def test_filter_findings(self):
         response = self.client_auth.get(self.uri + "?title=Finding+2&submit=Filter")
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(len(response.context["filter"].qs) == 1)
+        self.assertEqual(len(response.context["filter"].qs), 1)
 
     def test_tags_are_scoped_to_findings(self):
         visible_finding = FindingFactory(title="Tagged Finding")
@@ -1039,7 +1047,7 @@ class FindingsListViewTests(TestCase):
 
         response = self.client_auth.get(self.uri + "?on_reports=on&not_cloned=on")
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(len(response.context["filter"].qs) == 1)
+        self.assertEqual(len(response.context["filter"].qs), 1)
         blank_findings = self.ReportFindingLink.objects.filter(
             added_as_blank=True, report=self.accessibleReport
         )
@@ -1403,19 +1411,19 @@ class ReportsListViewTests(TestCase):
     def test_lists_all_reports(self):
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(len(response.context["filter"].qs) == len(self.reports))
+        self.assertEqual(len(response.context["filter"].qs), len(self.reports))
 
     def test_lists_filtered_reports(self):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(len(response.context["filter"].qs) == 0)
+        self.assertEqual(len(response.context["filter"].qs), 0)
 
         for report in self.reports[:5]:
             ProjectAssignmentFactory(project=report.project, operator=self.user)
 
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(len(response.context["filter"].qs) == 5)
+        self.assertEqual(len(response.context["filter"].qs), 5)
 
     def test_tags_are_scoped_to_visible_reports(self):
         visible_report = ReportFactory(title="Visible Report")

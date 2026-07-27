@@ -232,7 +232,7 @@ class ProjectModelTests(TestCase):
     def test_prop_count_findings(self):
         project = ProjectFactory()
         report = ReportFactory(project=project)
-        for x in range(3):
+        for _ in range(3):
             ReportFindingLinkFactory(report=report)
         self.assertEqual(project.count_findings(), 3)
 

@@ -904,7 +904,7 @@ class DomainListView(RoleBasedAccessControlMixin, ListView):
             self.autocomplete.append(domain.name)
             if domain.categorization:
                 try:
-                    for key, value in domain.categorization.items():
+                    for _, value in domain.categorization.items():
                         if "," in value:
                             for item in value.split(","):
                                 self.autocomplete.append(item.strip().lower())

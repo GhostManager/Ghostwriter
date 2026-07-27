@@ -507,7 +507,9 @@
           let visibleRows = $rows.filter(function () {
             return $(this).css('display') !== 'none';
           }).length;
-          let allRowsHidden = hideCheckbox.prop('checked') && $rows.length > 0 && visibleRows === 0;
+          let allRowsHidden = $rows.length === 0 || (
+            hideCheckbox.prop('checked') && visibleRows === 0
+          );
 
           replaceTokenTableState($tableResponsive, $hiddenAlert, allRowsHidden, animate);
         });
@@ -607,9 +609,9 @@
           '<div class="modal-content">' +
           '<div class="modal-header"><h5 class="modal-title">Your Replacement Token</h5></div>' +
           '<div class="modal-body confirm-token"><code></code></div>' +
-          '<div class="modal-footer">' +
-          '<p class="start-0 position-absolute pl-2">Please store it somewhere safe; you will not be able to see it again!</p>' +
-          '<button type="button" class="btn btn-danger" data-dismiss="modal">I Saved It</button>' +
+          '<div class="modal-footer d-flex flex-column align-items-stretch">' +
+          '<p class="mb-2 text-left">Please store it somewhere safe; you will not be able to see it again!</p>' +
+          '<button type="button" class="btn btn-danger align-self-end" data-dismiss="modal">I Saved It</button>' +
           '</div>' +
           '</div></div></div>';
         let $replacementModal = $(modalHtml);
@@ -672,14 +674,25 @@
         }).fail(function (xhr) {
           if (xhr.status === 410 && xhr.responseJSON && xhr.responseJSON.token_id) {
             let tokenId = xhr.responseJSON.token_id;
-            $("#service_token_" + tokenId).remove();
+            let isApiToken = $target.hasClass('js-api-token-details');
+            let rowSelector = (isApiToken ? "#token_" : "#service_token_") + tokenId;
+            let tableSelector = isApiToken ? "#tokenTable" : "#serviceTokenTable";
+            let $table = $(tableSelector);
+
+            $(rowSelector).remove();
             $modal.modal('hide');
-            if ($("#serviceTokenTable .js-token-row").length === 0) {
-              $("#serviceTokenTable").addClass("d-none");
-              $("#serviceTokenTable").closest(".js-token-table-responsive").addClass("d-none");
-              $("#serviceTokenTable").closest(".card-body").find(".js-token-table-empty-alert").removeClass("d-none");
+            if ($table.find(".js-token-row").length === 0) {
+              $table.addClass("d-none");
+              $table.closest(".js-token-table-responsive").addClass("d-none");
+              let $emptyAlert = $table.closest(".js-token-table-section")
+                .find(".js-token-table-empty-alert");
+              $emptyAlert.removeClass("d-none").show();
             }
-            showToast("warning", xhr.responseJSON.message || "Service token scope is no longer accessible.");
+            displayToastTop({
+              type: 'warning',
+              string: xhr.responseJSON.message || 'Token scope is no longer accessible.',
+              title: 'Warning',
+            });
             return;
           }
           $content.html(errorHtml);
@@ -797,10 +810,9 @@
             <div class="modal-body confirm-token">
               <code>{{ message }}</code>
             </div>
-            <div class="modal-footer">
-              <p class="start-0 position-absolute pl-2">Please store it somewhere safe; you will not be able to see it
-                again!</p>
-              <button type="button" class="btn btn-danger" data-dismiss="modal">I Saved It</button>
+            <div class="modal-footer d-flex flex-column align-items-stretch">
+              <p class="mb-2 text-left">Please store it somewhere safe; you will not be able to see it again!</p>
+              <button type="button" class="btn btn-danger align-self-end" data-dismiss="modal">I Saved It</button>
             </div>
           </div>
         </div>

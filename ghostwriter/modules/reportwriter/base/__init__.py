@@ -25,6 +25,7 @@ class ReportExportError(Exception):
     code_context: str | None
 
     def __init__(self, display_text: str, location: str | None = None, code_context: str | None = None):
+        super().__init__(display_text)
         self.display_text = display_text
         self.location = location
         self.code_context = code_context
