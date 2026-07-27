@@ -92,7 +92,7 @@
               let $tokenSection = $targetTable.closest('.js-token-table-section');
               if ($tokenSection.length) {
                 $targetTable.closest('.js-token-table-responsive').addClass('d-none');
-                $tokenSection.find('.js-token-table-empty-alert').removeClass('d-none');
+                $tokenSection.find('.js-token-table-empty-alert').removeClass('d-none').show();
               } else {
                 $targetTable.hide();
               }

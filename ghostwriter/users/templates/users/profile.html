@@ -609,9 +609,9 @@
           '<div class="modal-content">' +
           '<div class="modal-header"><h5 class="modal-title">Your Replacement Token</h5></div>' +
           '<div class="modal-body confirm-token"><code></code></div>' +
-          '<div class="modal-footer">' +
-          '<p class="start-0 position-absolute pl-2">Please store it somewhere safe; you will not be able to see it again!</p>' +
-          '<button type="button" class="btn btn-danger" data-dismiss="modal">I Saved It</button>' +
+          '<div class="modal-footer d-flex flex-column align-items-stretch">' +
+          '<p class="mb-2 text-left">Please store it somewhere safe; you will not be able to see it again!</p>' +
+          '<button type="button" class="btn btn-danger align-self-end" data-dismiss="modal">I Saved It</button>' +
           '</div>' +
           '</div></div></div>';
         let $replacementModal = $(modalHtml);
@@ -684,7 +684,9 @@
             if ($table.find(".js-token-row").length === 0) {
               $table.addClass("d-none");
               $table.closest(".js-token-table-responsive").addClass("d-none");
-              $table.closest(".js-token-table-section").find(".js-token-table-empty-alert").removeClass("d-none");
+              let $emptyAlert = $table.closest(".js-token-table-section")
+                .find(".js-token-table-empty-alert");
+              $emptyAlert.removeClass("d-none").show();
             }
             displayToastTop({
               type: 'warning',
@@ -808,10 +810,9 @@
             <div class="modal-body confirm-token">
               <code>{{ message }}</code>
             </div>
-            <div class="modal-footer">
-              <p class="start-0 position-absolute pl-2">Please store it somewhere safe; you will not be able to see it
-                again!</p>
-              <button type="button" class="btn btn-danger" data-dismiss="modal">I Saved It</button>
+            <div class="modal-footer d-flex flex-column align-items-stretch">
+              <p class="mb-2 text-left">Please store it somewhere safe; you will not be able to see it again!</p>
+              <button type="button" class="btn btn-danger align-self-end" data-dismiss="modal">I Saved It</button>
             </div>
           </div>
         </div>
