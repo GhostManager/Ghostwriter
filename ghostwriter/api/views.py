@@ -1476,7 +1476,7 @@ class GraphqlUploadOplogRecording(JwtRequiredMixin, HasuraActionView):
         try:
             entry.recording.delete()
         except OplogEntryRecording.DoesNotExist:
-            pass
+            logger.debug("Oplog entry %s has no existing recording to replace.", entry.id, exc_info=True)
 
         # Extract searchable text from the cast file before saving
         file_bytes = form.cleaned_data["file_base64"]

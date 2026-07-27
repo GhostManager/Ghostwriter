@@ -442,7 +442,7 @@ def check_domains(domain_id=None):
                                     err,
                                 )
                     except History.DoesNotExist:
-                        pass
+                        logger.debug("No checkout history exists for burned domain %s.", v["domain"], exc_info=True)
             # If the domain isn't marked as burned, check for any informational warnings
             else:
                 if lab_results[k]["warnings"]["total"] > 0:

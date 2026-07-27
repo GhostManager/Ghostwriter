@@ -119,7 +119,7 @@ class Severity(models.Model):
             try:
                 old_entry = self.__class__.objects.get(pk=self.pk)
             except self.__class__.DoesNotExist:
-                pass
+                logger.debug("Severity %s has no previous database entry.", self.pk, exc_info=True)
 
         # A ``pre_save`` Signal is connected to this model and runs this ``clean()`` method
         # whenever ``save()`` is called
