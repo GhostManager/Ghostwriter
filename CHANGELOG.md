@@ -20,6 +20,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * Schedule saves, queue submissions, result hooks, and worker execution enforce the policy independently
   * Added `audit_django_q_policy` to identify or pause existing schedules that do not satisfy the configured policy
 
+### Fixed
+
+* Corrected the AJAX URL for deleting report observations
+* Fixed activity-log sanitization confirmation and scoped its CSRF header to its own request
+* Fixed expired API and service token feedback so the appropriate token row and empty state are updated
+
+### Changed
+
+* Improved logging for skipped signal imports and background task failures
+
 ## [7.2.4] - 21 July 2026
 
 ### Added
