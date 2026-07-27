@@ -74,7 +74,7 @@ class FindingModelTests(TestCase):
         finding = FindingFactory()
         try:
             finding.get_absolute_url()
-        except:
+        except Exception:
             self.fail("Finding.get_absolute_url() raised an exception")
 
 
@@ -270,7 +270,7 @@ class ReportTemplateModelTests(TestCase):
         template = ReportTemplateFactory()
         try:
             template.get_absolute_url()
-        except:
+        except Exception:
             self.fail("ReportTemplate.get_absolute_url() raised an exception")
 
     def test_prop_filename(self):
@@ -469,7 +469,7 @@ class ReportModelTests(TestCase):
         report = ReportFactory()
         try:
             report.get_absolute_url()
-        except:
+        except Exception:
             self.fail("Report.get_absolute_url() raised an exception")
 
     def test_clear_incorrect_template_defaults_unchanged(self):
@@ -768,7 +768,7 @@ class EvidenceModelTests(TestCase):
         evidence = EvidenceFactory()
         try:
             evidence.get_absolute_url()
-        except:
+        except Exception:
             self.fail("Evidence.get_absolute_url() raised an exception")
         evidence.delete()
 
@@ -795,7 +795,7 @@ class EvidenceModelTests(TestCase):
         self.assertRegexpMatches(evidence.filename, name + r"[_0-9a-zA-Z]*\.txt")
         try:
             evidence.get_absolute_url()
-        except:
+        except Exception:
             self.fail("Evidence.get_absolute_url() raised an exception")
         evidence.delete()
 
