@@ -573,7 +573,7 @@
   {% comment %} Insert modals for additional domain details {% endcomment %}
   {% for project in projects %}
     {% if project.current_user_can_view %}
-      {% include "snippets/project_history_detail_modal.html" with checkout=project %}
+      {% include "snippets/project_history_detail_modal.html" %}
     {% endif %}
   {% endfor %}
 
