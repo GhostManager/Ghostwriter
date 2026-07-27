@@ -87,17 +87,13 @@
     let formData = $('#sanitize-checklist-form').serializeArray();
     formData = JSON.stringify(formData);
 
-    $.ajaxSetup({
-      beforeSend: function (xhr, settings) {
-        if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-          xhr.setRequestHeader('X-CSRFToken', csrftoken);
-        }
-      }
-    });
     $.ajax({
       url: url,
       type: 'POST',
       dataType: 'json',
+      headers: {
+        'X-CSRFToken': csrftoken,
+      },
       data: {
         'target': targetId,
         'fields': formData,
