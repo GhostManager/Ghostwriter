@@ -62,6 +62,7 @@ class BearerAuth(requests.auth.AuthBase):
     token = None
 
     def __init__(self, token):
+        super().__init__()
         self.token = token
 
     def __call__(self, r):

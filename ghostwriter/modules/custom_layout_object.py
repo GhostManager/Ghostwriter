@@ -31,6 +31,7 @@ class Formset(LayoutObject):
         helper_context_name=None,
         object_context_name=None,
     ):
+        super().__init__()
         self.formset_context_name = formset_context_name
         self.helper_context_name = helper_context_name
         if object_context_name:
