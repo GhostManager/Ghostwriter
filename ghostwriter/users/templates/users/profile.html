@@ -672,14 +672,23 @@
         }).fail(function (xhr) {
           if (xhr.status === 410 && xhr.responseJSON && xhr.responseJSON.token_id) {
             let tokenId = xhr.responseJSON.token_id;
-            $("#service_token_" + tokenId).remove();
+            let isApiToken = $target.hasClass('js-api-token-details');
+            let rowSelector = (isApiToken ? "#token_" : "#service_token_") + tokenId;
+            let tableSelector = isApiToken ? "#tokenTable" : "#serviceTokenTable";
+            let $table = $(tableSelector);
+
+            $(rowSelector).remove();
             $modal.modal('hide');
-            if ($("#serviceTokenTable .js-token-row").length === 0) {
-              $("#serviceTokenTable").addClass("d-none");
-              $("#serviceTokenTable").closest(".js-token-table-responsive").addClass("d-none");
-              $("#serviceTokenTable").closest(".card-body").find(".js-token-table-empty-alert").removeClass("d-none");
+            if ($table.find(".js-token-row").length === 0) {
+              $table.addClass("d-none");
+              $table.closest(".js-token-table-responsive").addClass("d-none");
+              $table.closest(".card-body").find(".js-token-table-empty-alert").removeClass("d-none");
             }
-            showToast("warning", xhr.responseJSON.message || "Service token scope is no longer accessible.");
+            displayToastTop({
+              type: 'warning',
+              string: xhr.responseJSON.message || 'Token scope is no longer accessible.',
+              title: 'Warning',
+            });
             return;
           }
           $content.html(errorHtml);
