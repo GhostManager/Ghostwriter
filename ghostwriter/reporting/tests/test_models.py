@@ -135,7 +135,7 @@ class SeverityModelTests(TestCase):
 
     def test_adjust_severity_weight_signals(self):
         self.Severity.objects.all().delete()
-        self.assertTrue(self.Severity.objects.all().count() == 0)
+        self.assertEqual(self.Severity.objects.all().count(), 0)
 
         critical = SeverityFactory(severity="Critical", weight=2, color="FFFFFF")
         high = SeverityFactory(severity="High", weight=2, color="FFF000")

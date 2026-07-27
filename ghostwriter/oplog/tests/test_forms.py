@@ -57,7 +57,7 @@ class OplogFormTests(TestCase):
         oplog = OplogFactory.build(project=project)
         form = self.form_data(user=self.user, **oplog.__dict__)
         self.assertFalse(form.is_valid())
-        self.assertTrue(form.errors.as_data()["project"][0].code == "invalid_choice")
+        self.assertEqual(form.errors.as_data()["project"][0].code, "invalid_choice")
 
         ProjectAssignmentFactory(operator=self.user, project=project)
         form = self.form_data(user=self.user, **oplog.__dict__)

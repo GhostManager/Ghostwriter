@@ -799,8 +799,8 @@ class DomainReleaseViewTests(TestCase):
             "message": "You do not have permission to release this domain.",
         }
         self.assertJSONEqual(force_str(response.content), data)
-        self.assertFalse(self.domain.domain_status == self.available_status)
-        self.assertTrue(self.checkout.end_date == self.end_date)
+        self.assertNotEqual(self.domain.domain_status, self.available_status)
+        self.assertEqual(self.checkout.end_date, self.end_date)
 
 
 # Tests related to :model:`shepherd.StaticServer`
@@ -1331,8 +1331,8 @@ class ServerReleaseViewTests(TestCase):
             "message": "You do not have permission to release this server.",
         }
         self.assertJSONEqual(force_str(response.content), data)
-        self.assertFalse(self.server.server_status == self.available_status)
-        self.assertTrue(self.checkout.end_date == self.end_date)
+        self.assertNotEqual(self.server.server_status, self.available_status)
+        self.assertEqual(self.checkout.end_date, self.end_date)
 
 
 # Tests related to :model:`shepherd.TransientServer`

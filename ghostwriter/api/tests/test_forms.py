@@ -1,7 +1,6 @@
 # Standard Libraries
 import logging
 from datetime import datetime, timedelta
-from zipfile import error
 
 # Django Imports
 from django.test import TestCase

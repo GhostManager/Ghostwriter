@@ -71,9 +71,6 @@ class CustomTab(Container):
     # Default CSS class for the tab pane
     css_class = "tab-pane"
 
-    # Custom CSS for the ``nav-link`` element
-    # link_css_class = ""
-
     def __init__(self, name, *fields, **kwargs):
         link_css_class = kwargs.pop("link_css_class", None)
         tab_hash_id = kwargs.pop("css_id", None) or slugify(name, allow_unicode=True)
