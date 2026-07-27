@@ -1239,7 +1239,7 @@ def test_digital_ocean(user):
                 if "message" in error_message:
                     api_response = error_message["message"]
             except ValueError:
-                pass
+                logger.debug("DigitalOcean returned a non-JSON authentication error response.", exc_info=True)
             message = f"Digital Ocean denied access with HTTP code {active_droplets.status_code} and this message: {api_response}"
     except ClientError:
         logger.error("Digital Ocean could not validate the provided API key")

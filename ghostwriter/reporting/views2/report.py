@@ -1111,7 +1111,7 @@ class GenerateReportDOCX(GenerateReportBase):
             )
         except gaierror:
             # WebSocket are unavailable (unit testing)
-            pass
+            logger.debug("Unable to send report status update over WebSocket.", exc_info=True)
 
         return response
 

@@ -130,7 +130,7 @@ class HtmlToDocx(BaseHtmlToOOXML):
             try:
                 run.style = "CodeInline"
             except KeyError:
-                pass
+                logger.debug("The DOCX template does not define the CodeInline style.", exc_info=True)
             run.font.no_proof = True
         if style.get("highlight"):
             run.font.highlight_color = WD_COLOR_INDEX.YELLOW
@@ -204,7 +204,7 @@ class HtmlToDocx(BaseHtmlToOOXML):
             try:
                 par.style = self.p_style
             except KeyError:
-                pass
+                logger.debug("The DOCX template does not define the requested paragraph style.", exc_info=True)
 
         par_classes = set(el.attrs.get("class", []))
         if "left" in par_classes:
@@ -289,7 +289,7 @@ class HtmlToDocx(BaseHtmlToOOXML):
         try:
             par.style = "Blockquote"
         except KeyError:
-            pass
+            logger.debug("The DOCX template does not define the Blockquote style.", exc_info=True)
         self.process_children(el.children, par=par, **kwargs)
 
     def tag_div(self, el, **kwargs):
@@ -852,6 +852,6 @@ class ListTracking:
                     # python-docx's deprecated style_id lookup path.
                     par.style = "List Paragraph"
                 except KeyError:
-                    pass
+                    logger.debug("The DOCX template does not define a list paragraph style.", exc_info=True)
             par._p.get_or_add_pPr().get_or_add_numPr().get_or_add_numId().val = numbering_id
             par._p.get_or_add_pPr().get_or_add_numPr().get_or_add_ilvl().val = level

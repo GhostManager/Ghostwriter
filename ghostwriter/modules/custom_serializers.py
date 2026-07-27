@@ -100,7 +100,7 @@ class CustomModelSerializer(serializers.ModelSerializer):
                 elif isinstance(value, str) and value.strip() in ("<p></p>", "<p> </p>"):
                     data[key] = ""
             except KeyError:
-                pass
+                logger.debug("Serializer field disappeared while normalizing its value.", exc_info=True)
         return data
 
 
@@ -772,7 +772,7 @@ class OplogEntrySerializer(TaggitSerializer, CustomModelSerializer):
                 from django.urls import reverse
                 return reverse("oplog:oplog_entry_recording_download", kwargs={"pk": rec.pk})
         except ObjectDoesNotExist:
-            pass
+            logger.debug("Oplog entry %s has no recording to serialize.", obj.pk, exc_info=True)
         return None
 
     class Meta:

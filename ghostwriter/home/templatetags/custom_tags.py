@@ -1,6 +1,7 @@
 """This contains the custom template tags used by the Home application."""
 
 # Standard Libraries
+import logging
 from datetime import datetime, timedelta
 
 # Django Imports
@@ -22,6 +23,7 @@ from ghostwriter.reporting.models import Finding, Observation, Report, ReportFin
 from ghostwriter.rolodex.models import ProjectAssignment
 
 register = template.Library()
+logger = logging.getLogger(__name__)
 
 
 @register.filter(name="has_group")
@@ -194,7 +196,7 @@ def add_days(date, days):
                 days += 1
         new_date = date_obj
     except ParserError:
-        pass
+        logger.debug("Unable to parse date value for business-day calculation.", exc_info=True)
     return new_date
 
 
