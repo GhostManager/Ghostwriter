@@ -62,10 +62,6 @@ def mk_test_docx(name, input, expected_output, p_style=None):
         out = BytesIO()
         doc.part.save(out)
 
-        # Uncomment to write generates docx files for manual inspection
-        # with open(name + ".docx", "wb") as f:
-        #     f.write(out.getvalue())
-
         with ZipFile(out) as zip:
             with zip.open("word/document.xml") as file:
                 contents = file.read()
