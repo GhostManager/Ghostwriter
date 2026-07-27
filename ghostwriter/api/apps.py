@@ -1,7 +1,12 @@
 """This contains the configuration of the GraphQL application."""
 
+# Standard Libraries
+import logging
+
 # Django Imports
 from django.apps import AppConfig
+
+logger = logging.getLogger(__name__)
 
 
 class ApiConfig(AppConfig):
@@ -12,4 +17,4 @@ class ApiConfig(AppConfig):
         try:
             import ghostwriter.graphql.signals  # noqa F401 isort:skip
         except ImportError:
-            pass
+            logger.debug("No GraphQL signal handlers are configured.")

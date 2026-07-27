@@ -1,8 +1,13 @@
 """This contains the configuration of the Users application."""
 
+# Standard Libraries
+import logging
+
 # Django Imports
 from django.apps import AppConfig
 from django.utils.translation import gettext_lazy as _
+
+logger = logging.getLogger(__name__)
 
 
 class UsersConfig(AppConfig):
@@ -13,4 +18,4 @@ class UsersConfig(AppConfig):
         try:
             import ghostwriter.users.signals  # noqa F401 isort:skip
         except ImportError:
-            pass
+            logger.debug("No Users signal handlers are configured.")
