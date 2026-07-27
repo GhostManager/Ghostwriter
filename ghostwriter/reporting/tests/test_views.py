@@ -13,7 +13,7 @@ from django.contrib.messages import get_messages
 from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.template.loader import render_to_string
-from django.test import Client, TestCase
+from django.test import Client, SimpleTestCase, TestCase
 from django.test import override_settings
 from django.urls import reverse
 from django.utils.dateformat import format as dateformat
@@ -85,6 +85,16 @@ from ghostwriter.reporting.templatetags import report_tags
 logging.disable(logging.CRITICAL)
 
 PASSWORD = "SuperNaturalReporting!"
+
+
+class ReportObservationLinkDeleteUrlTests(SimpleTestCase):
+    """Tests for the reported-observation delete URL."""
+
+    def test_url_uses_correct_observation_spelling(self):
+        self.assertEqual(
+            reverse("reporting:ajax_delete_local_observation", kwargs={"pk": 1}),
+            "/reporting/ajax/observation/delete/1",
+        )
 
 
 class IndexViewTests(TestCase):
