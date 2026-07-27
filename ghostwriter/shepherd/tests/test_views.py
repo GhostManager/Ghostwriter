@@ -1734,7 +1734,7 @@ class InfrastructureSearchViewTests(TestCase):
         cls.servers = []
         cls.addresses = []
         cls.cloud_servers = []
-        for _ in range(3):
+        for x in range(3):
             server = StaticServerFactory(ip_address=f"192.168.1.{x}")
             addy = AuxServerAddressFactory(ip_address=f"192.168.2.{x}", static_server=server)
             vps = TransientServerFactory(ip_address=f"192.168.3.{x}")
