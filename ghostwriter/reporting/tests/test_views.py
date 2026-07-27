@@ -4993,8 +4993,6 @@ class ReportTemplateFilterTests(TestCase):
             to_datetime(test_date, "%d %b %Y")
 
     def test_business_days_datetime(self):
-        end_date = self.test_date + timedelta(days=13)
-
         # Monday to Monday
         start_date = datetime(2025, 12, 1)
         end_date = datetime(2025, 12, 12)

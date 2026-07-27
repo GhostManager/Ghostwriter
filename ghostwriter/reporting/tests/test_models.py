@@ -937,7 +937,7 @@ class EmptyFieldFilteringReportExportTests(TestCase):
         )
 
         # Also create truly empty content for comparison
-        truly_empty_finding = ReportFindingLinkFactory(
+        _ = ReportFindingLinkFactory(
             title="Finding with Truly Empty Fields",
             description="",             # Truly empty
             impact="",                  # Truly empty

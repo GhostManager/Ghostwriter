@@ -740,9 +740,9 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         r.append(fldChar)
 
         # Add runs for the figure label and number
-        run = par.add_run(self.global_report_config.label_figure)
+        par.add_run(self.global_report_config.label_figure)
         # This ``#`` is a placeholder Word will replace with the figure's number
-        run = par.add_run("#")
+        par.add_run("#")
 
         # Close the  field character run
         run = par.add_run()
