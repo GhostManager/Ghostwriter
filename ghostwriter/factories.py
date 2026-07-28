@@ -1002,14 +1002,14 @@ class DeconflictionFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "rolodex.Deconfliction"
 
-    report_timestamp = factory.LazyFunction(
+    alert_timestamp = factory.LazyFunction(
         lambda: datetime.combine(
             date.today(),
             time(hour=9),
             tzinfo=datetime_timezone.utc,
         )
     )
-    alert_timestamp = factory.LazyFunction(
+    report_timestamp = factory.LazyFunction(
         lambda: datetime.combine(
             date.today(),
             time(hour=10),
