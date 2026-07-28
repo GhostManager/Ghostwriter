@@ -37,7 +37,6 @@ from ghostwriter.factories import (
     FindingFactory,
     FindingNoteFactory,
     FindingTypeFactory,
-    GenerateMockProject,
     LocalFindingNoteFactory,
     ObservationFactory,
     OplogEntryEvidenceFactory,
@@ -4510,7 +4509,13 @@ class GenerateReportTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.org, cls.project, cls.report = GenerateMockProject()
+        cls.project = ProjectFactory()
+        cls.report = ReportFactory(
+            project=cls.project,
+            docx_template=ReportDocxTemplateFactory(),
+            pptx_template=ReportPptxTemplateFactory(),
+        )
+        ReportFindingLinkFactory(report=cls.report)
         cls.user = UserFactory(password=PASSWORD)
         cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
         cls.uri = reverse("reporting:report_delete", kwargs={"pk": cls.report.pk})

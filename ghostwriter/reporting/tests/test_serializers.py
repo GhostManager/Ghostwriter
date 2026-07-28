@@ -13,13 +13,22 @@ from rest_framework.renderers import JSONRenderer
 
 # Ghostwriter Libraries
 from ghostwriter.factories import (
-    GenerateMockProject,
+    ClientFactory,
+    ObjectivePriorityFactory,
+    ObjectiveStatusFactory,
     OplogEntryFactory,
     OplogFactory,
     ProjectAssignmentFactory,
     ProjectFactory,
+    ProjectObjectiveFactory,
     ProjectRoleFactory,
+    ProjectScopeFactory,
+    ProjectTargetFactory,
+    ReportDocxTemplateFactory,
     ReportFactory,
+    ReportFindingLinkFactory,
+    ReportPptxTemplateFactory,
+    SeverityFactory,
     UserFactory,
 )
 from ghostwriter.modules.custom_serializers import ReportDataSerializer
@@ -32,29 +41,72 @@ class ReportDataSerializerTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.num_of_contacts = 3
         cls.num_of_assignments = 3
         cls.num_of_findings = 10
         cls.num_of_scopes = 3
         cls.num_of_targets = 10
         cls.num_of_objectives = 3
-        cls.num_of_subtasks = 5
-        cls.num_of_domains = 6
-        cls.num_of_servers = 3
-        cls.num_of_deconflictions = 3
 
-        cls.client, cls.project, cls.report = GenerateMockProject(
-            cls.num_of_contacts,
-            cls.num_of_assignments,
-            cls.num_of_findings,
-            cls.num_of_scopes,
-            cls.num_of_targets,
-            cls.num_of_objectives,
-            cls.num_of_subtasks,
-            cls.num_of_domains,
-            cls.num_of_servers,
-            cls.num_of_deconflictions,
+        cls.client = ClientFactory()
+        cls.project = ProjectFactory(client=cls.client)
+        cls.report = ReportFactory(
+            project=cls.project,
+            docx_template=ReportDocxTemplateFactory(),
+            pptx_template=ReportPptxTemplateFactory(),
         )
+        assignments = ProjectAssignmentFactory.create_batch(
+            cls.num_of_assignments,
+            project=cls.project,
+        )
+        severities = [
+            SeverityFactory(severity="Critical", weight=0),
+            SeverityFactory(severity="High", weight=1),
+            SeverityFactory(severity="Medium", weight=2),
+            SeverityFactory(severity="Low", weight=3),
+        ]
+        for index in range(cls.num_of_findings):
+            ReportFindingLinkFactory(
+                report=cls.report,
+                severity=severities[index % len(severities)],
+                assigned_to=assignments[index % len(assignments)].operator,
+            )
+
+        scope_states = (
+            (False, False),
+            (False, True),
+            (True, False),
+        )
+        for index, (disallowed, requires_caution) in enumerate(scope_states):
+            ProjectScopeFactory(
+                project=cls.project,
+                scope=f"192.0.2.{index + 1}",
+                disallowed=disallowed,
+                requires_caution=requires_caution,
+            )
+
+        for index in range(cls.num_of_targets):
+            ProjectTargetFactory(
+                project=cls.project,
+                compromised=index % 2 == 0,
+            )
+
+        priorities = [
+            ObjectivePriorityFactory(priority="Primary", weight=0),
+            ObjectivePriorityFactory(priority="Secondary", weight=1),
+            ObjectivePriorityFactory(priority="Tertiary", weight=2),
+        ]
+        statuses = [
+            ObjectiveStatusFactory(objective_status="Done"),
+            ObjectiveStatusFactory(objective_status="Missed"),
+            ObjectiveStatusFactory(objective_status="In Progress"),
+        ]
+        for index in range(cls.num_of_objectives):
+            ProjectObjectiveFactory(
+                project=cls.project,
+                priority=priorities[index],
+                status=statuses[index],
+                complete=index % 2 == 0,
+            )
 
         # Create an object with a null value for later testing
         oplog = OplogFactory.create(project=cls.project)
@@ -128,7 +180,7 @@ class ReportDataSerializerTests(TestCase):
         for f in report_json["findings"]:
             self.assertTrue("ordering" in f)
 
-    def test_mock_project_fixture_has_deliberate_variants(self):
+    def test_report_fixture_has_deliberate_variants(self):
         finding_severities = set(
             self.report.reportfindinglink_set.values_list("severity_id", flat=True)
         )

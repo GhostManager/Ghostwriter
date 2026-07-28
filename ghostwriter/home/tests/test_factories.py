@@ -2,6 +2,7 @@
 import logging
 
 # Django Imports
+from django.core.validators import validate_email
 from django.db import IntegrityError, transaction
 from django.test import TestCase
 
@@ -46,6 +47,12 @@ class FactoryIdentityTests(TestCase):
                 with self.assertRaises(IntegrityError):
                     with transaction.atomic():
                         factory_class(**identity)
+
+    def test_explicit_username_does_not_corrupt_generated_email(self):
+        user = UserFactory(username="benny@ghostwriter.wiki")
+
+        validate_email(user.email)
+        self.assertEqual(user.email.count("@"), 1)
 
     def test_role_factories_preserve_requested_roles(self):
         user = UserFactory()
