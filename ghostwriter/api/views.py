@@ -10,7 +10,6 @@ from asgiref.sync import async_to_sync
 from base64 import b64encode
 from datetime import date, datetime
 from http import HTTPStatus
-from json import JSONDecodeError
 from socket import gaierror
 
 # Django Imports
@@ -425,7 +424,7 @@ class HasuraActionView(HasuraView):
                 self.data = data
                 if "input" in data:
                     self.input = data["input"]
-        except JSONDecodeError:
+        except json.JSONDecodeError:
             logger.exception(
                 "Failed to decode JSON data from supposed Hasura Action request"
             )
@@ -638,7 +637,7 @@ class HasuraEventView(View):
                 self.event = self.data["event"]
                 self.old_data = self.data["event"]["data"]["old"]
                 self.new_data = self.data["event"]["data"]["new"]
-        except JSONDecodeError:
+        except json.JSONDecodeError:
             logger.exception(
                 "Failed to decode JSON data from supposed Hasura Event trigger: %s",
                 request.body,
@@ -1476,7 +1475,7 @@ class GraphqlUploadOplogRecording(JwtRequiredMixin, HasuraActionView):
         try:
             entry.recording.delete()
         except OplogEntryRecording.DoesNotExist:
-            pass
+            logger.debug("Oplog entry %s has no existing recording to replace.", entry.id, exc_info=True)
 
         # Extract searchable text from the cast file before saving
         file_bytes = form.cleaned_data["file_base64"]
@@ -2954,7 +2953,7 @@ def _validate_passive_voice_request(request):
 
     try:
         data = json.loads(request.body)
-    except JSONDecodeError:
+    except json.JSONDecodeError:
         return None, JsonResponse(
             {"error": "Invalid JSON in request body"}, status=HTTPStatus.BAD_REQUEST
         )

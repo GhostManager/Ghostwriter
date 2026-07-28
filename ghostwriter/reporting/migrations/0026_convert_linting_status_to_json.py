@@ -14,7 +14,7 @@ def convert_to_jsonfield(apps, schema_editor):
         try:
             entry.lint_result = json.loads(entry.lint_result)
             entry.save()
-        except:
+        except (TypeError, ValueError):
             entry.lint_result = {
                 "result": "unknown",
                 "warnings": [

@@ -1,5 +1,6 @@
 from collections import ChainMap
 import copy
+from functools import partial
 import html
 from markupsafe import Markup
 from docxtpl import RichText as DocxRichText
@@ -17,27 +18,33 @@ from ghostwriter.rolodex.models import Client, Project
 from ghostwriter.shepherd.models import Domain, StaticServer
 
 
+def serialize_report(report, *, include_bloodhound=True):
+    """Serialize a report for export without depending on exporter state."""
+    excludes = ["id"]
+    if not include_bloodhound:
+        excludes.append("bloodhound")
+    return ReportDataSerializer(
+        report,
+        exclude=excludes,
+    ).data
+
+
 class ExportReportBase(ExportBase):
     """
     Mixin class for exporting reports.
 
-    Provides a `serialize_object` implementation for serializing the `Report` database object,
-    and helper functions for creating Jinja contexts.
+    Configures report serialization and provides helpers for creating Jinja
+    contexts.
     """
     include_bloodhound: bool
 
     def __init__(self, *args, include_bloodhound=True, **kwargs):
         self.include_bloodhound = include_bloodhound
+        kwargs["object_serializer"] = partial(
+            serialize_report,
+            include_bloodhound=include_bloodhound,
+        )
         super().__init__(*args, **kwargs)
-
-    def serialize_object(self, report):
-        excludes = ["id"]
-        if not self.include_bloodhound:
-            excludes.append("bloodhound")
-        return ReportDataSerializer(
-            report,
-            exclude=excludes,
-        ).data
 
     def severity_rich_text(self, text: str, severity_color: str) -> str | DocxRichText:
         """

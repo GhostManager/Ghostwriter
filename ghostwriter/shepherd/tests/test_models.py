@@ -187,7 +187,7 @@ class DomainModelTests(TestCase):
         domain = DomainFactory()
         try:
             domain.get_absolute_url()
-        except:
+        except Exception:
             self.fail("Domain.get_absolute_url() raised an exception")
 
     def test_method_get_domain_age(self):
@@ -292,7 +292,7 @@ class HistoryModelTests(TestCase):
         checkout = HistoryFactory()
         try:
             checkout.get_absolute_url()
-        except:
+        except Exception:
             self.fail("History.get_absolute_url() raised an exception")
 
     def test_method_will_be_released(self):
@@ -454,7 +454,7 @@ class StaticServerModelTests(TestCase):
         server = StaticServerFactory()
         try:
             server.get_absolute_url()
-        except:
+        except Exception:
             self.fail("StaticServer.get_absolute_url() raised an exception")
 
 
@@ -538,7 +538,7 @@ class ServerHistoryModelTests(TestCase):
         checkout = ServerHistoryFactory()
         try:
             checkout.get_absolute_url()
-        except:
+        except Exception:
             self.fail("ServerHistory.get_absolute_url() raised an exception")
 
     def test_property_ip_address(self):

@@ -191,7 +191,7 @@ class OplogEvidenceFormTests(TestCase):
         self.assertEqual(form.fields["report"].initial, self.report)
 
     def test_report_auto_selected_first_when_multiple_no_active(self):
-        second_report = ReportFactory(project=self.project)
+        _ = ReportFactory(project=self.project)
         form = OplogEvidenceForm(project=self.project)
         first_in_list = form.fields["report"].queryset.first()
         self.assertEqual(form.fields["report"].initial, first_in_list)

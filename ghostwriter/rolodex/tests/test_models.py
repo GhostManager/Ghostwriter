@@ -70,7 +70,7 @@ class ClientModelTests(TestCase):
         client = ClientFactory(name="SpecterOps, Inc.")
         try:
             client.get_absolute_url()
-        except:
+        except Exception:
             self.fail("Client.get_absolute_url() raised an exception")
 
     def test_access(self):
@@ -192,7 +192,7 @@ class ProjectModelTests(TestCase):
         project = ProjectFactory()
         try:
             project.get_absolute_url()
-        except:
+        except Exception:
             self.fail("Project.get_absolute_url() raised an exception")
 
     def test_checkout_adjustment_signal(self):

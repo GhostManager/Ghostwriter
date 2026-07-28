@@ -163,7 +163,7 @@ class BaseHtmlToOOXML:
             try:
                 run.font.size = int(style["font_size"])
             except ValueError:
-                pass
+                logger.debug("Unable to apply rich-text font size.", exc_info=True)
 
     tag_code = set_style_method("code", "inline_code")
     tag_b = set_style_method("b", "bold")

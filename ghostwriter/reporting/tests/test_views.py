@@ -1041,9 +1041,7 @@ class FindingsListViewTests(TestCase):
     def test_search_report_findings(self):
         response = self.client_auth.get(self.uri + "?on_reports=on")
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(
-            len(response.context["filter"].qs) == len(self.accessibleReportFindings)
-        )
+        self.assertEqual(len(response.context["filter"].qs), len(self.accessibleReportFindings))
 
         response = self.client_auth.get(self.uri + "?on_reports=on&not_cloned=on")
         self.assertEqual(response.status_code, 200)
@@ -1674,7 +1672,7 @@ class ReportOplogOutlineGenerateTests(TestCase):
             comments="<p><strong>Initial foothold</strong> confirmed.</p>",
             tags=["report"],
         )
-        entry_two = OplogEntryFactory(
+        _ = OplogEntryFactory(
             oplog_id=self.oplog,
             start_date=second_start,
             tool="",
@@ -4993,8 +4991,6 @@ class ReportTemplateFilterTests(TestCase):
             to_datetime(test_date, "%d %b %Y")
 
     def test_business_days_datetime(self):
-        end_date = self.test_date + timedelta(days=13)
-
         # Monday to Monday
         start_date = datetime(2025, 12, 1)
         end_date = datetime(2025, 12, 12)

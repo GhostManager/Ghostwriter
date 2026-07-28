@@ -286,7 +286,7 @@ class GenerateProjectReport(RoleBasedAccessControlMixin, SingleObjectMixin, View
         try:
             type_or_template_id = int(type_or_template_id)
         except ValueError:
-            pass
+            logger.debug("Report type or template ID is not numeric: %s", type_or_template_id)
 
         report_config = ReportConfiguration.get_solo()
 
