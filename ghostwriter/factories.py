@@ -1,6 +1,5 @@
 # Standard Libraries
-import random
-from datetime import date, timedelta
+from datetime import date, datetime, time, timedelta
 from datetime import timezone as datetime_timezone
 
 # Django Imports
@@ -62,13 +61,12 @@ Faker.add_provider(RichTextProvider)
 class UserFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = get_user_model()
-        django_get_or_create = ["username"]
 
-    username = Faker("user_name")
-    email = Faker("email")
+    username = factory.Sequence(lambda n: f"user-{n}")
+    email = factory.Sequence(lambda n: f"user-{n}@example.com")
     name = Faker("name")
     phone = Faker("phone_number")
-    timezone = random.choice(TIMEZONES)
+    timezone = TIMEZONES[0]
     password = factory.PostGenerationMethodCall("set_password", "mysecret")
     role = "user"
     is_active = True
@@ -94,7 +92,7 @@ class UserFactory(factory.django.DjangoModelFactory):
 
 class MgrFactory(UserFactory):
     role = "manager"
-    is_staff = True
+    is_staff = False
     is_superuser = False
 
 
@@ -108,7 +106,7 @@ class GroupFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "auth.Group"
 
-    name = Faker("name")
+    name = factory.Sequence(lambda n: f"Group {n}")
 
 
 # Rolodex Factories
@@ -117,13 +115,12 @@ class GroupFactory(factory.django.DjangoModelFactory):
 class ClientFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "rolodex.Client"
-        django_get_or_create = ("name",)
 
-    name = Faker("company")
+    name = factory.Sequence(lambda n: f"Client {n}")
     short_name = Faker("name")
     codename = Faker("name")
     description = Faker("rich_text")
-    timezone = random.choice(TIMEZONES)
+    timezone = TIMEZONES[0]
     address = Faker("address")
 
     @factory.post_generation
@@ -140,13 +137,13 @@ class ClientContactFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "rolodex.ClientContact"
 
-    name = Faker("name")
+    name = factory.Sequence(lambda n: f"Client Contact {n}")
     job_title = Faker("job")
     email = Faker("email")
     phone = Faker("phone_number")
     description = Faker("rich_text")
     primary = False
-    timezone = random.choice(TIMEZONES)
+    timezone = TIMEZONES[0]
     client = factory.SubFactory(ClientFactory)
 
 
@@ -170,18 +167,17 @@ class ProjectFactory(factory.django.DjangoModelFactory):
         model = "rolodex.Project"
 
     codename = factory.Sequence(lambda n: "GHOST-%s" % n)
-    # Random dates within a year of each other and at least 7 days apart
-    start_date = Faker("date_between", start_date="-365d", end_date="-182d")
-    end_date = Faker("date_between", start_date="-190d", end_date="+182d")
+    start_date = factory.LazyFunction(lambda: date.today() - timedelta(days=30))
+    end_date = factory.LazyFunction(lambda: date.today() + timedelta(days=30))
     description = Faker("rich_text")
     slack_channel = "#ghostwriter"
     complete = False
     client = factory.SubFactory(ClientFactory)
     project_type = factory.SubFactory(ProjectTypeFactory)
     operator = factory.SubFactory(UserFactory)
-    timezone = random.choice(TIMEZONES)
-    start_time = Faker("time_object")
-    end_time = Faker("time_object")
+    timezone = TIMEZONES[0]
+    start_time = time(hour=9)
+    end_time = time(hour=17)
 
     @factory.post_generation
     def tags(self, create, extracted, **kwargs):
@@ -230,10 +226,10 @@ class ProjectObjectiveFactory(factory.django.DjangoModelFactory):
 
     objective = Faker("sentence")
     description = Faker("rich_text")
-    complete = Faker("boolean")
+    complete = False
     position = factory.Sequence(lambda n: n)
     project = factory.SubFactory(ProjectFactory)
-    deadline = Faker("date_between", start_date="-305d", end_date="+60d")
+    deadline = factory.LazyFunction(lambda: date.today() + timedelta(days=30))
     status = factory.SubFactory(ObjectiveStatusFactory)
     priority = factory.SubFactory(ObjectivePriorityFactory)
     result = Faker("rich_text")
@@ -243,10 +239,10 @@ class ProjectSubtaskFactory(factory.django.DjangoModelFactory):
         model = "rolodex.ProjectSubtask"
 
     task = Faker("sentence")
-    complete = Faker("boolean")
+    complete = False
     status = factory.SubFactory(ObjectiveStatusFactory)
     parent = factory.SubFactory(ProjectObjectiveFactory)
-    deadline = Faker("date_between", start_date="-305d", end_date="+60d")
+    deadline = factory.LazyFunction(lambda: date.today() + timedelta(days=30))
 
 
 class ProjectScopeFactory(factory.django.DjangoModelFactory):
@@ -256,8 +252,8 @@ class ProjectScopeFactory(factory.django.DjangoModelFactory):
     name = Faker("word")
     scope = Faker("ipv4")
     description = Faker("sentence")
-    disallowed = Faker("boolean")
-    requires_caution = Faker("boolean")
+    disallowed = False
+    requires_caution = False
     project = factory.SubFactory(ProjectFactory)
 
 
@@ -265,10 +261,12 @@ class ProjectTargetFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "rolodex.ProjectTarget"
 
-    ip_address = Faker("ipv4_private")
+    ip_address = factory.Sequence(
+        lambda n: f"10.{(n // 65536) % 256}.{(n // 256) % 256}.{n % 256}"
+    )
     hostname = Faker("hostname")
     description = Faker("sentence")
-    compromised = Faker("boolean")
+    compromised = False
     project = factory.SubFactory(ProjectFactory)
 
 
@@ -276,13 +274,13 @@ class ProjectContactFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "rolodex.ProjectContact"
 
-    name = Faker("name")
+    name = factory.Sequence(lambda n: f"Project Contact {n}")
     job_title = Faker("job")
     email = Faker("email")
     phone = Faker("phone_number")
     description = Faker("rich_text")
     primary = False
-    timezone = random.choice(TIMEZONES)
+    timezone = TIMEZONES[0]
     project = factory.SubFactory(ProjectFactory)
 
 
@@ -311,7 +309,7 @@ class FindingFactory(factory.django.DjangoModelFactory):
     title = factory.Sequence(lambda n: "Finding %s" % n)
     severity = factory.SubFactory(SeverityFactory)
     finding_type = factory.SubFactory(FindingTypeFactory)
-    cvss_score = factory.LazyFunction(lambda: round(random.uniform(0, 10), 1))
+    cvss_score = 5.0
     cvss_vector = factory.Sequence(lambda n: "Vector %s" % n)
     description = Faker("rich_text")
     impact = Faker("rich_text")
@@ -469,7 +467,7 @@ class ReportFindingLinkFactory(factory.django.DjangoModelFactory):
     affected_entities = Faker("rich_text")
     severity = factory.SubFactory(SeverityFactory)
     finding_type = factory.SubFactory(FindingTypeFactory)
-    cvss_score = factory.LazyFunction(lambda: round(random.uniform(0, 10), 1))
+    cvss_score = 5.0
     cvss_vector = factory.Sequence(lambda n: "Vector %s" % n)
     report = factory.SubFactory(ReportFactory)
     assigned_to = factory.SubFactory(UserFactory)
@@ -481,7 +479,7 @@ class ReportFindingLinkFactory(factory.django.DjangoModelFactory):
     network_detection_techniques = Faker("rich_text")
     references = Faker("rich_text")
     finding_guidance = Faker("rich_text")
-    added_as_blank = Faker("boolean")
+    added_as_blank = False
 
     @factory.post_generation
     def tags(self, create, extracted, **kwargs):
@@ -500,7 +498,7 @@ class ReportObservationLinkFactory(factory.django.DjangoModelFactory):
     title = factory.Sequence(lambda n: "Local Observation %s" % n)
     position = 1
     description = Faker("rich_text")
-    added_as_blank = Faker("boolean")
+    added_as_blank = False
 
     @factory.post_generation
     def tags(self, create, extracted, **kwargs):
@@ -739,20 +737,19 @@ class ActivityTypeFactory(factory.django.DjangoModelFactory):
 class DomainFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "shepherd.Domain"
-        django_get_or_create = ("name",)
 
-    name = Faker("domain_name")
+    name = factory.Sequence(lambda n: f"domain-{n}.example.com")
     registrar = Faker("company")
     dns = Faker("json")
-    creation = Faker("past_date")
-    expiration = Faker("future_date")
+    creation = factory.LazyFunction(lambda: date.today() - timedelta(days=30))
+    expiration = factory.LazyFunction(lambda: date.today() + timedelta(days=335))
     vt_permalink = Faker("url")
     categorization = Faker("pydict", value_types=(str,))
     description = Faker("rich_text")
     burned_explanation = Faker("rich_text")
-    auto_renew = Faker("boolean")
-    expired = Faker("boolean")
-    reset_dns = Faker("boolean")
+    auto_renew = False
+    expired = False
+    reset_dns = False
     whois_status = factory.SubFactory(WhoisStatusFactory)
     health_status = factory.SubFactory(HealthStatusFactory)
     domain_status = factory.SubFactory(DomainStatusFactory)
@@ -772,8 +769,8 @@ class HistoryFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "shepherd.History"
 
-    start_date = Faker("past_date")
-    end_date = Faker("future_date")
+    start_date = factory.LazyFunction(lambda: date.today() - timedelta(days=30))
+    end_date = factory.LazyFunction(lambda: date.today() + timedelta(days=30))
     description = Faker("rich_text")
     domain = factory.SubFactory(DomainFactory)
     client = factory.SubFactory(ClientFactory)
@@ -807,7 +804,9 @@ class StaticServerFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "shepherd.StaticServer"
 
-    ip_address = Faker("ipv4")
+    ip_address = factory.Sequence(
+        lambda n: f"10.{(n // 65536) % 256}.{(n // 256) % 256}.{n % 256}"
+    )
     description = Faker("rich_text")
     name = Faker("hostname")
     server_status = factory.SubFactory(ServerStatusFactory)
@@ -819,8 +818,8 @@ class ServerHistoryFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "shepherd.ServerHistory"
 
-    start_date = Faker("past_date")
-    end_date = Faker("future_date")
+    start_date = factory.LazyFunction(lambda: date.today() - timedelta(days=30))
+    end_date = factory.LazyFunction(lambda: date.today() + timedelta(days=30))
     description = Faker("rich_text")
     server = factory.SubFactory(StaticServerFactory)
     client = factory.SubFactory(ClientFactory)
@@ -862,7 +861,7 @@ class AuxServerAddressFactory(factory.django.DjangoModelFactory):
         model = "shepherd.AuxServerAddress"
 
     ip_address = Faker("ipv4")
-    primary = Faker("boolean")
+    primary = False
     static_server = factory.SubFactory(StaticServerFactory)
 
 
@@ -888,7 +887,7 @@ class NamecheapConfigurationFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "commandcenter.NamecheapConfiguration"
 
-    enable = Faker("boolean")
+    enable = False
     api_key = Faker("credit_card_number")
     username = Faker("user_name")
     api_username = Faker("user_name")
@@ -902,7 +901,7 @@ class ReportConfigurationFactory(factory.django.DjangoModelFactory):
         django_get_or_create = ["pk"]
 
     pk = 1
-    enable_borders = Faker("boolean")
+    enable_borders = False
     border_weight = 2700
     border_color = "2D2B6B"
     prefix_figure = Faker("word")
@@ -915,7 +914,7 @@ class ReportConfigurationFactory(factory.django.DjangoModelFactory):
     table_caption_location = "top"
     report_filename = '{{now|format_datetime("Y-m-d_His")}} {{company.name}} - {{client.name}} {{project.project_type}} Report'
     project_filename = '{{now|format_datetime("Y-m-d_His")}} {{company.name}} - {{client.name}} {{project.project_type}} Report'
-    title_case_captions = Faker("boolean")
+    title_case_captions = False
     title_case_exceptions = str(Faker("csv"))[:255]
     target_delivery_date = Faker("pyint")
     default_cvss_version = "3.1"
@@ -928,7 +927,7 @@ class SlackConfigurationFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "commandcenter.SlackConfiguration"
 
-    enable = Faker("boolean")
+    enable = False
     webhook_url = Faker("url")
     slack_emoji = Faker("word")
     slack_channel = Faker("user_name")
@@ -949,7 +948,7 @@ class CloudServicesConfigurationFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "commandcenter.CloudServicesConfiguration"
 
-    enable = Faker("boolean")
+    enable = False
     aws_key = Faker("credit_card_number")
     aws_secret = Faker("credit_card_number")
     do_api_key = Faker("credit_card_number")
@@ -960,7 +959,7 @@ class VirusTotalConfigurationFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "commandcenter.VirusTotalConfiguration"
 
-    enable = Faker("boolean")
+    enable = False
     api_key = Faker("credit_card_number")
     sleep_time = 20
 
@@ -969,7 +968,7 @@ class GeneralConfigurationFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "commandcenter.GeneralConfiguration"
 
-    default_timezone = random.choice(TIMEZONES)
+    default_timezone = TIMEZONES[0]
 
 
 class BannerConfigurationFactory(factory.django.DjangoModelFactory):
@@ -977,12 +976,18 @@ class BannerConfigurationFactory(factory.django.DjangoModelFactory):
         model = "commandcenter.BannerConfiguration"
 
     pk = 1
-    enable_banner = Faker("boolean")
+    enable_banner = False
     banner_title = Faker("word")
     banner_message = Faker("sentence")
     banner_link = Faker("url")
-    public_banner = Faker("boolean")
-    expiry_date = Faker("date_time", tzinfo=datetime_timezone.utc)
+    public_banner = False
+    expiry_date = factory.LazyFunction(
+        lambda: datetime.combine(
+            date.today() + timedelta(days=30),
+            time(hour=17),
+            tzinfo=datetime_timezone.utc,
+        )
+    )
 
 
 class DeconflictionStatusFactory(factory.django.DjangoModelFactory):
@@ -997,9 +1002,27 @@ class DeconflictionFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "rolodex.Deconfliction"
 
-    report_timestamp = Faker("date_time", tzinfo=datetime_timezone.utc)
-    alert_timestamp = Faker("date_time", tzinfo=datetime_timezone.utc)
-    response_timestamp = Faker("date_time", tzinfo=datetime_timezone.utc)
+    alert_timestamp = factory.LazyFunction(
+        lambda: datetime.combine(
+            date.today(),
+            time(hour=9),
+            tzinfo=datetime_timezone.utc,
+        )
+    )
+    report_timestamp = factory.LazyFunction(
+        lambda: datetime.combine(
+            date.today(),
+            time(hour=10),
+            tzinfo=datetime_timezone.utc,
+        )
+    )
+    response_timestamp = factory.LazyFunction(
+        lambda: datetime.combine(
+            date.today(),
+            time(hour=11),
+            tzinfo=datetime_timezone.utc,
+        )
+    )
     title = Faker("sentence")
     description = Faker("rich_text")
     alert_source = Faker("word")
@@ -1011,7 +1034,13 @@ class WhiteCardFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "rolodex.WhiteCard"
 
-    issued = Faker("date_time", tzinfo=datetime_timezone.utc)
+    issued = factory.LazyFunction(
+        lambda: datetime.combine(
+            date.today(),
+            time(hour=12),
+            tzinfo=datetime_timezone.utc,
+        )
+    )
     title = Faker("user_name")
     description = Faker("rich_text")
     project = factory.SubFactory(ProjectFactory)
@@ -1034,120 +1063,11 @@ class ExtraFieldSpecFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "commandcenter.ExtraFieldSpec"
 
-    internal_name = Faker("username")
+    internal_name = factory.Sequence(lambda n: f"extra_field_{n}")
     display_name = Faker("word")
-    type = random.choice(EXTRA_FIELD_TYPES)
+    type = EXTRA_FIELD_TYPES[0]
     user_default_value = Faker("sentence")
 
     @factory.lazy_attribute
     def target_model(self):
         raise ValueError("Value for `target_model` (instance of `ExtraFieldModelFactory`) is required")
-
-
-def GenerateMockProject(
-    num_of_contacts=3,
-    num_of_assignments=3,
-    num_of_findings=10,
-    num_of_scopes=5,
-    num_of_targets=10,
-    num_of_objectives=3,
-    num_of_subtasks=5,
-    num_of_domains=5,
-    num_of_servers=5,
-    num_of_deconflictions=3,
-    num_of_whitecards=3,
-):
-    # Generate a random client and project
-    client = ClientFactory(name="SpecterOps, Inc.")
-    project = ProjectFactory(
-        client=client,
-        start_date=date.today(),
-        end_date=date.today() + timedelta(days=20),
-    )
-
-    # Add a report to the project
-    report = ReportFactory(
-        project=project,
-        docx_template=ReportDocxTemplateFactory(),
-        pptx_template=ReportPptxTemplateFactory(),
-    )
-
-    # Generate a batch of client contacts and project assignments
-    ClientContactFactory.create_batch(num_of_contacts, client=client)
-    assignments = ProjectAssignmentFactory.create_batch(num_of_assignments, project=project)
-
-    # Generate severity categories and randomly assign them to findings
-    severities = [
-        SeverityFactory(severity="Critical", weight=0),
-        SeverityFactory(severity="High", weight=1),
-        SeverityFactory(severity="Medium", weight=2),
-        SeverityFactory(severity="Low", weight=3),
-    ]
-    ReportFindingLinkFactory.create_batch(
-        num_of_findings,
-        report=report,
-        severity=random.choice(severities),
-        assigned_to=random.choice(assignments).operator,
-    )
-
-    # Generate several permutations of scopes
-    ProjectScopeFactory.create_batch(num_of_scopes, project=project)
-
-    # Generate random targets
-    ProjectTargetFactory.create_batch(num_of_targets, project=project)
-
-    # Generate objective priorities and status and randomly assign them to objectives
-    obj_priorities = [
-        ObjectivePriorityFactory(priority="Primary", weight=0),
-        ObjectivePriorityFactory(priority="Secondary", weight=1),
-        ObjectivePriorityFactory(priority="Tertiary", weight=2),
-    ]
-
-    obj_status = [
-        ObjectiveStatusFactory(objective_status="Done"),
-        ObjectiveStatusFactory(objective_status="Missed"),
-        ObjectiveStatusFactory(objective_status="In Progress"),
-    ]
-
-    objectives = ProjectObjectiveFactory.create_batch(
-        num_of_objectives,
-        project=project,
-        priority=random.choice(obj_priorities),
-        status=random.choice(obj_status),
-    )
-
-    # Generate subtasks for each objective
-    for obj in objectives:
-        ProjectSubtaskFactory.create_batch(num_of_subtasks, parent=obj, status=random.choice(obj_status))
-
-    # Generate random domain names and servers used for this project
-    domains = HistoryFactory.create_batch(num_of_domains, project=project)
-    servers = ServerHistoryFactory.create_batch(num_of_servers, project=project)
-    cloud = TransientServerFactory.create_batch(num_of_servers, project=project)
-
-    # Generate deconflictions
-    deconfliction_status = [
-        DeconflictionStatusFactory(status="Undetermined", weight=0),
-        DeconflictionStatusFactory(status="Confirmed", weight=1),
-        DeconflictionStatusFactory(status="Unrelated", weight=2),
-    ]
-    DeconflictionFactory.create_batch(
-        num_of_deconflictions,
-        project=project,
-        status=random.choice(deconfliction_status),
-    )
-
-    # Generate white cards
-    WhiteCardFactory.create_batch(
-        num_of_whitecards,
-        project=project,
-    )
-
-    for index, domain in enumerate(domains):
-        if index % 2 == 0:
-            DomainServerConnectionFactory(domain=domain, static_server=random.choice(servers), transient_server=None)
-        else:
-            DomainServerConnectionFactory(domain=domain, transient_server=random.choice(cloud), static_server=None)
-
-    # Return the higher level objects to be used in the tests
-    return client, project, report
