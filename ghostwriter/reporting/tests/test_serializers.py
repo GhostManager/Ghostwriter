@@ -134,20 +134,20 @@ class ReportDataSerializerTests(TestCase):
         report_json = json.loads(report_json)
 
         # Check expected keys are present
-        self.assertTrue("report_date" in report_json)
-        self.assertTrue("project" in report_json)
-        self.assertTrue("client" in report_json)
-        self.assertTrue("team" in report_json)
-        self.assertTrue("objectives" in report_json)
-        self.assertTrue("targets" in report_json)
-        self.assertTrue("scope" in report_json)
-        self.assertTrue("deconflictions" in report_json)
-        self.assertTrue("infrastructure" in report_json)
-        self.assertTrue("findings" in report_json)
-        self.assertTrue("docx_template" in report_json)
-        self.assertTrue("pptx_template" in report_json)
-        self.assertTrue("company" in report_json)
-        self.assertTrue("totals" in report_json)
+        self.assertIn("report_date", report_json)
+        self.assertIn("project", report_json)
+        self.assertIn("client", report_json)
+        self.assertIn("team", report_json)
+        self.assertIn("objectives", report_json)
+        self.assertIn("targets", report_json)
+        self.assertIn("scope", report_json)
+        self.assertIn("deconflictions", report_json)
+        self.assertIn("infrastructure", report_json)
+        self.assertIn("findings", report_json)
+        self.assertIn("docx_template", report_json)
+        self.assertIn("pptx_template", report_json)
+        self.assertIn("company", report_json)
+        self.assertIn("totals", report_json)
 
     def test_extra_values(self):
         report_json = JSONRenderer().render(self.serializer.data)
@@ -178,7 +178,7 @@ class ReportDataSerializerTests(TestCase):
         self.assertEqual(totals["objectives_completed"], completed_objectives)
 
         for f in report_json["findings"]:
-            self.assertTrue("ordering" in f)
+            self.assertIn("ordering", f)
 
     def test_report_fixture_has_deliberate_variants(self):
         finding_severities = set(
@@ -222,11 +222,11 @@ class ReportDataSerializerTests(TestCase):
         report_json = json.loads(report_json)
 
         for key in report_json:
-            self.assertTrue(report_json[key] is not None)
+            self.assertIsNotNone(report_json[key])
 
         for log in report_json["logs"]:
             for entry in log["entries"]:
-                self.assertTrue(entry["tool"] is not None)
+                self.assertIsNotNone(entry["tool"])
 
     def test_team_entries_are_ordered_by_role_position_then_operator_name(self):
         project = ProjectFactory()
