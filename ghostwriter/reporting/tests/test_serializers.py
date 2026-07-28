@@ -128,6 +128,43 @@ class ReportDataSerializerTests(TestCase):
         for f in report_json["findings"]:
             self.assertTrue("ordering" in f)
 
+    def test_mock_project_fixture_has_deliberate_variants(self):
+        finding_severities = set(
+            self.report.reportfindinglink_set.values_list("severity_id", flat=True)
+        )
+        finding_assignees = set(
+            self.report.reportfindinglink_set.values_list("assigned_to_id", flat=True)
+        )
+        objective_states = set(
+            self.project.projectobjective_set.values_list("complete", flat=True)
+        )
+        objective_statuses = set(
+            self.project.projectobjective_set.values_list("status_id", flat=True)
+        )
+        target_states = set(
+            self.project.projecttarget_set.values_list("compromised", flat=True)
+        )
+        scope_states = set(
+            self.project.projectscope_set.values_list(
+                "disallowed",
+                "requires_caution",
+            )
+        )
+
+        self.assertEqual(len(finding_severities), 4)
+        self.assertEqual(len(finding_assignees), self.num_of_assignments)
+        self.assertEqual(objective_states, {False, True})
+        self.assertEqual(len(objective_statuses), self.num_of_objectives)
+        self.assertEqual(target_states, {False, True})
+        self.assertEqual(
+            scope_states,
+            {
+                (False, False),
+                (False, True),
+                (True, False),
+            },
+        )
+
     def test_values_are_not_empty(self):
         report_json = JSONRenderer().render(self.serializer.data)
         report_json = json.loads(report_json)

@@ -2891,16 +2891,30 @@ class ReportFindingLinkPreviewTests(TestCase):
             description="<p>Finding description</p>",
             extra_fields={"notes": "<p>Extra field content</p>"},
         )
-        cls.user = UserFactory(password=PASSWORD)
-        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        cls.user = UserFactory(
+            username="finding-preview-user",
+            password=PASSWORD,
+        )
+        cls.mgr_user = UserFactory(
+            username="finding-preview-manager",
+            password=PASSWORD,
+            role="manager",
+        )
         cls.uri = reverse("reporting:finding_preview", kwargs={"pk": cls.rfl.pk})
 
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
         self.client_mgr = Client()
-        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
-        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
+        self.assertNotEqual(self.user.pk, self.mgr_user.pk)
+        self.assertFalse(self.user.is_privileged)
+        self.assertTrue(self.mgr_user.is_privileged)
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+        self.assertTrue(
+            self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD)
+        )
 
     def test_requires_login(self):
         response = self.client.get(self.uri)
@@ -2920,11 +2934,13 @@ class ReportFindingLinkPreviewTests(TestCase):
 
     def test_renders_severity_badge(self):
         response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
         content = response.content.decode()
         self.assertIn("badge", content)
 
     def test_renders_extra_field_with_display_name(self):
         response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
         content = response.content.decode()
         self.assertIn("Finding Notes", content)
         self.assertIn("Extra field content", content)
@@ -2949,6 +2965,7 @@ class ReportFindingLinkPreviewTests(TestCase):
         )
         uri = reverse("reporting:finding_preview", kwargs={"pk": rfl.pk})
         response = self.client_mgr.get(uri)
+        self.assertEqual(response.status_code, 200)
         content = response.content.decode()
         self.assertIn("Empty Finding", content)
         self.assertNotIn("<h3>Description</h3>", content)
@@ -2968,7 +2985,9 @@ class ReportFindingLinkPreviewTests(TestCase):
         content = response.content.decode()
         self.assertIn("Bad Regex Finding", content)
         self.assertIn("Preview Error", content)
-        self.assertIn("An unexpected error occurred while rendering this preview.", content)
+        self.assertIn(
+            "An unexpected error occurred while rendering this preview.", content
+        )
         self.assertNotIn("unterminated subpattern", content)
         self.assertNotIn("missing ),", content)
 
@@ -3018,16 +3037,30 @@ class ReportObservationLinkPreviewTests(TestCase):
             description="<p>Observation description</p>",
             extra_fields={"obs_notes": "<p>Observation extra</p>"},
         )
-        cls.user = UserFactory(password=PASSWORD)
-        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        cls.user = UserFactory(
+            username="observation-preview-user",
+            password=PASSWORD,
+        )
+        cls.mgr_user = UserFactory(
+            username="observation-preview-manager",
+            password=PASSWORD,
+            role="manager",
+        )
         cls.uri = reverse("reporting:observation_preview", kwargs={"pk": cls.rol.pk})
 
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
         self.client_mgr = Client()
-        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
-        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
+        self.assertNotEqual(self.user.pk, self.mgr_user.pk)
+        self.assertFalse(self.user.is_privileged)
+        self.assertTrue(self.mgr_user.is_privileged)
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+        self.assertTrue(
+            self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD)
+        )
 
     def test_requires_login(self):
         response = self.client.get(self.uri)
@@ -3047,12 +3080,14 @@ class ReportObservationLinkPreviewTests(TestCase):
 
     def test_renders_extra_field_with_display_name(self):
         response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
         content = response.content.decode()
         self.assertIn("Observation Notes", content)
         self.assertIn("Observation extra", content)
 
     def test_no_severity_badges(self):
         response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
         content = response.content.decode()
         self.assertNotIn("badge-pill", content)
 
@@ -3064,6 +3099,7 @@ class ReportObservationLinkPreviewTests(TestCase):
         )
         uri = reverse("reporting:observation_preview", kwargs={"pk": rol.pk})
         response = self.client_mgr.get(uri)
+        self.assertEqual(response.status_code, 200)
         content = response.content.decode()
         self.assertIn("Empty Obs", content)
         self.assertNotIn("<h3>Description</h3>", content)
@@ -3082,7 +3118,9 @@ class ReportObservationLinkPreviewTests(TestCase):
         content = response.content.decode()
         self.assertIn("Bad Regex Obs", content)
         self.assertIn("Preview Error", content)
-        self.assertIn("An unexpected error occurred while rendering this preview.", content)
+        self.assertIn(
+            "An unexpected error occurred while rendering this preview.", content
+        )
         self.assertNotIn("unterminated subpattern", content)
         self.assertNotIn("missing ),", content)
 
@@ -3128,8 +3166,15 @@ class ExtraFieldRichTextPreviewPermissionTests(TestCase):
         )
         cls.report.extra_fields = {"test_rt": "<p>content</p>"}
         cls.report.save(update_fields=["extra_fields"])
-        cls.user = UserFactory(password=PASSWORD)
-        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        cls.user = UserFactory(
+            username="rich-text-preview-user",
+            password=PASSWORD,
+        )
+        cls.mgr_user = UserFactory(
+            username="rich-text-preview-manager",
+            password=PASSWORD,
+            role="manager",
+        )
         cls.uri = reverse(
             "reporting:report_extra_field_richtext",
             kwargs={"pk": cls.report.pk, "extra_field_name": "test_rt"},
@@ -3139,8 +3184,15 @@ class ExtraFieldRichTextPreviewPermissionTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_mgr = Client()
-        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
-        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
+        self.assertNotEqual(self.user.pk, self.mgr_user.pk)
+        self.assertFalse(self.user.is_privileged)
+        self.assertTrue(self.mgr_user.is_privileged)
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+        self.assertTrue(
+            self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD)
+        )
 
     def test_403_returns_html_not_json(self):
         response = self.client_auth.get(self.uri)
@@ -3174,7 +3226,9 @@ class ExtraFieldRichTextPreviewPermissionTests(TestCase):
         self.assertEqual(response.status_code, 200)
         content = response.content.decode()
         self.assertIn("Preview Error", content)
-        self.assertIn("An unexpected error occurred while rendering this preview.", content)
+        self.assertIn(
+            "An unexpected error occurred while rendering this preview.", content
+        )
         self.assertNotIn("unterminated subpattern", content)
         self.assertNotIn("missing ),", content)
 
