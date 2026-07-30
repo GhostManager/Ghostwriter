@@ -16,6 +16,12 @@ from django.utils.translation import gettext_lazy as _
 # 3rd Party Libraries
 from taggit.managers import TaggableManager
 
+# Ghostwriter Libraries
+from ghostwriter.shepherd.validators import (
+    validate_inventory_domain_name,
+    validate_inventory_server_name,
+)
+
 
 class HealthStatus(models.Model):
     """
@@ -132,7 +138,13 @@ class Domain(models.Model):
     and :model:`users.User`.
     """
 
-    name = models.CharField("Name", max_length=255, unique=True, help_text="Enter the domain name")
+    name = models.CharField(
+        "Name",
+        max_length=255,
+        unique=True,
+        validators=[validate_inventory_domain_name],
+        help_text="Enter the domain name",
+    )
     registrar = models.CharField(
         "Registrar",
         max_length=255,
@@ -433,6 +445,7 @@ class StaticServer(models.Model):
         max_length=255,
         default="",
         blank=True,
+        validators=[validate_inventory_server_name],
         help_text="Enter the server's name (typically hostname)",
     )
     tags = TaggableManager(blank=True)

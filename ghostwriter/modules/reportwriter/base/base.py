@@ -1,7 +1,7 @@
 
 from datetime import datetime
 import io
-from typing import Any, Iterable
+from typing import Any, Callable, Iterable
 import re
 from venv import logger
 
@@ -22,7 +22,8 @@ class ExportBase:
     # Fields
 
     * `input_object`: The object passed into `__init__`, unchanged
-    * `data`: The object passed into `__init__` ran through `serialize_object`, usually a dict, for passing into a Jinja env
+    * `data`: The object passed into `__init__` run through the supplied serializer,
+      usually a dict, for passing into a Jinja environment
     * `jinja_env`: Jinja2 environment for templating
     """
     input_object: Any
@@ -34,7 +35,14 @@ class ExportBase:
     preview_extra_field_model_label: str | None
     preview_extra_field_name: str | None
 
-    def __init__(self, input_object: Any, *, is_raw=False, jinja_debug=False):
+    def __init__(
+        self,
+        input_object: Any,
+        *,
+        is_raw: bool = False,
+        jinja_debug: bool = False,
+        object_serializer: Callable[[Any], Any] | None = None,
+    ):
         self.evidences_by_id = {}
         self.extra_fields_spec_cache = {}
         self.preview_extra_field_model_label = None
@@ -50,15 +58,11 @@ class ExportBase:
             self.data = input_object
         else:
             self.input_object = input_object
-            self.data = self.serialize_object(input_object)
-
-    def serialize_object(self, object: Any) -> Any:
-        """
-        Called by __init__ to serialize the input object to a format appropriate for use in a jinja environment.
-
-        By default does nothing and returns `object` unchanged.
-        """
-        return object
+            self.data = (
+                object_serializer(input_object)
+                if object_serializer is not None
+                else input_object
+            )
 
     def extra_field_specs_for(self, model: Model) -> Iterable[ExtraFieldSpec]:
         """

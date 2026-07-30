@@ -12,6 +12,8 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Prefetch, Q
 from django.http import HttpResponseNotAllowed, JsonResponse
 from django.shortcuts import redirect, render
+from django.views.decorators.cache import never_cache
+from django.views.decorators.http import require_GET
 from django.views.generic.edit import View
 
 # 3rd Party Libraries
@@ -20,6 +22,7 @@ from django_q.tasks import async_task
 
 # Ghostwriter Libraries
 from ghostwriter.api.utils import RoleBasedAccessControlMixin, get_project_list, verify_user_is_privileged
+from ghostwriter.home.editor_shortcuts import get_editor_shortcuts_date_config
 from ghostwriter.modules.health_utils import DjangoHealthChecks
 from ghostwriter.reporting.models import ReportFindingLink, ReportObservationLink
 from ghostwriter.rolodex.models import ProjectAssignment
@@ -28,6 +31,14 @@ User = get_user_model()
 
 # Using __name__ resolves to ghostwriter.home.views
 logger = logging.getLogger(__name__)
+
+
+@login_required
+@require_GET
+@never_cache
+def editor_shortcuts_date(request):
+    """Return the current server-formatted date for long-lived editor pages."""
+    return JsonResponse(get_editor_shortcuts_date_config())
 
 
 def _format_assignment_operator(assignment):
@@ -194,6 +205,7 @@ class Dashboard(RoleBasedAccessControlMixin, View):
             if not db_status["default"] or not cache_status["default"]:
                 system_health = "WARNING"
         except Exception:  # pragma: no cover
+            logger.exception("Unable to retrieve dashboard system health.")
             system_health = "ERROR"
 
         # Assemble the context dictionary to pass to the dashboard
@@ -263,6 +275,7 @@ class TestAWSConnection(RoleBasedAccessControlMixin, View):
             )
             message = "AWS access key test has been successfully queued."
         except Exception:  # pragma: no cover
+            logger.exception("Unable to queue AWS access key test.")
             result = "error"
             message = "AWS access key test could not be queued"
 
@@ -298,6 +311,7 @@ class TestDOConnection(RoleBasedAccessControlMixin, View):
             )
             message = "Digital Ocean API key test has been successfully queued."
         except Exception:  # pragma: no cover
+            logger.exception("Unable to queue Digital Ocean API key test.")
             result = "error"
             message = "Digital Ocean API key test could not be queued."
 
@@ -333,6 +347,7 @@ class TestNamecheapConnection(RoleBasedAccessControlMixin, View):
             )
             message = "Namecheap API test has been successfully queued."
         except Exception:  # pragma: no cover
+            logger.exception("Unable to queue Namecheap API key test.")
             result = "error"
             message = "Namecheap API test could not be queued."
 
@@ -368,6 +383,7 @@ class TestSlackConnection(RoleBasedAccessControlMixin, View):
             )
             message = "Slack Webhook test has been successfully queued."
         except Exception:  # pragma: no cover
+            logger.exception("Unable to queue Slack webhook test.")
             result = "error"
             message = "Slack Webhook test could not be queued."
 
@@ -403,6 +419,7 @@ class TestVirusTotalConnection(RoleBasedAccessControlMixin, View):
             )
             message = "VirusTotal API test has been successfully queued."
         except Exception:  # pragma: no cover
+            logger.exception("Unable to queue VirusTotal API key test.")
             result = "error"
             message = "VirusTotal API test could not be queued."
 

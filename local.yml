@@ -252,7 +252,7 @@ services:
       - HASURA_GRAPHQL_MIGRATIONS_DIR=${HASURA_GRAPHQL_MIGRATIONS_DIR}
       - HASURA_GRAPHQL_SERVER_PORT=${HASURA_GRAPHQL_SERVER_PORT}
     healthcheck:
-      test: /usr/local/bin/busybox wget -q -O /dev/null http://127.0.0.1:8080/healthz || exit 1
+      test: curl --silent --show-error --fail http://127.0.0.1:8080/healthz || exit 1
       interval: ${HEALTHCHECK_INTERVAL}
       timeout: ${HEALTHCHECK_TIMEOUT}
       retries: ${HEALTHCHECK_RETRIES}

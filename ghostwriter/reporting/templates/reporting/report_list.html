@@ -114,15 +114,12 @@
     });
   </script>
 
+  {{ autocomplete_data|json_script:"report-list-autocomplete-data" }}
   <script>
     $(function () {
-      let availableTags = [
-        {% for tag in tags %}
-          '{{ tag.name|escapejs }}',
-        {% endfor %}
-      ];
+      const autocompleteData = JSON.parse(document.getElementById('report-list-autocomplete-data').textContent);
       $('#id_tags').autocomplete({
-        source: availableTags
+        source: autocompleteData.tags
       });
     });
   </script>

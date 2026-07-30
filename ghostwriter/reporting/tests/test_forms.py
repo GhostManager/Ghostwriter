@@ -14,7 +14,6 @@ from ghostwriter.factories import (
     ProjectAssignmentFactory,
     ProjectFactory,
     ReportFactory,
-    ReportFindingLinkFactory,
     ReportObservationLinkFactory,
     ReportDocxTemplateFactory,
     ReportPptxTemplateFactory,
@@ -82,7 +81,7 @@ class ReportFormTests(TestCase):
         report = self.report_dict.copy()
         form = self.form_data(user=self.user, **report)
         self.assertFalse(form.is_valid())
-        self.assertTrue(form.errors.as_data()["project"][0].code == "invalid_choice")
+        self.assertEqual(form.errors.as_data()["project"][0].code, "invalid_choice")
 
         ProjectAssignmentFactory(operator=self.user, project=self.project)
         form = self.form_data(user=self.user, **report)

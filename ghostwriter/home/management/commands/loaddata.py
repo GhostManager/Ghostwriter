@@ -70,6 +70,15 @@ class Command(loaddata.Command):
         with open(file_name, "r", encoding="utf-8") as json_file:
             json_list = json.load(json_file)
 
+        if not isinstance(json_list, list):
+            raise CommandError(
+                f"{file_name} is not a Django fixture: expected a top-level JSON array of records."
+            )
+        if not all(isinstance(record, dict) for record in json_list):
+            raise CommandError(
+                f"{file_name} is not a Django fixture: every record must be a JSON object."
+            )
+
         # Filter out records that already exists
         if not self.force_apply:
             json_list_filtered = [

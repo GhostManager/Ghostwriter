@@ -156,6 +156,46 @@ class OplogListEntriesTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "oplog/oplog_detail.html")
 
+    def test_view_includes_default_source_control(self):
+        response = self.client_mgr.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="defaultSourceInput"')
+        self.assertContains(response, 'id="clearDefaultSourceBtn"')
+        self.assertContains(response, "Default source IP or hostname for new entries")
+        self.assertContains(response, "Cleared when the page reloads or closes.")
+        self.assertContains(response, "It is not stored or carried to another log")
+        self.assertContains(response, "It does not overwrite existing or copied entries")
+        self.assertNotContains(response, "data-user-id=")
+
+    def test_view_exposes_active_time_zone(self):
+        with timezone.override("America/Los_Angeles"):
+            response = self.client_mgr.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'data-time-zone="America/Los_Angeles"')
+
+    @override_settings(DATE_FORMAT="Y/m/d")
+    @patch(
+        "ghostwriter.context_processors.get_editor_shortcuts_date_config",
+        return_value={
+            "date": "2026/07/21",
+            "expiresAt": 1784707200000,
+            "serverTime": 1784678400000,
+            "refreshUrl": "/ajax/editor-shortcuts/date",
+        },
+    )
+    def test_view_documents_date_time_shortcuts(self, _mock_date_config):
+        response = self.client_mgr.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "@now")
+        self.assertContains(response, "@time")
+        self.assertContains(response, "@today")
+        self.assertContains(response, "@date")
+        self.assertContains(response, 'id="gw-current-date"')
+        self.assertContains(response, '"2026/07/21"')
+
     def test_view_displays_last_sanitization(self):
         OplogSanitization.objects.create(
             oplog=self.oplog,
@@ -262,7 +302,7 @@ class OplogEntriesImportTests(TestCase):
 
         cls.oplog = OplogFactory()
         cls.num_of_entries = 5
-        for x in range(cls.num_of_entries):
+        for _ in range(cls.num_of_entries):
             OplogEntryFactory(oplog_id=cls.oplog)
 
         cls.user = UserFactory(password=PASSWORD)
@@ -773,6 +813,15 @@ class OplogEntryUpdateViewTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "oplog/snippets/oplogentry_form_inner.html")
+
+    def test_ajax_form_includes_end_date_now_button(self):
+        response = self.client_mgr.get(
+            self.uri, **{"HTTP_X_REQUESTED_WITH": "XMLHttpRequest"}
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "js-set-oplog-end-date-now")
+        self.assertContains(response, "Set end date and time to now")
 
 
 class OplogExportViewTests(TestCase):

@@ -75,12 +75,17 @@ class FindingListView(RoleBasedAccessControlMixin, ListView):
     def get(self, request, *args, **kwarg):
         queryset = self.get_queryset()
         findings_filter = FindingFilter(request.GET, queryset=queryset)
+        tags = get_tags_for_queryset(queryset)
         return render(
             request, "reporting/finding_list.html", {
                 "filter": findings_filter,
                 "autocomplete": self.autocomplete,
+                "autocomplete_data": {
+                    "titles": list(self.autocomplete.values_list("title", flat=True)),
+                    "tags": list(tags.values_list("name", flat=True)),
+                },
                 "searching_report_findings": self.searching_report_findings,
-                "tags": get_tags_for_queryset(queryset),
+                "tags": tags,
             }
         )
 

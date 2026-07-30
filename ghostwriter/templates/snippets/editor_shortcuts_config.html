@@ -1,0 +1,6 @@
+{% load static %}
+
+{% if user.is_authenticated and EDITOR_SHORTCUTS_DATE_CONFIG %}
+  {{ EDITOR_SHORTCUTS_DATE_CONFIG|json_script:"gw-current-date" }}
+  <script src="{% static 'js/editor_shortcuts.js' %}"></script>
+{% endif %}

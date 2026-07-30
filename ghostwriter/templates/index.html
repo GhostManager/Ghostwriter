@@ -239,7 +239,7 @@
                   },
                   body: JSON.stringify({
                       'hide_quickstart': true,
-                      'username': '{{ user.username }}'
+                      'username': '{{ user.username|escapejs }}'
                   })
               })
               .then(response => {

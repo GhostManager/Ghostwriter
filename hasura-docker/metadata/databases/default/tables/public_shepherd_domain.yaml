@@ -73,7 +73,9 @@ array_relationships:
 insert_permissions:
   - role: manager
     permission:
-      check: {}
+      check:
+        name:
+          _regex: '^(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.?$'
       columns:
         - auto_renew
         - categorization
@@ -92,7 +94,9 @@ insert_permissions:
         - whois_status_id
   - role: user
     permission:
-      check: {}
+      check:
+        name:
+          _regex: '^(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.?$'
       columns:
         - auto_renew
         - burned_explanation
@@ -167,7 +171,9 @@ update_permissions:
         - vt_permalink
         - whois_status_id
       filter: {}
-      check: {}
+      check:
+        name:
+          _regex: '^(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.?$'
   - role: user
     permission:
       columns:
@@ -188,7 +194,9 @@ update_permissions:
         - vt_permalink
         - whois_status_id
       filter: {}
-      check: {}
+      check:
+        name:
+          _regex: '^(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.?$'
 event_triggers:
   - name: CleanDomainName
     definition:

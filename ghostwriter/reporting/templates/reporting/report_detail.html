@@ -346,7 +346,7 @@
                       onclick="openModal('#evidence_detail_{{ evidence_file.id }}')"
                     ></span>
                     <a class="icon download-icon" href="javascript:void(0)"
-                       onclick="downloadEvidence({{ evidence_file.id }}, '{{ evidence_file.filename }}')" title="Download this evidence file"></a>
+                       onclick="downloadEvidence({{ evidence_file.id }}, '{{ evidence_file.filename|escapejs }}')" title="Download this evidence file"></a>
                     <a href="{% url 'reporting:evidence_update' evidence_file.id %}"
                        title="Edit this evidence file"
                        class="icon edit-icon"></a>
@@ -443,8 +443,10 @@
     </div>
   </div>
 
+  {{ autocomplete_data|json_script:"report-detail-autocomplete-data" }}
   <script>
     const $spinnerModal = $('#spinner-modal')
+    const reportAutocompleteData = JSON.parse(document.getElementById('report-detail-autocomplete-data').textContent);
 
     {% comment %} Set variables used in `report_findings_table.html` that is updated on changes {% endcomment %}
     let report_id = '{{ report.id }}';
@@ -666,18 +668,8 @@
 
     {%  comment %} Enable autocomplete for the findings and observations search {% endcomment %}
     $(function () {
-      let availableFindingTitles = [
-        {% for entry in finding_autocomplete %}
-          {
-            value: '{{  entry.severity }} : {{ entry.title|escapejs }}{% for tag in entry.tags.all %}{% if forloop.first %} ({% endif %}{{ tag.name|escapejs }}{% if forloop.last %}){% else %}, {% endif %}{% endfor %}',
-            id: '{{ entry.id }}',
-            url: '{% url 'reporting:ajax_assign_finding' entry.id %}',
-            csrftoken: '{{ csrf_token }}'
-          },
-        {% endfor %}
-      ];
       $("#id_finding_search").autocomplete({
-        source: availableFindingTitles,
+        source: reportAutocompleteData.findings,
         minLength: 0,
         open: function () {
           $("ul.ui-menu").width($(this).innerWidth());
@@ -685,7 +677,6 @@
         select: function (event, ui) {
           let url = ui.item.url
           let findingId = ui.item.id
-          let csrftoken = ui.item.csrftoken
           // Prep AJAX request with CSRF token
           $.ajaxSetup({
             beforeSend: function (xhr, settings) {
@@ -721,18 +712,8 @@
     });
 
     $(function () {
-      let availableObservationTitles = [
-        {% for entry in observation_autocomplete %}
-          {
-            value: '{{ entry.title|escapejs }}{% for tag in entry.tags.all %}{% if forloop.first %} ({% endif %}{{ tag.name|escapejs }}{% if forloop.last %}){% else %}, {% endif %}{% endfor %}',
-            id: '{{ entry.id }}',
-            url: '{% url 'reporting:ajax_assign_observation' entry.id %}',
-            csrftoken: '{{ csrf_token }}'
-          },
-        {% endfor %}
-      ];
       $("#id_observation_search").autocomplete({
-        source: availableObservationTitles,
+        source: reportAutocompleteData.observations,
         minLength: 0,
         open: function () {
           $("ul.ui-menu").width($(this).innerWidth());
@@ -740,7 +721,6 @@
         select: function (event, ui) {
           let url = ui.item.url
           let observationId = ui.item.id
-          let csrftoken = ui.item.csrftoken
           // Prep AJAX request with CSRF token
           $.ajaxSetup({
             beforeSend: function (xhr, settings) {
@@ -788,7 +768,7 @@
     let evidenceFiles = [
       {
         text: '\{\{.caption\}\}',
-        value: '<p class="evidence-caption">{{ report_config.label_figure }} # {{ report_config.prefix_figure }} '
+        value: '<p class="evidence-caption">{{ report_config.label_figure|force_escape|escapejs }} # {{ report_config.prefix_figure|force_escape|escapejs }} '
       },
       {% if report.evidence_set.all  %}
         {% for evidence in report.evidence_set.all %}

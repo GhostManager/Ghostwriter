@@ -1,15 +1,18 @@
 # Standard Libraries
 import logging
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone as datetime_timezone
 from io import StringIO
+from unittest.mock import patch
+from zoneinfo import ZoneInfo
 
 # Django Imports
 from django.conf import settings
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.db.models import Q
-from django.test import Client, TestCase
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
+from django.utils import timezone
 
 # 3rd Party Libraries
 from allauth.mfa.totp.internal.auth import generate_totp_secret, TOTP
@@ -33,6 +36,56 @@ from ghostwriter.reporting.models import ReportTemplate
 logging.disable(logging.CRITICAL)
 
 PASSWORD = "SuperNaturalReporting!"
+
+
+class EditorShortcutsDateTests(TestCase):
+    """Tests for refreshing server-formatted editor shortcut dates."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.uri = reverse("home:ajax_editor_shortcuts_date")
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    def test_view_requires_login(self):
+        response = self.client.get(self.uri)
+
+        self.assertEqual(response.status_code, 302)
+
+    @override_settings(DATE_FORMAT="Y/m/d")
+    @patch("ghostwriter.home.editor_shortcuts._current_utc_time")
+    def test_view_returns_date_and_next_utc_midnight(self, mock_current_utc_time):
+        local_timezone = ZoneInfo("America/Los_Angeles")
+        local_time = datetime(2026, 7, 21, 23, 59, 30, tzinfo=local_timezone)
+        current_time = local_time.astimezone(datetime_timezone.utc)
+        mock_current_utc_time.return_value = current_time
+
+        with timezone.override(local_timezone):
+            response = self.client_auth.get(self.uri)
+
+        next_midnight = datetime(2026, 7, 23, tzinfo=datetime_timezone.utc)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json(),
+            {
+                "date": "2026/07/22",
+                "expiresAt": round(next_midnight.timestamp() * 1000),
+                "serverTime": round(current_time.timestamp() * 1000),
+                "refreshUrl": self.uri,
+            },
+        )
+        self.assertIn("no-store", response.headers["Cache-Control"])
+
+    def test_view_rejects_post(self):
+        response = self.client_auth.post(self.uri)
+
+        self.assertEqual(response.status_code, 405)
 
 
 # Tests related to custom management commands

@@ -6,6 +6,11 @@ import typing
 # 3rd Party Libraries
 import bs4
 
+# Ghostwriter Libraries
+from ghostwriter.modules.reportwriter.base.html_rich_text import (
+    remove_trailing_empty_paragraphs,
+)
+
 logger = logging.getLogger(__name__)
 
 ALLOWED_HYPERLINK_PROTOCOLS = {"http", "https", "mailto", "tel"}
@@ -111,6 +116,7 @@ class BaseHtmlToOOXML:
         tag = soup.find("body")
         instance = cls(*args, **kwargs)
         if tag is not None:
+            remove_trailing_empty_paragraphs(tag)
             instance.process_children(tag.children)
         return instance
 
@@ -157,7 +163,7 @@ class BaseHtmlToOOXML:
             try:
                 run.font.size = int(style["font_size"])
             except ValueError:
-                pass
+                logger.debug("Unable to apply rich-text font size.", exc_info=True)
 
     tag_code = set_style_method("code", "inline_code")
     tag_b = set_style_method("b", "bold")

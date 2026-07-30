@@ -1,13 +1,15 @@
 # Standard Libraries
+import json
 import logging
+import re
 from datetime import date, timedelta
 
 # Django Imports
+from django.contrib.messages import get_messages
 from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import force_str
-from django.contrib.messages import get_messages
 
 # Ghostwriter Libraries
 from ghostwriter.factories import (
@@ -21,8 +23,8 @@ from ghostwriter.factories import (
     DomainStatusFactory,
     HistoryFactory,
     NamecheapConfigurationFactory,
-    ProjectFactory,
     ProjectAssignmentFactory,
+    ProjectFactory,
     ServerHistoryFactory,
     ServerNoteFactory,
     ServerStatusFactory,
@@ -244,6 +246,42 @@ class DomainListViewTests(TestCase):
         response = self.client_auth.get(self.uri)
         self.assertIn("filter", response.context)
         self.assertIn("autocomplete", response.context)
+
+    def test_autocomplete_serializes_user_controlled_values_as_json(self):
+        name_payload = "'+(function(){window.domainNameXss=true})()+'</script>"
+        category_payload = "'+(function(){window.domainCategoryXss=true})()+'</script>"
+        domain = DomainFactory._meta.model.objects.first()
+        DomainFactory._meta.model.objects.filter(pk=domain.pk).update(
+            name=name_payload,
+            categorization={"source": category_payload},
+        )
+
+        response = self.client_auth.get(self.uri)
+        content = force_str(response.content)
+        match = re.search(
+            r'<script id="domain-autocomplete-data" type="application/json">(.*?)</script>',
+            content,
+            re.DOTALL,
+        )
+
+        self.assertIsNotNone(match)
+        autocomplete = json.loads(match.group(1))
+        self.assertIn(name_payload, autocomplete)
+        self.assertIn(category_payload.lower(), autocomplete)
+        self.assertNotIn("</script>", match.group(1))
+        self.assertIn(r"\u003C/script\u003E", match.group(1))
+
+    def test_tag_autocomplete_is_scoped_to_domains(self):
+        domain = DomainFactory._meta.model.objects.first()
+        domain.tags.add("domain-only-tag")
+        unrelated_project = ProjectFactory()
+        unrelated_project.tags.add("project-only-tag")
+
+        response = self.client_auth.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("domain-only-tag", response.context["tag_autocomplete_data"])
+        self.assertNotIn("project-only-tag", response.context["tag_autocomplete_data"])
 
     def test_domain_filtering(self):
         # Filter defaults to only showing available domains (id 1), so we should only see 3
@@ -761,8 +799,8 @@ class DomainReleaseViewTests(TestCase):
             "message": "You do not have permission to release this domain.",
         }
         self.assertJSONEqual(force_str(response.content), data)
-        self.assertFalse(self.domain.domain_status == self.available_status)
-        self.assertTrue(self.checkout.end_date == self.end_date)
+        self.assertNotEqual(self.domain.domain_status, self.available_status)
+        self.assertEqual(self.checkout.end_date, self.end_date)
 
 
 # Tests related to :model:`shepherd.StaticServer`
@@ -810,6 +848,37 @@ class ServerListViewTests(TestCase):
         response = self.client_auth.get(self.uri)
         self.assertIn("filter", response.context)
         self.assertIn("autocomplete", response.context)
+
+    def test_autocomplete_serializes_user_controlled_values_as_json(self):
+        payload = "'+(function(){window.serverNameXss=true})()+'</script>"
+        server = StaticServerFactory._meta.model.objects.first()
+        StaticServerFactory._meta.model.objects.filter(pk=server.pk).update(name=payload)
+
+        response = self.client_auth.get(self.uri)
+        content = force_str(response.content)
+        match = re.search(
+            r'<script id="server-autocomplete-data" type="application/json">(.*?)</script>',
+            content,
+            re.DOTALL,
+        )
+
+        self.assertIsNotNone(match)
+        autocomplete = json.loads(match.group(1))
+        self.assertIn(payload, autocomplete)
+        self.assertNotIn("</script>", match.group(1))
+        self.assertIn(r"\u003C/script\u003E", match.group(1))
+
+    def test_tag_autocomplete_is_scoped_to_servers(self):
+        server = StaticServerFactory._meta.model.objects.first()
+        server.tags.add("server-only-tag")
+        unrelated_project = ProjectFactory()
+        unrelated_project.tags.add("project-only-tag")
+
+        response = self.client_auth.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("server-only-tag", response.context["tag_autocomplete_data"])
+        self.assertNotIn("project-only-tag", response.context["tag_autocomplete_data"])
 
     def test_server_filtering(self):
         # Filter defaults to only showing available servers (id 1), so we should only see 2
@@ -1262,8 +1331,8 @@ class ServerReleaseViewTests(TestCase):
             "message": "You do not have permission to release this server.",
         }
         self.assertJSONEqual(force_str(response.content), data)
-        self.assertFalse(self.server.server_status == self.available_status)
-        self.assertTrue(self.checkout.end_date == self.end_date)
+        self.assertNotEqual(self.server.server_status, self.available_status)
+        self.assertEqual(self.checkout.end_date, self.end_date)
 
 
 # Tests related to :model:`shepherd.TransientServer`
@@ -1615,7 +1684,7 @@ class UserAssetsViewTests(TestCase):
         domain_status = DomainStatusFactory(domain_status="Unavailable")
         server_status = ServerStatusFactory(server_status="Unavailable")
 
-        for x in range(3):
+        for _ in range(3):
             HistoryFactory(operator=cls.user, domain=DomainFactory(domain_status=domain_status))
             ServerHistoryFactory(
                 operator=cls.user,

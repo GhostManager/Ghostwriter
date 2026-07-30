@@ -71,6 +71,7 @@
 
 
 {% block morescripts %}
+  {{ autocomplete_data|json_script:"observation-autocomplete-data" }}
   {%  comment %} jQuery Tablesorter Script {% endcomment %}
   <script>
     $(document).ready(function () {
@@ -130,24 +131,12 @@
 
     {%  comment %} Enable autocomplete for the filter form {% endcomment %}
     $(function () {
-      let availableTitles = [
-        {% for entry in autocomplete %}
-          '{{ entry.title|escapejs }}',
-        {% endfor %}
-      ];
+      const autocompleteData = JSON.parse(document.getElementById('observation-autocomplete-data').textContent);
       $('#id_title').autocomplete({
-        source: availableTitles
+        source: autocompleteData.titles
       });
-    });
-
-    $(function () {
-      let availableTags = [
-        {% for tag in tags %}
-          '{{ tag.name|escapejs }}',
-        {% endfor %}
-      ];
       $('#id_tags').autocomplete({
-        source: availableTags
+        source: autocompleteData.tags
       });
     });
 

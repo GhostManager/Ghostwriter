@@ -1120,6 +1120,13 @@ a.btn-sm {
   justify-content: center;
 }
 
+.token-action-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
 .mfa-card-container {
   width: 100%;
   max-width: 36rem;
@@ -1484,12 +1491,24 @@ table.table-oplog tbody tr {
   gap: 8px;
   margin-bottom: 12px;
   flex-wrap: wrap;
+  container-type: inline-size;
 }
 
 .oplog-toolbar-right {
   margin-left: auto;
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex: 0 1 auto;
+}
+
+.oplog-default-source-group {
+  width: 310px;
+}
+
+.oplog-filter-group {
+  width: 280px;
 }
 
 .oplog-toolbar-actions {
@@ -1498,11 +1517,7 @@ table.table-oplog tbody tr {
   gap: 8px;
 }
 
-@media (max-width: 900px) {
-  .oplog-toolbar {
-    align-items: stretch;
-  }
-
+@container (max-width: 1120px) {
   .oplog-toolbar-actions {
     flex: 1 1 100%;
   }
@@ -1515,7 +1530,15 @@ table.table-oplog tbody tr {
   }
 
   .oplog-toolbar-right .input-group {
-    width: 100% !important;
+    flex: 1 1 280px;
+    width: auto;
+  }
+}
+
+@container (max-width: 640px) {
+  .oplog-toolbar-right .input-group {
+    flex-basis: 100%;
+    width: 100%;
   }
 }
 

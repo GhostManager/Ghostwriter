@@ -4,14 +4,13 @@
 import json
 import logging
 from asgiref.sync import async_to_sync
-from datetime import datetime
 from socket import gaierror
 
 # Django Imports
 from django.db import transaction
 from django.db.models.signals import m2m_changed, post_delete, post_save, pre_save
 from django.dispatch import receiver
-from django.utils.timezone import make_aware
+from django.utils import timezone
 
 # 3rd Party Libraries
 from channels.layers import get_channel_layer
@@ -36,9 +35,9 @@ def oplog_pre_save(sender, instance, **kwargs):
     :model:`oplog.OplogEntry`.
     """
     if not instance.start_date:
-        instance.start_date = make_aware(datetime.utcnow())
+        instance.start_date = timezone.now()
     if not instance.end_date:
-        instance.end_date = make_aware(datetime.utcnow())
+        instance.end_date = timezone.now()
 
     instance.clean()
 

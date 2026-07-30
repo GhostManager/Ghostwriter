@@ -7,6 +7,81 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [7.2.5] - 27 July 2026
+
+### Changed
+
+* Improved logging for skipped signal imports and background task failures
+
+### Fixed
+
+* Corrected the AJAX URL for deleting report observations
+  * This fixed a typo in the path, but had no effect on functionality
+* Fixed activity-log sanitization confirmation and scoped its CSRF header to its own request
+* Fixed expired API and service token feedback so the appropriate token row and empty state are updated in the UI
+
+### Security
+
+* Hardened user-controlled values rendered in JavaScript contexts to prevent stored cross-site scripting
+  * Autocomplete data is now serialized as inert JSON instead of being interpolated into JavaScript source
+  * Tag autocomplete suggestions are scoped to objects the current user can access
+  * Additional inline JavaScript values and activity-log rich-text previews are escaped or sanitized for their output context
+  * These changes are related to [GHSA-5xvc-cm65-jw3p](https://github.com/GhostManager/Ghostwriter/security/advisories/GHSA-5xvc-cm65-jw3p), but go beyond that to further harden sanitization (Thank you to [@hippiiee](https://github.com/hippiiee) for reporting the original issue!)
+* Added matching Django and Hasura validation for domain and static server names while preserving user access to create and manage shared inventory
+* Restricted Django Q scheduled tasks to a server-controlled allowlist (Closes #911)
+  * The admin panel now exposes only approved functions, Slack notification hooks, and validated task arguments
+  * Optional system commands must be configured as fixed argument vectors on the server and run without a shell
+  * Schedule saves, queue submissions, result hooks, and worker execution enforce the policy independently
+  * Added `audit_django_q_policy` to identify or pause existing schedules that do not satisfy the configured policy
+
+## [7.2.4] - 21 July 2026
+
+### Added
+
+* Added shortcuts to the editors for easily inserting dates and times
+  * `@now` / `@time` inserts `HH:mm:ss UTC`
+  * `@today` / `@date` inserts the date using Django’s configured `DATE_FORMAT`
+  * Spaces and unicode punctuation trigger the expansion
+  * There are guards in place so code blocks and email-like strings do not trigger expansion
+  * If an editor is left open overnight, there is a trigger to refresh the date
+
+### Fixed
+
+* Fixed an issue where a blank line would be included after lists in report output
+
+## [7.2.3] - 18 July 2026
+
+### Added
+
+* Added a _Now_ button to the _End Date_ field in the oplog entry form
+  * This button sets the field to the current date and time
+  * Useful for editing the end date of an action after a command finishes
+* Added a _Default Source_ field to logs
+  * Whatever string you set here will be set as the source IP/hostname for any new log entries
+  * Useful if you are manually logging multiple activities from the same system
+  * This is an experiment; if it is useful, we will explore this for other fields
+
+### Changed
+
+* The oplog entry edit form will now open automatically when you create a new entry
+* Made oplog datetime values consistent with the server's timezone
+  * Ghostwriter defaults to UTC for the server
+  * New entries always started with the _Start Date & Time_ set to "now" in UTC (regardless of the server timezone)
+  * The datetime values are always stored in the database as UTC
+  * Now, the oplog is aware of the server's timezone and will use it for datetime entry
+
+### Fixed
+
+* Fixed `loaddata` trying to also load the demo BloodHound JSON during a build
+  * This caused an error that could be confused as a build failure
+  * `loaddata` now only loads `initial.json`
+
+### Security
+
+* Updated the Hasura GraphQL container image to v2.45.6 to take advantage of bug and security fixes
+
+## [7.2.2] - 17 July 2026
+
 ### Added
 
 * Added a `category_value` filter to parse domain categories for presenting in the interface

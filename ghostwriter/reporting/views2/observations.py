@@ -52,10 +52,19 @@ class ObservationList(RoleBasedAccessControlMixin, ListView):
     def get(self, request: HttpRequest, *args, **kwarg) -> HttpResponse:
         queryset = self.get_queryset()
         observation_filter = ObservationFilter(request.GET, queryset=queryset, request=self.request)
+        tags = get_tags_for_queryset(queryset)
         return render(
             request,
             "reporting/observation_list.html",
-            {"filter": observation_filter, "autocomplete": self.autocomplete, "tags": get_tags_for_queryset(queryset),},
+            {
+                "filter": observation_filter,
+                "autocomplete": self.autocomplete,
+                "autocomplete_data": {
+                    "titles": [observation.title for observation in self.autocomplete],
+                    "tags": list(tags.values_list("name", flat=True)),
+                },
+                "tags": tags,
+            },
         )
 
 

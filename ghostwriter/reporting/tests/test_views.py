@@ -3,6 +3,7 @@ import io
 import json
 import logging
 import os
+import re
 import zipfile
 from datetime import datetime, timedelta, timezone
 from xml.etree import ElementTree
@@ -12,7 +13,7 @@ from django.contrib.messages import get_messages
 from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.template.loader import render_to_string
-from django.test import Client, TestCase
+from django.test import Client, SimpleTestCase, TestCase
 from django.test import override_settings
 from django.urls import reverse
 from django.utils.dateformat import format as dateformat
@@ -36,7 +37,6 @@ from ghostwriter.factories import (
     FindingFactory,
     FindingNoteFactory,
     FindingTypeFactory,
-    GenerateMockProject,
     LocalFindingNoteFactory,
     ObservationFactory,
     OplogEntryEvidenceFactory,
@@ -86,6 +86,16 @@ logging.disable(logging.CRITICAL)
 PASSWORD = "SuperNaturalReporting!"
 
 
+class ReportObservationLinkDeleteUrlTests(SimpleTestCase):
+    """Tests for the reported-observation delete URL."""
+
+    def test_url_uses_correct_observation_spelling(self):
+        self.assertEqual(
+            reverse("reporting:ajax_delete_local_observation", kwargs={"pk": 1}),
+            "/reporting/ajax/observation/delete/1",
+        )
+
+
 class IndexViewTests(TestCase):
     """Collection of tests for :view:`reporting.index`."""
 
@@ -122,7 +132,7 @@ class TemplateTagTests(TestCase):
     def setUpTestData(cls):
         cls.ReportFindingLink = ReportFindingLinkFactory._meta.model
         cls.report = ReportFactory()
-        for x in range(3):
+        for _ in range(3):
             ReportFindingLinkFactory(report=cls.report)
 
     def setUp(self):
@@ -146,10 +156,10 @@ class TemplateTagTests(TestCase):
         deleted_evidence = EvidenceFactory()
         os.remove(deleted_evidence.document.path)
 
-        self.assertTrue(report_tags.get_file_type(img_evidence) == "image")
-        self.assertTrue(report_tags.get_file_type(txt_evidence) == "text")
-        self.assertTrue(report_tags.get_file_type(unknown_evidence) == "unknown")
-        self.assertTrue(report_tags.get_file_type(deleted_evidence) == "missing")
+        self.assertEqual(report_tags.get_file_type(img_evidence), "image")
+        self.assertEqual(report_tags.get_file_type(txt_evidence), "text")
+        self.assertEqual(report_tags.get_file_type(unknown_evidence), "unknown")
+        self.assertEqual(report_tags.get_file_type(deleted_evidence), "missing")
 
         self.assertEqual(report_tags.get_file_content(txt_evidence), "lorem ipsum")
         self.assertEqual(
@@ -211,6 +221,31 @@ class TemplateTagTests(TestCase):
         )
         field_spec = ExtraFieldSpec.objects.filter(target_model="reporting.Report")
         self.assertTrue(report_tags.has_non_rt_fields(field_spec))
+
+    def test_json_extra_field_is_serialized_as_inert_data(self):
+        field_spec = ExtraFieldSpecFactory(
+            internal_name="structured_data",
+            display_name="Structured Data",
+            type="json",
+            target_model=ExtraFieldModelFactory(
+                model_internal_name="reporting.Report",
+                model_display_name="Reports",
+            ),
+        )
+        payload = "</script><script>window.extraFieldXss=true</script>"
+
+        rendered = render_to_string(
+            "user_extra_fields/field.html",
+            {
+                "extra_fields": {"structured_data": {"value": payload}},
+                "field_spec": field_spec,
+            },
+        )
+
+        self.assertNotIn(payload, rendered)
+        self.assertIn(r"\u003C/script\u003E", rendered)
+        self.assertIn(f'id="extra-field-json-{field_spec.internal_name}"', rendered)
+        self.assertIn("JSON.parse(dataElement.textContent)", rendered)
 
     def test_rich_text_extra_field_renders_report_evidence_previews(self):
         report_config = ReportConfiguration.get_solo()
@@ -544,8 +579,6 @@ class EvidenceInjectionTests(TestCase):
         so without |escapejs a crafted extension (e.g. containing a newline or
         backslash) could break the surrounding JS string literal.
         """
-        import re
-
         template_path = os.path.normpath(
             os.path.join(
                 os.path.dirname(__file__),
@@ -973,17 +1006,17 @@ class FindingsListViewTests(TestCase):
     def test_lists_all_findings(self):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(len(response.context["filter"].qs) == len(self.findings))
+        self.assertEqual(len(response.context["filter"].qs), len(self.findings))
 
     def test_search_findings(self):
         response = self.client_auth.get(self.uri + "?finding=Finding+2")
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(len(response.context["filter"].qs) == 1)
+        self.assertEqual(len(response.context["filter"].qs), 1)
 
     def test_filter_findings(self):
         response = self.client_auth.get(self.uri + "?title=Finding+2&submit=Filter")
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(len(response.context["filter"].qs) == 1)
+        self.assertEqual(len(response.context["filter"].qs), 1)
 
     def test_tags_are_scoped_to_findings(self):
         visible_finding = FindingFactory(title="Tagged Finding")
@@ -1000,17 +1033,18 @@ class FindingsListViewTests(TestCase):
         self.assertIn("visible-finding-tag", tag_names)
         self.assertNotIn("hidden-report-tag", tag_names)
         self.assertNotIn("hidden-project-tag", tag_names)
+        self.assertIn("visible-finding-tag", response.context["autocomplete_data"]["tags"])
+        self.assertNotIn("hidden-report-tag", response.context["autocomplete_data"]["tags"])
+        self.assertNotIn("hidden-project-tag", response.context["autocomplete_data"]["tags"])
 
     def test_search_report_findings(self):
         response = self.client_auth.get(self.uri + "?on_reports=on")
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(
-            len(response.context["filter"].qs) == len(self.accessibleReportFindings)
-        )
+        self.assertEqual(len(response.context["filter"].qs), len(self.accessibleReportFindings))
 
         response = self.client_auth.get(self.uri + "?on_reports=on&not_cloned=on")
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(len(response.context["filter"].qs) == 1)
+        self.assertEqual(len(response.context["filter"].qs), 1)
         blank_findings = self.ReportFindingLink.objects.filter(
             added_as_blank=True, report=self.accessibleReport
         )
@@ -1031,6 +1065,10 @@ class FindingsListViewTests(TestCase):
         self.assertIn("visible-report-finding-tag", tag_names)
         self.assertNotIn("hidden-report-finding-tag", tag_names)
         self.assertNotIn("hidden-master-finding-tag", tag_names)
+        autocomplete_tags = response.context["autocomplete_data"]["tags"]
+        self.assertIn("visible-report-finding-tag", autocomplete_tags)
+        self.assertNotIn("hidden-report-finding-tag", autocomplete_tags)
+        self.assertNotIn("hidden-master-finding-tag", autocomplete_tags)
 
 
 class FindingDetailViewTests(TestCase):
@@ -1370,19 +1408,19 @@ class ReportsListViewTests(TestCase):
     def test_lists_all_reports(self):
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(len(response.context["filter"].qs) == len(self.reports))
+        self.assertEqual(len(response.context["filter"].qs), len(self.reports))
 
     def test_lists_filtered_reports(self):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(len(response.context["filter"].qs) == 0)
+        self.assertEqual(len(response.context["filter"].qs), 0)
 
         for report in self.reports[:5]:
             ProjectAssignmentFactory(project=report.project, operator=self.user)
 
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(len(response.context["filter"].qs) == 5)
+        self.assertEqual(len(response.context["filter"].qs), 5)
 
     def test_tags_are_scoped_to_visible_reports(self):
         visible_report = ReportFactory(title="Visible Report")
@@ -1397,6 +1435,8 @@ class ReportsListViewTests(TestCase):
         tag_names = list(response.context["tags"].values_list("name", flat=True))
         self.assertIn("visible-report-tag", tag_names)
         self.assertNotIn("hidden-report-tag", tag_names)
+        self.assertIn("visible-report-tag", response.context["autocomplete_data"]["tags"])
+        self.assertNotIn("hidden-report-tag", response.context["autocomplete_data"]["tags"])
 
 
 class ReportDetailViewTests(TestCase):
@@ -1441,6 +1481,59 @@ class ReportDetailViewTests(TestCase):
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "reporting/report_detail.html")
+
+    def test_report_caption_configuration_is_safe_in_javascript_html(self):
+        report_config = ReportConfiguration.get_solo()
+        ReportConfiguration.objects.filter(pk=report_config.pk).update(
+            label_figure="Figure\u2028window.captionXss=true//",
+            prefix_figure="</p><img src=x onerror=window.captionHtmlXss=true>",
+        )
+
+        response = self.client_mgr.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response, r"Figure\u2028window.captionXss\u003Dtrue//"
+        )
+        self.assertContains(response, r"\u0026lt\u003B/p\u0026gt\u003B")
+        self.assertNotContains(response, "</p><img src=x")
+
+    def test_finding_autocomplete_serializes_severity_as_json(self):
+        payload = "Critical</script><script>window.severityXss=true</script>"
+        FindingFactory(severity=SeverityFactory(severity=payload))
+
+        response = self.client_mgr.get(self.uri)
+        content = force_str(response.content)
+        match = re.search(
+            r'<script id="report-detail-autocomplete-data" type="application/json">(.*?)</script>',
+            content,
+            re.DOTALL,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNotNone(match)
+        autocomplete = json.loads(match.group(1))
+        self.assertTrue(
+            any(payload in finding["value"] for finding in autocomplete["findings"])
+        )
+        self.assertNotIn("</script>", match.group(1))
+        self.assertIn(r"\u003C/script\u003E", match.group(1))
+
+    def test_evidence_filename_is_escaped_in_inline_javascript(self):
+        evidence = EvidenceFactory(report=self.report)
+        payload = "quote');window.evidenceFilenameXss=true;('.txt"
+        Evidence.objects.filter(pk=evidence.pk).update(
+            document=f"evidence/{self.report.pk}/{payload}"
+        )
+
+        response = self.client_mgr.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            r"quote\u0027)\u003Bwindow.evidenceFilenameXss\u003Dtrue\u003B(\u0027.txt",
+        )
+        self.assertNotContains(response, payload)
 
     def test_view_without_findings_does_not_initialize_severity_sortables(self):
         response = self.client_mgr.get(self.uri)
@@ -1578,7 +1671,7 @@ class ReportOplogOutlineGenerateTests(TestCase):
             comments="<p><strong>Initial foothold</strong> confirmed.</p>",
             tags=["report"],
         )
-        entry_two = OplogEntryFactory(
+        _ = OplogEntryFactory(
             oplog_id=self.oplog,
             start_date=second_start,
             tool="",
@@ -2797,16 +2890,30 @@ class ReportFindingLinkPreviewTests(TestCase):
             description="<p>Finding description</p>",
             extra_fields={"notes": "<p>Extra field content</p>"},
         )
-        cls.user = UserFactory(password=PASSWORD)
-        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        cls.user = UserFactory(
+            username="finding-preview-user",
+            password=PASSWORD,
+        )
+        cls.mgr_user = UserFactory(
+            username="finding-preview-manager",
+            password=PASSWORD,
+            role="manager",
+        )
         cls.uri = reverse("reporting:finding_preview", kwargs={"pk": cls.rfl.pk})
 
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
         self.client_mgr = Client()
-        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
-        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
+        self.assertNotEqual(self.user.pk, self.mgr_user.pk)
+        self.assertFalse(self.user.is_privileged)
+        self.assertTrue(self.mgr_user.is_privileged)
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+        self.assertTrue(
+            self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD)
+        )
 
     def test_requires_login(self):
         response = self.client.get(self.uri)
@@ -2826,11 +2933,13 @@ class ReportFindingLinkPreviewTests(TestCase):
 
     def test_renders_severity_badge(self):
         response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
         content = response.content.decode()
         self.assertIn("badge", content)
 
     def test_renders_extra_field_with_display_name(self):
         response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
         content = response.content.decode()
         self.assertIn("Finding Notes", content)
         self.assertIn("Extra field content", content)
@@ -2855,6 +2964,7 @@ class ReportFindingLinkPreviewTests(TestCase):
         )
         uri = reverse("reporting:finding_preview", kwargs={"pk": rfl.pk})
         response = self.client_mgr.get(uri)
+        self.assertEqual(response.status_code, 200)
         content = response.content.decode()
         self.assertIn("Empty Finding", content)
         self.assertNotIn("<h3>Description</h3>", content)
@@ -2874,7 +2984,9 @@ class ReportFindingLinkPreviewTests(TestCase):
         content = response.content.decode()
         self.assertIn("Bad Regex Finding", content)
         self.assertIn("Preview Error", content)
-        self.assertIn("An unexpected error occurred while rendering this preview.", content)
+        self.assertIn(
+            "An unexpected error occurred while rendering this preview.", content
+        )
         self.assertNotIn("unterminated subpattern", content)
         self.assertNotIn("missing ),", content)
 
@@ -2924,16 +3036,30 @@ class ReportObservationLinkPreviewTests(TestCase):
             description="<p>Observation description</p>",
             extra_fields={"obs_notes": "<p>Observation extra</p>"},
         )
-        cls.user = UserFactory(password=PASSWORD)
-        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        cls.user = UserFactory(
+            username="observation-preview-user",
+            password=PASSWORD,
+        )
+        cls.mgr_user = UserFactory(
+            username="observation-preview-manager",
+            password=PASSWORD,
+            role="manager",
+        )
         cls.uri = reverse("reporting:observation_preview", kwargs={"pk": cls.rol.pk})
 
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
         self.client_mgr = Client()
-        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
-        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
+        self.assertNotEqual(self.user.pk, self.mgr_user.pk)
+        self.assertFalse(self.user.is_privileged)
+        self.assertTrue(self.mgr_user.is_privileged)
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+        self.assertTrue(
+            self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD)
+        )
 
     def test_requires_login(self):
         response = self.client.get(self.uri)
@@ -2953,12 +3079,14 @@ class ReportObservationLinkPreviewTests(TestCase):
 
     def test_renders_extra_field_with_display_name(self):
         response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
         content = response.content.decode()
         self.assertIn("Observation Notes", content)
         self.assertIn("Observation extra", content)
 
     def test_no_severity_badges(self):
         response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
         content = response.content.decode()
         self.assertNotIn("badge-pill", content)
 
@@ -2970,6 +3098,7 @@ class ReportObservationLinkPreviewTests(TestCase):
         )
         uri = reverse("reporting:observation_preview", kwargs={"pk": rol.pk})
         response = self.client_mgr.get(uri)
+        self.assertEqual(response.status_code, 200)
         content = response.content.decode()
         self.assertIn("Empty Obs", content)
         self.assertNotIn("<h3>Description</h3>", content)
@@ -2988,7 +3117,9 @@ class ReportObservationLinkPreviewTests(TestCase):
         content = response.content.decode()
         self.assertIn("Bad Regex Obs", content)
         self.assertIn("Preview Error", content)
-        self.assertIn("An unexpected error occurred while rendering this preview.", content)
+        self.assertIn(
+            "An unexpected error occurred while rendering this preview.", content
+        )
         self.assertNotIn("unterminated subpattern", content)
         self.assertNotIn("missing ),", content)
 
@@ -3034,8 +3165,15 @@ class ExtraFieldRichTextPreviewPermissionTests(TestCase):
         )
         cls.report.extra_fields = {"test_rt": "<p>content</p>"}
         cls.report.save(update_fields=["extra_fields"])
-        cls.user = UserFactory(password=PASSWORD)
-        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        cls.user = UserFactory(
+            username="rich-text-preview-user",
+            password=PASSWORD,
+        )
+        cls.mgr_user = UserFactory(
+            username="rich-text-preview-manager",
+            password=PASSWORD,
+            role="manager",
+        )
         cls.uri = reverse(
             "reporting:report_extra_field_richtext",
             kwargs={"pk": cls.report.pk, "extra_field_name": "test_rt"},
@@ -3045,8 +3183,15 @@ class ExtraFieldRichTextPreviewPermissionTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_mgr = Client()
-        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
-        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
+        self.assertNotEqual(self.user.pk, self.mgr_user.pk)
+        self.assertFalse(self.user.is_privileged)
+        self.assertTrue(self.mgr_user.is_privileged)
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+        self.assertTrue(
+            self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD)
+        )
 
     def test_403_returns_html_not_json(self):
         response = self.client_auth.get(self.uri)
@@ -3080,7 +3225,9 @@ class ExtraFieldRichTextPreviewPermissionTests(TestCase):
         self.assertEqual(response.status_code, 200)
         content = response.content.decode()
         self.assertIn("Preview Error", content)
-        self.assertIn("An unexpected error occurred while rendering this preview.", content)
+        self.assertIn(
+            "An unexpected error occurred while rendering this preview.", content
+        )
         self.assertNotIn("unterminated subpattern", content)
         self.assertNotIn("missing ),", content)
 
@@ -3472,6 +3619,34 @@ class ReportTemplateListViewTests(TestCase):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "reporting/report_templates_list.html")
+
+    def test_tags_are_scoped_to_visible_templates(self):
+        self.templates[0].tags.add("visible-template-tag")
+
+        response = self.client_auth.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        tag_names = list(response.context["tags"].values_list("name", flat=True))
+        self.assertIn("visible-template-tag", tag_names)
+        self.assertNotIn("tag1", tag_names)
+        self.assertIn(
+            "visible-template-tag", response.context["autocomplete_data"]["tags"]
+        )
+        self.assertNotIn("tag1", response.context["autocomplete_data"]["tags"])
+
+    def test_template_filename_is_escaped_in_inline_javascript(self):
+        template = self.templates[0]
+        payload = "quote');window.templateFilenameXss=true;('.docx"
+        self.ReportTemplate.objects.filter(pk=template.pk).update(document=payload)
+
+        response = self.client_mgr.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            r"quote\u0027)\u003Bwindow.templateFilenameXss\u003Dtrue\u003B(\u0027.docx",
+        )
+        self.assertNotContains(response, payload)
 
     def test_template_filtering(self):
         response = self.client_auth.get(self.uri)
@@ -4334,7 +4509,13 @@ class GenerateReportTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.org, cls.project, cls.report = GenerateMockProject()
+        cls.project = ProjectFactory()
+        cls.report = ReportFactory(
+            project=cls.project,
+            docx_template=ReportDocxTemplateFactory(),
+            pptx_template=ReportPptxTemplateFactory(),
+        )
+        ReportFindingLinkFactory(report=cls.report)
         cls.user = UserFactory(password=PASSWORD)
         cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
         cls.uri = reverse("reporting:report_delete", kwargs={"pk": cls.report.pk})
@@ -4869,8 +5050,6 @@ class ReportTemplateFilterTests(TestCase):
             to_datetime(test_date, "%d %b %Y")
 
     def test_business_days_datetime(self):
-        end_date = self.test_date + timedelta(days=13)
-
         # Monday to Monday
         start_date = datetime(2025, 12, 1)
         end_date = datetime(2025, 12, 12)
@@ -5378,6 +5557,11 @@ class ObservationListViewTests(TestCase):
         self.assertNotIn("hidden-report-tag", tag_names)
         self.assertNotIn("hidden-project-tag", tag_names)
         self.assertNotIn("hidden-finding-tag", tag_names)
+        autocomplete_tags = response.context["autocomplete_data"]["tags"]
+        self.assertIn("visible-observation-tag", autocomplete_tags)
+        self.assertNotIn("hidden-report-tag", autocomplete_tags)
+        self.assertNotIn("hidden-project-tag", autocomplete_tags)
+        self.assertNotIn("hidden-finding-tag", autocomplete_tags)
 
     def test_tags_are_scoped_to_filtered_observation_queryset(self):
         other_observation = ObservationFactory(title="Other Observation")
@@ -5389,6 +5573,12 @@ class ObservationListViewTests(TestCase):
         tag_names = list(response.context["tags"].values_list("name", flat=True))
         self.assertIn("visible-observation-tag", tag_names)
         self.assertNotIn("other-observation-tag", tag_names)
+        self.assertIn(
+            "visible-observation-tag", response.context["autocomplete_data"]["tags"]
+        )
+        self.assertNotIn(
+            "other-observation-tag", response.context["autocomplete_data"]["tags"]
+        )
 
 
 class ObservationCreateViewTests(TestCase):

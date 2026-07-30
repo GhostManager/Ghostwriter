@@ -377,6 +377,18 @@ class BannerConfigurationTests(TestCase):
         except Exception:
             self.fail("BannerConfiguration model `get_solo` method failed unexpectedly!")
 
+    def test_safe_banner_link_allows_only_http_and_https(self):
+        entry = self.BannerConfiguration.get_solo()
+
+        entry.banner_link = "https://ghostwriter.wiki/security?source=banner&view=full"
+        self.assertEqual(entry.safe_banner_link, entry.banner_link)
+
+        entry.banner_link = "javascript:alert(document.domain)"
+        self.assertEqual(entry.safe_banner_link, "")
+
+        entry.banner_link = 'https://example.com/\" onclick=\"alert(1)'
+        self.assertEqual(entry.safe_banner_link, "")
+
 
 class ExtraFieldSpecModelTests(TestCase):
     """Collection of tests for :model:`commandcenter.ExtraFieldSpec`."""

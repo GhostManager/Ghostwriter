@@ -1,9 +1,13 @@
 # Standard Libraries
 import logging
+from datetime import datetime
+from datetime import timezone as datetime_timezone
+from unittest.mock import patch
 
 # Django Imports
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
+from django.utils import timezone
 
 # Ghostwriter Libraries
 from ghostwriter.factories import (
@@ -53,7 +57,7 @@ class OplogFormTests(TestCase):
         oplog = OplogFactory.build(project=project)
         form = self.form_data(user=self.user, **oplog.__dict__)
         self.assertFalse(form.is_valid())
-        self.assertTrue(form.errors.as_data()["project"][0].code == "invalid_choice")
+        self.assertEqual(form.errors.as_data()["project"][0].code, "invalid_choice")
 
         ProjectAssignmentFactory(operator=self.user, project=project)
         form = self.form_data(user=self.user, **oplog.__dict__)
@@ -125,6 +129,30 @@ class OplogEntryFormTests(TestCase):
         self.assertNotIn("no-auto-tinymce", form.fields["description"].widget.attrs.get("class", ""))
         self.assertNotIn("no-auto-tinymce", form.fields["comments"].widget.attrs.get("class", ""))
 
+    @patch("ghostwriter.oplog.forms.timezone.now")
+    def test_datetime_initials_use_active_timezone(self, mock_now):
+        mock_now.return_value = datetime(
+            2026,
+            1,
+            15,
+            20,
+            30,
+            45,
+            tzinfo=datetime_timezone.utc,
+        )
+
+        with timezone.override("America/Los_Angeles"):
+            form = OplogEntryForm(oplog=self.oplog)
+
+            self.assertEqual(
+                form["start_date"].value().strftime("%Y-%m-%dT%H:%M:%S"),
+                "2026-01-15T12:30:45",
+            )
+            self.assertEqual(
+                form["end_date"].value().strftime("%Y-%m-%dT%H:%M:%S"),
+                "2026-01-15T12:30:45",
+            )
+
     def test_invalid_data(self):
         entry = OplogEntryFactory.create()
         start_date = entry.start_date
@@ -163,7 +191,7 @@ class OplogEvidenceFormTests(TestCase):
         self.assertEqual(form.fields["report"].initial, self.report)
 
     def test_report_auto_selected_first_when_multiple_no_active(self):
-        second_report = ReportFactory(project=self.project)
+        _ = ReportFactory(project=self.project)
         form = OplogEvidenceForm(project=self.project)
         first_in_list = form.fields["report"].queryset.first()
         self.assertEqual(form.fields["report"].initial, first_in_list)

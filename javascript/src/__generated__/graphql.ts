@@ -948,7 +948,7 @@ export type AuthPermission_Bool_Exp = {
 
 /** unique or primary key constraints on table "auth_permission" */
 export enum AuthPermission_Constraint {
-  /** unique or primary key constraint on columns "codename", "content_type_id" */
+  /** unique or primary key constraint on columns "content_type_id", "codename" */
   AuthPermissionContentTypeIdCodename_01ab375aUniq = 'auth_permission_content_type_id_codename_01ab375a_uniq',
   /** unique or primary key constraint on columns "id" */
   AuthPermissionPkey = 'auth_permission_pkey'
@@ -8341,7 +8341,7 @@ export enum ExtraFieldSpec_Constraint {
   CommandcenterExtrafieldTargetModelIdInternal_75bb84caUniq = 'commandcenter_extrafield_target_model_id_internal_75bb84ca_uniq',
   /** unique or primary key constraint on columns "id" */
   CommandcenterExtrafieldspecPkey = 'commandcenter_extrafieldspec_pkey',
-  /** unique or primary key constraint on columns "position", "target_model_id" */
+  /** unique or primary key constraint on columns "target_model_id", "position" */
   CommandcenterExtrafieldspecUniquePositionPerModel = 'commandcenter_extrafieldspec_unique_position_per_model'
 }
 
@@ -18692,7 +18692,7 @@ export type Oplog_Oplogentryevidence_Bool_Exp = {
 
 /** unique or primary key constraints on table "oplog_oplogentryevidence" */
 export enum Oplog_Oplogentryevidence_Constraint {
-  /** unique or primary key constraint on columns "oplog_entry_id", "evidence_id" */
+  /** unique or primary key constraint on columns "evidence_id", "oplog_entry_id" */
   OplogOplogentryevidenceOplogEntryIdEvidence_8003540dUniq = 'oplog_oplogentryevidence_oplog_entry_id_evidence__8003540d_uniq',
   /** unique or primary key constraint on columns "id" */
   OplogOplogentryevidencePkey = 'oplog_oplogentryevidence_pkey'
@@ -34721,7 +34721,7 @@ export type TaggedItem_Bool_Exp = {
 
 /** unique or primary key constraints on table "taggit_taggeditem" */
 export enum TaggedItem_Constraint {
-  /** unique or primary key constraint on columns "object_id", "content_type_id", "tag_id" */
+  /** unique or primary key constraint on columns "tag_id", "content_type_id", "object_id" */
   TaggitTaggeditemContentTypeIdObjectIdTagId_4bb97a8eUni = 'taggit_taggeditem_content_type_id_object_id_tag_id_4bb97a8e_uni',
   /** unique or primary key constraint on columns "id" */
   TaggitTaggeditemPkey = 'taggit_taggeditem_pkey'
@@ -37649,7 +37649,7 @@ export type UserPermission_Bool_Exp = {
 export enum UserPermission_Constraint {
   /** unique or primary key constraint on columns "id" */
   UsersUserUserPermissionsPkey = 'users_user_user_permissions_pkey',
-  /** unique or primary key constraint on columns "permission_id", "user_id" */
+  /** unique or primary key constraint on columns "user_id", "permission_id" */
   UsersUserUserPermissionsUserIdPermissionId_43338c45Uniq = 'users_user_user_permissions_user_id_permission_id_43338c45_uniq'
 }
 

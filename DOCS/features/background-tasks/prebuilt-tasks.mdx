@@ -9,7 +9,7 @@ The following information is for Ghostwriter's provided tasks
 
 The `ghostwriter.shepherd.tasks.release_domains` function checks if the currently checked-out domain names are due to be released. If Slack is enabled, it sends a Slack message when the domain's release date is tomorrow or today. If the release date is today, the domain is also released back into the pool.
 
-The task accepts an optional `reset_dns` argument that defaults to `False`. If this argument is set to `True`, the task will use the Namecheap API to reset the domain's DNS records upon release. This feature requires:
+The task accepts an optional `no_action` argument that defaults to `False`. Set it to `True` to preview the domains due for release without changing their availability. Domains configured to reset their DNS records will use the Namecheap API during a normal release. DNS reset requires:
 
 * Namecheap API enabled and configured
 
@@ -43,25 +43,24 @@ If you will be using this task, the Q cluster needs to be started using an admin
 
 ## Namecheap Synchronization
 
-The `tasks.fetch_namecheap_domains` uses the Namecheap API to fetch all domains from the registrar for the configured account and synchronizes that information with the domain library. If a domain name is found in the library already, the task will update that record.
+The `ghostwriter.shepherd.tasks.fetch_namecheap_domains` task uses the Namecheap API to fetch all domains from the registrar for the configured account and synchronizes that information with the domain library. If a domain name is found in the library already, the task will update that record.
 
 If a Namecheap-registered domain in the Ghostwriter library is not found in the fresh list of domains, the task will mark that domain as expired.
 
 ## Cloud Monitoring
 
-The `review_cloud_infrastructure` task uses the Amazon Web Services and Digital Ocean APIs to check all running server instances and compare those to cloud servers attached to projects. If a project is marked as complete, the task will flag any running cloud servers attached to that project for review.
+The `ghostwriter.shepherd.tasks.review_cloud_infrastructure` task uses the Amazon Web Services and Digital Ocean APIs to check all running server instances and compare those to cloud servers attached to projects. If a project is marked as complete, the task will flag any running cloud servers attached to that project for review.
 
 The task will send a Slack message with all relevant server data to the project's channel if Slack is enabled.
 
 ## Update Expiration
 
-The `check_expiration` task checks the expiration dates of all domains in the domain library and compares them to the current date. If the domain is set to auto-renew, the task will increment the expiration date by one year. Otherwise, the task will mark the domain as expired.
+The `ghostwriter.shepherd.tasks.check_expiration` task checks the expiration dates of all domains in the domain library and compares them to the current date. If the domain is set to auto-renew, the task will increment the expiration date by one year. Otherwise, the task will mark the domain as expired.
 
 ## Operation Log Monitor
 
-The `ghostwriter.modules.oplog_monitors.review_activity_logs` task checks operation logs for activity. It reviews all logs for all active projects. By default, the task looks for an entry created in the past 24 hours. You can change the hours by setting the `hours` argument when scheduling the task.
+The `ghostwriter.modules.oplog_monitors.review_active_logs` task checks operation logs for activity. It reviews all logs for all active projects. By default, the task looks for an entry created in the past 24 hours. You can change the hours by setting the `hours` argument when scheduling the task.
 
 The task outputs JSON detailing all activity logs that appear to be idle. This is useful for catching automated activity logging that may have started failing.
 
 If a Slack webhook is enabled and configured, the task will also send a Slack message to the project's Slack channel (if configured) or the global Slack channel.
-

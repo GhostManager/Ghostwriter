@@ -19,7 +19,7 @@ def convert_to_jsonfield(apps, schema_editor):
                 record = json.loads(json_acceptable_string)
             entry.dns = record
             entry.save()
-        except:
+        except (AttributeError, TypeError, ValueError):
             entry.dns = {}
             entry.save()
 

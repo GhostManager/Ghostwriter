@@ -275,6 +275,190 @@
         });
     }
 
+    const GW_NOW_SHORTCUT_TOKEN = '@now';
+    const GW_TIME_SHORTCUT_TOKEN = '@time';
+    const GW_NOW_SHORTCUT_TIME_ZONE = 'UTC';
+    const GW_TODAY_SHORTCUT_TOKEN = '@today';
+    const GW_DATE_SHORTCUT_TOKEN = '@date';
+
+    function gwCreateShortcutBoundaryPattern(includeAllWhitespace) {
+        const whitespacePattern = includeAllWhitespace ? '\\s' : ' ';
+        try {
+            return new RegExp(`^(?:${whitespacePattern}|\\p{P})$`, 'u');
+        } catch (error) {
+            if (!(error instanceof SyntaxError)) {
+                throw error;
+            }
+            return new RegExp(
+                `^(?:${whitespacePattern}|[\\x21-\\x2f\\x3a-\\x40\\x5b-\\x60\\x7b-\\x7e])$`
+            );
+        }
+    }
+
+    const GW_SHORTCUT_BOUNDARY_PATTERN = gwCreateShortcutBoundaryPattern(true);
+    const GW_SHORTCUT_TRIGGER_PATTERN = gwCreateShortcutBoundaryPattern(false);
+
+    function gwFormatNowShortcut(date) {
+        const parts = {};
+        const formatter = new Intl.DateTimeFormat('en-US', {
+            timeZone: GW_NOW_SHORTCUT_TIME_ZONE,
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hourCycle: 'h23',
+        });
+
+        formatter.formatToParts(date || new Date()).forEach(function (part) {
+            if (part.type !== 'literal') {
+                parts[part.type] = part.value;
+            }
+        });
+
+        return `${parts.hour}:${parts.minute}:${parts.second} ${GW_NOW_SHORTCUT_TIME_ZONE}`;
+    }
+
+    function gwGetConfiguredCurrentDate() {
+        return window.GW_EDITOR_SHORTCUTS
+            ? window.GW_EDITOR_SHORTCUTS.currentDate()
+            : '';
+    }
+
+    function gwResolveConfiguredCurrentDate() {
+        return window.GW_EDITOR_SHORTCUTS &&
+            typeof window.GW_EDITOR_SHORTCUTS.resolveCurrentDate === 'function'
+            ? window.GW_EDITOR_SHORTCUTS.resolveCurrentDate()
+            : Promise.resolve('');
+    }
+
+    function gwInsertPlainText(editor, text) {
+        editor.insertContent(editor.dom.encode(text));
+    }
+
+    function gwReplacePendingShortcut(editor, range, token, replacement) {
+        const editorBody = editor.getBody();
+        if (
+            !replacement ||
+            !editorBody ||
+            !editorBody.contains(range.commonAncestorContainer) ||
+            range.toString() !== token
+        ) {
+            return;
+        }
+
+        const activeRange = editor.selection.getRng().cloneRange();
+        editor.undoManager.transact(function () {
+            editor.selection.setRng(range);
+            gwInsertPlainText(editor, replacement);
+        });
+
+        if (editorBody.contains(activeRange.commonAncestorContainer)) {
+            editor.selection.setRng(activeRange);
+        }
+    }
+
+    const GW_DATE_TIME_SHORTCUTS = [
+        {
+            token: GW_NOW_SHORTCUT_TOKEN,
+            replacement: gwFormatNowShortcut,
+        },
+        {
+            token: GW_TIME_SHORTCUT_TOKEN,
+            replacement: gwFormatNowShortcut,
+        },
+        {
+            token: GW_TODAY_SHORTCUT_TOKEN,
+            replacement: gwGetConfiguredCurrentDate,
+            resolveReplacement: gwResolveConfiguredCurrentDate,
+        },
+        {
+            token: GW_DATE_SHORTCUT_TOKEN,
+            replacement: gwGetConfiguredCurrentDate,
+            resolveReplacement: gwResolveConfiguredCurrentDate,
+        },
+    ];
+
+    function gwExpandDateTimeShortcut(editor, event) {
+        if (
+            !GW_SHORTCUT_TRIGGER_PATTERN.test(event.key) ||
+            event.defaultPrevented ||
+            event.isComposing ||
+            event.ctrlKey ||
+            event.metaKey ||
+            event.altKey
+        ) {
+            return false;
+        }
+
+        const selectedNode = editor.selection.getNode();
+        if (
+            editor.dom.is(selectedNode, 'code,pre') ||
+            editor.dom.getParent(selectedNode, 'code,pre')
+        ) {
+            return false;
+        }
+
+        const range = editor.selection.getRng();
+        const container = range.startContainer;
+        const offset = range.startOffset;
+        if (
+            !range.collapsed ||
+            container.nodeType !== 3 ||
+            offset < GW_NOW_SHORTCUT_TOKEN.length
+        ) {
+            return false;
+        }
+
+        let shortcut = null;
+        for (const candidate of GW_DATE_TIME_SHORTCUTS) {
+            const candidateStart = offset - candidate.token.length;
+            if (
+                candidateStart >= 0 &&
+                container.data.slice(candidateStart, offset) === candidate.token
+            ) {
+                shortcut = candidate;
+                break;
+            }
+        }
+        if (!shortcut) {
+            return false;
+        }
+
+        const tokenStart = offset - shortcut.token.length;
+        const textBeforeToken = container.data.slice(0, tokenStart);
+        if (
+            textBeforeToken &&
+            !GW_SHORTCUT_BOUNDARY_PATTERN.test(textBeforeToken.slice(-1))
+        ) {
+            return false;
+        }
+
+        const replacement = shortcut.replacement();
+        if (!replacement) {
+            if (shortcut.resolveReplacement) {
+                const pendingRange = range.cloneRange();
+                pendingRange.setStart(container, tokenStart);
+                shortcut.resolveReplacement().then(function (resolvedReplacement) {
+                    gwReplacePendingShortcut(
+                        editor,
+                        pendingRange,
+                        shortcut.token,
+                        resolvedReplacement
+                    );
+                });
+            }
+            return false;
+        }
+
+        event.preventDefault();
+        const replacementRange = range.cloneRange();
+        replacementRange.setStart(container, tokenStart);
+        editor.undoManager.transact(function () {
+            editor.selection.setRng(replacementRange);
+            gwInsertPlainText(editor, `${replacement}${event.key}`);
+        });
+        return true;
+    }
+
     const GW_TINYMCE_DEFAULT_CONFIG = window.GW_TINYMCE_DEFAULT_CONFIG = {
         entity_encoding: 'raw',
         branding: false,
@@ -420,6 +604,10 @@
         table_default_attributes: {class: 'table table-sm table-striped table-bordered'},
         table_header_type: 'sectionCells',
         setup: function(editor) {
+            if (window.GW_EDITOR_SHORTCUTS) {
+                window.GW_EDITOR_SHORTCUTS.activate();
+            }
+
             editor.ui.registry.addButton('codeInline', {
                 context: 'format',
                 icon: 'sourcecode',
@@ -464,6 +652,10 @@
             });
 
             editor.on('keydown', function (event) {
+                if (gwExpandDateTimeShortcut(editor, event)) {
+                    return;
+                }
+
                 if (
                     event.key === 'Enter' &&
                     (event.ctrlKey || event.metaKey) &&

@@ -2,6 +2,7 @@
 import logging
 import os
 from datetime import datetime, timezone
+from unittest.mock import patch
 
 # Django Imports
 from django.db import IntegrityError
@@ -112,12 +113,16 @@ class OplogEntryModelTests(TestCase):
 
         self.assertGreater(entry.updated_at, original_updated_at)
 
-    def test_pre_save_signal(self):
+    @patch("ghostwriter.oplog.signals.timezone.now")
+    def test_pre_save_signal(self, mock_now):
+        expected_now = datetime(2026, 1, 15, 20, 30, 45, tzinfo=timezone.utc)
+        mock_now.return_value = expected_now
+
         entry = OplogEntryFactory(start_date=None, end_date=None)
         entry.tool = "Rubeus.exe"
         entry.save()
-        self.assertIsInstance(entry.start_date, datetime)
-        self.assertIsInstance(entry.end_date, datetime)
+        self.assertEqual(entry.start_date, expected_now)
+        self.assertEqual(entry.end_date, expected_now)
 
     def test_invalid_dates(self):
         valid_start_date = datetime.now(timezone.utc)

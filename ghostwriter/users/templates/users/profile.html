@@ -195,7 +195,7 @@
                     </td>
                     <td>
                       <div class="btn-group" role="group" aria-label="API token actions">
-                        <a id="token-details-button-{{ key.id }}" class="btn btn-info btn-sm js-api-token-details js-token-details"
+                        <a id="token-details-button-{{ key.id }}" class="btn btn-info btn-sm token-action-button js-api-token-details js-token-details"
                            data-details-url="{% url 'api:ajax_token_details' key.id %}"
                            data-modal-selector="#api-token-details-modal"
                            data-content-selector="#api-token-details-modal-content"
@@ -206,7 +206,7 @@
                            href="javascript:void(0);">
                           Details
                         </a>
-                        <a id="token-expiry-button-{{ key.id }}" class="btn btn-secondary btn-sm js-edit-token-expiry" data-toggle="modal"
+                        <a id="token-expiry-button-{{ key.id }}" class="btn btn-secondary btn-sm token-action-button js-edit-token-expiry" data-toggle="modal"
                            data-target="#edit-token-expiry-modal" href="javascript:void(0);"
                            data-expiry-target-url="{% url 'api:update_token_expiry' key.id %}"
                            data-expiry-target-preview="{{ key.name }}"
@@ -219,13 +219,13 @@
                           {% csrf_token %}
                           {% if key.has_expired %}
                             <span class="d-flex" data-toggle="tooltip" tabindex="0" title="Extend expiry before regenerating this token.">
-                              <button id="token-regenerate-button-{{ key.id }}" class="btn btn-primary btn-sm rounded-0 h-100" type="submit" disabled>Regenerate</button>
+                              <button id="token-regenerate-button-{{ key.id }}" class="btn btn-primary btn-sm rounded-0 h-100 token-action-button" type="submit" disabled>Regenerate</button>
                             </span>
                           {% else %}
-                            <button id="token-regenerate-button-{{ key.id }}" class="btn btn-primary btn-sm rounded-0 h-100" type="submit">Regenerate</button>
+                            <button id="token-regenerate-button-{{ key.id }}" class="btn btn-primary btn-sm rounded-0 h-100 token-action-button" type="submit">Regenerate</button>
                           {% endif %}
                         </form>
-                        <a id="token-revoke-button-{{ key.id }}" class="btn btn-danger btn-sm js-confirm-revoke" data-toggle="modal"
+                        <a id="token-revoke-button-{{ key.id }}" class="btn btn-danger btn-sm token-action-button js-confirm-revoke" data-toggle="modal"
                            data-target="#confirm-revoke-modal" href="javascript:void(0);"
                            data-revoke-target-csrftoken="{{ csrf_token }}" data-revoke-target-url="{% url 'api:ajax_revoke_token' key.id %}"
                            data-revoke-target-id="{{ key.id }}" data-revoke-target-preview="{{ key.name }}">
@@ -282,7 +282,7 @@
                   </td>
                   <td>
                     <div class="btn-group" role="group" aria-label="Service token actions">
-                      <a id="service-token-details-button-{{ key.id }}" class="btn btn-info btn-sm js-service-token-details js-token-details"
+                      <a id="service-token-details-button-{{ key.id }}" class="btn btn-info btn-sm token-action-button js-service-token-details js-token-details"
                          data-details-url="{% url 'api:ajax_service_token_details' key.id %}"
                          data-modal-selector="#service-token-details-modal"
                          data-content-selector="#service-token-details-modal-content"
@@ -293,7 +293,7 @@
                          href="javascript:void(0);">
                         Details
                       </a>
-                      <a id="service-token-expiry-button-{{ key.id }}" class="btn btn-secondary btn-sm js-edit-token-expiry" data-toggle="modal"
+                      <a id="service-token-expiry-button-{{ key.id }}" class="btn btn-secondary btn-sm token-action-button js-edit-token-expiry" data-toggle="modal"
                          data-target="#edit-token-expiry-modal" href="javascript:void(0);"
                          data-expiry-target-url="{% url 'api:update_service_token_expiry' key.id %}"
                          data-expiry-target-preview="{{ key.name }}"
@@ -306,13 +306,13 @@
                         {% csrf_token %}
                         {% if key.has_expired %}
                           <span class="d-flex" data-toggle="tooltip" tabindex="0" title="Extend expiry before regenerating this token.">
-                            <button id="service-token-regenerate-button-{{ key.id }}" class="btn btn-primary btn-sm rounded-0 h-100" type="submit" disabled>Regenerate</button>
+                            <button id="service-token-regenerate-button-{{ key.id }}" class="btn btn-primary btn-sm rounded-0 h-100 token-action-button" type="submit" disabled>Regenerate</button>
                           </span>
                         {% else %}
-                          <button id="service-token-regenerate-button-{{ key.id }}" class="btn btn-primary btn-sm rounded-0 h-100" type="submit">Regenerate</button>
+                          <button id="service-token-regenerate-button-{{ key.id }}" class="btn btn-primary btn-sm rounded-0 h-100 token-action-button" type="submit">Regenerate</button>
                         {% endif %}
                       </form>
-                      <a id="service-token-revoke-button-{{ key.id }}" class="btn btn-danger btn-sm js-confirm-revoke" data-toggle="modal"
+                      <a id="service-token-revoke-button-{{ key.id }}" class="btn btn-danger btn-sm token-action-button js-confirm-revoke" data-toggle="modal"
                          data-target="#confirm-revoke-modal" href="javascript:void(0);"
                          data-revoke-target-csrftoken="{{ csrf_token }}" data-revoke-target-url="{% url 'api:ajax_revoke_service_token' key.id %}"
                          data-revoke-target-id="{{ key.id }}" data-revoke-target-preview="{{ key.name }}">
@@ -507,7 +507,9 @@
           let visibleRows = $rows.filter(function () {
             return $(this).css('display') !== 'none';
           }).length;
-          let allRowsHidden = hideCheckbox.prop('checked') && $rows.length > 0 && visibleRows === 0;
+          let allRowsHidden = $rows.length === 0 || (
+            hideCheckbox.prop('checked') && visibleRows === 0
+          );
 
           replaceTokenTableState($tableResponsive, $hiddenAlert, allRowsHidden, animate);
         });
@@ -607,9 +609,9 @@
           '<div class="modal-content">' +
           '<div class="modal-header"><h5 class="modal-title">Your Replacement Token</h5></div>' +
           '<div class="modal-body confirm-token"><code></code></div>' +
-          '<div class="modal-footer">' +
-          '<p class="start-0 position-absolute pl-2">Please store it somewhere safe; you will not be able to see it again!</p>' +
-          '<button type="button" class="btn btn-danger" data-dismiss="modal">I Saved It</button>' +
+          '<div class="modal-footer d-flex flex-column align-items-stretch">' +
+          '<p class="mb-2 text-left">Please store it somewhere safe; you will not be able to see it again!</p>' +
+          '<button type="button" class="btn btn-danger align-self-end" data-dismiss="modal">I Saved It</button>' +
           '</div>' +
           '</div></div></div>';
         let $replacementModal = $(modalHtml);
@@ -672,14 +674,25 @@
         }).fail(function (xhr) {
           if (xhr.status === 410 && xhr.responseJSON && xhr.responseJSON.token_id) {
             let tokenId = xhr.responseJSON.token_id;
-            $("#service_token_" + tokenId).remove();
+            let isApiToken = $target.hasClass('js-api-token-details');
+            let rowSelector = (isApiToken ? "#token_" : "#service_token_") + tokenId;
+            let tableSelector = isApiToken ? "#tokenTable" : "#serviceTokenTable";
+            let $table = $(tableSelector);
+
+            $(rowSelector).remove();
             $modal.modal('hide');
-            if ($("#serviceTokenTable .js-token-row").length === 0) {
-              $("#serviceTokenTable").addClass("d-none");
-              $("#serviceTokenTable").closest(".js-token-table-responsive").addClass("d-none");
-              $("#serviceTokenTable").closest(".card-body").find(".js-token-table-empty-alert").removeClass("d-none");
+            if ($table.find(".js-token-row").length === 0) {
+              $table.addClass("d-none");
+              $table.closest(".js-token-table-responsive").addClass("d-none");
+              let $emptyAlert = $table.closest(".js-token-table-section")
+                .find(".js-token-table-empty-alert");
+              $emptyAlert.removeClass("d-none").show();
             }
-            showToast("warning", xhr.responseJSON.message || "Service token scope is no longer accessible.");
+            displayToastTop({
+              type: 'warning',
+              string: xhr.responseJSON.message || 'Token scope is no longer accessible.',
+              title: 'Warning',
+            });
             return;
           }
           $content.html(errorHtml);
@@ -797,10 +810,9 @@
             <div class="modal-body confirm-token">
               <code>{{ message }}</code>
             </div>
-            <div class="modal-footer">
-              <p class="start-0 position-absolute pl-2">Please store it somewhere safe; you will not be able to see it
-                again!</p>
-              <button type="button" class="btn btn-danger" data-dismiss="modal">I Saved It</button>
+            <div class="modal-footer d-flex flex-column align-items-stretch">
+              <p class="mb-2 text-left">Please store it somewhere safe; you will not be able to see it again!</p>
+              <button type="button" class="btn btn-danger align-self-end" data-dismiss="modal">I Saved It</button>
             </div>
           </div>
         </div>

@@ -5,7 +5,7 @@ description: Configuring and scheduling background tasks
 
 Ghostwriter uses the [Django Q project](https://django-q.readthedocs.io/en/latest/) for queuing and managing background tasks. Django Q hands off tasks to the Redis server (already installed and running in Docker).
 
-Tasks are defined in the `tasks.py` file. These tasks can be executed on demand or on a schedule.
+Tasks are Python functions, usually defined in a `tasks.py` module. Ghostwriter executes some tasks on demand from the application. Only functions approved by the server-side Django Q policy can be added to a schedule in the admin panel.
 
 Tasks can be queued in a few different ways:
 
@@ -14,4 +14,3 @@ Tasks can be queued in a few different ways:
 * Use the buttons (various) in Ghostwriter's web interface.
 
 * Use a REST API endpoint (not yet available).
-

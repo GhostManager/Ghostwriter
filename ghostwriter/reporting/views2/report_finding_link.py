@@ -545,7 +545,7 @@ class ReportFindingAssign(RoleBasedAccessControlMixin, UpdateView):
             )
         except gaierror:
             # WebSocket are unavailable (unit testing)
-            pass
+            logger.debug("Unable to send finding assignment update over WebSocket.", exc_info=True)
         if self.object.assigned_to:
             messages.success(self.request, "Finding reassigned successfully.")
         else:

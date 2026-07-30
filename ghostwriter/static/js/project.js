@@ -127,7 +127,12 @@ function update_badges() {
 // Escape HTML characters in a string to make it safe for display
 function jsEscape(s) {
     if (s) {
-        return s.toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+        return s.toString()
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#x27;');
     } else {
         return '';
     }

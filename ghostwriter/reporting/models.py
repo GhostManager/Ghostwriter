@@ -60,14 +60,16 @@ class EvidenceImageAlignmentOverride(models.TextChoices):
     RIGHT = EvidenceImageAlignment.RIGHT, EvidenceImageAlignment.RIGHT.label
 
 
+def get_default_severity_weight():
+    """Return the default weight for a new :class:`Severity` instance."""
+    return Severity.objects.count() + 1
+
+
 class Severity(models.Model):
     """Stores an individual severity rating."""
 
-    def get_default_weight():
-        """
-        Return the default weight for a new :model:`reporting.Severity` instance.
-        """
-        return Severity.objects.count() + 1
+    # Retained for the historical migration that references this path.
+    get_default_weight = staticmethod(get_default_severity_weight)
 
     severity = models.CharField(
         "Severity",
@@ -77,7 +79,7 @@ class Severity(models.Model):
     )
     weight = models.IntegerField(
         "Severity Weight",
-        default=get_default_weight,
+        default=get_default_severity_weight,
         validators=[MinValueValidator(1)],
         help_text="Weight for sorting severity categories in reports (lower numbers are more severe)",
     )
@@ -119,7 +121,7 @@ class Severity(models.Model):
             try:
                 old_entry = self.__class__.objects.get(pk=self.pk)
             except self.__class__.DoesNotExist:
-                pass
+                logger.debug("Severity %s has no previous database entry.", self.pk, exc_info=True)
 
         # A ``pre_save`` Signal is connected to this model and runs this ``clean()`` method
         # whenever ``save()`` is called
