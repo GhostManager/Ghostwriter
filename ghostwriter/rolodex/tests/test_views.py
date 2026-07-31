@@ -1162,6 +1162,13 @@ class ProjectDetailViewTests(TestCase):
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
 
+    def test_report_activation_treats_report_title_as_text(self):
+        response = self.client_mgr.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "activeReportBar.text(data['report']);")
+        self.assertNotContains(response, "activeReportBar.html(data['report']);")
+
     def test_calendar_escapes_user_controlled_titles_for_javascript(self):
         payload = "'+(function(){window.calendarXss=true})()+'</script>"
         self.user.name = payload
