@@ -12,7 +12,11 @@ from django.db.models import Model
 from ghostwriter.commandcenter.models import CompanyInformation, ExtraFieldSpec
 from ghostwriter.modules.reportwriter import prepare_jinja2_env
 from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
-from ghostwriter.modules.reportwriter.base.html_rich_text import LazilyRenderedTemplate, rich_text_template
+from ghostwriter.modules.reportwriter.base.html_rich_text import (
+    HtmlRichText,
+    LazilyRenderedTemplate,
+    rich_text_template,
+)
 
 
 class ExportBase:
@@ -130,6 +134,27 @@ class ExportBase:
                     f"extra field {field.internal_name} of {location}",
                     str(extra_fields[field.internal_name]),
                     context,
+                )
+
+    def process_literal_extra_fields(
+        self,
+        location: str,
+        extra_fields: dict,
+        model,
+    ):
+        """
+        Fill extra-field defaults without treating rich-text values as templates.
+
+        This is used for data sources such as operation logs, whose values may
+        contain Jinja payloads recorded during an assessment.
+        """
+        for field in self.extra_field_specs_for(model):
+            if field.internal_name not in extra_fields:
+                extra_fields[field.internal_name] = field.empty_value()
+            if field.type == "rich_text":
+                extra_fields[field.internal_name] = HtmlRichText(
+                    str(extra_fields[field.internal_name]),
+                    f"extra field {field.internal_name} of {location}",
                 )
 
     def map_rich_texts(self):
