@@ -123,6 +123,64 @@ class RichTextToDocxTests(SimpleTestCase):
         self.assertNotIn("BBBB", [paragraph.text for paragraph in doc.paragraphs])
         self.assertNotIn("CCCC", [paragraph.text for paragraph in doc.paragraphs])
 
+    def test_table_cell_block_elements_remain_in_the_cell(self):
+        cases = {
+            "blockquote": (
+                "<blockquote><p>AAAA</p><p>BBBB</p></blockquote>",
+                ["AAAA", "BBBB"],
+            ),
+            "code block after paragraph": (
+                "<p>AAAA</p><pre><code>BBBB</code></pre>",
+                ["AAAA", "BBBB"],
+            ),
+            "bullet list": (
+                "<ul><li><p>AAAA</p></li><li><p>BBBB</p></li></ul>",
+                ["AAAA", "BBBB"],
+            ),
+            "numbered list": (
+                "<ol><li><p>AAAA</p></li><li><p>BBBB</p></li></ol>",
+                ["AAAA", "BBBB"],
+            ),
+            "heading": ("<h3>AAAA</h3><p>BBBB</p>", ["AAAA", "BBBB"]),
+            "page break": (
+                '<p>AAAA</p><div class="page-break"></div><p>BBBB</p>',
+                ["AAAA", "", "BBBB"],
+            ),
+        }
+
+        for name, (cell_html, expected_paragraphs) in cases.items():
+            with self.subTest(name=name):
+                doc = docx.Document()
+                HtmlToDocx.run(
+                    f"<table><tr><td>{cell_html}</td></tr></table>",
+                    doc,
+                    None,
+                )
+
+                self.assertEqual(
+                    [
+                        paragraph.text
+                        for paragraph in doc.tables[0].cell(0, 0).paragraphs
+                    ],
+                    expected_paragraphs,
+                )
+                self.assertEqual([paragraph.text for paragraph in doc.paragraphs], [])
+
+                cell_paragraphs = doc.tables[0].cell(0, 0).paragraphs
+                if name in ("bullet list", "numbered list"):
+                    self.assertTrue(
+                        all(
+                            paragraph._p.pPr.numPr is not None
+                            for paragraph in cell_paragraphs
+                        )
+                    )
+                elif name == "heading":
+                    self.assertEqual(cell_paragraphs[0].style.name, "Heading 3")
+                elif name == "page break":
+                    self.assertTrue(
+                        cell_paragraphs[1]._p.xpath('.//w:br[@w:type="page"]')
+                    )
+
     def test_safe_links_are_preserved(self):
         doc = docx.Document()
         HtmlToDocx.run('<p><a href="https://example.com">Example</a></p>', doc, None)
@@ -993,6 +1051,50 @@ class HtmlToDocxWithEvidenceTests(TestCase):
                 )
 
         self.assertEqual(paragraph.alignment, WD_ALIGN_PARAGRAPH.LEFT)
+
+    def test_text_evidence_remains_in_table_cell(self):
+        report_template = ReportDocxTemplateFactory()
+        report_config = ReportConfiguration.get_solo()
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            evidence_name = "gw-evidence-table-cell.txt"
+            evidence_path = os.path.join(temp_dir, evidence_name)
+            with open(evidence_path, "w", encoding="utf-8") as evidence_file:
+                evidence_file.write("evidence contents")
+
+            for caption_location in ("top", "bottom"):
+                with self.subTest(caption_location=caption_location):
+                    report_config.figure_caption_location = caption_location
+                    doc = docx.Document()
+                    with override_settings(MEDIA_ROOT=temp_dir):
+                        HtmlToDocxWithEvidence.run(
+                            '<table><tr><td><div class="richtext-evidence" '
+                            'data-evidence-id="1"></div></td></tr></table>',
+                            doc,
+                            evidences={
+                                1: {
+                                    "path": evidence_name,
+                                    "friendly_name": "Evidence",
+                                    "caption": "Caption",
+                                }
+                            },
+                            report_template=report_template,
+                            global_report_config=report_config,
+                            images={},
+                        )
+
+                    cell_paragraphs = doc.tables[0].cell(0, 0).paragraphs
+                    body_text = "\n".join(
+                        paragraph.text for paragraph in doc.paragraphs
+                    )
+                    self.assertNotIn("evidence contents", body_text)
+                    self.assertNotIn("Caption", body_text)
+                    self.assertIn(
+                        "evidence contents",
+                        [paragraph.text for paragraph in cell_paragraphs],
+                    )
+                    caption_index = -1 if caption_location == "bottom" else 0
+                    self.assertIn("Caption", cell_paragraphs[caption_index].text)
 
     def test_image_alignment_uses_global_default_when_template_defers(self):
         report_template = ReportDocxTemplateFactory(

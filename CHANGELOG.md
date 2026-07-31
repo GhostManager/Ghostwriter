@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+* Fixed block-level rich-text content rendering outside table cells in Word reports
+  * Headings, blockquotes, code blocks, lists, page breaks, evidence, images, and captions now remain in their original cells
 * Corrected the AJAX URL for deleting report observations
   * This fixed a typo in the path, but had no effect on functionality
 * Fixed activity-log sanitization confirmation and scoped its CSRF header to its own request

@@ -9,7 +9,7 @@ from django.conf import settings
 
 # 3rd Party Libraries
 import docx
-from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_COLOR_INDEX
+from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_BREAK, WD_COLOR_INDEX
 from docx.image.exceptions import UnrecognizedImageError
 from docx.oxml.shared import OxmlElement, qn
 from docx.shared import Inches, Pt
@@ -41,6 +41,7 @@ EVIDENCE_IMAGE_ALIGNMENT_MAP = {
 # Word limits bookmark names to 40 characters; hidden aliases add ``_Ref``.
 WORD_BOOKMARK_BASE_NAME_MAX_LENGTH = 36
 WORD_BOOKMARK_INVALID_CHARACTERS = re.compile(r"[^A-Za-z0-9_]")
+_PARAGRAPH_STYLE_UNSET = object()
 
 
 def normalize_bookmark_name(name: str) -> str:
@@ -62,6 +63,31 @@ class HtmlToDocx(BaseHtmlToOOXML):
         super().__init__()
         self.doc = doc
         self.p_style = p_style
+
+    @staticmethod
+    def _paragraph_has_content(par):
+        """Return whether a paragraph contains content beyond its properties."""
+        return any(child.tag != qn("w:pPr") for child in par._p)
+
+    def _paragraph_for_block(self, par=None, style=_PARAGRAPH_STYLE_UNSET):
+        """Return an empty paragraph in the current block container."""
+        if par is not None and not self._paragraph_has_content(par):
+            block_par = par
+        else:
+            parent = getattr(par, "_parent", None)
+            if parent is None or not hasattr(parent, "add_paragraph"):
+                parent = self.doc
+            block_par = parent.add_paragraph()
+
+        if style is not _PARAGRAPH_STYLE_UNSET:
+            try:
+                block_par.style = style
+            except KeyError:
+                logger.debug(
+                    "The DOCX template does not define the requested paragraph style.",
+                    exc_info=True,
+                )
+        return block_par
 
     def text(self, el, *, par=None, style={}, **kwargs):
         # Process hyperlinks on top of the usual text rules
@@ -148,15 +174,24 @@ class HtmlToDocx(BaseHtmlToOOXML):
     def tag_br(self, el, *, par=None, **kwargs):
         self.text_tracking.new_block()
         if "data-gw-pagebreak" in el.attrs:
-            self.doc.add_page_break()
+            if par is None:
+                self.doc.add_page_break()
+            else:
+                par.add_run().add_break(WD_BREAK.PAGE)
         elif par is not None:
             run = par.add_run()
             run.add_break()
 
-    def _tag_h(self, el, **kwargs):
+    def _tag_h(self, el, *, par=None, **kwargs):
         heading_num = int(el.name[1:])
         self.text_tracking.new_block()
-        heading_paragraph = self.doc.add_heading(el.text, heading_num)
+        if par is None:
+            heading_paragraph = self.doc.add_heading(el.text, heading_num)
+        else:
+            heading_paragraph = self._paragraph_for_block(
+                par, style=f"Heading {heading_num}"
+            )
+            heading_paragraph.add_run(el.text)
 
         bookmark_name = el.attrs.get("data-bookmark", el.attrs.get("id"))
         if bookmark_name and heading_paragraph.runs:
@@ -186,25 +221,8 @@ class HtmlToDocx(BaseHtmlToOOXML):
 
     def tag_p(self, el, *, par=None, **kwargs):
         self.text_tracking.new_block()
-        if par is not None:
-            # <p> nested in another block element like blockquote, use or copy the paragraph object
-            if any(run.text for run in par.runs):
-                # Paragraph has things in it already, make a new one but copy the style
-                # Add the paragraph to the same container as the current one.
-                # In a table cell, ``self.doc.add_paragraph`` adds it after the
-                # table, rather than in the cell.
-                parent = par._parent
-                if hasattr(parent, "add_paragraph"):
-                    par = parent.add_paragraph(style=par.style)
-                else:
-                    par = self.doc.add_paragraph(style=par.style)
-        else:
-            # Top level <p>
-            par = self.doc.add_paragraph()
-            try:
-                par.style = self.p_style
-            except KeyError:
-                logger.debug("The DOCX template does not define the requested paragraph style.", exc_info=True)
+        style = par.style if par is not None else self.p_style
+        par = self._paragraph_for_block(par, style=style)
 
         par_classes = set(el.attrs.get("class", []))
         if "left" in par_classes:
@@ -219,14 +237,7 @@ class HtmlToDocx(BaseHtmlToOOXML):
         self.process_children(el, par=par, **kwargs)
 
     def tag_pre(self, el, *, par=None, **kwargs):
-        if par is not None and not any(run.text for run in par.runs):
-            # Use provided empty paragraph
-            pass
-        elif par is not None:
-            # Nested in li or some other element, copy style
-            par = self.doc.add_paragraph(style=par.style)
-        else:
-            par = self.doc.add_paragraph()
+        par = self._paragraph_for_block(par)
 
         par.alignment = WD_ALIGN_PARAGRAPH.LEFT
 
@@ -260,12 +271,14 @@ class HtmlToDocx(BaseHtmlToOOXML):
 
         is_ordered = el.name == "ol"
 
-        # Create paragraphs for each list item
+        # Create paragraphs for each list item in the same container as the
+        # paragraph supplied by a surrounding table cell or list item.
+        container_par = par
         for child in el.children:
             if child.name != "li":
                 # TODO: log
                 continue
-            par = self.doc.add_paragraph()
+            par = self._paragraph_for_block(container_par)
             self.text_tracking.new_block()
             list_tracking.add_paragraph(par, this_list_level, is_ordered)
             self.process_children(
@@ -284,20 +297,20 @@ class HtmlToDocx(BaseHtmlToOOXML):
     def tag_blockquote(self, el, par=None, **kwargs):
         # TODO: if done in a list, this won't preserve the level.
         # Not sure how to do that, since this requires a new paragraph.
-        par = self.doc.add_paragraph()
+        par = self._paragraph_for_block(par, style="Blockquote")
         self.text_tracking.new_block()
-        try:
-            par.style = "Blockquote"
-        except KeyError:
-            logger.debug("The DOCX template does not define the Blockquote style.", exc_info=True)
         self.process_children(el.children, par=par, **kwargs)
 
-    def tag_div(self, el, **kwargs):
+    def tag_div(self, el, *, par=None, **kwargs):
         if "page-break" in el.attrs.get("class", []):
             self.text_tracking.new_block()
-            self.doc.add_page_break()
+            if par is None:
+                self.doc.add_page_break()
+            else:
+                page_break_par = self._paragraph_for_block(par)
+                page_break_par.add_run().add_break(WD_BREAK.PAGE)
         else:
-            super().tag_div(el, **kwargs)
+            super().tag_div(el, par=par, **kwargs)
 
     def tag_span(self, el, *, par, **kwargs):
         """Override tag_span to handle footnotes."""
@@ -481,7 +494,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         if self.global_report_config.table_caption_location == "bottom":
             self._mk_table_caption(caption_el, caption_bookmark)
 
-    def tag_div(self, el, **kwargs):
+    def tag_div(self, el, *, par=None, **kwargs):
         if "richtext-evidence" in el.attrs.get("class", []):
             try:
                 evidence = self.evidences[int(el.attrs["data-evidence-id"])]
@@ -489,7 +502,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
                 logger.exception("Could not get evidence")
                 return
 
-            par = self.doc.add_paragraph()
+            par = self._paragraph_for_block(par)
             self.make_evidence(par, evidence)
         elif "data-gw-image" in el.attrs:
             name = el.attrs["data-gw-image"]
@@ -497,16 +510,16 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
                 logger.warning("Unrecognized image used in rich text field: %s", name)
                 return
 
-            par = self.doc.add_paragraph()
+            par = self._paragraph_for_block(par)
             self.make_image(par, name, self.images[name])
         elif "data-gw-caption" in el.attrs:
             ref_name = el.attrs["data-gw-caption"]
-            par = self.doc.add_paragraph()
+            par = self._paragraph_for_block(par)
             self.make_caption(par, self.global_report_config.label_figure, ref_name or None)
             par.add_run(self.global_report_config.prefix_figure)
             par.add_run(el.get_text())
         else:
-            super().tag_div(el, **kwargs)
+            super().tag_div(el, par=par, **kwargs)
 
     def _mk_table_caption(self, caption_el, caption_bookmark=None):
         par_caption = self.doc.add_paragraph()
@@ -626,7 +639,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
 
             if self.global_report_config.figure_caption_location == "top":
                 self._mk_figure_caption(par, evidence["friendly_name"], evidence["caption"])
-                par = self.doc.add_paragraph()
+                par = self._paragraph_for_block(par)
 
             par.text = evidence_text
             try:
@@ -635,13 +648,13 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
                 par.alignment = WD_ALIGN_PARAGRAPH.LEFT
 
             if self.global_report_config.figure_caption_location == "bottom":
-                par_caption = self.doc.add_paragraph()
+                par_caption = self._paragraph_for_block(par)
                 self._mk_figure_caption(par_caption, evidence["friendly_name"], evidence["caption"])
 
         elif extension in IMAGE_EXTENSIONS:
             if self.global_report_config.figure_caption_location == "top":
                 self._mk_figure_caption(par, evidence["friendly_name"], evidence["caption"])
-                par = self.doc.add_paragraph()
+                par = self._paragraph_for_block(par)
 
             try:
                 self._make_image(par, file_path)
@@ -659,7 +672,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
                 raise ReportExportTemplateError(error_msg) from e
 
             if self.global_report_config.figure_caption_location == "bottom":
-                par_caption = self.doc.add_paragraph()
+                par_caption = self._paragraph_for_block(par)
                 self._mk_figure_caption(par_caption, evidence["friendly_name"], evidence["caption"])
 
     def make_image(self, par, name: str, file_path: str):
