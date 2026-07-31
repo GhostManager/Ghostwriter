@@ -1,4 +1,5 @@
 # Standard Libraries
+from io import StringIO
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -152,6 +153,30 @@ class RichTextTemplatingTests(SimpleTestCase):
 
         self.assertEqual(template.render(), "[0][1][2]odd-even|a,b")
 
+    def test_data_only_builtin_methods_remain_callable(self):
+        env = prepare_jinja2_env()
+        template = env.from_string(
+            '{{ values.get("name").upper() }}|'
+            "{% for key, value in values.items()|sort %}"
+            "{{ key }}={{ value }};"
+            "{% endfor %}"
+        )
+
+        self.assertEqual(
+            template.render(values={"name": "ghostwriter", "count": 2}),
+            "GHOSTWRITER|count=2;name=ghostwriter;",
+        )
+
+    def test_jinja_loop_and_block_helpers_remain_callable(self):
+        env = prepare_jinja2_env()
+        template = env.from_string(
+            "{% block content %}content{% endblock %}|"
+            "{{ self.content() }}|"
+            "{% for number in range(2) %}{{ loop.cycle('a', 'b') }}{% endfor %}"
+        )
+
+        self.assertEqual(template.render(), "content|content|ab")
+
     def test_unregistered_python_callable_is_blocked(self):
         env = prepare_jinja2_env()
 
@@ -167,6 +192,42 @@ class RichTextTemplatingTests(SimpleTestCase):
             mk_ref=jinja_funcs.ref
         )
         self.assertIn('data-gw-ref="Example"', rendered)
+
+    def test_unregistered_bound_method_and_callable_object_are_blocked(self):
+        env = prepare_jinja2_env()
+
+        class Capability:
+            def execute(self):
+                return "executed"
+
+            def __call__(self):
+                return "called"
+
+        capability = Capability()
+        for payload in ("{{ capability.execute() }}", "{{ capability() }}"):
+            with self.subTest(payload=payload), self.assertRaises(SecurityError):
+                env.from_string(payload).render(capability=capability)
+
+        sink = StringIO()
+        with self.assertRaises(SecurityError):
+            env.from_string("{{ sink.write('executed') }}").render(sink=sink)
+        self.assertEqual(sink.getvalue(), "")
+
+        with self.assertRaises(SecurityError):
+            env.from_string("{{ operation(values) }}").render(
+                operation=len,
+                values=[],
+            )
+
+    def test_data_type_subclass_cannot_introduce_callable_methods(self):
+        env = prepare_jinja2_env()
+
+        class ExecutableDict(dict):
+            def execute(self):
+                return "executed"
+
+        with self.assertRaises(SecurityError):
+            env.from_string("{{ values.execute() }}").render(values=ExecutableDict())
 
     def test_python_callable_attributes_are_blocked(self):
         env = prepare_jinja2_env()
@@ -290,6 +351,53 @@ class RichTextTemplatingTests(SimpleTestCase):
         self.assertIn("{{ client.name }}", rendered)
         self.assertIn("safe}}CLIENT={{ client.name }}{{.ref safe", rendered)
         self.assertNotIn("Rendered Client", rendered)
+
+    def test_encoded_reference_is_decoded_only_after_jinja_rendering(self):
+        env = prepare_jinja2_env()
+        ref_name = "safe}}CLIENT={{ client.name }}{{.ref safe"
+        encoded_ref = "-".join(f"{ord(character):x}" for character in ref_name)
+        encoded_node = f'<p><span data-gw-ref-encoded="{encoded_ref}"></span></p>'
+
+        for source in (
+            encoded_node + "<p>{{ client.name }}</p>",
+            f'<div data-gw-jinja-literal="true">{encoded_node}</div>'
+            "<p>{{ client.name }}</p>",
+        ):
+            with self.subTest(source=source):
+                rendered = rich_text_template(env, source).render(
+                    client={"name": "Rendered Client"}
+                )
+
+                self.assertIn(
+                    'data-gw-ref="safe}}CLIENT={{ client.name }}{{.ref safe"',
+                    rendered,
+                )
+                self.assertNotIn("data-gw-ref-encoded", rendered)
+                self.assertEqual(rendered.count("Rendered Client"), 1)
+
+    def test_legacy_reference_node_is_always_literal_data(self):
+        env = prepare_jinja2_env()
+        source = (
+            '<p><span data-gw-ref="safe}}CLIENT={{ client.name }}{{.ref safe">'
+            "{{ client.name }}"
+            "</span></p>"
+            "<p>{{ client.name }}</p>"
+        )
+
+        rendered = rich_text_template(env, source).render(
+            client={"name": "Rendered Client"}
+        )
+
+        self.assertIn("{{ client.name }}", rendered)
+        self.assertEqual(rendered.count("Rendered Client"), 1)
+
+    def test_invalid_encoded_reference_remains_inert(self):
+        env = prepare_jinja2_env()
+        source = '<span data-gw-ref-encoded="110000"></span>'
+
+        rendered = rich_text_template(env, source).render()
+
+        self.assertIn('data-gw-ref-encoded="110000"', rendered)
 
     def test_debug_extension_ast_escape_is_blocked(self):
         payload = """

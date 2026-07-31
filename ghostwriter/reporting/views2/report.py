@@ -5,7 +5,6 @@ import json
 import os
 import logging
 import mimetypes
-import re
 import zipfile
 from socket import gaierror
 from asgiref.sync import async_to_sync

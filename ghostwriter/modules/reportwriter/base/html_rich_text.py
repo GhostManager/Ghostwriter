@@ -1,4 +1,5 @@
 # Standard Libraries
+import html
 import re
 import secrets
 from abc import ABC, abstractmethod
@@ -15,6 +16,38 @@ from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
 
 _H = [f"h{n}" for n in range(1, 7)]
 JINJA_LITERAL_ATTRIBUTE = "data-gw-jinja-literal"
+JINJA_REFERENCE_ENCODED_ATTRIBUTE = "data-gw-ref-encoded"
+_JINJA_REFERENCE_ATTRIBUTE_PATTERN = re.compile(
+    rf"(?P<space>\s){JINJA_REFERENCE_ENCODED_ATTRIBUTE}\s*=\s*"
+    r"(?P<quote>[\"'])(?P<value>[0-9a-fA-F-]*)(?P=quote)",
+    re.IGNORECASE,
+)
+
+
+def _decode_jinja_reference_attributes(text: str) -> str:
+    """
+    Restore inert editor reference attributes after Jinja has finished rendering.
+
+    The editor persists each reference name as hexadecimal Unicode code points, so
+    even a malicious evidence name cannot introduce Jinja delimiters into template
+    source.
+    """
+
+    def replace_reference(match: re.Match) -> str:
+        try:
+            ref_name = "".join(
+                chr(int(code_point, 16))
+                for code_point in match.group("value").split("-")
+                if code_point
+            )
+        except ValueError:
+            return match.group(0)
+        return (
+            f'{match.group("space")}data-gw-ref="'
+            f'{html.escape(ref_name, quote=True)}"'
+        )
+
+    return _JINJA_REFERENCE_ATTRIBUTE_PATTERN.sub(replace_reference, text)
 
 
 def _require_report_sandbox(template_or_environment):
@@ -46,6 +79,7 @@ class CompiledRichTextTemplate:
 
     def render(self, *args, **kwargs):
         rendered = self._template.render(*args, **kwargs)
+        rendered = _decode_jinja_reference_attributes(rendered)
         for placeholder, literal_html in self._literal_fragments.items():
             rendered = rendered.replace(placeholder, literal_html)
         return rendered
@@ -53,11 +87,11 @@ class CompiledRichTextTemplate:
 
 def _extract_jinja_literal_fragments(text: str) -> tuple[str, dict[str, str]]:
     """
-    Replace marked HTML containers with inert placeholders before Jinja parsing.
+    Replace literal containers and stored references before Jinja parsing.
 
     The marker container itself is intentionally omitted from the rendered output;
     only its contents are restored. Nested markers are handled by their outermost
-    marked ancestor.
+    marked ancestor. Legacy reference nodes are also data, never template source.
     """
     soup = bs4.BeautifulSoup(text, "html.parser")
     literal_fragments = {}
@@ -66,7 +100,14 @@ def _extract_jinja_literal_fragments(text: str) -> tuple[str, dict[str, str]]:
             continue
 
         placeholder = f"GWJINJALITERAL{secrets.token_hex(24)}"
-        literal_fragments[placeholder] = node.decode_contents()
+        literal_fragments[placeholder] = _decode_jinja_reference_attributes(
+            node.decode_contents()
+        )
+        node.replace_with(placeholder)
+
+    for node in soup.find_all(attrs={"data-gw-ref": True}):
+        placeholder = f"GWJINJALITERAL{secrets.token_hex(24)}"
+        literal_fragments[placeholder] = str(node)
         node.replace_with(placeholder)
     return str(soup), literal_fragments
 
@@ -259,7 +300,9 @@ class LazilyRenderedTemplate(RichTextBase):
                 )
             self._rendering = True
             try:
-                self._rendered = Markup(
+                # Rich-text HTML is intentionally preserved for the document
+                # converters; input fields are sanitized before reaching here.
+                self._rendered = Markup(  # nosec B704
                     ReportExportTemplateError.map_errors(
                         lambda: self._template.render(self._context),
                         self.location,

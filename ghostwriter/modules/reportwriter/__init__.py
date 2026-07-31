@@ -6,6 +6,7 @@ reporting.
 # Standard Libraries
 import logging
 import types
+from datetime import date, datetime, time, timedelta
 
 # 3rd Party Libraries
 import jinja2
@@ -22,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 def jinja_string_literal(value: str) -> str:
     """
-    Encode a value as Jinja string-literal source without emitting delimiters.
+    Encode a value, including quotes, without Jinja template delimiters.
 
     Every code point is escaped so HTML parsing and sanitizer normalization cannot
     turn data into Jinja syntax before the template is compiled.
@@ -61,6 +62,36 @@ class ReportSandboxedEnvironment(jinja2.sandbox.ImmutableSandboxedEnvironment):
         "docxtpl.",
     )
 
+    _safe_builtin_method_owner_types = (
+        bool,
+        bytes,
+        date,
+        datetime,
+        dict,
+        float,
+        frozenset,
+        int,
+        list,
+        range,
+        set,
+        str,
+        time,
+        timedelta,
+        tuple,
+    )
+
+    _safe_jinja_method_owner_types = (
+        jinja2.runtime.AsyncLoopContext,
+        jinja2.runtime.LoopContext,
+        jinja2.utils.Cycler,
+    )
+
+    _safe_jinja_callable_types = (
+        jinja2.runtime.BlockReference,
+        jinja2.runtime.Macro,
+        jinja2.utils.Joiner,
+    )
+
     @classmethod
     def _is_blocked_class(cls, obj):
         """Return whether obj is a class for one of the blocked capability types."""
@@ -79,7 +110,7 @@ class ReportSandboxedEnvironment(jinja2.sandbox.ImmutableSandboxedEnvironment):
         )
 
     def _is_registered_callable(self, obj):
-        """Return whether a Python function or class was explicitly registered."""
+        """Return whether a callable was explicitly registered with the environment."""
         return any(
             obj is candidate
             for registry in (self.globals, self.filters, self.tests)
@@ -93,6 +124,25 @@ class ReportSandboxedEnvironment(jinja2.sandbox.ImmutableSandboxedEnvironment):
             )
         )
 
+    @classmethod
+    def _is_safe_builtin_method(cls, obj):
+        """
+        Return whether obj is an inherited method of a known data-only type.
+
+        Looking up the defining class prevents a dict or string subclass from
+        introducing an executable method and inheriting trust from its base type.
+        """
+        if not isinstance(obj, types.BuiltinMethodType):
+            return False
+        owner = obj.__self__
+        method_name = getattr(obj, "__name__", None)
+        if owner is None or method_name is None:
+            return False
+        for base in type(owner).__mro__:
+            if method_name in base.__dict__:
+                return base in cls._safe_builtin_method_owner_types
+        return False
+
     def is_safe_attribute(self, obj, attr, value):
         """Deny access to application-marked objects and Jinja internals."""
         if self._is_blocked_object(obj) or isinstance(
@@ -103,7 +153,7 @@ class ReportSandboxedEnvironment(jinja2.sandbox.ImmutableSandboxedEnvironment):
         return super().is_safe_attribute(obj, attr, value)
 
     def is_safe_callable(self, obj):
-        """Deny calls on Jinja capability objects as defense in depth."""
+        """Permit only registered functions and explicitly data-only call targets."""
         owner = (
             obj.__self__
             if isinstance(
@@ -117,16 +167,18 @@ class ReportSandboxedEnvironment(jinja2.sandbox.ImmutableSandboxedEnvironment):
         )
         if self._is_blocked_object(obj) or self._is_blocked_object(owner):
             return False
-        if isinstance(
-            obj,
-            (
-                types.FunctionType,
-                types.BuiltinFunctionType,
-                type,
-            ),
+        if self._is_registered_callable(obj):
+            return super().is_safe_callable(obj)
+        if self._is_safe_builtin_method(obj):
+            return super().is_safe_callable(obj)
+        if (
+            isinstance(obj, types.MethodType)
+            and type(owner) in self._safe_jinja_method_owner_types
         ):
-            return self._is_registered_callable(obj)
-        return super().is_safe_callable(obj)
+            return super().is_safe_callable(obj)
+        if type(obj) in self._safe_jinja_callable_types:
+            return super().is_safe_callable(obj)
+        return False
 
 
 def prepare_jinja2_env(debug=False):
@@ -187,9 +239,9 @@ def report_generation_queryset():
     """
     Gets a queryset of Reports with `select_related` and `prefetch_related` options optimal for report generation.
     """
-    from ghostwriter.reporting.models import (
+    from ghostwriter.reporting.models import (  # pylint: disable=import-outside-toplevel
         Report,
-    )  # pylint: disable=import-outside-toplevel
+    )
 
     return (
         Report.objects.all()

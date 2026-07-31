@@ -294,7 +294,9 @@ class ExportDocxBase(ExportBase):
                 continue
 
             out = ReportExportTemplateError.map_errors(
-                lambda: self.jinja_env.from_string(template_src).render(context),
+                lambda template_src=template_src: self.jinja_env.from_string(
+                    template_src
+                ).render(context),
                 f"DOCX property {attr}",
             )
             setattr(self.word_doc.core_properties, attr, out)
