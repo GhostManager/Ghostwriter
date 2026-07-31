@@ -1,5 +1,5 @@
 # Standard Libraries
-import html
+import html as html_lib
 import re
 import secrets
 from abc import ABC, abstractmethod
@@ -17,6 +17,12 @@ from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
 _H = [f"h{n}" for n in range(1, 7)]
 JINJA_LITERAL_ATTRIBUTE = "data-gw-jinja-literal"
 JINJA_REFERENCE_ENCODED_ATTRIBUTE = "data-gw-ref-encoded"
+JINJA_LITERAL_VALUE_ATTRIBUTES = (
+    "data-evidence-id",
+    "data-gw-caption",
+    "data-gw-evidence",
+    "data-gw-image",
+)
 _JINJA_REFERENCE_ATTRIBUTE_PATTERN = re.compile(
     rf"(?P<space>\s){JINJA_REFERENCE_ENCODED_ATTRIBUTE}\s*=\s*"
     r"(?P<quote>[\"'])(?P<value>[0-9a-fA-F-]*)(?P=quote)",
@@ -44,7 +50,7 @@ def _decode_jinja_reference_attributes(text: str) -> str:
             return match.group(0)
         return (
             f'{match.group("space")}data-gw-ref="'
-            f'{html.escape(ref_name, quote=True)}"'
+            f'{html_lib.escape(ref_name, quote=True)}"'
         )
 
     return _JINJA_REFERENCE_ATTRIBUTE_PATTERN.sub(replace_reference, text)
@@ -91,7 +97,8 @@ def _extract_jinja_literal_fragments(text: str) -> tuple[str, dict[str, str]]:
 
     The marker container itself is intentionally omitted from the rendered output;
     only its contents are restored. Nested markers are handled by their outermost
-    marked ancestor. Legacy reference nodes are also data, never template source.
+    marked ancestor. Legacy reference nodes and structural marker values are data,
+    never template source.
     """
     soup = bs4.BeautifulSoup(text, "html.parser")
     literal_fragments = {}
@@ -109,6 +116,20 @@ def _extract_jinja_literal_fragments(text: str) -> tuple[str, dict[str, str]]:
         placeholder = f"GWJINJALITERAL{secrets.token_hex(24)}"
         literal_fragments[placeholder] = str(node)
         node.replace_with(placeholder)
+
+    for node in soup.find_all(True):
+        for attribute in JINJA_LITERAL_VALUE_ATTRIBUTES:
+            if attribute not in node.attrs:
+                continue
+            placeholder = f"GWJINJALITERAL{secrets.token_hex(24)}"
+            attribute_value = node.attrs[attribute]
+            if isinstance(attribute_value, list):
+                attribute_value = " ".join(attribute_value)
+            literal_fragments[placeholder] = html_lib.escape(
+                str(attribute_value),
+                quote=True,
+            )
+            node.attrs[attribute] = placeholder
     return str(soup), literal_fragments
 
 
@@ -134,8 +155,9 @@ def rich_text_template(
     text: str,
 ) -> CompiledRichTextTemplate:
     """
-    Converts rich text `text` to a Jinja template. This does some additional Ghostwriter-specific
-    processing.
+    Compile rich text into Ghostwriter's sandboxed rich-text template wrapper.
+
+    Literal data is excluded from Jinja parsing and restored after rendering.
     """
     _require_report_sandbox(env)
 

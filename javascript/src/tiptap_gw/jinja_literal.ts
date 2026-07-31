@@ -8,7 +8,10 @@ function encodeReference(ref: string): string {
         .join("-");
 }
 
-function decodeReference(encodedRef: string): string {
+function decodeReference(encodedRef: string): string | null {
+    if (!/^(?:[0-9a-f]+(?:-[0-9a-f]+)*)?$/i.test(encodedRef)) {
+        return null;
+    }
     try {
         return encodedRef
             .split("-")
@@ -16,16 +19,23 @@ function decodeReference(encodedRef: string): string {
             .map((codePoint) => String.fromCodePoint(parseInt(codePoint, 16)))
             .join("");
     } catch {
-        return "";
+        return null;
     }
 }
 
 function referenceFromElement(element: HTMLElement): string {
+    const legacyRef = element.getAttribute("data-gw-ref");
     const encodedRef = element.getAttribute(ENCODED_REFERENCE_ATTRIBUTE);
     if (encodedRef !== null) {
-        return decodeReference(encodedRef);
+        const decodedRef = decodeReference(encodedRef);
+        if (decodedRef) {
+            return decodedRef;
+        }
+        if (legacyRef === null) {
+            return decodedRef ?? "";
+        }
     }
-    return element.getAttribute("data-gw-ref") ?? "";
+    return legacyRef ?? "";
 }
 
 /**

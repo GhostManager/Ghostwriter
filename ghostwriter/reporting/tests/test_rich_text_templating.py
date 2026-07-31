@@ -391,6 +391,31 @@ class RichTextTemplatingTests(SimpleTestCase):
         self.assertIn("{{ client.name }}", rendered)
         self.assertEqual(rendered.count("Rendered Client"), 1)
 
+    def test_structural_marker_values_are_always_literal_data(self):
+        env = prepare_jinja2_env()
+        marker_value = "safe}}CLIENT={{ client.name }}{{.ref safe"
+
+        for attribute in (
+            "data-evidence-id",
+            "data-gw-caption",
+            "data-gw-evidence",
+            "data-gw-image",
+        ):
+            with self.subTest(attribute=attribute):
+                source = (
+                    f'<div {attribute}="{marker_value}">'
+                    "Caption for {{ client.name }}"
+                    "</div>"
+                )
+
+                rendered = rich_text_template(env, source).render(
+                    client={"name": "Rendered Client"}
+                )
+
+                self.assertIn(f'{attribute}="{marker_value}"', rendered)
+                self.assertIn("Caption for Rendered Client", rendered)
+                self.assertEqual(rendered.count("Rendered Client"), 1)
+
     def test_invalid_encoded_reference_remains_inert(self):
         env = prepare_jinja2_env()
         source = '<span data-gw-ref-encoded="110000"></span>'
