@@ -2374,6 +2374,89 @@ class ReportDeliveryToggleViewTests(TestCase):
 # Tests related to :model:`reporting.ReportFindingLink`
 
 
+class ReportFindingLinkOrderViewTests(TestCase):
+    """Tests for :view:`reporting.ajax_update_report_findings`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.attacker = UserFactory(password=PASSWORD)
+        cls.victim = UserFactory(password=PASSWORD)
+        cls.attacker_project = ProjectFactory(client=ClientFactory())
+        cls.victim_project = ProjectFactory(client=ClientFactory())
+        cls.attacker_report = ReportFactory(project=cls.attacker_project)
+        cls.victim_report = ReportFactory(project=cls.victim_project)
+        ProjectAssignmentFactory(
+            operator=cls.attacker, project=cls.attacker_project
+        )
+        ProjectAssignmentFactory(operator=cls.victim, project=cls.victim_project)
+
+        cls.original_severity = SeverityFactory(severity="Original", weight=100)
+        cls.new_severity = SeverityFactory(severity="Reordered", weight=101)
+        cls.first_finding = ReportFindingLinkFactory(
+            report=cls.attacker_report,
+            severity=cls.original_severity,
+            position=7,
+        )
+        cls.second_finding = ReportFindingLinkFactory(
+            report=cls.attacker_report,
+            severity=cls.original_severity,
+            position=8,
+        )
+        cls.victim_finding = ReportFindingLinkFactory(
+            report=cls.victim_report,
+            severity=cls.original_severity,
+            position=9,
+        )
+        cls.uri = reverse("reporting:update_report_findings")
+
+    def setUp(self):
+        self.client = Client()
+        self.assertTrue(
+            self.client.login(username=self.attacker.username, password=PASSWORD)
+        )
+
+    def test_reorders_findings_attached_to_authorized_report(self):
+        response = self.client.post(
+            self.uri,
+            {
+                "report": self.attacker_report.pk,
+                "weight": self.new_severity.weight,
+                "positions": json.dumps(
+                    [str(self.second_finding.pk), str(self.first_finding.pk)]
+                ),
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(force_str(response.content), {"result": "success"})
+        self.first_finding.refresh_from_db()
+        self.second_finding.refresh_from_db()
+        self.assertEqual(self.first_finding.position, 2)
+        self.assertEqual(self.second_finding.position, 1)
+        self.assertEqual(self.first_finding.severity, self.new_severity)
+        self.assertEqual(self.second_finding.severity, self.new_severity)
+
+    def test_rejects_foreign_finding_and_rolls_back_reorder(self):
+        response = self.client.post(
+            self.uri,
+            {
+                "report": self.attacker_report.pk,
+                "weight": self.new_severity.weight,
+                "positions": json.dumps(
+                    [str(self.first_finding.pk), str(self.victim_finding.pk)]
+                ),
+            },
+        )
+
+        self.assertEqual(response.status_code, 404)
+        self.first_finding.refresh_from_db()
+        self.victim_finding.refresh_from_db()
+        self.assertEqual(self.first_finding.position, 7)
+        self.assertEqual(self.first_finding.severity, self.original_severity)
+        self.assertEqual(self.victim_finding.position, 9)
+        self.assertEqual(self.victim_finding.severity, self.original_severity)
+
+
 class ReportFindingLinkUpdateViewTests(TestCase):
     """Collection of tests for :view:`reporting.ReportFindingLinkUpdate`."""
 
