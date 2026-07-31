@@ -1,0 +1,748 @@
+---
+title: "UI Refresh Design System"
+sidebarTitle: "UI Refresh"
+description: "Design direction, implementation patterns, and audit checklist for Ghostwriter's refreshed interface"
+---
+
+## Purpose and Status
+
+This is the living implementation guide for Ghostwriter's UI refresh. Read it before
+changing the application shell, adding a page, modernizing an existing template, or
+auditing a page for consistency.
+
+The refresh is still in progress. The client, project, and report dashboards have
+received the most review, along with their related workflows and selected forms. The
+main dashboard, libraries, findings, observations, evidence, report templates, and
+administrative pages are at different stages of migration. A page using some new
+classes is not necessarily fully reviewed.
+
+Ghostwriter is an operator workspace for red teamers who need to move between
+engagement context, reporting content, infrastructure, and operational records
+quickly. The interface should feel like a focused operations console: dense enough to
+be useful, calm enough for long work sessions, and clear about the next action.
+
+The refresh is not an attempt to make Ghostwriter look like a generic SaaS
+application. Every visual element should help an operator answer one of these
+questions:
+
+- What engagement or object am I working on?
+- What requires my attention?
+- What can I do here?
+- Where can I go next?
+
+## Non-Negotiable Constraints
+
+### Offline operation
+
+Ghostwriter supports offline and air-gapped deployments. All fonts, icons, CSS,
+JavaScript, and component dependencies must be packaged in the repository. Do not add
+CDN references, remote font imports, analytics scripts, or runtime requests for UI
+assets.
+
+Bootstrap 5.3.8, Font Awesome, Poppins, Metrophobic, Roboto Mono, jQuery, Tiptap, and
+the other current dependencies are served from the repository. Vite packages Tiptap
+and its dependencies into `javascript/dist_frontend/`; Django serves that output from
+the local static asset path.
+
+### Progressive migration
+
+The current UI is Django-rendered and still uses mature jQuery components. The
+direction is:
+
+1. Establish a design that operators like in the server-rendered application.
+2. Standardize semantic tokens and reusable component patterns.
+3. Replace aging jQuery components incrementally.
+4. Make those patterns portable to a future React application or SPA.
+
+Do not introduce Material UI or another React component system into Django templates.
+Use Bootstrap 5 where it provides behavior or layout, then add narrowly scoped
+Ghostwriter component classes where the product needs a distinct pattern.
+
+### Security
+
+UI work must preserve the XSS hardening introduced around pull request 945.
+
+- Escape user-controlled values inserted into JavaScript with `escapejs`.
+- Pass structured data to JavaScript with Django's `json_script` filter.
+- Populate autocomplete tag lists through `get_tags_for_queryset()`.
+- Do not interpolate untrusted values into executable script, inline event handlers,
+  selectors, or raw HTML.
+- Do not add `safe` merely to make new markup render.
+- Keep Bootstrap popovers, editor output, and rich content sanitization enabled.
+
+### Behavior before appearance
+
+Modernization must not regress existing workflows. Preserve permissions, form saving,
+collaborative editing, sorting, filtering, drag-and-drop ordering, hash navigation,
+keyboard behavior, and editor initialization.
+
+## Source of Truth
+
+The UI styles are currently split across migration layers:
+
+| File | Responsibility |
+| --- | --- |
+| `ghostwriter/static/css/design_system.css` | New semantic tokens and reusable page/component patterns |
+| `ghostwriter/static/css/app_shell.css` | Sidebar, active-engagement bar, responsive shell, and shell motion |
+| `ghostwriter/static/css/bootstrap5_compat.css` | Temporary compatibility for Bootstrap 4-era markup and plugins |
+| `ghostwriter/static/css/base_styles.css` | Legacy light/dark variables and component colors |
+| `ghostwriter/static/css/styles.css` | Legacy global and page-specific styles |
+| `ghostwriter/templates/base_generic.html` | Application shell, packaged dependencies, theme initialization |
+| `ghostwriter/templates/snippets/sidebar_navigation.html` | Compact and expanded navigation structures |
+| `javascript/src/frontend/standalone_tiptap.tsx` | Progressive enhancement for Django textarea fields |
+| `javascript/src/tiptap_gw/` | Shared rich-text schema and legacy HTML compatibility |
+
+New work should prefer semantic `--gw-*` tokens and shared classes in
+`design_system.css` or `app_shell.css`. Do not copy a legacy rule merely because it
+already exists. `--primary-color` is still green and remains widely used by older
+selectors; it is migration debt, not permission to use green for every interaction.
+
+The older Form Layouts & Design guide remains useful for Django forms, Crispy helpers,
+and formset architecture. This guide takes precedence where its visual advice differs:
+refreshed forms normally keep useful labels visible, group fields by task, and use the
+spacing and card patterns described below.
+
+Use Bootstrap utilities for ordinary spacing and layout. Prefer `mb-3`, `gap-3`,
+`d-flex`, or the grid utilities over a custom class that only adds the same margin or
+display rule. Create a custom class when it identifies a reusable Ghostwriter
+component or carries behavior that Bootstrap does not express.
+
+## Rich-Text Editing
+
+Phase 1 of the editor migration uses the same Tiptap schema for standalone Django
+forms, Django admin extra-field defaults, and collaborative reporting editors.
+Standalone editors continue to post HTML through their original `<textarea>`, so
+model fields and server-side form handling do not change.
+
+### Source binding and compatibility
+
+- Do not replace a Django textarea with a new field name. The original textarea is
+  the submission source and remains in the DOM as a visually hidden, validatable
+  control.
+- Loading a field must not rewrite its source HTML. Tiptap may normalize the editing
+  DOM, but the textarea keeps the exact original value until the operator edits it.
+- Existing TinyMCE-era HTML must retain headings and bookmarks, combined
+  bold/italic/underline classes, text color, font family and size, alignment, nested
+  lists, blockquotes, code blocks, horizontal rules, tables and captions, table cell
+  color, page breaks, links, and Ghostwriter's evidence or client-logo nodes.
+- Ordinary HTML `<img>` elements are not part of this compatibility contract.
+  Operators upload image evidence through Ghostwriter's evidence workflow; editors
+  store references as structured evidence nodes.
+- Reject unsafe link protocols and sanitize retained style attributes. Compatibility
+  is not a reason to permit arbitrary HTML or CSS.
+- Run `npm run test:html-compatibility` after changing the shared schema or HTML
+  serialization behavior.
+
+### Editor profiles
+
+Use field intent to choose the editing surface:
+
+| Profile | Marker | Use |
+| --- | --- | --- |
+| Compact | `gw-tiptap-compact` | Addresses, contact notes, access comments, and other short supporting context |
+| Standard | no marker | General formatted fields |
+| Narrative | `gw-tiptap-narrative` | Descriptions and prose that need sustained writing space |
+
+`data-tiptap-min-height` may set a stable minimum for a whole form or modal. Use
+`no-auto-rich-text` for JSON, command output, code-like text, or any textarea that
+must remain plain.
+
+### Lifecycle
+
+The shared base loads a small bootstrap module first; the React/Tiptap runtime is
+requested only when a usable textarea exists or is inserted later. Standalone
+editors then initialize only when usable:
+
+- Editors in inactive Bootstrap tabs wait for `shown.bs.tab`.
+- Editors in closed `<details>` collections wait for the card to open.
+- Hidden formset prototypes never initialize.
+- Newly inserted forms are detected automatically. Code that deliberately opens a
+  stable collection can call `window.gwInitTiptapStableContainer(container)`.
+- Code replacing modal or formset markup should call
+  `window.gwDestroyTiptapEditors(container)` before removal and
+  `window.gwInitTiptapTextareas(container)` after insertion.
+- Initialization must not focus an editor, change `scrollY`, or add a document-level
+  horizontal scrollbar.
+
+The editor toolbar wraps at narrow widths instead of becoming a horizontally
+scrolling control strip. Violet identifies focus and active formatting; green remains
+reserved for successful state. All editor JavaScript and CSS must continue to build
+locally with `npm run build-frontend-prod`.
+
+Phase 1 does not change collaborative persistence or solve API-versus-collaboration
+write conflicts. Those require a later concurrency design; do not make standalone
+form work silently overwrite an active Yjs document.
+
+## Visual Direction
+
+### Attention hierarchy
+
+Ask one question before styling a page:
+
+> What is the one thing an operator should notice first, and why?
+
+Spend visual emphasis there and quiet everything else. A page should not contain a
+bright title, saturated primary button, multiple colorful badges, and a highlighted
+instruction panel all competing for attention.
+
+Typical hierarchy:
+
+1. Object identity or the operator's immediate work.
+2. Current status and engagement context.
+3. Primary task or next action.
+4. Supporting content and secondary actions.
+
+Buttons are neutral by default. Icons, labels, and hover states can supply product or
+file-type color. For example, Word and PowerPoint icons already identify document
+generation; the entire buttons do not also need to be massive blue and orange blocks.
+
+### Color system
+
+Use color by meaning, not decoration.
+
+| Token | Value | Intended role |
+| --- | --- | --- |
+| `--gw-ghost-ink` | `#151718` | Deep neutral foundation |
+| `--gw-slate-surface` | `#222526` | Dark elevated surface |
+| `--gw-boundary` | `#3A4144` | Dark boundaries and dividers |
+| `--gw-signal-green` | `#50B071` | Success, healthy state, completion |
+| `--gw-engagement-violet` | `#6D70A7` | Active engagement, selected context, product identity |
+| `--gw-context-blue` | `#7386D5` | Informational context and secondary action cues |
+| `--gw-context-orchid` | `#947BD3` | Alternate context, dark-theme selected accents |
+| `--gw-accent-coral` | `#F46036` | Deliberate attention or accent, used sparingly |
+| `--gw-information-slate` | `#6C809A` | Neutral metadata and informational state |
+| `--gw-signal-amber` | `#D7A449` | Warning or time-sensitive state |
+
+Green was historically Ghostwriter's general primary color. That made success
+indistinguishable from a routine action. In refreshed components, reserve green for a
+successful, healthy, available, or completed state. Use violet for current context and
+selection, neutral surfaces for ordinary actions, and coral or amber only when the
+content genuinely requires attention.
+
+Legacy controls, focus rings, and checked inputs may still use `--primary-color`.
+Audit these over time rather than extending this assumption to new components.
+
+Severity is domain data, not a fixed decorative color. Finding severity colors come
+from configured `Severity.color` values. A severity glyph, dot, or restrained badge
+should follow that configured color and fall back to information slate when the value
+is invalid. Do not make every bug icon red.
+
+### Surfaces, depth, and shape
+
+The foundation uses quiet layering rather than large color blocks:
+
+- Canvas: `--gw-canvas`
+- Primary card: `--gw-surface`
+- Subtle inset or header: `--gw-surface-muted`
+- Boundary: `--gw-border`
+- Strong text: `--gw-text-strong`
+
+Use the shared radius scale (`--gw-radius-sm`, `--gw-radius-md`,
+`--gw-radius-lg`) and shadow scale (`--gw-shadow-xs`, `--gw-shadow-sm`,
+`--gw-shadow-md`). Most cards should use a border and a small shadow. Large shadows
+are reserved for floating menus, modals, or content that truly sits above the page.
+
+Avoid nested cards whose only purpose is decoration. A card should establish a real
+section, field group, object, or workflow boundary.
+
+### Typography
+
+All fonts are packaged locally.
+
+| Token | Typeface | Role |
+| --- | --- | --- |
+| `--gw-font-display` | Metrophobic | Page identity and important section headings |
+| `--gw-font-interface` | Poppins | Controls, labels, body copy, and navigation |
+| `--gw-font-data` | Roboto Mono | Dates, states, compact metadata, and technical values |
+
+Use display typography with restraint. Most pages need one strong identity heading,
+not oversized headings inside every card. Limit prose to a readable line length,
+usually around 65–72 characters, without limiting the width of the entire tab or
+dataset.
+
+Default to left-aligned text. Justified prose may be appropriate for longer narrative
+content. Center alignment is reserved for a small, intentional empty state or compact
+summary—not instructions, form fields, finding titles, or operational data.
+
+## Application Shell and Navigation
+
+### Sidebar
+
+The sidebar follows an operator-tool rail model:
+
+- The collapsed state is a persistent 4rem icon rail.
+- The Ghostwriter logo is always visible.
+- The expand control belongs inside the sidebar below the logo.
+- When expanded, the collapse control shares the navigation toolbar with Customize.
+- Clients, projects, and reports are core destinations.
+- Optional areas can be pinned, hidden, and reordered through sidebar preferences.
+- Working context and Pinned work are independent engagement panels. Users can show,
+  hide, or reorder them; the saved layout applies to both the expanded sidebar and
+  compact rail.
+- Profile, theme, and logout remain available without consuming the primary tool area.
+
+Hiding Working context from the sidebar must not remove the sticky engagement bar's
+Switch report control. Hiding Pinned work removes both its named expanded section and
+its compact icon shortcuts without deleting the user's saved pins.
+
+The current theme switch—including its animated sun, moon, clouds, and stars—is an
+intentional Ghostwriter detail. Preserve it.
+
+Sidebar motion is choreographed in `app_shell.css`: the rail changes width with a
+short ease-out, expanded navigation appears after there is enough room, and account
+and theme controls appear last. Do not reveal wide controls while the sidebar is
+still collapsed. Preserve `prefers-reduced-motion` behavior.
+
+### Working-context bar
+
+The sticky working-context bar replaces the old breadcrumb bar and the sidebar's
+Jump to Report shortcut. Some implementation classes still use
+`engagement-context` for compatibility. The visible language is **Working in**, not
+the ambiguous **Active project** or **Activate report**.
+
+It provides direct access to:
+
+- Working report
+- Client
+- Project
+- Draft or complete state
+- Delivered or not delivered state
+
+The working report is the one destination used by quick-add actions from the
+Findings and Observations libraries. A project is never sufficient as that
+destination because one project may contain multiple reports. The bar's **Switch
+report** control opens the shared working-context chooser; the report title itself
+continues to navigate to the report.
+
+The report title must look clickable without scaling dramatically on hover. Long
+client, project, and report names truncate safely. At narrower widths, status pills
+must remain accessible and secondary context collapses into the compact context menu.
+
+Keep visible space between the sticky engagement bar and content above or below it.
+Do not reintroduce a second breadcrumb path unless the information architecture grows
+deep enough to require one.
+
+### Working reports and pinned work
+
+Working state and pinned navigation are intentionally different:
+
+| Concept | Cardinality | Meaning |
+| --- | --- | --- |
+| Working report | Exactly one | Visible destination for global library quick-adds |
+| Pinned work | Many | Navigation shortcuts to clients, projects, or reports |
+
+Pinning an object must never silently make a report the working report. A pinned
+report may offer a separate target control for explicitly choosing it. Pinned clients
+and projects only navigate or reveal their reports.
+
+The expanded sidebar shows named pinned work. The compact rail shows the same pins as
+neutral icon shortcuts with full tooltips; the separate bullseye remains the only
+working-report control. Dynamic pins are permission-filtered on every render.
+
+Only the navigation section for the page being viewed receives the filled active
+treatment. Working context uses a small violet target indicator, while pinned objects
+remain neutral even when a pin points to the current page. Location, destination, and
+saved shortcut must not compete as three active navigation states.
+
+Anywhere a library item can be copied globally:
+
+- Show the exact destination as `Adding to: <report>`.
+- Send that displayed report ID in the request; do not rely only on session state.
+- If no report is selected, open the chooser and complete the pending add after
+  selection.
+- Name the destination report in the success message.
+- Use `Set as working report`, `Working report`, and `Switch report` consistently.
+
+Editing a report is not an intentional context change and must not silently make that
+report the working report.
+
+## Page Patterns
+
+### Detail and dashboard headers
+
+Use `detail-page-heading` and the applicable page-specific modifier.
+
+The standard order is:
+
+1. Small semantic eyebrow such as Client, Project, Report, or Finding.
+2. Object name in strong neutral text.
+3. Compact tags for status, type, ownership, or other high-value context.
+4. A neutral Actions menu aligned to the right.
+
+Do not build a large composite heading such as `CLIENT + PROJECT TYPE`. Put supporting
+identity in badges. Long names must wrap or truncate without pushing actions off the
+viewport.
+
+Do not use a hamburger menu for page actions. Use an Actions button with one clear
+disclosure affordance. Avoid combining an ellipsis and a down arrow when both mean
+"more."
+
+### Library pages
+
+Use the library pattern demonstrated by `client_list.html`, `finding_list.html`, and
+`observation_list.html`:
+
+- One page heading and one concise description.
+- A result count based on the accessible, filtered queryset—not a global total.
+- Create/import actions on the right.
+- Filters in their own toolbar or region.
+- The table begins without a redundant second title and description.
+- Empty states distinguish "no objects exist" from "filters matched nothing."
+
+Boolean filters should use aligned switches or checks with their labels immediately
+beside them. Text filters that are not credentials should carry appropriate
+autocomplete and password-manager suppression attributes so browser extensions do not
+mistake a client-name field for a login.
+
+Tags can make scan-heavy columns more legible: health, availability, project type,
+report owner, notification state, protected state, orientation, provider, or a
+meaningful date. Do not turn every cell into a pill.
+
+### Tabs
+
+Use `#tab-bar.nav-tabs`.
+
+- Tabs wrap to a second row.
+- Tabs do not require horizontal scrolling.
+- Every tab remains reachable at narrow widths.
+- The selected tab uses a quiet surface and contextual color.
+- Tab content starts with consistent top spacing.
+- Hash navigation remains stable.
+
+Rich text editors in hidden tabs require special handling. Preserve the
+standalone Tiptap lazy-mount workflow so editors initialize only when their tab or
+collection card becomes visible. Initialization must not scroll the page, flicker, or
+render the editor collapsed.
+
+### Cards and sections
+
+Section actions such as Add a Project or Add & Edit Assignments belong inline with
+the section header when space permits. Do not leave a small button alone above a wide
+empty area.
+
+Tables and lists should meet the bottom of their containing card cleanly. Avoid an
+arbitrary gap between the last row and the card boundary. Keep internal spacing even
+and use Bootstrap spacing utilities where possible.
+
+General information, overview, planning, and status tabs should use the available
+viewport like the neighboring tabs. Constrain prose, not the entire tab. Let grids add
+columns and cards stretch at larger widths without creating excessively long text
+lines.
+
+### Empty states, instructions, and alerts
+
+Use `empty-state`, `empty-state-title`, and `empty-state-description`.
+
+State what is absent and whether the user can act:
+
+- "No assignments yet" identifies a real empty collection.
+- "No matching findings" identifies a filter result.
+- "Connections unavailable" explains why an action cannot happen.
+
+Do not center a paragraph of instructions over an unrelated alert. Instruction cards
+and alerts should fit the surrounding layout, usually at full width. Alerts communicate
+an exceptional state; they should not be used as ordinary section decoration.
+
+## Tables, Lists, and Repeated Work
+
+Use a table only when the relationships between columns matter. Object details,
+configuration values, and narrative content usually work better as definition lists,
+cards, or structured rows.
+
+For genuine tables:
+
+- Wrap with `table-responsive data-table-frame`.
+- Align titles and descriptive text left.
+- Keep search/filter controls separated from the table with normal Bootstrap spacing.
+- Use a flat header edge when a column chooser, filter summary, or other row sits above
+  the column headers.
+- Render empty cells deliberately so a row does not appear to end abruptly.
+- Use one drag handle glyph. Rotate or animate the glyph, not the entire cell.
+- Keep row actions consistent with `report-row-actions`.
+
+Responsive tables should condense before they scroll horizontally. At narrow container
+widths, convert rows into compact labeled layouts, hide low-value columns, and collapse
+the action icon row into a minimal menu. Do not leave a fat horizontal scrollbar under
+actions when there is enough room, and do not make horizontal scrolling the only way
+to reach an action.
+
+Findings, observations, objectives, and other operator work queues can use structured
+list rows instead of conventional columns. Titles may wrap to two lines. Status and
+ownership become compact tags or metadata. Preserve sorting and drag-and-drop behavior.
+
+Accordions and collapsibles should be compact summaries, not oversized bars. Keep
+identity on the left, consistently spaced statistics in the middle, and one disclosure
+glyph firmly on the right. Rotate or swap only that glyph. A BloodHound Community
+Edition user may see only the domain collapsibles, so that view must remain complete
+without the Enterprise findings table.
+
+Objectives are an operator task-management surface rather than a passive table.
+Preserve high-level objective identity, status, progress, inline sub-task creation,
+completion, dates, deletion, and drag ordering. Make the current pursuit state and next
+step easy to scan without opening an edit menu.
+
+### Calendars
+
+Use `gw-calendar` on FullCalendar roots. Calendars are operational schedules, so their
+grid, controls, and current-day treatment should remain quiet:
+
+- Use neutral surfaces and boundaries for calendar chrome.
+- Use engagement violet, context blue/orchid, and information slate to distinguish
+  scheduling categories.
+- Do not use signal green for an ordinary project or execution window.
+- Keep the calendar frame, controls, dates, list view, and events on the shared radius
+  scale.
+- Prefer `listWeek` on narrow screens rather than compressing a seven-day grid into
+  unusable columns. Do not overwrite the user's saved desktop view from a mobile
+  session.
+
+## Forms and Editors
+
+### Field layout
+
+- Put labels above their controls.
+- Keep help text directly below the field it describes.
+- Never allow the next field label or an Edit JSON button to share a help-text line.
+- Use consistent vertical rhythm, normally Bootstrap `mb-3`.
+- Align toggles with their labels and use Bootstrap `form-switch`.
+- Keep Save and Cancel actions consistent and visually grouped.
+
+Large forms should be split by task, not arbitrarily. Tabs are appropriate when they
+separate meaningful concerns and do not interfere with collaborative saving.
+
+### Editing workspaces
+
+Use the client, project, report, domain, and server forms as references for a
+task-oriented editing workspace. The following primitives are shared across object
+types:
+
+- `resource-form-page-heading` for the page eyebrow, task heading, and scope sentence.
+- `resource-form-shell` for a fluid, overflow-safe form workspace.
+- `tabbed-form-shell` when the workspace contains task-based tabs or hidden editors.
+- `form-section-heading` for lightweight grouping inside a tab.
+- `resource-edit-form`, `resource-form-grid`, and `resource-form-card` for dense,
+  independently understandable tasks.
+- `collection-toolbar` for a repeated collection's explanation and Add action.
+- `resource-form-actions`, `resource-form-actions-context`, and
+  `resource-form-actions-buttons` for the persistent Save/Cancel surface.
+- `resource-form-actions-compact` for smaller single-purpose forms that do not need
+  contextual action copy.
+
+Apply these primitives by workflow, not by copying one form's exact shape:
+
+- Start with `resource-form-page-heading`: a semantic eyebrow, an action-oriented
+  heading such as **Create client** or **Edit Client Name**, and one sentence that
+  explains the scope.
+- Let the editing workspace use the available viewport so tabs, repeated collections,
+  and action surfaces align with the surrounding page. Constrain explanatory copy and
+  long prose where needed rather than imposing a fixed width on the entire form.
+- Group fields by the operator's task. Use small `form-section-heading` elements to
+  distinguish identity, profile, delivery, access, or other coherent concerns.
+- Put labels above controls and help immediately below them. A grid row is for related
+  fields, not merely for filling horizontal space.
+- Use a compact, sticky action surface when tabs or repeated items make the form long.
+  Save and Cancel remain reachable without turning them into full-width desktop bars.
+- Name submit actions for the task: **Create Client**, **Save Changes**, or another
+  specific result. Do not rely on a generic **Submit** label.
+- Use violet for the principal editing action. Reserve green for successful,
+  completed, or healthy state.
+
+Current task groupings provide examples:
+
+- Clients: identity/profile, points of contact, access, and extra fields.
+- Projects: engagement identity/schedule, assignments, access, integrations, and a
+  separate component workspace.
+- Reports: report identity/engagement and output templates.
+- Domains: identity/lifecycle, health, and extra fields.
+- Reusable servers: identity/context, alternate addresses, and extra fields.
+- Project servers, evidence, templates, deconfliction records, checkouts, and
+  connections: coherent resource cards with a compact or contextual action surface.
+- Findings and observations: task-based collaborative tabs with automatic-save
+  status. Do not add a manual Save surface to an automatic-save editor.
+
+Do not make every field a card. Section headings and whitespace are enough for normal
+fields. Cards establish a boundary for a repeated object, an extra field, a file
+upload, or another independently understandable unit.
+
+### Form cards
+
+Use `resource-edit-form`, `resource-form-grid`, and `resource-form-card` for dense
+resource forms. A card should contain one coherent task and may use
+`resource-form-section-heading` for an icon, heading, and short explanation.
+
+Extra fields belong in a dedicated tab on long forms. Render each extra field in a
+card so its label, value, help, and Edit JSON action have a clear boundary.
+
+Formsets need explicit workflow review:
+
+- Add and delete actions should occupy predictable locations.
+- Repeated forms should not create unexplained vertical gaps.
+- Delete controls should be consistent across every repeated item.
+- Adding, deleting, and reordering must work before and after validation errors.
+
+For multi-field child objects, use the formset collection-editor pattern demonstrated
+by the client form:
+
+- Keep Django's inline formset as the validation and submission layer.
+- Present existing objects as collapsed `collection-form-card` summaries.
+- Put the collection description and Add action together in `collection-toolbar`.
+- Show a specific `collection-empty-state` when no submitted objects exist.
+- Open new entries and entries with validation errors.
+- Update the summary from form controls with `textContent`/jQuery `.text()`, never raw
+  HTML.
+- Do not count or initialize the hidden `empty_form` prototype.
+- Use the hidden `DELETE` field for removal and retain the existing undo state.
+- Mount rich-text editors in a closed collection card only after the card opens.
+- Show a neutral count badge on the tab and update it after add, remove, and undo.
+
+Collapsed cards reduce scanning cost; they do not change formset behavior. Management
+fields, prefixes, primary-key fields, validation errors, deletion flags, and atomic
+parent/child saving must remain intact. See the formset-specific guide for the full
+implementation and audit checklist.
+
+### File uploads
+
+Use the resource upload-card/dropzone pattern. The file input may cover the dropzone,
+but it must not cover unrelated controls or the form action row. Display the current
+filename and accepted formats clearly. Template uploads should appear early because
+replacing the template file is a frequent edit task.
+
+### Rich text
+
+Tiptap must be usable in light and dark themes:
+
+- Editor canvas, toolbar, menus, headings, and icons use the active theme.
+- Text has sufficient contrast.
+- Editors do not render collapsed.
+- Opening a form must not temporarily block scrolling.
+- Switching tabs must not flicker or move the viewport.
+- Hidden editors initialize lazily or off-screen without disturbing layout.
+
+These are behavior requirements, not optional polish.
+
+Select editor weight by task:
+
+| Profile | Marker | Use |
+| --- | --- | --- |
+| Compact | `gw-tiptap-compact` | Addresses, contact notes, access comments, and other short supporting context |
+| Standard | no marker | General formatted fields |
+| Narrative | `gw-tiptap-narrative` | Descriptions, report narratives, technical content, and prose that needs sustained writing space |
+
+Do not place a full authoring toolbar on every repeated row. Compact and collection
+editors should remain lazy so a form with many contacts or assignments does not mount
+every editor during page load or tab selection.
+
+## Dark Theme
+
+Every refreshed component must be checked in both themes. Do not assume a light
+surface will invert automatically.
+
+Common regressions:
+
+- White note or editor cards in dark mode
+- Bright white tags
+- Black narrative text on black backgrounds
+- Light dropdown menus opened from dark controls
+- Logos that disappear because one asset is used for both themes
+- Muted text with insufficient contrast
+- Empty table cells losing their dark surface
+
+Use semantic surface and text tokens rather than hard-coded white, black, or grey.
+When an external logo has light and dark variants, switch assets based on the theme or
+provide a deliberate filter exception.
+
+## Motion and Interaction
+
+Motion should confirm an interaction, not perform for its own sake.
+
+- Prefer color, underline, a 1–2 px translation, or a very small scale change.
+- Do not enlarge linked badges or client names dramatically.
+- Keep row hover states quiet.
+- Animate only the glyph inside an expand control.
+- Avoid layout-affecting transitions that produce scroll jumps.
+- Respect `prefers-reduced-motion`.
+
+The sidebar's 280 ms ease-out and staged content reveal are a reference for deliberate
+shell motion. Routine controls generally need shorter 140–180 ms feedback.
+
+## Reference Surfaces
+
+Use these as current pattern references, while remembering the migration is incomplete:
+
+| Pattern | Reference |
+| --- | --- |
+| Application shell | `ghostwriter/templates/base_generic.html` |
+| Sidebar | `ghostwriter/templates/snippets/sidebar_navigation.html` |
+| Operator landing page | `ghostwriter/templates/index.html` |
+| Detail dashboards | `rolodex/client_detail.html`, `rolodex/project_detail.html`, `reporting/report_detail.html` |
+| Detail content | `reporting/finding_detail.html` |
+| Libraries | `rolodex/client_list.html`, `reporting/finding_list.html`, `reporting/observation_list.html` |
+| Responsive work rows | `reporting/snippets/report_*_table.html` |
+| Objective workflow | `rolodex/templates/snippets/project_objectives.html` |
+| Resource forms | `reporting/report_template_form.html`, `reporting/evidence_form.html` |
+| Extra field cards | Client, project, report, and finding detail templates |
+
+## Page Audit Checklist
+
+Use the installed Playwright MCP browser for UI review. Do not attempt to connect to a
+separate browser. Local administrator credentials are available in the workspace
+`.env`; do not print them in logs or documentation.
+
+Review at representative widths such as 1440, 1024, 768, and 390 pixels.
+
+### Identity and hierarchy
+
+- [ ] Is the page's most important object or task obvious?
+- [ ] Is there only one dominant visual target?
+- [ ] Is the title neutral rather than bright green?
+- [ ] Are supporting details tags rather than an oversized composite heading?
+- [ ] Can long names wrap or truncate safely?
+- [ ] Are redundant headings or breadcrumbs removed?
+
+### Navigation and actions
+
+- [ ] Does the active-engagement bar remain usable?
+- [ ] Are page actions neutral, consistent, and keyboard accessible?
+- [ ] Is there one disclosure affordance rather than duplicated ellipsis/arrow cues?
+- [ ] Do tabs wrap without horizontal scrolling?
+- [ ] Do actions remain reachable at narrow widths?
+
+### Content and data
+
+- [ ] Is text left-aligned unless there is a reason otherwise?
+- [ ] Is a table used only for genuinely tabular data?
+- [ ] Do search boxes and buttons have normal spacing before the dataset?
+- [ ] Are empty cells and empty collections intentionally rendered?
+- [ ] Do status tags communicate meaning without creating pill overload?
+- [ ] Does repeated work condense before introducing a horizontal scrollbar?
+
+### Forms and editors
+
+- [ ] Are labels, controls, help text, and actions clearly separated?
+- [ ] Are fields evenly spaced with Bootstrap utilities where appropriate?
+- [ ] Are checkboxes and switches aligned with their labels?
+- [ ] Are extra fields in a dedicated tab and individual cards when the form is long?
+- [ ] Are file inputs bounded to the visible upload area?
+- [ ] Do formsets add and delete items without gaps or alignment changes?
+- [ ] Does Tiptap render at a usable height without flicker or scroll jumps?
+
+### Theme, accessibility, and responsiveness
+
+- [ ] Does the page work in light and dark themes?
+- [ ] Is visible keyboard focus preserved?
+- [ ] Are text and muted metadata readable?
+- [ ] Does motion respect reduced-motion preferences?
+- [ ] Is there no document-level horizontal overflow?
+- [ ] Are dropdowns, tooltips, modals, and alerts within the viewport?
+
+### Security, behavior, and offline support
+
+- [ ] Are JavaScript values escaped or delivered with `json_script`?
+- [ ] Do autocomplete tags come from `get_tags_for_queryset()`?
+- [ ] Are user-controlled values absent from raw HTML and executable strings?
+- [ ] Do saving, sorting, filtering, drag-and-drop, and collaboration still work?
+- [ ] Does the browser make no external asset requests?
+- [ ] Are all new dependencies stored in the repository?
+
+Record screenshots for meaningful UI changes and add regression tests for behavior,
+rendered structure, and security-sensitive data transfer.

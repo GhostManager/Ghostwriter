@@ -17,6 +17,15 @@ Use Docker for the Django stack and `npm` only inside `javascript/`.
 ## Coding Style & Naming Conventions
 Python uses 4-space indentation, `Black`, `isort`, and `flake8`. Follow the project docstring style in `DOCS/coding-style-guide/`, and keep imports grouped and sorted. JavaScript/TypeScript also uses 4-space indentation; Prettier enforces semicolons and double quotes for frontend sources. Use `snake_case` for Python modules and tests, `PascalCase` for React components, and keep test files named `test_<feature>.py`.
 
+## UI Design Guidelines
+Before changing Django templates, shared CSS, page navigation, forms, tables, or other
+interface components, read
+`DOCS/coding-style-guide/ui-refresh-design-system.mdx`. It records the active UI
+refresh direction, semantic colors, reusable patterns, offline constraints, security
+requirements, and the Playwright audit checklist. The migration is incomplete, so do
+not assume that every existing selector or partially refreshed page represents the
+intended design.
+
 ## Testing Guidelines
 Add or update tests for every behavior change; PR templates require it. Prefer app-local tests in the matching `ghostwriter/<app>/tests/` package. For frontend GraphQL changes, regenerate `javascript/src/__generated__/` and run `npm run check` before opening a PR. Maintain coverage for touched code paths; CI uploads coverage from the Django suite.
 
