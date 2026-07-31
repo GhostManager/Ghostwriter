@@ -123,6 +123,27 @@ class RichTextToDocxTests(SimpleTestCase):
         self.assertNotIn("BBBB", [paragraph.text for paragraph in doc.paragraphs])
         self.assertNotIn("CCCC", [paragraph.text for paragraph in doc.paragraphs])
 
+    def test_nested_collab_table_wrapper_remains_in_the_cell(self):
+        doc = docx.Document()
+        HtmlToDocx.run(
+            '<table><tr><td><div class="collab-table-wrapper">'
+            "<table><tr><td><p>NESTED</p></td></tr></table>"
+            "</div></td></tr></table>",
+            doc,
+            None,
+        )
+
+        outer_cell = doc.tables[0].cell(0, 0)
+        self.assertEqual(len(outer_cell.tables), 1)
+        self.assertEqual(
+            [
+                paragraph.text
+                for paragraph in outer_cell.tables[0].cell(0, 0).paragraphs
+            ],
+            ["NESTED"],
+        )
+        self.assertEqual([paragraph.text for paragraph in doc.paragraphs], [])
+
     def test_table_cell_block_elements_remain_in_the_cell(self):
         cases = {
             "blockquote": (

@@ -400,7 +400,12 @@ class HtmlToDocx(BaseHtmlToOOXML):
         # ...existing code...
 
     def create_table(self, rows, cols, **kwargs):
-        table = self.doc.add_table(rows=rows, cols=cols, style="Table Grid")
+        par = kwargs.get("par")
+        table_parent = getattr(par, "_parent", None)
+        if table_parent is None or not hasattr(table_parent, "add_table"):
+            table_parent = self.doc
+        table = table_parent.add_table(rows=rows, cols=cols)
+        table.style = "Table Grid"
         table.autofit = True
         table.allow_autofit = True
         tblw = table._tblPr.xpath("./w:tblW")[0]
