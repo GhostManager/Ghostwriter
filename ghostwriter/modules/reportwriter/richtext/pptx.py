@@ -108,14 +108,19 @@ class HtmlToPptx(BaseHtmlToOOXML):
 
         self.process_children(el, par=par, **kwargs)
 
-    def tag_pre(self, el, **kwargs):
-        top = Inches(1.65)
-        left = Inches(8)
-        width = Inches(4.5)
-        height = Inches(3)
-        textbox = self.slide.shapes.add_textbox(left, top, width, height)
+    def tag_pre(self, el, *, par=None, **kwargs):
+        if par is None:
+            top = Inches(1.65)
+            left = Inches(8)
+            width = Inches(4.5)
+            height = Inches(3)
+            textbox = self.slide.shapes.add_textbox(left, top, width, height)
+            par = textbox.text_frame.add_paragraph()
+        elif any(run.text for run in par.runs):
+            # Keep nested preformatted text in its current text frame, such as
+            # a table cell, instead of creating a detached slide textbox.
+            par = par._parent.add_paragraph()
         self.text_tracking.new_block()
-        par = textbox.text_frame.add_paragraph()
         par.alignment = PP_ALIGN.LEFT
 
         if len(el.contents) == 1 and el.contents[0].name == "code":
@@ -133,8 +138,13 @@ class HtmlToPptx(BaseHtmlToOOXML):
             run.font.size = Pt(11)
             run.font.name = "Courier New"
 
-    def tag_blockquote(self, el, **kwargs):
-        par = self.shape.text_frame.add_paragraph()
+    def tag_blockquote(self, el, *, par=None, **kwargs):
+        if par is None:
+            par = self.shape.text_frame.add_paragraph()
+        elif any(run.text for run in par.runs):
+            # Keep a nested blockquote in its current text frame, including
+            # when that frame belongs to a table cell.
+            par = par._parent.add_paragraph()
         self.text_tracking.new_block()
         self.process_children(el.children, par=par, **kwargs)
 

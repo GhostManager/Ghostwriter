@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * This fixed a typo in the path, but had no effect on functionality
 * Fixed activity-log sanitization confirmation and scoped its CSRF header to its own request
 * Fixed expired API and service token feedback so the appropriate token row and empty state are updated in the UI
+* Fixed PowerPoint report generation when rich-text table cells contain blockquotes or preformatted text
 
 ### Security
 
