@@ -57,6 +57,7 @@ from ghostwriter.commandcenter.models import ExtraFieldModel, GeneralConfigurati
 from ghostwriter.modules import codenames
 from ghostwriter.modules.model_utils import set_finding_positions, to_dict
 from ghostwriter.modules.passive_voice.detector import get_detector
+from ghostwriter.modules.reportwriter import jinja_string_literal
 from ghostwriter.modules.reportwriter.report.json import ExportReportJson
 from ghostwriter.oplog.models import OplogEntry, OplogEntryEvidence, OplogEntryRecording
 from ghostwriter.oplog.utils import extract_cast_text, validate_cast_gzip_upload
@@ -1985,12 +1986,22 @@ class GraphqlEvidenceUpdateEvent(HasuraEventView):
             friendly = None
             friendly_ref = None
             if self.event["op"] == "UPDATE":
-                friendly = f"{{{{.{self.new_data['friendly_name']}}}}}"
-                friendly_ref = f"{{{{.ref {self.new_data['friendly_name']}}}}}"
+                encoded_name = jinja_string_literal(self.new_data["friendly_name"])
+                friendly = f"{{{{ mk_evidence({encoded_name}) }}}}"
+                friendly_ref = f"{{{{ mk_ref({encoded_name}) }}}}"
 
             # Track previous friendly name and reference
             prev_friendly = f"{{{{.{self.old_data['friendly_name']}}}}}"
             prev_friendly_ref = f"{{{{.ref {self.old_data['friendly_name']}}}}}"
+            encoded_previous_name = jinja_string_literal(
+                self.old_data["friendly_name"]
+            )
+            prev_encoded_friendly = (
+                f"{{{{ mk_evidence({encoded_previous_name}) }}}}"
+            )
+            prev_encoded_friendly_ref = (
+                f"{{{{ mk_ref({encoded_previous_name}) }}}}"
+            )
 
             logger.info(
                 "Updating content of ReportFindingLink instances with updated name for Evidence %s",
@@ -2011,9 +2022,21 @@ class GraphqlEvidenceUpdateEvent(HasuraEventView):
                                 if self.event["op"] == "DELETE":
                                     new = current.replace(f"<p>{prev_friendly}</p>", "")
                                     new = new.replace(prev_friendly_ref, "")
+                                    new = new.replace(
+                                        f"<p>{prev_encoded_friendly}</p>", ""
+                                    )
+                                    new = new.replace(prev_encoded_friendly_ref, "")
                                 else:
                                     new = current.replace(prev_friendly, friendly)
                                     new = new.replace(prev_friendly_ref, friendly_ref)
+                                    new = new.replace(
+                                        prev_encoded_friendly,
+                                        friendly,
+                                    )
+                                    new = new.replace(
+                                        prev_encoded_friendly_ref,
+                                        friendly_ref,
+                                    )
                                 setattr(instance, field.name, new)
                     instance.save()
                 except ReportFindingLink.DoesNotExist:
