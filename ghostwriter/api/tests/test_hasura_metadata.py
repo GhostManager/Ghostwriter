@@ -816,6 +816,48 @@ class HasuraMetadataCollabRoleTests(SimpleTestCase):
 class HasuraMetadataUserRoleTests(SimpleTestCase):
     """Validate user-role Hasura metadata for app-level RBAC contracts."""
 
+    def test_local_finding_note_mutations_require_ownership_and_project_access(self):
+        table = load_yaml(HASURA_TABLE_DIR / "public_reporting_localfindingnote.yaml")
+        update_permission = get_role_permission(table, "user", "update_permissions")[
+            "permission"
+        ]
+        delete_permission = get_role_permission(table, "user", "delete_permissions")[
+            "permission"
+        ]
+        owner_filter = {"operator_id": {"_eq": USER_ID_HEADER}}
+        project_access_filter = {
+            "_or": [
+                {
+                    "finding": {
+                        "report": {
+                            "project": {
+                                "_or": [
+                                    {
+                                        "client": {
+                                            "invites": {
+                                                "user_id": {"_eq": USER_ID_HEADER}
+                                            }
+                                        }
+                                    },
+                                    {"invites": {"user_id": {"_eq": USER_ID_HEADER}}},
+                                    {
+                                        "assignments": {
+                                            "operator_id": {"_eq": USER_ID_HEADER}
+                                        }
+                                    },
+                                ]
+                            }
+                        }
+                    }
+                }
+            ]
+        }
+        expected_mutation_filter = {"_and": [owner_filter, project_access_filter]}
+
+        self.assertEqual(update_permission["filter"], expected_mutation_filter)
+        self.assertEqual(update_permission["check"], project_access_filter)
+        self.assertEqual(delete_permission["filter"], expected_mutation_filter)
+
     def test_inventory_mutations_validate_user_controlled_names(self):
         expected_checks = {
             "public_shepherd_domain.yaml": {
