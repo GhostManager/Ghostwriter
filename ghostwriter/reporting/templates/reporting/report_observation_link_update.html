@@ -16,6 +16,17 @@
     </nav>
 {% endblock %}
 
+{% block content %}
+    <header class="resource-form-page-heading mb-4">
+        <span class="detail-eyebrow">Report Observation</span>
+        <h1>Edit {{ object.title|default:"Untitled Observation" }}</h1>
+        <p>Tailor this observation for {{ object.report }}. Changes save automatically while collaboration is connected.</p>
+    </header>
+    <div class="resource-form-shell">
+        {{ block.super }}
+    </div>
+{% endblock %}
+
 {%  block morescripts %}
     {{ block.super }}
     <script type="text/plain" id="graphql-evidence-upload-url">{% url 'reporting:upload_evidence' object.report.id %}</script>

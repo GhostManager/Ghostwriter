@@ -13,60 +13,124 @@
 {% endblock %}
 
 {% block content %}
-  <div class="filter-form">
-    {% crispy filter.form filter.helper %}
-
-    <div class="justify-content-center">
-      <div class="buttonHolder">
-        <form action="{% url 'reporting:observation_create' %}" method="POST" style="display:contents">
-          {% csrf_token %}
-          <button class="btn btn-primary col-md-4 icon add-icon" role="button">Create Observation</button>
-        </form>
+  <div class="library-page observation-library-page d-grid gap-4">
+    <header class="library-page-heading">
+      <div class="library-page-heading-main">
+        <div class="library-page-title-row">
+          <h2>Observations Library</h2>
+          <span class="library-result-count">{{ filter.qs|length }} observation{{ filter.qs|length|pluralize }}</span>
+        </div>
+        <p>Search reusable observations, review their context, or add one to your working report.</p>
       </div>
+      <div class="library-page-actions">
+        <form action="{% url 'reporting:observation_create' %}" method="POST" class="mb-0">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-primary icon add-icon">Create Observation</button>
+        </form>
+        {% if filter.qs|length > 0 %}
+          <button id="resetSortBtn" type="button"
+                  class="btn btn-outline-secondary icon sync-icon">Reset Sort</button>
+        {% endif %}
+      </div>
+    </header>
+
+    <div class="filter-form library-filters observation-library-filters">
+      {% crispy filter.form filter.helper %}
     </div>
+
+    <section class="library-results observation-library-results" aria-label="Observations">
+      {% if filter.qs|length == 0 %}
+        <div class="empty-state m-3">
+          {% if request.GET %}
+            <p class="empty-state-title">No matching observations</p>
+            <p class="empty-state-description">Try broadening your filters or reset them to view the observation library.</p>
+            <a class="btn btn-outline-secondary btn-sm mt-3" href="{% url 'reporting:observations' %}">Reset filters</a>
+          {% else %}
+            <p class="empty-state-title">No observations yet</p>
+            <p class="empty-state-description">Create the first reusable observation for future reports.</p>
+          {% endif %}
+        </div>
+      {% else %}
+        <div class="library-guidance" role="note">
+          <i class="fas fa-bullseye" aria-hidden="true"></i>
+          <div class="working-report-guidance-copy">
+            <span>Adding to</span>
+            <strong data-working-report-title>
+              {% if active_engagement %}{{ active_engagement.report.title }}{% else %}No working report selected{% endif %}
+            </strong>
+            <small data-working-report-guidance-detail>
+              {% if active_engagement %}
+                Quick-adds will create a copy in this report.
+              {% else %}
+                Choose a report before using a quick-add action.
+              {% endif %}
+            </small>
+          </div>
+          <button type="button"
+                  class="btn btn-sm btn-outline-secondary working-report-guidance-action"
+                  data-bs-toggle="modal"
+                  data-bs-target="#workingContextModal"
+                  data-working-context-launcher="all">
+            {% if active_engagement %}Change{% else %}Choose report{% endif %}
+          </button>
+        </div>
+        <div id="observations_table" class="table-responsive data-table-frame library-table-frame">
+          <table id="observationsTable"
+                 class="tablesorter table table-hover library-table observation-library-table">
+            <thead>
+              <tr>
+                <th class="sortable align-middle text-start">Title</th>
+                <th class="sortable align-middle text-start">Tags</th>
+                <th class="sorter-false align-middle text-end">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="list">
+              {% for observation in filter.qs %}
+                <tr>
+                  <td class="align-middle text-start library-primary-cell" data-label="Title">
+                    <a class="library-primary-link" href="{{ observation.get_absolute_url }}">
+                      <span>{{ observation.display_title }}</span>
+                      <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                    </a>
+                  </td>
+                  <td class="align-middle text-start observation-tags-cell" data-label="Tags">
+                    <div class="library-cell-tags mt-0">
+                      {% for tag in observation.tags.all %}
+                        <span class="library-tag library-tag-neutral">{{ tag.name }}</span>
+                      {% empty %}
+                        <span class="text-muted">None</span>
+                      {% endfor %}
+                    </div>
+                  </td>
+                  <td class="align-middle text-end" data-label="Actions">
+                    <div class="library-row-actions">
+                      <button type="button" class="report-row-action icon preview-icon"
+                              title="Preview observation"
+                              aria-label="Preview {{ observation.display_title }}"
+                              onclick="openModal('#observation_detail_{{ observation.id }}')"></button>
+                      <button type="button"
+                              class="report-row-action js-quick-add icon add-icon"
+                              data-quick-add-kind="observation"
+                              data-quick-add-id="{{ observation.id }}"
+                              data-quick-add-label="{{ observation.display_title }}"
+                              data-quick-add-csrftoken="{{ csrf_token }}"
+                              data-quick-add-url="{% url 'reporting:ajax_assign_observation' observation.id %}"
+                              title="{% if active_engagement %}Add to {{ active_engagement.report.title }}{% else %}Choose a working report to add this observation{% endif %}"
+                              aria-label="{% if active_engagement %}Add {{ observation.display_title }} to {{ active_engagement.report.title }}{% else %}Choose a working report to add {{ observation.display_title }}{% endif %}"></button>
+                      <a class="report-row-action icon edit-icon"
+                         href="{% url 'reporting:observation_update' observation.id %}"
+                         title="Edit observation"
+                         aria-label="Edit {{ observation.display_title }}"></a>
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+    </section>
   </div>
-
-  {% if filter.qs|length == 0 %}
-    <div class="alert alert-warning offset-md-2 col-md-8 mt-3" role="alert">There are no observations yet, or your search
-      returned no results. Create an observation above or adjust your filters.
-    </div>
-  {% else %}
-    <!-- Observations Table -->
-    <div id="observations_table">
-      <table id="observationsTable" class="table table-striped table-sm">
-        <thead>
-          <tr>
-            <th class="align-middle text-left">Title</th>
-            <th class="align-middle text-left">Tags</th>
-            <th class="sorter-false align-middle">Options</th>
-          </tr>
-        </thead>
-        <tbody class="list">
-        {% for observation in filter.qs %}
-          <tr>
-            <td class="text-justify align-middle pl-2"><a class="clickable" href="{{ observation.get_absolute_url }}">{{observation.display_title}}</a></td>
-            <td class="text-justify align-middle">{%  for tag in observation.tags.all %}<span class="badge badge-secondary">{{ tag.name }}</span>{% endfor %}</td>
-
-            <td class="align-middle">
-              <div class="d-flex justify-content-center">
-                <a
-                  class="icon preview-icon clickable-link"
-                  title="Click to view additional information"
-                  onclick="openModal('#observation_detail_{{ observation.id }}')"
-                ></a>
-                <a class="js-assign-observation icon add-icon" assign-observation-id="{{ observation.id }}"
-                  href="javascript:void(0);" assign-observation-csrftoken="{{ csrf_token }}"
-                  title="Add observation to your active report (selected in the left-hand sidebar)"
-                  assign-observation-url="{% url 'reporting:ajax_assign_observation' observation.id %}"></a>
-                <a class="icon edit-icon icon-last" href="{% url 'reporting:observation_update' observation.id %}" title="Edit the observation"></a>
-              </div>
-            </td>
-          </tr>
-        {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  {% endif %}
 {% endblock %}
 
 
@@ -88,44 +152,12 @@
         }
       );
       $('.tablesorter').trigger('update');
-    });
 
-    $('#resetSortBtn').click(function() {
-      $('#observationsTable')
-        .trigger('saveSortReset')
-        .trigger('sortReset');
-      return false;
-    });
-
-    {%  comment %} Assign Finding with AJAX {% endcomment %}
-    $('.js-assign-observation').click(function () {
-      var url = $(this).attr('assign-observation-url');
-      var observationId = $(this).attr('assign-observation-id');
-      var csrftoken = $(this).attr('assign-observation-csrftoken')
-      // Prep AJAX request with CSRF token
-      $.ajaxSetup({
-        beforeSend: function (xhr, settings) {
-          if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-            xhr.setRequestHeader('X-CSRFToken', csrftoken);
-          }
-        }
-      });
-      // Send AJAX POST request
-      $.ajax({
-        url: url,
-        type: 'POST',
-        dataType: 'json',
-        data: {
-          'observation': observationId
-        },
-        success: function (data) {
-          if (data['result'] == 'success') {
-            // Do something
-          }
-          if (data['message']) {
-            displayToastTop({type: data['result'], string: data['message'], title: 'Observation Assigned'});
-          }
-        }
+      $('#resetSortBtn').click(function() {
+        $('#observationsTable')
+          .trigger('saveSortReset')
+          .trigger('sortReset');
+        return false;
       });
     });
 

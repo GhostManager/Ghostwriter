@@ -18,6 +18,7 @@ function FindingForm() {
             status={status}
             connected={connected}
             setEditing={setEditing}
+            tabbed
             extraBottom={
                 <>
                     <div className="form-group col-md-12">

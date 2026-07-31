@@ -49,10 +49,14 @@ function getOplogChoices(): OplogChoice[] {
 }
 
 function getGenerateUrl(): string {
-    return document.getElementById("report-oplog-outline-url")?.textContent ?? "";
+    return (
+        document.getElementById("report-oplog-outline-url")?.textContent ?? ""
+    );
 }
 
-function buildNarrativeContent(block: Extract<OutlineBlock, { type: "narrative" }>) {
+function buildNarrativeContent(
+    block: Extract<OutlineBlock, { type: "narrative" }>
+) {
     const content: Array<{
         type: "text";
         text: string;
@@ -130,82 +134,117 @@ function OplogOutlineModal(props: { editor: Editor; onClose: () => void }) {
             isOpen
             onRequestClose={props.onClose}
             contentLabel="Append Oplog Outline"
-            className="modal-dialog modal-dialog-centered"
+            className="modal-dialog modal-dialog-centered gw-editor-dialog gw-editor-dialog-wide"
         >
-            <div className="modal-content">
-                <div className="modal-header">
-                    <h5 className="modal-title">Append Oplog Outline</h5>
-                </div>
-                <div className="modal-body">
-                    <p>
-                        Appends a narrative outline based on operation log entries tagged with
-                        <code> report </code>
-                        or
-                        <code> evidence </code>
-                        to the end of this field. Any linked evidence will be included as well.
-                    </p>
-                    <p className="mb-3">
-                        This is useful for quickly assembling a report
-                        outline based on relevant activity recorded in the log(s).
-                        You can edit the generated outline as needed after it has been inserted.
-                    </p>
-                    <div className="form-group">
-                        <label htmlFor={selectId}>Operation Logs</label>
-                        <select
-                            id={selectId}
-                            className="custom-select custom-select-lg"
-                            disabled={disabled || oplogs.length === 0}
-                            value={selectedId?.toString() ?? ""}
-                            onChange={(ev) => {
-                                setSelectedId(
-                                    ev.target.value === ""
-                                        ? null
-                                        : parseInt(ev.target.value, 10)
-                                );
-                            }}
-                        >
-                            <option value="">Select Log...</option>
-                            {oplogs.map((oplog) => (
-                                <option key={oplog.id} value={oplog.id}>
-                                    {oplog.name}
-                                </option>
-                            ))}
-                        </select>
+            <div className="modal-content gw-editor-dialog-content">
+                <div className="modal-header gw-editor-dialog-header">
+                    <div>
+                        <span className="gw-editor-dialog-eyebrow">
+                            Narrative builder
+                        </span>
+                        <h5 className="modal-title">Append oplog outline</h5>
+                        <p className="gw-editor-dialog-intro">
+                            Turn reportable operation log activity into an
+                            editable narrative outline.
+                        </p>
                     </div>
-                    {oplogs.length === 0 && (
-                        <div className="alert alert-warning mb-0" role="alert">
-                            No oplogs are available for this report&apos;s
-                            project.
-                        </div>
-                    )}
-                </div>
-                <div className="modal-footer">
                     <button
-                        className="btn btn-primary"
-                        disabled={!canSubmit}
-                        onClick={(ev) => {
-                            ev.preventDefault();
-                            void appendOutline(
-                                props.editor,
-                                selectedId,
-                                setState,
-                                props.onClose
-                            );
-                        }}
-                    >
-                        Append Outline
-                    </button>
-                    <button
-                        className="btn btn-outline-secondary"
+                        type="button"
+                        className="gw-editor-dialog-close"
+                        aria-label="Close oplog outline dialog"
                         disabled={disabled}
-                        onClick={(ev) => {
-                            ev.preventDefault();
-                            props.onClose();
-                        }}
+                        onClick={props.onClose}
                     >
-                        Cancel
+                        <i className="fas fa-times" aria-hidden="true" />
                     </button>
                 </div>
+                <form
+                    className="gw-editor-dialog-form"
+                    onSubmit={(ev) => {
+                        ev.preventDefault();
+                        void appendOutline(
+                            props.editor,
+                            selectedId,
+                            setState,
+                            props.onClose
+                        );
+                    }}
+                >
+                    <div className="modal-body gw-editor-dialog-body">
+                        <div className="gw-editor-dialog-note">
+                            <i className="fas fa-stream" aria-hidden="true" />
+                            <p>
+                                Entries tagged <code>report</code> or{" "}
+                                <code>evidence</code> are appended to the end of
+                                this field. Linked evidence is included, and the
+                                generated outline remains fully editable.
+                            </p>
+                        </div>
+                        <div className="gw-editor-dialog-field">
+                            <label htmlFor={selectId}>Operation log</label>
+                            <select
+                                id={selectId}
+                                className="custom-select"
+                                disabled={disabled || oplogs.length === 0}
+                                value={selectedId?.toString() ?? ""}
+                                onChange={(ev) => {
+                                    setSelectedId(
+                                        ev.target.value === ""
+                                            ? null
+                                            : parseInt(ev.target.value, 10)
+                                    );
+                                }}
+                            >
+                                <option value="">Select a log...</option>
+                                {oplogs.map((oplog) => (
+                                    <option key={oplog.id} value={oplog.id}>
+                                        {oplog.name}
+                                    </option>
+                                ))}
+                            </select>
+                            <small className="form-text">
+                                Choose the activity log to use for this
+                                narrative.
+                            </small>
+                        </div>
+                        {oplogs.length === 0 && (
+                            <div
+                                className="alert alert-warning gw-editor-dialog-alert"
+                                role="alert"
+                            >
+                                No operation logs are available for this
+                                report&apos;s project.
+                            </div>
+                        )}
+                    </div>
+                    <div className="modal-footer gw-editor-dialog-footer">
+                        <button
+                            type="button"
+                            className="btn btn-outline-secondary"
+                            disabled={disabled}
+                            onClick={props.onClose}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            className="btn gw-editor-primary-action"
+                            disabled={!canSubmit}
+                        >
+                            <i
+                                className={
+                                    disabled
+                                        ? "fas fa-circle-notch fa-spin"
+                                        : "fas fa-stream"
+                                }
+                                aria-hidden="true"
+                            />
+                            {disabled
+                                ? "Building outline..."
+                                : "Append outline"}
+                        </button>
+                    </div>
+                </form>
             </div>
         </ReactModal>
     );

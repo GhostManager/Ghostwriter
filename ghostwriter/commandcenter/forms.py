@@ -148,17 +148,19 @@ class ExtraFieldsWidget(forms.Widget):
             else:
                 widget_attrs = final_attrs
 
-            widget_attrs.setdefault("class", "")
+            widget_classes = widget_attrs.get("class", "").split()
             is_checkbox = getattr(widget, "input_type", None) == "checkbox"
             if is_checkbox:
-                widget_attrs["class"] += " custom-control-input"
-            else:
-                # Append `mb-3` to the class list to add a margin below the field
-                widget_attrs["class"] += " mb-3"
+                # Crispy applies `form-control` to the compound widget before
+                # this subwidget is rendered. That class conflicts with the
+                # Bootstrap switch dimensions, so checkbox subwidgets must use
+                # only the checkbox-specific control class.
+                widget_classes = [css_class for css_class in widget_classes if css_class != "form-control"]
+                widget_classes.append("form-check-input")
             # Add any classes from the widget
             if "class" in widget.attrs:
-                widget_attrs["class"] += " " + widget.attrs["class"]
-            widget_attrs["class"] = widget_attrs["class"].strip()
+                widget_classes.extend(widget.attrs["class"].split())
+            widget_attrs["class"] = " ".join(dict.fromkeys(widget_classes))
 
             widget_ctx = widget.get_context(widget_name, widget_value, widget_attrs)["widget"]
 
@@ -166,6 +168,7 @@ class ExtraFieldsWidget(forms.Widget):
                 {
                     "label": spec.display_name,
                     "description": spec.description,
+                    "field_type": spec.type,
                     "is_checkbox": is_checkbox,
                     "widget": widget_ctx,
                 }

@@ -17,15 +17,21 @@
 {% endblock %}
 
 {% block content %}
-    <div id="accordion" class="finding-accordion">
+    <header class="resource-form-page-heading mb-4">
+        <span class="detail-eyebrow">Report Finding</span>
+        <h1>Edit {{ object.display_title }}</h1>
+        <p>Tailor this finding for {{ object.report }}. Changes save automatically while collaboration is connected.</p>
+    </header>
+
+    <div id="accordion" class="finding-accordion mb-3">
         <div class="card">
-            <div class="card-header" id="guidance" data-toggle="collapse" data-target="#collapseGuidance">
-                <a class="accordion-toggle btn btn-link icon guidance-icon" data-toggle="collapse"
-                    data-target="#collapseGuidance" aria-expanded="false" aria-controls="collapseGuidance">
+            <div class="card-header" id="guidance" data-bs-toggle="collapse" data-bs-target="#collapseGuidance">
+                <a class="accordion-toggle btn btn-link icon guidance-icon" data-bs-toggle="collapse"
+                    data-bs-target="#collapseGuidance" aria-expanded="false" aria-controls="collapseGuidance">
                     Finding Guidance
                 </a>
             </div>
-            <div id="collapseGuidance" class="collapse" aria-labelledby="guidance" data-parent="#accordion">
+            <div id="collapseGuidance" class="collapse" aria-labelledby="guidance" data-bs-parent="#accordion">
                 <div class="card-body">
                     {% if reportfindinglink.finding_guidance and reportfindinglink.finding_guidance != "<p></p>" %}
                         <div class="rich-text-field-preview">{{ reportfindinglink.finding_guidance|bleach }}</div>
@@ -37,7 +43,9 @@
         </div>
     </div>
 
-    {{ block.super }}
+    <div class="resource-form-shell">
+        {{ block.super }}
+    </div>
 {% endblock %}
 
 {%  block morescripts %}

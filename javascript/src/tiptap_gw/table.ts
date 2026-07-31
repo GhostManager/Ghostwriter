@@ -3,7 +3,12 @@
 import { Attributes, mergeAttributes, Node } from "@tiptap/core";
 import { Fragment, ResolvedPos, Slice } from "@tiptap/pm/model";
 import { ReplaceAroundStep } from "@tiptap/pm/transform";
-import { TableCell } from "@tiptap/extension-table";
+import {
+    Table,
+    TableCell,
+    TableHeader,
+    TableRow,
+} from "@tiptap/extension-table";
 
 declare module "@tiptap/core" {
     interface Commands<ReturnType> {
@@ -77,6 +82,115 @@ export const TableWithCaption = Node.create<{}>({
         return "";
     },
 });
+
+const SAFE_CLASS_TOKEN = /^[A-Za-z_][A-Za-z0-9_-]*$/;
+
+function sanitizeClassList(value: unknown): string | undefined {
+    if (typeof value !== "string") return undefined;
+    const classes = value
+        .split(/\s+/)
+        .filter((token) => SAFE_CLASS_TOKEN.test(token));
+    return classes.length ? classes.join(" ") : undefined;
+}
+
+function sanitizeTableStyle(value: unknown): string | undefined {
+    if (typeof value !== "string") return undefined;
+    const allowedProperties = new Set([
+        "border-collapse",
+        "border-style",
+        "border-width",
+        "table-layout",
+        "width",
+    ]);
+    const safeDeclarations = value
+        .split(";")
+        .map((declaration) => declaration.trim())
+        .filter(Boolean)
+        .flatMap((declaration) => {
+            const separator = declaration.indexOf(":");
+            if (separator < 1) return [];
+            const property = declaration
+                .slice(0, separator)
+                .trim()
+                .toLowerCase();
+            const propertyValue = declaration.slice(separator + 1).trim();
+            if (
+                !allowedProperties.has(property) ||
+                !/^[A-Za-z0-9 .,%()-]+$/.test(propertyValue)
+            ) {
+                return [];
+            }
+            return [`${property}: ${propertyValue}`];
+        });
+    return safeDeclarations.length ? safeDeclarations.join("; ") : undefined;
+}
+
+function sanitizeCellColor(value: unknown): string | undefined {
+    if (typeof value !== "string") return undefined;
+    const trimmed = value.trim();
+    return /^(?:#(?:[0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})|rgba?\(\s*[\d.%\s,]+\)|[a-z]+)$/i.test(
+        trimmed
+    )
+        ? trimmed
+        : undefined;
+}
+
+export const GwTable = Table.extend({
+    addAttributes() {
+        return {
+            class: {
+                default: "table table-sm table-striped table-bordered",
+                parseHTML: (element) =>
+                    sanitizeClassList(element.getAttribute("class")) ||
+                    "table table-sm table-striped table-bordered",
+            },
+            style: {
+                default:
+                    "border-collapse: collapse; width: 100%; border-style: solid; border-width: 1px",
+                parseHTML: (element) =>
+                    sanitizeTableStyle(element.getAttribute("style")) ||
+                    "border-collapse: collapse; width: 100%; border-style: solid; border-width: 1px",
+            },
+        };
+    },
+});
+
+export const GwTableRow = TableRow.extend({
+    addAttributes() {
+        return {
+            class: {
+                default: undefined,
+                parseHTML: (element) =>
+                    sanitizeClassList(element.getAttribute("class")),
+            },
+        };
+    },
+});
+
+function addLegacyTableCellAttributes(attrs: Attributes): Attributes {
+    attrs["class"] = {
+        default: undefined,
+        parseHTML: (element) =>
+            sanitizeClassList(element.getAttribute("class")),
+    };
+    attrs["bgColor"] = {
+        default: undefined,
+        parseHTML: (element) =>
+            sanitizeCellColor(
+                element.getAttribute("data-bg-color") ||
+                    element.style.backgroundColor
+            ),
+        renderHTML: (attributes) => {
+            const bgColor = sanitizeCellColor(attributes.bgColor);
+            if (!bgColor) return {};
+            return {
+                style: `background-color: ${bgColor}`,
+                "data-bg-color": bgColor,
+            };
+        },
+    };
+    return attrs;
+}
 
 function findParent($pos: ResolvedPos, name: string): ResolvedPos | null {
     for (let d = $pos.depth - 1; d > 0; d--)
@@ -216,18 +330,7 @@ export const TableCaption = Node.create<{}>({
 export const GwTableCell = TableCell.extend({
     addAttributes() {
         const attrs: Attributes = TableCell.config.addAttributes!.call(this);
-        attrs["bgColor"] = {
-            default: undefined,
-            parseHTML: (el) => el.getAttribute("data-bg-color"),
-            renderHTML: (attributes) => {
-                if (!attributes.bgColor) return {};
-                return {
-                    style: `background-color: ${attributes.bgColor}`,
-                    "data-bg-color": attributes.bgColor,
-                };
-            },
-        };
-        return attrs;
+        return addLegacyTableCellAttributes(attrs);
     },
     addCommands() {
         return {
@@ -241,5 +344,12 @@ export const GwTableCell = TableCell.extend({
                     });
                 },
         };
+    },
+});
+
+export const GwTableHeader = TableHeader.extend({
+    addAttributes() {
+        const attrs: Attributes = TableHeader.config.addAttributes!.call(this);
+        return addLegacyTableCellAttributes(attrs);
     },
 });

@@ -1,7 +1,12 @@
 {% load report_tags %}
 
-<h3 class="icon bug-icon">Linting Results</h3>
-<hr>
+<div class="detail-panel-header">
+  <div>
+    <span class="detail-eyebrow">Quality gate</span>
+    <h4>Linting Results</h4>
+  </div>
+  <i class="fas fa-bug finding-section-icon" aria-hidden="true"></i>
+</div>
 {% if reporttemplate.lint_result %}
     {% with reporttemplate.lint_result as lint_result %}
         <div
@@ -27,33 +32,25 @@
         </div>
 
         {% if lint_result.warnings %}
-            <table class="table table-borderless">
+            <div class="template-lint-list">
                 {% for warning in lint_result.warnings %}
-                    <tr>
-                        <td >
-                            <span class="badge badge-warning">Warning</span>
-                        </td>
-                        <td class="text-left">
-                            {{ warning }}
-                        </td>
-                    </tr>
+                    <div class="template-lint-item">
+                        <span class="badge badge-warning">Warning</span>
+                        <span>{{ warning }}</span>
+                    </div>
                 {% endfor %}
-            </table>
+            </div>
         {% endif %}
 
         {% if lint_result.errors %}
-            <table class="table table-borderless">
+            <div class="template-lint-list">
                 {% for error in lint_result.errors %}
-                    <tr>
-                        <td>
-                            <span class="badge badge-danger">Error</span>
-                        </td>
-                        <td class="text-left">
-                            {{ error }}
-                        </td>
-                    </tr>
+                    <div class="template-lint-item">
+                        <span class="badge badge-danger">Error</span>
+                        <span>{{ error }}</span>
+                    </div>
                 {% endfor %}
-            </table>
+            </div>
             <p><strong>Note:</strong> Syntax errors tied to undefined variables might be linked to a Table of Contents picking up a variable (e.g., <em>finding.title</em>) outside of a loop.</p>
         {% endif %}
     {% endwith %}

@@ -32,6 +32,7 @@ from channels.layers import get_channel_layer
 from ghostwriter.api.utils import RoleBasedAccessControlMixin, get_reports_list, get_templates_list, verify_user_is_privileged
 from ghostwriter.commandcenter.models import BloodHoundConfiguration, ExtraFieldSpec, ReportConfiguration
 from ghostwriter.commandcenter.views import CollabModelUpdate, ExtraFieldJsonView, ExtraFieldRichTextPreviewView
+from ghostwriter.home.working_context import record_recent_report
 from ghostwriter.modules.exceptions import MissingTemplate
 from ghostwriter.modules.reportwriter import report_generation_queryset
 from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
@@ -491,9 +492,10 @@ class ReportCreate(RoleBasedAccessControlMixin, CreateView):
     def get_success_url(self):
         self.request.session["active_report"]["id"] = self.object.pk
         self.request.session.modified = True
+        record_recent_report(self.request.user, self.object.pk)
         messages.success(
             self.request,
-            "Successfully created new report and set it as your active report",
+            "Report created and set as your working report. Library quick-adds will go here.",
             extra_tags="alert-success",
         )
         return reverse("reporting:report_detail", kwargs={"pk": self.object.pk})
@@ -540,10 +542,6 @@ class ReportUpdate(RoleBasedAccessControlMixin, UpdateView):
         return ctx
 
     def form_valid(self, form):
-        self.request.session["active_report"] = {}
-        self.request.session["active_report"]["id"] = form.instance.id
-        self.request.session["active_report"]["title"] = form.instance.title
-        self.request.session.modified = True
         return super().form_valid(form)
 
     def get_success_url(self):
@@ -580,7 +578,7 @@ class ReportDelete(RoleBasedAccessControlMixin, DeleteView):
         return redirect("reporting:reports")
 
     def get_success_url(self):
-        # Clear user's session if deleted report is their active report
+        # Clear the user's session if the deleted report is their working report.
         if self.object.pk == self.request.session.get("active_report", {}).get("id"):
             self.request.session["active_report"] = {}
             self.request.session["active_report"]["id"] = ""

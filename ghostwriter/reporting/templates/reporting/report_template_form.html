@@ -1,7 +1,7 @@
 {% extends "base_generic.html" %}
 {% load crispy_forms_tags %}
 
-{% block pagetitle %}Report Creation{% endblock %}
+{% block pagetitle %}{% if object %}Edit {{ object.name }}{% else %}New Report Template{% endif %}{% endblock %}
 
 {% block breadcrumbs %}
   <nav aria-label="breadcrumb">
@@ -15,63 +15,70 @@
 {% endblock %}
 
 {% block content %}
-  <!-- Instructions Section -->
-  <p>Provide information for this report template:</p>
+  <div class="resource-edit-page">
+    <header class="detail-page-heading resource-detail-heading resource-edit-heading">
+      <div class="detail-page-heading-main resource-detail-heading-main">
+        <span class="detail-eyebrow">{% if object %}Edit Report Template{% else %}Create Report Template{% endif %}</span>
+        <h2 class="mb-0">{% if object %}{{ object.name }}{% else %}New template{% endif %}</h2>
+        <p class="resource-edit-intro mb-0">Configure how this document is discovered and how Ghostwriter renders report content into it.</p>
+      </div>
+    </header>
 
-  <!-- Form Error Section -->
-  {% if form.errors %}
-    <script>
-      {% for field in form %}
-        {% for error in field.errors %}
+    <!-- Form Error Section -->
+    {% if form.errors %}
+      <script>
+        {% for field in form %}
+          {% for error in field.errors %}
+            displayToastTop({type: 'error', string: '{{ error|escapejs }}', context: 'form'});
+          {% endfor %}
+        {% endfor %}
+        {% for error in form.non_field_errors %}
           displayToastTop({type: 'error', string: '{{ error|escapejs }}', context: 'form'});
         {% endfor %}
-      {% endfor %}
-      {% for error in form.non_field_errors %}
-        displayToastTop({type: 'error', string: '{{ error|escapejs }}', context: 'form'});
-      {% endfor %}
-    </script>
-  {% endif %}
+      </script>
+    {% endif %}
 
-  <!-- Global default warning -->
-  {% if object and object == report_configuration.default_docx_template %}
-    <div class="alert alert-warning" role="alert">
-      This template is the global default Word template. Be careful when editing.
-    </div>
-  {% elif object and object == report_configuration.default_pptx_template %}
-    <div class="alert alert-warning" role="alert">
-      This template is the global default PowerPoint template. Be careful when editing.
-    </div>
-  {% endif %}
+    <!-- Global default warning -->
+    {% if object and object == report_configuration.default_docx_template %}
+      <div class="alert alert-warning mt-3" role="alert">
+        This is the global default Word template. Changes affect reports that rely on the default.
+      </div>
+    {% elif object and object == report_configuration.default_pptx_template %}
+      <div class="alert alert-warning mt-3" role="alert">
+        This is the global default PowerPoint template. Changes affect reports that rely on the default.
+      </div>
+    {% endif %}
 
-  <!-- Form Section -->
-  {% crispy form form.helper %}
+    {% crispy form form.helper %}
+  </div>
 {% endblock %}
 
 {% block morescripts %}
   <!-- Script for File Upload -->
   <script>
-    let fileInput = document.getElementById('id_document')
-    let $doc_type = $('#id_doc_type')
-    let $orientation = $('#id_landscape')
+    const fileInput = document.getElementById('id_document');
+    const filenameLabel = document.getElementById('filename');
+    const $doc_type = $('#id_doc_type');
+    const $orientation = $('#id_landscape');
 
     // Add frame when dragging file into input
     fileInput.addEventListener('dragover', function () {
-      filename.classList.add('dragging');
+      filenameLabel.classList.add('dragging');
     });
     fileInput.addEventListener('dragenter', function () {
-      filename.classList.add('dragging');
+      filenameLabel.classList.add('dragging');
     });
     // Removes drag class when drag leaves or file is dropped
     fileInput.addEventListener('dragleave', function () {
-      filename.classList.remove('dragging');
+      filenameLabel.classList.remove('dragging');
     });
     fileInput.addEventListener('drop', function () {
-      filename.classList.remove('dragging');
+      filenameLabel.classList.remove('dragging');
     });
 
     $('input[type=file]').on('change', function () {
       let filename = $(this).val().split('\\').pop();
-      $('#filename').text(filename);
+      filenameLabel.querySelector('span').textContent = filename;
     });
 
     $doc_type.on('change', function () {

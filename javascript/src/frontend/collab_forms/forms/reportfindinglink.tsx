@@ -26,6 +26,7 @@ function ReportFindingLinkForm() {
             connected={connected}
             toolbarExtra={renderToolbarExtra}
             setEditing={setEditing}
+            tabbed
             extraTop={
                 <>
                     <h4 className="icon list-icon">Affected Entities</h4>

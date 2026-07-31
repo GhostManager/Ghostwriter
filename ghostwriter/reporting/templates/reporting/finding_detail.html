@@ -15,269 +15,358 @@
 {% endblock %}
 
 {% block content %}
-  <div class="dropdown">
-    <div class="dropdown-menu-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
-         onclick="hamburger(this)">
-      <div class="bar1"></div>
-      <div class="bar2"></div>
-      <div class="bar3"></div>
-    </div>
-    <div class="dropdown-menu dropdown-menu-right" aria-labelledby="finding-dropdown-btn">
-      <a class="dropdown-item icon edit-icon" href="{% url 'reporting:finding_update' finding.id %}">Edit</a>
-      <a class="dropdown-item icon add-icon js-assign-finding" assign-finding-id="{{ finding.id }}"
-         href="javascript:void(0);" assign-finding-csrftoken="{{ csrf_token }}"
-         assign-finding-url="{% url 'reporting:ajax_assign_finding' finding.id %}">Add to Report</a>
-      <a class="dropdown-item icon back-arrow-icon" href="{% url 'reporting:findings' %}">Return to Findings</a>
-      <a class="dropdown-item icon trash-icon" href="{% url 'reporting:finding_delete' finding.id %}">Delete</a>
-    </div>
-  </div>
+  <div class="finding-detail-page">
+    <header class="detail-page-heading finding-detail-heading">
+      <div class="detail-page-heading-main finding-detail-heading-main">
+        <span class="detail-eyebrow">Finding</span>
+        <h2 class="mb-0">{{ finding.display_title }}</h2>
+        <div class="detail-tag-list finding-detail-tags" aria-label="Finding severity, type, and tags">
+          <span class="library-tag
+            {% if finding.severity.weight <= 2 %}library-tag-danger
+            {% elif finding.severity.weight == 3 %}library-tag-warning
+            {% elif finding.severity.weight == 4 %}library-tag-success
+            {% else %}library-tag-info{% endif %}"
+            {% if finding.cvss_vector %}data-bs-toggle="tooltip" data-bs-placement="bottom"
+              title="CVSS Vector: {{ finding.cvss_vector }}"{% endif %}>
+            <i class="fas fa-shield-alt" aria-hidden="true"></i>
+            <span>{{ finding.severity.severity }}{% if finding.cvss_score %} · {{ finding.cvss_score }}{% endif %}</span>
+          </span>
+          <span class="library-tag library-tag-info" title="Finding type">
+            <i class="fas
+              {% if finding.finding_type.finding_type == 'Cloud' %}fa-cloud
+              {% elif finding.finding_type.finding_type == 'Host' %}fa-desktop
+              {% elif finding.finding_type.finding_type == 'Mobile' %}fa-mobile-alt
+              {% elif finding.finding_type.finding_type == 'Network' %}fa-network-wired
+              {% elif finding.finding_type.finding_type == 'Physical' %}fa-building
+              {% elif finding.finding_type.finding_type == 'Web' %}fa-code
+              {% elif finding.finding_type.finding_type == 'Wireless' %}fa-wifi
+              {% else %}fa-bug{% endif %}" aria-hidden="true"></i>
+            <span>{{ finding.finding_type.finding_type }}</span>
+          </span>
+          {% for tag in finding.tags.names %}
+            <span class="badge badge-secondary">{{ tag|bleach }}</span>
+          {% endfor %}
+        </div>
+      </div>
 
-  <div class="container">
-    <h2>{{ finding.display_title }}</h2>
-  </div>
+      <div class="dropdown detail-page-heading-actions">
+        <button id="finding-actions-button" type="button"
+                class="btn btn-outline-primary btn-sm dropdown-toggle"
+                data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+          <span>Actions</span>
+        </button>
+        <div class="dropdown-menu dropdown-menu-end" aria-labelledby="finding-actions-button">
+          <a class="dropdown-item icon edit-icon" href="{% url 'reporting:finding_update' finding.id %}">Edit finding</a>
+          <button type="button"
+                  class="dropdown-item icon add-icon js-quick-add"
+                  data-quick-add-kind="finding"
+                  data-quick-add-id="{{ finding.id }}"
+                  data-quick-add-label="{{ finding.display_title }}"
+                  data-quick-add-csrftoken="{{ csrf_token }}"
+                  data-quick-add-url="{% url 'reporting:ajax_assign_finding' finding.id %}">
+            Add to working report
+          </button>
+          <div class="dropdown-divider"></div>
+          <a class="dropdown-item icon back-arrow-icon" href="{% url 'reporting:findings' %}">Return to findings</a>
+          <div class="dropdown-divider"></div>
+          <a class="dropdown-item icon trash-icon text-danger"
+             href="{% url 'reporting:finding_delete' finding.id %}">Delete finding</a>
+        </div>
+      </div>
+    </header>
 
-  {% comment %} Finding Severity Badge {% endcomment %}
-  <div>
-    <span class="badge badge-dark
-        {% if finding.severity.weight == 1 %}
-            critical-background
-        {% elif finding.severity.weight == 2 %}
-            high-background
-        {% elif finding.severity.weight == 3 %}
-            medium-background
-        {% elif finding.severity.weight == 4 %}
-            low-background
+    <div class="finding-detail-workspace">
+      <ul id="tab-bar" class="nav nav-tabs nav-justified finding-detail-tabs"
+          role="tablist" aria-label="Finding sections">
+        <li class="nav-item" role="presentation">
+          <a id="id_overview" class="nav-link active" href="#overview" data-tab-hash="#overview"
+             data-bs-toggle="tab" role="tab" aria-controls="overview" aria-selected="true">
+            <i class="fas fa-align-left" aria-hidden="true"></i>Overview
+          </a>
+        </li>
+        <li class="nav-item" role="presentation">
+          <a id="id_technical" class="nav-link" href="#technical" data-tab-hash="#technical"
+             data-bs-toggle="tab" role="tab" aria-controls="technical" aria-selected="false">
+            <i class="fas fa-microscope" aria-hidden="true"></i>Technical
+          </a>
+        </li>
+        {% if finding_extra_fields_spec %}
+          <li class="nav-item" role="presentation">
+            <a id="id_extra_fields" class="nav-link" href="#extra-fields" data-tab-hash="#extra-fields"
+               data-bs-toggle="tab" role="tab" aria-controls="extra-fields" aria-selected="false">
+              <i class="fas fa-puzzle-piece" aria-hidden="true"></i>Extra Fields
+              <span class="badge">{{ finding_extra_fields_spec|length }}</span>
+            </a>
+          </li>
         {% endif %}
-        icon bug-icon"
-      {% if finding.cvss_score %}
-          style="cursor: help"
-          data-toggle="tooltip"
-          data-placement="bottom"
-          title="CVSS Vector: {{ finding.cvss_vector }}"
-      {% endif %}
-    >
-      {{ finding.severity.severity }} {% if finding.cvss_score %}({{ finding.cvss_score }}){% endif %}
-    </span>
-    {% comment %} Finding Type and Tags Badges {% endcomment %}
-    <span class="badge badge-primary
-        icon
-        {% if finding.finding_type.finding_type == "Cloud" %}
-            cloud-icon
-        {% elif finding.finding_type.finding_type == "Host" %}
-            host-icon
-        {% elif finding.finding_type.finding_type == "Mobile" %}
-            mobile-icon
-        {% elif finding.finding_type.finding_type == "Network" %}
-            network-icon
-        {% elif finding.finding_type.finding_type == "Physical" %}
-            physical-icon
-        {% elif finding.finding_type.finding_type == "Web" %}
-            code-icon
-        {% elif finding.finding_type.finding_type == "Wireless" %}
-            wireless-icon
-        {% else %}
-            bug-icon
-        {% endif %}"
-        style="cursor: help"
-        data-toggle="tooltip"
-        data-placement="bottom"
-        title="Finding Type"
-    >
-      {{ finding.finding_type.finding_type }}
-    </span>
-    {% for tag in finding.tags.names %}
-      <span class="badge badge-secondary">{{ tag }}</span>
-    {% endfor %}
-  </div>
-  <hr>
+        <li class="nav-item" role="presentation">
+          <a id="id_notes" class="nav-link" href="#notes" data-tab-hash="#notes"
+             data-bs-toggle="tab" role="tab" aria-controls="notes" aria-selected="false">
+            <i class="fas fa-comment-alt" aria-hidden="true"></i>Notes
+            {% if finding.findingnote_set.all %}<span class="badge">{{ finding.findingnote_set.all|length }}</span>{% endif %}
+          </a>
+        </li>
+      </ul>
 
-  <div id="descriptionCard" class="card mb-3">
-    <div class="card-header finding-header icon writing-icon">
-      Description
-    </div>
-    <div class="card-body finding-content rich-text-field-preview">
-      {% if finding.description %}
-        <div class="rich-text-field-preview">{{ finding.description|bleach }}</div>
-      {% else %}
-        <p>Description write-up is needed.</p>
-      {% endif %}
-    </div>
-  </div>
+      <div class="tab-content">
+        <div id="overview" class="tab-pane show active" role="tabpanel" aria-labelledby="id_overview">
+          <div class="detail-layout finding-overview-layout">
+            <section id="descriptionCard" class="detail-panel finding-detail-panel-wide"
+                     aria-labelledby="finding-description-heading">
+              <div class="detail-panel-header">
+                <div>
+                  <span class="detail-eyebrow">Narrative</span>
+                  <h4 id="finding-description-heading">Description</h4>
+                </div>
+                <i class="fas fa-align-left finding-section-icon" aria-hidden="true"></i>
+              </div>
+              {% if finding.description %}
+                <div class="detail-prose rich-text-field-preview">{{ finding.description|bleach }}</div>
+              {% else %}
+                <div class="empty-state">
+                  <p class="empty-state-title">Description needed</p>
+                  <p class="empty-state-description">Explain what the finding is and where it applies.</p>
+                </div>
+              {% endif %}
+            </section>
 
-  <div id="impactCard" class="card mb-3">
-    <div class="card-header finding-header icon impact-icon">
-      Impact
-    </div>
-    <div class="card-body finding-content rich-text-field-preview">
-      {% if finding.impact %}
-        <div class="rich-text-field-preview">{{ finding.impact|bleach }}</div>
-      {% else %}
-        <p>Impact write-up is needed.</p>
-      {% endif %}
-    </div>
-  </div>
+            <section id="impactCard" class="detail-panel" aria-labelledby="finding-impact-heading">
+              <div class="detail-panel-header">
+                <div>
+                  <span class="detail-eyebrow">Risk</span>
+                  <h4 id="finding-impact-heading">Impact</h4>
+                </div>
+                <i class="fas fa-bolt finding-section-icon" aria-hidden="true"></i>
+              </div>
+              {% if finding.impact %}
+                <div class="detail-prose rich-text-field-preview">{{ finding.impact|bleach }}</div>
+              {% else %}
+                <div class="empty-state">
+                  <p class="empty-state-title">Impact needed</p>
+                  <p class="empty-state-description">Describe the consequence if this issue is exploited.</p>
+                </div>
+              {% endif %}
+            </section>
 
-  <div id="mitigationCard" class="card mb-3">
-    <div class="card-header finding-header icon help-icon">
-      Recommendations
-    </div>
-    <div class="card-body finding-content">
-      {% if finding.mitigation %}
-        <div class="rich-text-field-preview">{{ finding.mitigation|bleach }}</div>
-      {% else %}
-        <p>Recommendations are needed.</p>
-      {% endif %}
-    </div>
-  </div>
+            <section id="mitigationCard" class="detail-panel" aria-labelledby="finding-recommendations-heading">
+              <div class="detail-panel-header">
+                <div>
+                  <span class="detail-eyebrow">Remediation</span>
+                  <h4 id="finding-recommendations-heading">Recommendations</h4>
+                </div>
+                <i class="fas fa-tools finding-section-icon" aria-hidden="true"></i>
+              </div>
+              {% if finding.mitigation %}
+                <div class="detail-prose rich-text-field-preview">{{ finding.mitigation|bleach }}</div>
+              {% else %}
+                <div class="empty-state">
+                  <p class="empty-state-title">Recommendations needed</p>
+                  <p class="empty-state-description">Provide practical steps for reducing or removing the risk.</p>
+                </div>
+              {% endif %}
+            </section>
 
-  <div id="detectionCard" class="card mb-3">
-    <div class="card-header finding-header icon shield-icon">
-      Detection Recommendations
-    </div>
-    <div class="card-body finding-content">
-      {% if finding.host_detection_techniques %}
-        <h6 class="text-center card-title">Host Detection</h6>
-        <hr>
-        <div class="rich-text-field-preview">{{ finding.host_detection_techniques|bleach }}</div>
-      {% endif %}
-
-      {% if finding.network_detection_techniques %}
-        <h6 class="text-center card-title">Network Detection</h6>
-        <hr>
-        <div class="rich-text-field-preview">{{ finding.network_detection_techniques|bleach }}</div>
-      {% endif %}
-
-      {% if not finding.network_detection_techniques and not finding.host_detection_techniques %}
-        <p>No host or network detections have been written for this finding.</p>
-      {% endif %}
-    </div>
-  </div>
-
-  <div id="replicationCard" class="card mb-3">
-    <div class="card-header finding-header icon help-icon">
-      Replication Steps
-    </div>
-    <div class="card-body finding-content">
-      {% if finding.replication_steps %}
-        <div class="rich-text-field-preview">{{ finding.replication_steps|bleach }}</div>
-      {% else %}
-        <p>Replication steps are needed.</p>
-      {% endif %}
-    </div>
-  </div>
-
-  <div id="referencesCard" class="card mb-3">
-    <div class="card-header finding-header icon help-icon">
-      References
-    </div>
-    <div class="card-body finding-content">
-      {% if finding.references %}
-        <div class="rich-text-field-preview">{{ finding.references|bleach }}</div>
-      {% else %}
-        <p>References are needed.</p>
-      {% endif %}
-    </div>
-  </div>
-
-  {% if finding.finding_guidance %}
-    <div id="guidanceCard" class="card mb-3">
-      <div class="card-header finding-header icon help-icon">
-        Finding Guidance
-      </div>
-      <div class="card-body finding-content">
-        <div class="rich-text-field-preview">{{ finding.finding_guidance|bleach }}</div>
-      </div>
-    </div>
-  {% endif %}
-
-  {% if finding_extra_fields_spec %}
-    <h4 class="icon custom-field-icon">Extra Fields</h4>
-    <hr>
-
-    <p class="text-muted small">Jinja2 template syntax will not be rendered in these previews because a project and report context is needed. Rich text previews with rendered Jinja2 are available on report and project detail pages where these fields are referenced.</p>
-
-    <div class="extra-fields-grid">
-      {% for field_spec in finding_extra_fields_spec %}
-        <section class="extra-field-card">
-          <h5 class="extra-field-name">{{ field_spec.display_name }}</h5>
-          <div class="extra-field-type">
-            {% if field_spec.type == "rich_text" %}
-              Rich Text Field
-            {% else %}
-              {{ field_spec.get_type_display }} Field
+            {% if finding.finding_guidance %}
+              <section id="guidanceCard" class="detail-panel finding-detail-panel-wide"
+                       aria-labelledby="finding-guidance-heading">
+                <div class="detail-panel-header">
+                  <div>
+                    <span class="detail-eyebrow">Operator Context</span>
+                    <h4 id="finding-guidance-heading">Finding Guidance</h4>
+                  </div>
+                  <i class="fas fa-compass finding-section-icon" aria-hidden="true"></i>
+                </div>
+                <div class="detail-prose rich-text-field-preview">{{ finding.finding_guidance|bleach }}</div>
+              </section>
             {% endif %}
-          </div>
-          <div class="extra-field-type">Loop and reference as <code>object.extra_fields.{{ field_spec.internal_name }}</code></div>
-          <div class="extra-field-value">
-            {% if field_spec.type == "rich_text" %}
-              <span class="extra-field-summary">Use Preview to view formatted content.</span>
-            {% elif field_spec.type == "json" %}
-              <span class="extra-field-summary">Use View JSON to inspect structured content.</span>
-            {% else %}
-              {% include "user_extra_fields/field.html" with extra_fields=finding.extra_fields field_spec=field_spec preview_report=False %}
-            {% endif %}
-          </div>
-          <div class="extra-field-actions">
-            {% if field_spec.type == "rich_text" %}
-              <button type="button" class="btn btn-primary btn-sm icon view-icon" data-toggle="modal"
-                      data-target="#field_spec_{{ field_spec.internal_name }}">Preview
-              </button>
-            {% elif field_spec.type == "json" %}
-              <button type="button" class="btn btn-primary btn-sm icon code-icon" data-toggle="modal"
-                      data-target="#field_spec_{{ field_spec.internal_name }}">View JSON
-              </button>
-            {% endif %}
-            <a class="btn btn-outline-primary btn-sm icon edit-icon"
-               href="{% url 'reporting:finding_update' finding.id %}"
-               title="Edit {{ field_spec.display_name }}">Edit</a>
-          </div>
-        </section>
-      {% endfor %}
-    </div>
-  {% endif %}
-
-  <h4 class="icon comment-icon">Notes</h4>
-  <hr>
-
-  <p class="text-center">
-    <a class="icon add-icon btn btn-primary mb-1 col-2" href="{% url 'reporting:finding_note_add' finding.id %}">Add a
-      Note</a>
-  </p>
-
-  {% if finding.findingnote_set.all %}
-    {% for note in finding.findingnote_set.all reversed %}
-      <div id="note-container-{{ note.id }}">
-        <div class="container note-container {% if forloop.counter|divisibleby:2 %}darker{% endif %}">
-          <div class="float-left col-10 col-md-10 col-sm-8">
-            <div class="rich-text-field-preview">{{ note.note|bleach }}</div>
-          </div>
-
-          <div class="float-right col-2 col-md-2 col-sm-4">
-            <div>{% if note.operator %}<a class="note-link"
-                                          href="{% url 'users:user_detail' note.operator.username %}">{{ note.operator.username }}</a>{% else %}
-              <span class="note-link">Deleted</span>{% endif %}</div>
-            <div><p class="note-time">{{ note.timestamp }}</p></div>
           </div>
         </div>
-      </div>
 
-      {% if request.user == note.operator or request.user|is_privileged %}
-        <div class="pb-3">
-          <a class="note-link" href="{% url 'reporting:finding_note_edit' note.id %}">Edit</a> |
-          <a id="note-delete-button-{{ note.id }}" class="js-confirm-delete note-link" data-toggle="modal"
-             data-target="#confirm-delete-modal" href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}"
-             delete-target-url="{% url 'reporting:ajax_delete_finding_note' note.id %}" delete-target-id="{{ note.id }}"
-             delete-target-type="note">Delete</a>
+        <div id="technical" class="tab-pane" role="tabpanel" aria-labelledby="id_technical">
+          <div class="detail-layout finding-technical-layout">
+            <section id="detectionCard" class="detail-panel finding-detail-panel-wide"
+                     aria-labelledby="finding-detection-heading">
+              <div class="detail-panel-header">
+                <div>
+                  <span class="detail-eyebrow">Defensive Guidance</span>
+                  <h4 id="finding-detection-heading">Detection Recommendations</h4>
+                </div>
+                <i class="fas fa-shield-alt finding-section-icon" aria-hidden="true"></i>
+              </div>
+              {% if finding.host_detection_techniques or finding.network_detection_techniques %}
+                <div class="finding-detection-grid">
+                  {% if finding.host_detection_techniques %}
+                    <section class="finding-subsection" aria-labelledby="finding-host-detection-heading">
+                      <h5 id="finding-host-detection-heading"><i class="fas fa-desktop" aria-hidden="true"></i>Host Detection</h5>
+                      <div class="detail-prose rich-text-field-preview">{{ finding.host_detection_techniques|bleach }}</div>
+                    </section>
+                  {% endif %}
+                  {% if finding.network_detection_techniques %}
+                    <section class="finding-subsection" aria-labelledby="finding-network-detection-heading">
+                      <h5 id="finding-network-detection-heading"><i class="fas fa-network-wired" aria-hidden="true"></i>Network Detection</h5>
+                      <div class="detail-prose rich-text-field-preview">{{ finding.network_detection_techniques|bleach }}</div>
+                    </section>
+                  {% endif %}
+                </div>
+              {% else %}
+                <div class="empty-state">
+                  <p class="empty-state-title">No detection recommendations</p>
+                  <p class="empty-state-description">Add host or network detection guidance when it applies.</p>
+                </div>
+              {% endif %}
+            </section>
+
+            <section id="replicationCard" class="detail-panel" aria-labelledby="finding-replication-heading">
+              <div class="detail-panel-header">
+                <div>
+                  <span class="detail-eyebrow">Validation</span>
+                  <h4 id="finding-replication-heading">Replication Steps</h4>
+                </div>
+                <i class="fas fa-list-ol finding-section-icon" aria-hidden="true"></i>
+              </div>
+              {% if finding.replication_steps %}
+                <div class="detail-prose rich-text-field-preview">{{ finding.replication_steps|bleach }}</div>
+              {% else %}
+                <div class="empty-state">
+                  <p class="empty-state-title">Replication steps needed</p>
+                  <p class="empty-state-description">Document how another operator can reproduce the issue.</p>
+                </div>
+              {% endif %}
+            </section>
+
+            <section id="referencesCard" class="detail-panel" aria-labelledby="finding-references-heading">
+              <div class="detail-panel-header">
+                <div>
+                  <span class="detail-eyebrow">Supporting Material</span>
+                  <h4 id="finding-references-heading">References</h4>
+                </div>
+                <i class="fas fa-book-open finding-section-icon" aria-hidden="true"></i>
+              </div>
+              {% if finding.references %}
+                <div class="detail-prose rich-text-field-preview">{{ finding.references|bleach }}</div>
+              {% else %}
+                <div class="empty-state">
+                  <p class="empty-state-title">No references provided</p>
+                  <p class="empty-state-description">Link trusted standards, tools, or research when available.</p>
+                </div>
+              {% endif %}
+            </section>
+          </div>
         </div>
-      {% endif %}
-    {% endfor %}
-  {% else %}
-    <p>No notes for this finding.</p>
-  {% endif %}
+
+        {% if finding_extra_fields_spec %}
+          <div id="extra-fields" class="tab-pane" role="tabpanel" aria-labelledby="id_extra_fields">
+            <header class="content-section-header">
+              <div class="content-section-heading">
+                <h4>Extra Fields</h4>
+                <p class="content-section-intro">Finding-level values use the template reference shown on each card. Project- and report-aware expressions are rendered when the finding is used in those contexts.</p>
+              </div>
+              <a class="icon edit-icon btn btn-primary btn-sm"
+                 href="{% url 'reporting:finding_update' finding.id %}">Edit Extra Fields</a>
+            </header>
+
+            <div class="extra-fields-grid client-extra-fields-grid finding-extra-fields-grid">
+              {% for field_spec in finding_extra_fields_spec %}
+                <section class="extra-field-card" aria-labelledby="finding-extra-field-{{ field_spec.internal_name }}">
+                  <div class="extra-field-card-header">
+                    <h5 id="finding-extra-field-{{ field_spec.internal_name }}"
+                        class="extra-field-name">{{ field_spec.display_name }}</h5>
+                    <span class="extra-field-type-badge">
+                      {% if field_spec.type == "rich_text" %}Rich Text{% else %}{{ field_spec.get_type_display }}{% endif %}
+                    </span>
+                  </div>
+
+                  <div class="extra-field-reference">
+                    <span>Template reference</span>
+                    <code>object.extra_fields.{{ field_spec.internal_name }}</code>
+                  </div>
+
+                  <div class="extra-field-value">
+                    <span class="extra-field-value-label">Current value</span>
+                    <div class="extra-field-value-content">
+                      {% if field_spec.type == "rich_text" %}
+                        <span class="extra-field-summary">Formatted content is available in Preview.</span>
+                      {% elif field_spec.type == "json" %}
+                        <span class="extra-field-summary">Structured content is available in View JSON.</span>
+                      {% else %}
+                        {% include "user_extra_fields/field.html" with extra_fields=finding.extra_fields field_spec=field_spec preview_report=False %}
+                      {% endif %}
+                    </div>
+                  </div>
+
+                  <footer class="extra-field-actions">
+                    {% if field_spec.type == "rich_text" %}
+                      <button type="button" class="btn btn-primary btn-sm icon view-icon"
+                              data-bs-toggle="modal" data-bs-target="#field_spec_{{ field_spec.internal_name }}">Preview</button>
+                    {% elif field_spec.type == "json" %}
+                      <button type="button" class="btn btn-primary btn-sm icon code-icon"
+                              data-bs-toggle="modal" data-bs-target="#field_spec_{{ field_spec.internal_name }}">View JSON</button>
+                    {% endif %}
+                    <a class="btn btn-outline-primary btn-sm icon edit-icon"
+                       href="{% url 'reporting:finding_update' finding.id %}"
+                       title="Edit {{ field_spec.display_name }}">Edit</a>
+                  </footer>
+                </section>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+
+        <div id="notes" class="tab-pane" role="tabpanel" aria-labelledby="id_notes">
+          <header class="content-section-header">
+            <div class="content-section-heading">
+              <h4>Finding Notes</h4>
+              <p class="content-section-intro">Capture reusable context for operators maintaining this library finding.</p>
+            </div>
+            <a class="icon add-icon btn btn-primary btn-sm"
+               href="{% url 'reporting:finding_note_add' finding.id %}">Add a Note</a>
+          </header>
+
+          {% if finding.findingnote_set.all %}
+            <div class="note-card-list">
+              {% for note in finding.findingnote_set.all reversed %}
+                <article id="note-container-{{ note.id }}" class="note-card">
+                  <div class="note-card-body rich-text-field-preview">{{ note.note|bleach }}</div>
+                  <footer class="note-card-footer">
+                    {% if request.user == note.operator or request.user|is_privileged %}
+                      <div class="note-card-actions" aria-label="Note actions">
+                        <a class="btn btn-outline-primary btn-sm icon edit-icon"
+                           href="{% url 'reporting:finding_note_edit' note.id %}">Edit</a>
+                        <a id="note-delete-button-{{ note.id }}"
+                           class="btn btn-outline-danger btn-sm icon trash-icon js-confirm-delete"
+                           data-bs-toggle="modal" data-bs-target="#confirm-delete-modal" href="javascript:void(0);"
+                           delete-target-csrftoken="{{ csrf_token }}"
+                           delete-target-url="{% url 'reporting:ajax_delete_finding_note' note.id %}"
+                           delete-target-id="{{ note.id }}" delete-target-type="note">Delete</a>
+                      </div>
+                    {% endif %}
+                    <div class="note-card-meta">
+                      {% if note.operator %}
+                        <a class="note-card-author"
+                           href="{% url 'users:user_detail' note.operator.username %}">{{ note.operator.username }}</a>
+                      {% else %}
+                        <span class="note-card-author">Deleted user</span>
+                      {% endif %}
+                      <span aria-hidden="true">&middot;</span>
+                      <time class="note-card-time" datetime="{{ note.timestamp|date:'c' }}">{{ note.timestamp }}</time>
+                    </div>
+                  </footer>
+                </article>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="empty-state">
+              <p class="empty-state-title">No notes yet</p>
+              <p class="empty-state-description">Add a note when operators need context that does not belong in the report narrative.</p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
 {% endblock %}
 
 {% block morescripts %}
-  {% comment %} Include the reusable delete confirmation modal and related scripts {% endcomment %}
   {% include "confirm_delete_modal.html" %}
 
   {% if finding_extra_fields_spec %}
@@ -288,40 +377,4 @@
     {% include "user_extra_fields/lazy_json_modal_script.html" %}
   {% endif %}
 
-  {% comment %} Assign Finding with AJAX {% endcomment %}
-  <script>
-    $('.js-assign-finding').click(function () {
-      let url = $(this).attr('assign-finding-url');
-      let findingId = $(this).attr('assign-finding-id');
-      let csrftoken = $(this).attr('assign-finding-csrftoken')
-      $.ajaxSetup({
-        beforeSend: function (xhr, settings) {
-          if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-            xhr.setRequestHeader('X-CSRFToken', csrftoken);
-          }
-        }
-      });
-      $.ajax({
-        url: url,
-        type: 'POST',
-        dataType: 'json',
-        data: {
-          'finding': findingId
-        },
-        success: function (data) {
-          if (data['result'] === 'success') {
-            // Do Something
-          }
-          if (data['message']) {
-            displayToastTop({
-              type: data['result'],
-              string: data['message'],
-              title: 'Finding Assigned',
-              url: data['url']
-            });
-          }
-        }
-      });
-    });
-  </script>
 {% endblock %}

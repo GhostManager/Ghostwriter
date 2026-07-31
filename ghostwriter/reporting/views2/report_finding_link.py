@@ -46,7 +46,7 @@ def get_position(report_pk, severity):
 class AssignFinding(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """
     Copy an individual :model:`reporting.Finding` to create a new
-    :model:`reporting.ReportFindingLink` connected to the user's active
+    :model:`reporting.ReportFindingLink` connected to the user's working
     :model:`reporting.Report`.
     """
 
@@ -62,16 +62,16 @@ class AssignFinding(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                 report_id = self.request.POST["report"]
                 report = Report.objects.get(pk=report_id)
             else:
-                # Otherwise, use the session variable for the "active" report
+                # Otherwise, use the session variable for the working report
                 active_report = self.request.session.get("active_report", None)
                 if active_report:
                     report = Report.objects.get(pk=active_report["id"])
                 else:
                     raise Report.DoesNotExist()
-        except (Report.DoesNotExist, ValueError):
+        except (KeyError, Report.DoesNotExist, TypeError, ValueError):
             return JsonResponse({
                 "result": "error",
-                "message": "Please select a report to edit in the sidebar or go to a report's dashboard to assign an finding."
+                "message": "Choose a working report before adding a finding."
             }, status=400)
 
         if not ReportFindingLink.user_can_create(self.request.user, report):
@@ -116,7 +116,12 @@ class AssignFinding(RoleBasedAccessControlMixin, SingleObjectMixin, View):
 
         return JsonResponse({
             "result": "success",
-            "message": "{} successfully added to your active report.".format(rfl),
+            "message": "{} added to {}.".format(
+                escape(str(rfl)), escape(report.title)
+            ),
+            "report": report.title,
+            "report_id": report.id,
+            "url": report.get_absolute_url(),
             "table_html": render_to_string(
                 "snippets/report_findings_table.html", {"report": report}, request=self.request
             )
@@ -318,54 +323,79 @@ class ReportFindingLinkPreview(RoleBasedAccessControlMixin, SingleObjectMixin, V
                 content_type="text/html",
             )
 
-        parts = []
         title = escape(finding_data.get("title", "Untitled Finding"))
         severity = escape(str(finding_data.get("severity", "")))
-        severity_color = escape(str(finding_data.get("severity_color", "6c757d")))
         cvss_score = finding_data.get("cvss_score")
         cvss_vector = escape(str(finding_data.get("cvss_vector", "")))
         finding_type = escape(str(finding_data.get("finding_type", "")))
+        normalized_severity = str(finding_data.get("severity", "")).strip().lower()
+        severity_class = {
+            "critical": "severity-critical",
+            "high": "severity-high",
+            "moderate": "severity-moderate",
+            "medium": "severity-medium",
+            "low": "severity-low",
+            "informational": "severity-informational",
+            "info": "severity-info",
+        }.get(normalized_severity, "severity-unknown")
 
-        parts.append(f"<h2>{title}</h2>")
-
-        badges = []
+        parts = [
+            f'<article class="report-preview report-finding-preview {severity_class}">',
+            '<header class="report-preview-hero">',
+            '<span class="report-preview-kind"><i class="fas fa-shield-alt" '
+            'aria-hidden="true"></i> Finding</span>',
+            f'<h2 class="report-preview-title">{title}</h2>',
+            '<div class="report-preview-facts" aria-label="Finding summary">',
+        ]
         if severity:
-            sev_badge = (
-                f'<span class="badge badge-pill" '
-                f'style="background-color: #{severity_color}; color: #fff;">'
-                f"{severity}"
-                "</span>"
+            parts.append(
+                '<span class="report-preview-fact report-preview-severity">'
+                '<span class="report-preview-severity-dot" aria-hidden="true"></span>'
+                f"{severity}</span>"
             )
-            badges.append(sev_badge)
         if cvss_vector and cvss_score not in (None, ""):
-            badges.append(
-                f'<span class="badge badge-pill badge-dark"'
-                f' style="cursor: help; background-color: #{severity_color}; color: #fff;" data-toggle="tooltip"'
-                f' data-placement="bottom" title="{cvss_vector}">'
-                f"CVSS: {cvss_score}</span>"
+            parts.append(
+                '<span class="report-preview-fact report-preview-score" '
+                'data-bs-toggle="tooltip" data-bs-placement="bottom" '
+                f'title="{cvss_vector}"><span>CVSS</span> {escape(str(cvss_score))}</span>'
             )
         if finding_type:
-            badges.append(
-                f'<span class="badge badge-pill badge-primary">{finding_type}</span>'
+            parts.append(
+                '<span class="report-preview-fact report-preview-type">'
+                f"{finding_type}</span>"
             )
-        if badges:
-            parts.append(f'<div class="mb-3 text-center">{" ".join(badges)}</div>')
+        parts.extend(["</div>", "</header>", '<div class="report-preview-sections">'])
 
-        parts.append("<hr>")
-
+        section_count = 0
         for key, label in self.RICH_TEXT_SECTIONS:
             html = render_rich_text_value(finding_data.get(key))
             if not has_rich_text_content(html):
                 continue
             sanitized = expand_evidence_and_sanitize(html, report, client=client)
-            parts.append(f"<h3>{escape(label)}</h3>")
-            parts.append(sanitized)
+            section_count += 1
+            parts.extend(
+                [
+                    '<section class="report-preview-section">',
+                    f'<h3><span>{escape(label)}</span></h3>',
+                    f'<div class="report-preview-section-content">{sanitized}</div>',
+                    "</section>",
+                ]
+            )
+        if section_count == 0:
+            parts.append(
+                '<div class="report-preview-empty">'
+                '<i class="far fa-file-alt" aria-hidden="true"></i>'
+                "<p>No standard finding sections have content yet.</p>"
+                "</div>"
+            )
+        parts.append("</div>")
 
         extra_fields = finding_data.get("extra_fields", {})
         ef_display_names = {
             spec.internal_name: spec.display_name
             for spec in ExtraFieldSpec.objects.filter(target_model=Finding._meta.label)
         }
+        extra_parts = []
         for ef_key, ef_value in extra_fields.items():
             html = render_rich_text_value(ef_value)
             if not has_rich_text_content(html):
@@ -373,8 +403,30 @@ class ReportFindingLinkPreview(RoleBasedAccessControlMixin, SingleObjectMixin, V
             html = wrap_plain_value(ef_value, html)
             sanitized = expand_evidence_and_sanitize(html, report, client=client)
             label = escape(ef_display_names.get(ef_key, ef_key))
-            parts.append(f"<h3>{label}</h3>")
-            parts.append(sanitized)
+            extra_parts.extend(
+                [
+                    '<section class="report-preview-extra-field">',
+                    f"<h4>{label}</h4>",
+                    f'<div class="report-preview-section-content">{sanitized}</div>',
+                    "</section>",
+                ]
+            )
+        if extra_parts:
+            parts.extend(
+                [
+                    '<aside class="report-preview-extras">',
+                    '<div class="report-preview-extras-heading">',
+                    '<span class="detail-eyebrow">Custom fields</span>',
+                    "<h3>Additional details</h3>",
+                    "<p>Template-specific fields are grouped separately from the standard finding narrative.</p>",
+                    "</div>",
+                    '<div class="report-preview-extra-grid">',
+                    *extra_parts,
+                    "</div>",
+                    "</aside>",
+                ]
+            )
+        parts.append("</article>")
 
         return HttpResponse("\n".join(parts), content_type="text/html")
 

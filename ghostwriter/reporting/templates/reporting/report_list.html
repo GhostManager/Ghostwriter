@@ -1,7 +1,7 @@
 {% extends "base_generic.html" %}
 {% load crispy_forms_tags humanize %}
 
-{% block pagetitle %}Report List{% endblock %}
+{% block pagetitle %}Report Library{% endblock %}
 
 {% block breadcrumbs %}
   <nav aria-label="breadcrumb">
@@ -13,73 +13,126 @@
 {% endblock %}
 
 {% block content %}
-  <!-- Filter Section -->
-  <div class="filter-form">
-    {% crispy filter.form filter.helper %}
-  </div>
+  <div class="library-page report-library-page d-grid gap-4">
+    <header class="library-page-heading">
+      <div class="library-page-heading-main">
+        <div class="library-page-title-row">
+          <h2>Report Library</h2>
+          <span class="library-result-count">{{ filter.qs|length }} report{{ filter.qs|length|pluralize }}</span>
+        </div>
+        <p>Find reports across accessible projects, review their workflow status, or begin a new report.</p>
+      </div>
+      <div class="library-page-actions">
+        <a class="btn btn-primary icon add-icon" role="button"
+           href="{% url 'reporting:report_create_no_project' %}">Create Report</a>
+        {% if filter.qs|length > 0 %}
+          <button id="resetSortBtn" class="btn btn-outline-secondary icon sync-icon"
+                  type="button">Reset Sort</button>
+        {% endif %}
+      </div>
+    </header>
 
-  <a class="btn btn-info col-2 icon add-icon mt-2" role="button" href="{%  url 'reporting:report_create_no_project' %}">Create Report</a>
-  <a id="resetSortBtn" class="btn btn-secondary col-2 icon sync-icon mt-2" role="button">Reset Sort</a>
+    <div class="filter-form library-filters report-library-filters">
+      {% crispy filter.form filter.helper %}
+    </div>
 
-  {% if filter.qs|length == 0 %}
-    <p class="mt-3">There are no reports to see here yet, or your search returned no results. Start a new report up
-      above or from a project page.</p>
-  {% else %}
-    <!-- Reports Table Section -->
-    <table id="reportTable" class="tablesorter table table-sm table-hover">
-      <thead>
-      <tr>
-        <th class="sorter-sugar align-middle pr-4 text-left">Created</th>
-        <th class="align-middle pr-4 text-left">Title</th>
-        <th class="sorter-sugar align-middle pr-4 text-left">Updated</th>
-        <th class="align-middle pr-4 text-left">Status</th>
-        <th class="align-middle pr-4 text-left">Owner</th>
-        <th class="sorter-false align-middle">
-          <div class="dropdown dropleft mr-3">
-            <span id="evidence-info-btn" class="dropdown-info" data-toggle="dropdown" aria-haspopup="true"
-                  aria-expanded="false">Start Editing</span>
-            <div id="evidence-info" class="dropdown-menu dropdown-info-content" aria-labelledby="evidence-info-btn">
-              <p>Click the below buttons to make the associated report your active report. Your active report is
-                displayed at the top of your browser window and is the report that will receive a finding when you add
-                one to the report.</p>
-            </div>
-          </div>
-        </th>
-      </tr>
-      </thead>
-      {% for report in filter.qs %}
-        <tr>
-          <td class="align-middle text-left">{{ report.creation|naturalday:"DATE_FORMAT" }}</td>
-          <td class="align-middle text-left"><a class="clickable" href="{{ report.get_absolute_url }}">{{ report.title }}</a></td>
-          <td class="align-middle text-left">{{ report.last_update|naturalday:"DATE_FORMAT" }}</td>
-          {%  if report.archived %}
-            <td class="align-middle text-left"><span class="badge badge-secondary">Archived</span></td>
+    <section class="library-results report-library-results" aria-label="Reports">
+      {% if filter.qs|length == 0 %}
+        <div class="empty-state m-3">
+          {% if request.GET %}
+            <p class="empty-state-title">No matching reports</p>
+            <p class="empty-state-description">Try broadening your filters or reset them to view all accessible reports.</p>
+            <a class="btn btn-outline-secondary btn-sm mt-3" href="{% url 'reporting:reports' %}">Reset filters</a>
           {% else %}
-            {% if report.complete %}
-              {% if report.delivered %}
-                <td class="align-middle text-left"><span class="badge badge-success">Delivered</span></td>
-              {% else %}
-                <td class="align-middle text-left"><span class="badge badge-warning">Awaiting Delivery</span></td>
-              {% endif %}
-            {% else %}
-              <td class="align-middle text-left"><span class="badge badge-primary">In Progress</span></td>
-            {% endif %}
+            <p class="empty-state-title">No reports yet</p>
+            <p class="empty-state-description">Create a report here or start one from a project workspace.</p>
+            <a class="btn btn-primary btn-sm icon add-icon mt-3"
+               href="{% url 'reporting:report_create_no_project' %}">Create Report</a>
           {% endif %}
-          <td class="align-middle text-left">{{ report.created_by }}</td>
-          <td class="align-middle align-middle">
-            <button title="Set this report as your active report" href="javascript:void(0)"
-               class="clickable-link js-activate-report btn btn-secondary"
-               activate-report-csrftoken="{{ csrf_token }}"
-               activate-report-url="{% url 'reporting:ajax_activate_report' report.id %}"
-               activate-report-id="{{ report.id }}">Select Report</button>
-          </td>
-        </tr>
-      {% endfor %}
-    </table>
-  {% endif %}
+        </div>
+      {% else %}
+        <div class="library-guidance" role="note">
+          <i class="fas fa-bullseye" aria-hidden="true"></i>
+          <p><strong>Working report:</strong> findings and observations added from the libraries go to this report.</p>
+        </div>
+        <div class="table-responsive data-table-frame library-table-frame">
+          <table id="reportTable" class="tablesorter table table-hover library-table library-table-wide">
+            <thead>
+              <tr>
+                <th class="sorter-sugar align-middle text-start">Created</th>
+                <th class="align-middle text-start">Title</th>
+                <th class="sorter-sugar align-middle text-start">Updated</th>
+                <th class="align-middle text-start">Status</th>
+                <th class="align-middle text-start">Owner</th>
+                <th class="sorter-false align-middle text-end">Working Report</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for report in filter.qs %}
+                <tr>
+                  <td class="align-middle text-start" data-label="Created">{{ report.creation|naturalday:"DATE_FORMAT" }}</td>
+                  <td class="align-middle text-start library-primary-cell" data-label="Title">
+                    <a class="library-primary-link" href="{{ report.get_absolute_url }}">
+                      <span>{{ report.title }}</span>
+                      <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                    </a>
+                  </td>
+                  <td class="align-middle text-start" data-label="Updated">
+                    <span class="library-tag library-tag-neutral library-tag-date">
+                      <i class="far fa-clock" aria-hidden="true"></i>
+                      {{ report.last_update|naturalday:"DATE_FORMAT" }}
+                    </span>
+                  </td>
+                  {% if report.archived %}
+                    <td class="align-middle text-start" data-label="Status">
+                      <span class="library-tag library-tag-neutral"><i class="fas fa-archive" aria-hidden="true"></i>Archived</span>
+                    </td>
+                  {% elif report.complete and report.delivered %}
+                    <td class="align-middle text-start" data-label="Status">
+                      <span class="library-tag library-tag-success"><i class="fas fa-check-circle" aria-hidden="true"></i>Delivered</span>
+                    </td>
+                  {% elif report.complete %}
+                    <td class="align-middle text-start" data-label="Status">
+                      <span class="library-tag library-tag-warning"><i class="fas fa-clock" aria-hidden="true"></i>Awaiting Delivery</span>
+                    </td>
+                  {% else %}
+                    <td class="align-middle text-start" data-label="Status">
+                      <span class="library-tag library-tag-info"><i class="fas fa-pen" aria-hidden="true"></i>In Progress</span>
+                    </td>
+                  {% endif %}
+                  <td class="align-middle text-start" data-label="Owner">
+                    <span class="library-tag library-tag-neutral" title="{{ report.created_by }}">
+                      <i class="fas fa-user" aria-hidden="true"></i>
+                      <span class="library-tag-value">{{ report.created_by }}</span>
+                    </span>
+                  </td>
+                  <td class="align-middle text-end" data-label="Working Report">
+                    <button type="button"
+                            title="{% if active_engagement.report.id == report.id %}Current working report{% else %}Use this report for library quick-adds{% endif %}"
+                            class="js-activate-report btn btn-outline-primary btn-sm{% if active_engagement.report.id == report.id %} selected-report{% endif %}"
+                            activate-report-csrftoken="{{ csrf_token }}"
+                            activate-report-url="{% url 'reporting:ajax_activate_report' report.id %}"
+                            activate-report-id="{{ report.id }}"
+                            data-report-title="{{ report.title }}"
+                            data-working-report-unselected-label="Use report">
+                      <i class="fas {% if active_engagement.report.id == report.id %}fa-bullseye{% else %}fa-crosshairs{% endif %}" aria-hidden="true"></i>
+                      <span data-working-report-action-label>
+                        {% if active_engagement.report.id == report.id %}Working report{% else %}Use report{% endif %}
+                      </span>
+                    </button>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+    </section>
+  </div>
 {% endblock %}
 
 {% block morescripts %}
+  {{ autocomplete_data|json_script:"report-list-autocomplete-data" }}
   <!-- jQuery Tablesorter Script -->
   <script>
     $(document).ready(function () {

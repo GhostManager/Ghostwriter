@@ -1,4 +1,4 @@
-{% extends 'base_generic.html' %}
+{% extends "base_generic.html" %}
 
 {% load bleach_tags report_tags settings_tags static %}
 
@@ -8,15 +8,7 @@
   <nav aria-label="breadcrumb">
     <ul class="breadcrumb">
       <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-      <li class="breadcrumb-item"><a
-        href="{% url 'rolodex:client_detail' evidence.report.project.client.id %}">{{ evidence.report.project.client.name }}</a>
-      </li>
-      <li class="breadcrumb-item"><a
-        href="{% url 'rolodex:project_detail' evidence.report.project.id %}">{{ evidence.report.project.start_date }} {{ evidence.report.project.project_type }}</a>
-      </li>
-      <li class="breadcrumb-item"><a
-        href="{% url 'reporting:report_detail' evidence.report.id %}">{{ evidence.report }}</a>
-      </li>
+      <li class="breadcrumb-item"><a href="{% url 'reporting:report_detail' evidence.report.id %}">{{ evidence.report }}</a></li>
       <li class="breadcrumb-item active" aria-current="page">Evidence</li>
     </ul>
   </nav>
@@ -24,116 +16,148 @@
 
 {% block content %}
   {% get_solo "commandcenter.ReportConfiguration" as report_config %}
-
-  <div class="dropdown">
-    <div class="dropdown-menu-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
-         onclick="hamburger(this)">
-      <div class="bar1"></div>
-      <div class="bar2"></div>
-      <div class="bar3"></div>
-    </div>
-    <div class="dropdown-menu dropdown-menu-right" aria-labelledby="evidence-dropdown-btn">
-      <a class="dropdown-item icon edit-icon" href="{% url 'reporting:evidence_update' evidence.id %}">Edit</a>
-      <a class="dropdown-item icon trash-icon" href="{% url 'reporting:evidence_delete' evidence.id %}">Delete</a>
-      <a class="dropdown-item icon back-arrow-icon"
-         href="{% url 'reporting:report_detail' evidence.report.id %}">Return to Report</a>
-    </div>
-  </div>
-
-  <div class="container">
-    <h2>{{ evidence.friendly_name }}</h2>
-  </div>
-  {% for tag in evidence.tags.names %}
-    <span class="badge badge-secondary">{{ tag|bleach }}</span>
-  {% endfor %}
-  <hr>
-
-  <!-- File Information Section -->
-  <table class="table table-borderless project-details-table offset-2 col-8">
-    <tr>
-      <td class="text-left bold">Original Filename</td>
-      <td class="text-left" data-toggle="tooltip" data-placement="bottom" title="{{ evidence.filename|bleach }}">{{ evidence.filename|bleach|truncate_filename:50 }}</td>
-    </tr>
-    <tr>
-      <td class="text-left bold">Uploaded by</td>
-      <td class="text-left">{{ evidence.uploaded_by }}</td>
-    </tr>
-    <tr>
-      <td class="text-left bold">Upload Date</td>
-      <td class="text-left">{{ evidence.upload_date }}</td>
-    </tr>
-    <tr>
-      <td class="text-left bold">Report Caption</td>
-      <td class="text-left">
-        {% if evidence.caption %}
-          {{ evidence.caption }}
-        {% else %}
-          ---
-        {% endif %}
-      </td>
-    </tr>
-    <tr>
-      <td class="text-left bold">Description</td>
-      <td class="text-left">
-        {% if evidence.description %}
-          {{ evidence.description|bleach }}
-        {% else %}
-          ---
-        {% endif %}
-      </td>
-    </tr>
-  </table>
-
-
-
-  <!-- File Content Section -->
-  <h4 class="icon file-icon">File Preview</h4>
-  <hr>
-
-  <div class="text-left offset-2 col-8">
-    <p>This is a preview of what your evidence file will look like in a report.
-      It may not look exactly like this (depending on your template's styles),
-      but it will give you an idea of what to expect.</p>
-    <p>The width is 6.5" (165.1mm), the default full width of a Word document. If you have borders enabled for reports,
-      images will include a border with your configured color and width. Previews also show you what captions will look
-      like with your caption and configured labelling for figures.
-    </p>
-  </div>
-
-  <p class="text-muted"><i class="fas fa-search-plus"></i> Click on the preview to view full size</p>
-
-  {% include "snippets/evidence_display.html" with evidence=evidence report_config=report_config clickable=True %}
-
-  <!-- Linked Log Entries Section -->
-  <h4 class="icon link-icon">Linked Log Entries</h4>
-  <hr>
-  {% if linked_oplog_entries %}
-    {% regroup linked_oplog_entries by oplog_entry.oplog_id as oplog_groups %}
-    {% for group in oplog_groups %}
-      <h6 class="offset-2 col-8 mb-2"><i class="fas fa-list-alt"></i> {{ group.grouper.name }}</h6>
-      <ul class="list-group offset-2 col-8 mb-4">
-        {% for link in group.list %}
-          {% with entry=link.oplog_entry %}
-          <li class="list-group-item d-flex justify-content-between align-items-center text-left">
-            <div>
-              <span class="mr-3 text-muted small">{{ entry.start_date|date:"Y-m-d H:i" }}</span>
-              {% if entry.tool %}<span class="mr-2 badge badge-secondary">{{ entry.tool|truncatechars:25 }}</span>{% endif %}
-              {% if entry.operator_name %}<span class="small">{{ entry.operator_name }}</span>{% endif %}
-            </div>
-            <a href="{% url 'oplog:oplog_entries' group.grouper.id %}?entry={{ entry.id }}#entry-{{ entry.id }}"
-               class="btn btn-sm btn-outline-secondary" target="_blank" title="Open in log">
-              <i class="fas fa-external-link-alt"></i>
+  {% with evidence|get_file_type as file_type %}
+    <div class="evidence-detail-page">
+      <header class="detail-page-heading resource-detail-heading">
+        <div class="detail-page-heading-main resource-detail-heading-main">
+          <span class="detail-eyebrow">Evidence</span>
+          <h2 class="mb-0">{{ evidence.friendly_name|bleach }}</h2>
+          <div class="detail-tag-list mt-0" aria-label="Evidence context and tags">
+            <a class="project-context-badge"
+               href="{% url 'reporting:report_detail' evidence.report.id %}#evidence"
+               title="Return to {{ evidence.report }}">
+              <i class="fas fa-file-alt" aria-hidden="true"></i>
+              <span>{{ evidence.report }}</span>
             </a>
-          </li>
-          {% endwith %}
-        {% endfor %}
-      </ul>
-    {% endfor %}
-  {% else %}
-    <p class="offset-2 col-8 text-muted">This evidence file has not been linked to any log entries.</p>
-  {% endif %}
+            <span class="library-tag library-tag-info">
+              <i class="fas {% if file_type == 'image' %}fa-image{% elif file_type == 'text' %}fa-align-left{% else %}fa-paperclip{% endif %}"
+                 aria-hidden="true"></i>
+              <span>{{ file_type|capfirst }}</span>
+            </span>
+            {% for tag in evidence.tags.names %}
+              <span class="badge badge-secondary">{{ tag|bleach }}</span>
+            {% endfor %}
+          </div>
+        </div>
 
-  <!-- Include the lightbox modal -->
+        <div class="dropdown detail-page-heading-actions">
+          <button id="evidence-actions-button" type="button"
+                  class="btn btn-outline-primary btn-sm dropdown-toggle"
+                  data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            <span>Actions</span>
+          </button>
+          <div class="dropdown-menu dropdown-menu-end" aria-labelledby="evidence-actions-button">
+            <a class="dropdown-item icon download-icon"
+               href="{% url 'reporting:evidence_download' evidence.id %}">Download evidence</a>
+            <a class="dropdown-item icon edit-icon"
+               href="{% url 'reporting:evidence_update' evidence.id %}">Edit evidence</a>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item icon back-arrow-icon"
+               href="{% url 'reporting:report_detail' evidence.report.id %}#evidence">Return to report</a>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item icon trash-icon text-danger"
+               href="{% url 'reporting:evidence_delete' evidence.id %}">Delete evidence</a>
+          </div>
+        </div>
+      </header>
+
+      <div class="detail-layout evidence-detail-layout">
+        <section class="detail-panel evidence-preview-panel" aria-labelledby="evidence-preview-heading">
+          <div class="detail-panel-header">
+            <div>
+              <span class="detail-eyebrow">Report output</span>
+              <h4 id="evidence-preview-heading">File Preview</h4>
+            </div>
+            <i class="fas fa-search-plus finding-section-icon" aria-hidden="true"></i>
+          </div>
+          <div class="detail-guidance mb-3">
+            This preview uses the report’s image and caption settings. Select the preview to inspect the original at full size.
+          </div>
+          <div class="evidence-preview-stage">
+            {% include "snippets/evidence_display.html" with evidence=evidence report_config=report_config clickable=True %}
+          </div>
+        </section>
+
+        <aside class="detail-panel evidence-metadata-panel" aria-labelledby="evidence-details-heading">
+          <div class="detail-panel-header">
+            <div>
+              <span class="detail-eyebrow">File record</span>
+              <h4 id="evidence-details-heading">Evidence Details</h4>
+            </div>
+          </div>
+          <dl class="detail-grid evidence-metadata-grid">
+            <div class="detail-field">
+              <dt>Original filename</dt>
+              <dd title="{{ evidence.filename|bleach }}">{{ evidence.filename|bleach }}</dd>
+            </div>
+            <div class="detail-field">
+              <dt>Uploaded by</dt>
+              <dd>{{ evidence.uploaded_by }}</dd>
+            </div>
+            <div class="detail-field">
+              <dt>Upload date</dt>
+              <dd class="operator-data">{{ evidence.upload_date }}</dd>
+            </div>
+            <div class="detail-field">
+              <dt>Report caption</dt>
+              <dd>{% if evidence.caption %}{{ evidence.caption }}{% else %}<span class="detail-empty">Not provided</span>{% endif %}</dd>
+            </div>
+            <div class="detail-field">
+              <dt>Description</dt>
+              <dd>{% if evidence.description %}{{ evidence.description|bleach }}{% else %}<span class="detail-empty">Not provided</span>{% endif %}</dd>
+            </div>
+          </dl>
+        </aside>
+
+        <section class="detail-panel evidence-linked-logs" aria-labelledby="evidence-linked-logs-heading">
+          <div class="detail-panel-header">
+            <div>
+              <span class="detail-eyebrow">Operational context</span>
+              <h4 id="evidence-linked-logs-heading">Linked Log Entries</h4>
+            </div>
+            <i class="fas fa-link finding-section-icon" aria-hidden="true"></i>
+          </div>
+          {% if linked_oplog_entries %}
+            {% regroup linked_oplog_entries by oplog_entry.oplog_id as oplog_groups %}
+            <div class="evidence-log-groups">
+              {% for group in oplog_groups %}
+                <section aria-labelledby="oplog-group-{{ forloop.counter }}">
+                  <h5 id="oplog-group-{{ forloop.counter }}" class="evidence-log-group-title">
+                    <i class="fas fa-list-alt" aria-hidden="true"></i>
+                    {{ group.grouper.name }}
+                  </h5>
+                  <ul class="list-group">
+                    {% for link in group.list %}
+                      {% with entry=link.oplog_entry %}
+                        <li class="list-group-item evidence-log-entry">
+                          <div>
+                            <span class="operator-data text-muted small">{{ entry.start_date|date:"Y-m-d H:i" }}</span>
+                            {% if entry.tool %}<span class="badge badge-secondary">{{ entry.tool|truncatechars:25 }}</span>{% endif %}
+                            {% if entry.operator_name %}<span class="small">{{ entry.operator_name }}</span>{% endif %}
+                          </div>
+                          <a href="{% url 'oplog:oplog_entries' group.grouper.id %}?entry={{ entry.id }}#entry-{{ entry.id }}"
+                             class="report-row-action" target="_blank" rel="noopener"
+                             title="Open log entry" aria-label="Open log entry">
+                            <i class="fas fa-external-link-alt" aria-hidden="true"></i>
+                          </a>
+                        </li>
+                      {% endwith %}
+                    {% endfor %}
+                  </ul>
+                </section>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="empty-state">
+              <p class="empty-state-title">No linked log entries</p>
+              <p class="empty-state-description">This file is available to the report but has not been attached to an operation log entry.</p>
+            </div>
+          {% endif %}
+        </section>
+      </div>
+    </div>
+  {% endwith %}
+
   {% include "snippets/evidence_lightbox_modal.html" %}
 {% endblock %}
 
@@ -141,18 +165,11 @@
   <script src="{% static 'js/evidence-lightbox.js' %}"></script>
   <script>
     $(document).ready(function() {
-      // console.log('Evidence detail page loaded');
-
-      // Initialize evidence lightbox
       if (typeof initEvidenceLightbox === 'function') {
-        // console.log('initEvidenceLightbox function found');
         initEvidenceLightbox();
       } else {
         console.error('initEvidenceLightbox function not found');
       }
-
-      // Check if elements exist
-      // console.log('Clickable elements found:', $('.js-open-lightbox').length);
     });
   </script>
 {% endblock %}

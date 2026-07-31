@@ -8,7 +8,7 @@
         <h5 class="modal-title" id="evidence_detail_{{ evidence.id }}_label">
           {{ evidence.friendly_name }}
         </h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+        <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
           <i class="fas fa-times" aria-hidden="true"></i>
         </button>
       </div>
@@ -56,28 +56,28 @@
 
           <table class="table table-borderless table-sm">
             <tr>
-              <td class="text-left font-weight-bold" style="width: 30%;">Filename:</td>
-              <td class="text-left">{{ evidence.filename }}</td>
+              <td class="text-start font-weight-bold" style="width: 30%;">Filename:</td>
+              <td class="text-start">{{ evidence.filename }}</td>
             </tr>
             <tr>
-              <td class="text-left font-weight-bold">Upload Date:</td>
-              <td class="text-left">{{ evidence.upload_date|date:"DATE_FORMAT" }}</td>
+              <td class="text-start font-weight-bold">Upload Date:</td>
+              <td class="text-start">{{ evidence.upload_date|date:"DATE_FORMAT" }}</td>
             </tr>
             <tr>
-              <td class="text-left font-weight-bold">Uploaded By:</td>
-              <td class="text-left">{{ evidence.uploaded_by }}</td>
+              <td class="text-start font-weight-bold">Uploaded By:</td>
+              <td class="text-start">{{ evidence.uploaded_by }}</td>
             </tr>
             {% if evidence.description %}
               <tr>
-                <td class="text-left font-weight-bold align-top">Description:</td>
-                <td class="text-left">{{ evidence.description|bleach }}</td>
+                <td class="text-start font-weight-bold align-top">Description:</td>
+                <td class="text-start">{{ evidence.description|bleach }}</td>
               </tr>
             {% endif %}
           </table>
         </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
         <a href="javascript:void(0)"
            onclick="downloadEvidence({{ evidence.id }}, '{{ evidence.filename|escapejs }}')"
            class="btn btn-primary icon download-icon">Download</a>

@@ -53,7 +53,13 @@ class FindingFilter(django_filters.FilterSet):
     title = django_filters.CharFilter(
         lookup_expr="icontains",
         label="Finding Title Contains",
-        widget=TextInput(attrs={"placeholder": "Partial Finding Title", "autocomplete": "off"}),
+        widget=TextInput(
+            attrs={
+                "placeholder": "Partial Finding Title",
+                "autocomplete": "off",
+                "data-1p-ignore": "true",
+            }
+        ),
     )
     severity = django_filters.ModelMultipleChoiceFilter(
         queryset=Severity.objects.all().order_by("weight"),
@@ -72,6 +78,7 @@ class FindingFilter(django_filters.FilterSet):
             attrs={
                 "placeholder": "Finding Tag",
                 "autocomplete": "off",
+                "data-1p-ignore": "true",
             }
         ),
     )
@@ -118,52 +125,52 @@ class FindingFilter(django_filters.FilterSet):
                         Row(
                             Column(
                                 PrependedText("title", FILTER_ICON),
-                                css_class="col-md-4 offset-md-2 mb-0",
+                                css_class="col-md-6 mb-3",
                             ),
                             Column(
                                 PrependedText("tags", TAG_ICON),
-                                css_class="col-md-4 mb-0",
+                                css_class="col-md-6 mb-3",
                             ),
                             css_class="form-row",
                         ),
                         Row(
                             Column(
                                 InlineCheckboxes("severity"),
-                                css_class="col-md-12 m-1",
+                                css_class="col-md-12 mb-3",
                             ),
                             css_class="form-row",
                         ),
                         Row(
                             Column(
                                 InlineCheckboxes("finding_type"),
-                                css_class="col-md-12 m-1",
+                                css_class="col-md-12 mb-3",
                             ),
                             css_class="form-row",
                         ),
                         Row(
                             Column(
-                                "on_reports",
-                                css_class="col-md-12 m-1 tooltip-label-only",
+                                SwitchToggle("on_reports"),
+                                css_class="col-md-12 mb-3 tooltip-label-only library-filter-boolean",
                                 data_tooltip_text="Return results from reports instead of the library",
                             ),
                             css_class="form-row",
                         ),
                         Row(
                             Column(
-                                "not_cloned",
-                                css_class="col-md-12 m-1 tooltip-label-only",
+                                SwitchToggle("not_cloned"),
+                                css_class="col-md-12 mb-3 tooltip-label-only library-filter-boolean",
                                 data_tooltip_text="Return only findings attached to reports and not in the library (based on title)",
                             ),
                             css_class="form-row",
                         ),
                         ButtonHolder(
-                            Submit("submit_btn", "Filter", css_class="col-1"),
+                            Submit("submit_btn", "Filter"),
                             HTML(
                                 """
-                                <a class="btn btn-outline-secondary col-1" role="button" href="{%  url 'reporting:findings' %}">Reset</a>
+                                <a class="btn btn-outline-secondary" role="button" href="{%  url 'reporting:findings' %}">Reset</a>
                                 """
                             ),
-                            css_class="mt-2",
+                            css_class="library-filter-actions mt-1",
                         ),
                     ),
                     active = is_active,
@@ -191,7 +198,13 @@ class ObservationFilter(django_filters.FilterSet):
     title = django_filters.CharFilter(
         lookup_expr="icontains",
         label="Observation Title Contains",
-        widget=TextInput(attrs={"placeholder": "Observation Title Contains", "autocomplete": "off"}),
+        widget=TextInput(
+            attrs={
+                "placeholder": "Partial Observation Title",
+                "autocomplete": "off",
+                "data-1p-ignore": "true",
+            }
+        ),
     )
     tags = django_filters.CharFilter(
         method="search_tags",
@@ -200,6 +213,7 @@ class ObservationFilter(django_filters.FilterSet):
             attrs={
                 "placeholder": "Observation Tag",
                 "autocomplete": "off",
+                "data-1p-ignore": "true",
             }
         ),
     )
@@ -228,22 +242,22 @@ class ObservationFilter(django_filters.FilterSet):
                         Row(
                             Column(
                                 PrependedText("title", FILTER_ICON),
-                                css_class="col-md-4 offset-md-2 mb-0",
+                                css_class="col-md-6 mb-3",
                             ),
                             Column(
                                 PrependedText("tags", TAG_ICON),
-                                css_class="col-md-4 mb-0",
+                                css_class="col-md-6 mb-3",
                             ),
                             css_class="form-row",
                         ),
                         ButtonHolder(
-                            Submit("submit_btn", "Filter", css_class="col-1"),
+                            Submit("submit_btn", "Filter"),
                             HTML(
                                 """
-                                <a class="btn btn-outline-secondary col-1" role="button" href="{%  url 'reporting:observations' %}">Reset</a>
+                                <a class="btn btn-outline-secondary" role="button" href="{%  url 'reporting:observations' %}">Reset</a>
                                 """
                             ),
-                            css_class="mt-3",
+                            css_class="library-filter-actions mt-1",
                         ),
                     ),
                     active=is_active,
@@ -275,7 +289,13 @@ class ReportFilter(django_filters.FilterSet):
     title = django_filters.CharFilter(
         lookup_expr="icontains",
         label="Report Title Contains",
-        widget=TextInput(attrs={"placeholder": "Partial Report Title", "autocomplete": "off"}),
+        widget=TextInput(
+            attrs={
+                "placeholder": "Partial Report Title",
+                "autocomplete": "off",
+                "data-1p-ignore": "true",
+            }
+        ),
     )
     tags = django_filters.CharFilter(
         method="search_tags",
@@ -284,6 +304,7 @@ class ReportFilter(django_filters.FilterSet):
             attrs={
                 "placeholder": "Report Tag",
                 "autocomplete": "off",
+                "data-1p-ignore": "true",
             }
         ),
     )
@@ -343,17 +364,18 @@ class ReportFilter(django_filters.FilterSet):
                         Row(
                             Column(
                                 SwitchToggle("exclude_archived"),
+                                css_class="col-md-12 mb-3 library-filter-boolean",
                             ),
                             css_class="form-row",
                         ),
                         ButtonHolder(
-                            Submit("submit_btn", "Filter", css_class="btn btn-primary col-1"),
+                            Submit("submit_btn", "Filter", css_class="btn btn-primary"),
                             HTML(
                                 """
-                                <a class="btn btn-outline-secondary col-1" role="button" href="{%  url 'reporting:reports' %}">Reset</a>
+                                <a class="btn btn-outline-secondary" role="button" href="{%  url 'reporting:reports' %}">Reset</a>
                                 """
                             ),
-                            css_class="mt-3",
+                            css_class="library-filter-actions mt-1",
                         ),
                     ),
                     active=is_active,
@@ -450,13 +472,25 @@ class ReportTemplateFilter(django_filters.FilterSet):
     name = django_filters.CharFilter(
         lookup_expr="icontains",
         label="Report Title Contains",
-        widget=TextInput(attrs={"placeholder": "Partial Template Title", "autocomplete": "off"}),
+        widget=TextInput(
+            attrs={
+                "placeholder": "Partial Template Title",
+                "autocomplete": "off",
+                "data-1p-ignore": "true",
+            }
+        ),
     )
     client = django_filters.CharFilter(
         field_name="client__name",
         label="Client Name Contains",
         lookup_expr="icontains",
-        widget=TextInput(attrs={"placeholder": "Partial Client Name", "autocomplete": "off"}),
+        widget=TextInput(
+            attrs={
+                "placeholder": "Partial Client Name",
+                "autocomplete": "off",
+                "data-1p-ignore": "true",
+            }
+        ),
     )
     tags = django_filters.CharFilter(
         method="search_tags",
@@ -465,6 +499,7 @@ class ReportTemplateFilter(django_filters.FilterSet):
             attrs={
                 "placeholder": "Template Tag",
                 "autocomplete": "off",
+                "data-1p-ignore": "true",
             }
         ),
     )
@@ -532,13 +567,13 @@ class ReportTemplateFilter(django_filters.FilterSet):
                             css_class="form-row",
                         ),
                         ButtonHolder(
-                            Submit("submit_btn", "Filter", css_class="btn btn-primary col-1"),
+                            Submit("submit_btn", "Filter", css_class="btn btn-primary"),
                             HTML(
                                 """
-                                <a class="btn btn-outline-secondary col-1" role="button" href="{%  url 'reporting:templates' %}">Reset</a>
+                                <a class="btn btn-outline-secondary" role="button" href="{%  url 'reporting:templates' %}">Reset</a>
                                 """
                             ),
-                            css_class="mt-3",
+                            css_class="library-filter-actions mt-1",
                         ),
                     ),
                     active=is_active,

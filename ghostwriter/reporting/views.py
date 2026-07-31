@@ -23,6 +23,7 @@ from django.http import (
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.urls import reverse
+from django.utils.html import escape
 from django.views.generic import View
 from django.views.generic.detail import DetailView, SingleObjectMixin
 from django.views.generic.edit import CreateView, DeleteView, UpdateView
@@ -38,6 +39,7 @@ from ghostwriter.api.utils import (
     RoleBasedAccessControlMixin,
 )
 from ghostwriter.commandcenter.models import ReportConfiguration
+from ghostwriter.home.working_context import record_recent_report
 from ghostwriter.modules.shared import add_content_disposition_header
 from ghostwriter.reporting.filters import ArchiveFilter
 from ghostwriter.reporting.forms import (
@@ -146,7 +148,7 @@ class FindingNoteDelete(RoleBasedAccessControlMixin, SingleObjectMixin, View):
 
 
 class ReportActivate(RoleBasedAccessControlMixin, SingleObjectMixin, View):
-    """Set an individual :model:`reporting.Report` as active for the current user session."""
+    """Set a :model:`reporting.Report` as the user's working report."""
 
     model = Report
 
@@ -162,13 +164,22 @@ class ReportActivate(RoleBasedAccessControlMixin, SingleObjectMixin, View):
             self.request.session["active_report"] = {}
             self.request.session["active_report"]["id"] = report.id
             self.request.session["active_report"]["title"] = report.title
-            message = "{report} is now your active report and you can open it with the button at the top of the sidebar.".format(
-                report=report.title
-            )
+            self.request.session.modified = True
+            record_recent_report(self.request.user, report.id)
+            message = (
+                "Working report updated. Findings and observations added "
+                "from the libraries will go to {report}."
+            ).format(report=escape(report.title))
             data = {
                 "result": "success",
                 "report": report.title,
                 "report_url": report.get_absolute_url(),
+                "report_complete": report.complete,
+                "report_delivered": report.delivered,
+                "project": str(report.project),
+                "project_url": report.project.get_absolute_url(),
+                "client": report.project.client.name,
+                "client_url": report.project.client.get_absolute_url(),
                 "message": message,
             }
         except Exception as exception:  # pragma: no cover
@@ -177,7 +188,7 @@ class ReportActivate(RoleBasedAccessControlMixin, SingleObjectMixin, View):
             logger.error(log_message)
             data = {
                 "result": "error",
-                "message": "Could not set the selected report as your active report!",
+                "message": "Could not set the selected report as your working report.",
             }
 
         return JsonResponse(data)
@@ -586,19 +597,6 @@ def archive_list(request):
 
 
 @login_required
-def upload_evidence_modal_success(request):
-    """
-    Display message following the successful creation of an individual
-    :model:`reporting.Evidence` using a TinyMCE URLDialog.
-
-    **Template**
-
-    :template:`reporting/evidence_modal_success.html`
-    """
-    return render(request, "reporting/evidence_modal_success.html")
-
-
-@login_required
 def export_findings_to_csv(request):
     """Export all :model:`reporting.Finding` to a csv file for download."""
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -704,16 +702,9 @@ class EvidenceCreate(RoleBasedAccessControlMixin, CreateView):
         self.report_instance = get_object_or_404(Report, pk=self.kwargs.get("pk"))
         self.evidence_queryset = self.report_instance.evidence_set.all()
 
-    def get_template_names(self):
-        if self.kwargs.get("modal", False):
-            return ["reporting/evidence_form_modal.html"]
-        return ["reporting/evidence_form.html"]
-
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs.update({"evidence_queryset": self.evidence_queryset})
-        if "modal" in self.kwargs:
-            kwargs.update({"is_modal": True})
         return kwargs
 
     def get_context_data(self, **kwargs):
@@ -721,14 +712,6 @@ class EvidenceCreate(RoleBasedAccessControlMixin, CreateView):
         report = self.report_instance
         ctx["report"] = report
         ctx["cancel_link"] = reverse("reporting:report_detail", kwargs={"pk": report.pk}) + "#evidence"
-        if "modal" in self.kwargs:
-            friendly_names = self.evidence_queryset.values_list("friendly_name", flat=True)
-            used_friendly_names = []
-            # Convert the queryset into a list to pass to JavaScript later
-            for name in friendly_names:
-                used_friendly_names.append(name)
-            ctx["used_friendly_names"] = used_friendly_names
-
         return ctx
 
     def form_valid(self, form: EvidenceForm):
@@ -762,8 +745,6 @@ class EvidenceCreate(RoleBasedAccessControlMixin, CreateView):
 
 
     def get_success_url(self):
-        if "modal" in self.kwargs:
-            return reverse("reporting:upload_evidence_modal_success")
         report_pk = self.report_instance.pk
         fragment = "#evidence"
         return reverse("reporting:report_detail", args=(report_pk,)) + fragment

@@ -54,7 +54,7 @@ def rich_text_template(
     # after `.`, and before `}}` to be forgiving of formatting inconsistencies
     text = re.sub(r"\{\{\s*\.([^\{\}]*?)\s*\}\}", replace_old_tag, text)
 
-    # Replace TinyMCE page breaks with something that the parser can easily pick up
+    # Replace editor page breaks with something that the parser can easily pick up
     text = text.replace(
         "<p><!-- pagebreak --></p>", '<br data-gw-pagebreak="true" />'
     )

@@ -9,21 +9,21 @@
       <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
       <li class="breadcrumb-item">
         <a
-          data-toggle="tooltip"
+          data-bs-toggle="tooltip"
           title="{{ object.report.project.client }}"
           href="{% url 'rolodex:client_detail' object.report.project.client.id %}"
         >{{ object.report.project.client }}</a>
       </li>
       <li class="breadcrumb-item">
         <a
-          data-toggle="tooltip"
+          data-bs-toggle="tooltip"
           title="{{ object.report.project }}"
           href="{% url 'rolodex:project_detail' object.report.project.id %}"
         >{{ object.report.project.start_date }} {{ object.report.project.project_type }}</a>
       </li>
       <li class="breadcrumb-item">
         <a
-          data-toggle="tooltip"
+          data-bs-toggle="tooltip"
           title="{{ object.report }}"
           href="{% url 'reporting:report_detail' object.report.id %}"
         >
@@ -41,11 +41,11 @@
 {% endblock %}
 
 {% block content %}
-  <div class="container">
-    <h2>Assign Finding</h2>
-    <h4>{{ object }}</h4>
-  </div>
-  <hr />
+  <header class="resource-form-page-heading mb-4">
+    <span class="detail-eyebrow">Report Workflow</span>
+    <h1>Assign finding</h1>
+    <p>{{ object }}</p>
+  </header>
 
   {% if form.errors %}
   <script>
@@ -60,5 +60,7 @@
   </script>
   {% endif %}
 
-  {% crispy form form.helper %}
+  <div class="resource-form-shell">
+    {% crispy form form.helper %}
+  </div>
 {% endblock %}

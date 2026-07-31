@@ -2,10 +2,10 @@
 
 {% with evidence|get_file_type as file_type %}
   {% if report_config.figure_caption_location == "top" %}
-    <p class="evidence-caption">{{ report_config.label_figure }}#{{ report_config.prefix_figure }}{{ evidence.caption }}</p>
+    <p class="evidence-caption">{{ report_config.label_figure }} 1{{ report_config.prefix_figure }}{{ evidence.caption }}</p>
   {% endif %}
   {% if file_type == "image" %}
-    <div class="evidence-image-preview-wrapper{% if evidence_image_alignment %} text-{{ evidence_image_alignment|lower }}{% endif %}"{% if evidence_image_alignment %} style="text-align: {{ evidence_image_alignment|lower }};"{% endif %}>
+    <div class="evidence-image-preview-wrapper{% if evidence_image_alignment|lower == 'left' %} text-start{% elif evidence_image_alignment|lower == 'right' %} text-end{% elif evidence_image_alignment %} text-{{ evidence_image_alignment|lower }}{% endif %}"{% if evidence_image_alignment %} style="text-align: {{ evidence_image_alignment|lower }};"{% endif %}>
       <img class="img-evidence {% if clickable %}evidence-preview-clickable js-open-lightbox{% endif %}"
         style="{% if rich_text_preview %}display: inline-block; margin-left: 0; margin-right: 0;{% endif %}{% if evidence_image_width %} width: {{ evidence_image_width }}in; max-width: 100%; height: auto;{% endif %}{% if report_config.enable_borders %} border: {{ report_config.border_weight|divide:9525 }}px solid #{{ report_config.border_color }};{% endif %}{% if clickable %} cursor: pointer;{% endif %}"
         src="{% url 'reporting:evidence_download' evidence.id %}"
@@ -52,6 +52,6 @@
     </div>
   {% endif %}
   {% if report_config.figure_caption_location != "top" %}
-    <p class="evidence-caption">{{ report_config.label_figure }}#{{ report_config.prefix_figure }}{{ evidence.caption }}</p>
+    <p class="evidence-caption">{{ report_config.label_figure }} 1{{ report_config.prefix_figure }}{{ evidence.caption }}</p>
   {% endif %}
 {% endwith %}

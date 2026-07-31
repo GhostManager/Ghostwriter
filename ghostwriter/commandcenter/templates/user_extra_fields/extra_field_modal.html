@@ -3,9 +3,9 @@
 {% if field_spec.type == "rich_text" or field_spec.type == "json" %}
   <div id="field_spec_{{ field_spec.internal_name }}" class="modal fade" tabindex="-1" role="dialog">
     <div class="modal-dialog modal-super-sized modal-dialog-scrollable" role="document">
-        <div class="modal-content">
-          <div class="modal-header">
-          <div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <div class="flex-grow-1 pe-3">
             <h5 class="modal-title">{{ field_spec.display_name }}</h5>
             {% if field_spec.type == "rich_text" %}
               <p class="text-muted small mb-0">
@@ -13,9 +13,7 @@
               </p>
             {% endif %}
           </div>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-          </button>
+          <button type="button" class="btn-close flex-shrink-0 align-self-start" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body extra-field-modal-content"{% if field_spec.type == "json" and lazy_json_url %} data-lazy-json-url="{{ lazy_json_url }}" data-json-field-name="{{ field_spec.display_name }}"{% elif field_spec.type == "rich_text" and lazy_richtext_url %} data-lazy-richtext-url="{{ lazy_richtext_url }}"{% endif %}>
           {% if field_spec.type == "json" and lazy_json_url %}
@@ -27,7 +25,7 @@
           {% endif %}
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary col-3" data-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-secondary col-3" data-bs-dismiss="modal">Close</button>
         </div>
       </div>
     </div>

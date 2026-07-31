@@ -7,10 +7,10 @@
   <nav aria-label="breadcrumb">
     <ul class="breadcrumb">
       <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-      <li class="breadcrumb-item"><a data-toggle="tooltip" title="{{ report.project.client }}"
+      <li class="breadcrumb-item"><a data-bs-toggle="tooltip" title="{{ report.project.client }}"
                                      href="{% url 'rolodex:client_detail' report.project.client.id %}">{{ report.project.client }}</a>
       </li>
-      <li class="breadcrumb-item"><a data-toggle="tooltip"
+      <li class="breadcrumb-item"><a data-bs-toggle="tooltip"
                                      title="{{ report.project }}"
                                      href="{% url 'rolodex:project_detail' report.project.id %}">{{ report.project.start_date }} {{ report.project.project_type }}</a>
       </li>
@@ -20,222 +20,262 @@
 {% endblock %}
 
 {% block content %}
-  <div class="dropdown">
-    <div class="dropdown-menu-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
-         onclick="hamburger(this)">
-      <div class="bar1"></div>
-      <div class="bar2"></div>
-      <div class="bar3"></div>
+  <header class="detail-page-heading report-detail-heading">
+    <div class="detail-page-heading-main report-detail-heading-main">
+      <span class="detail-eyebrow">Report</span>
+      <h2 class="mb-0">{{ report.title }}</h2>
+      <div class="detail-tag-list report-detail-tags" aria-label="Report status and tags">
+        <span id="js-report-header-status"
+              class="badge report-status-tag {% if report.complete %}report-status-tag-positive{% else %}report-status-tag-pending{% endif %}">
+          <i class="fas {% if report.complete %}fa-check-circle{% else %}fa-pencil-alt{% endif %}" aria-hidden="true"></i>
+          <span class="report-header-status-text">{% if report.complete %}Complete{% else %}Draft{% endif %}</span>
+        </span>
+        <span id="js-report-header-delivery"
+              class="badge report-status-tag {% if report.delivered %}report-status-tag-positive{% else %}report-status-tag-neutral{% endif %}">
+          <i class="fas {% if report.delivered %}fa-paper-plane{% else %}fa-clock{% endif %}" aria-hidden="true"></i>
+          <span class="report-header-status-text">{% if report.delivered %}Delivered{% else %}Not Delivered{% endif %}</span>
+        </span>
+        {% for tag in report.tags.names %}
+          <span class="badge badge-secondary">{{ tag|bleach }}</span>
+        {% endfor %}
+      </div>
     </div>
-    <div class="dropdown-menu dropdown-menu-right" aria-labelledby="report-dropdown-btn">
-      <a title="Set this report as your active report" href="javascript:void(0)"
-         class="dropdown-item icon power-icon clickable-link js-activate-report"
-         activate-report-csrftoken="{{ csrf_token }}"
-         activate-report-url="{% url 'reporting:ajax_activate_report' report.id %}"
-         activate-report-id="{{ report.id }}">Activate</a>
-      <a class="dropdown-item icon edit-icon" href="{% url 'reporting:report_update' report.id %}">Edit</a>
-      <a class="dropdown-item icon clone-icon" href="{% url 'reporting:report_clone' report.id %}">Clone</a>
-      <a class="dropdown-item icon project-icon" href="{% url 'rolodex:project_detail' report.project.id %}">Jump to
-        Project</a>
-      <a class="dropdown-item icon company-icon" href="{% url 'rolodex:client_detail' report.project.client.id %}">Jump
-        to Client</a>
-      <a class="dropdown-item icon archive-icon" href="{% url 'reporting:archive' report.id %}">Archive</a>
-      <a class="dropdown-item icon trash-icon" href="{% url 'reporting:report_delete' report.id %}">Delete</a>
+
+    <div class="dropdown detail-page-heading-actions">
+      <button id="report-actions-button"
+              type="button"
+              class="btn btn-outline-primary btn-sm dropdown-toggle"
+              data-bs-toggle="dropdown"
+              aria-haspopup="true"
+              aria-expanded="false">
+        <span>Actions</span>
+      </button>
+      <div class="dropdown-menu dropdown-menu-end" aria-labelledby="report-actions-button">
+        <button type="button"
+                class="dropdown-item js-activate-report{% if active_engagement.report.id == report.id %} selected-report{% endif %}"
+                activate-report-csrftoken="{{ csrf_token }}"
+                activate-report-url="{% url 'reporting:ajax_activate_report' report.id %}"
+                activate-report-id="{{ report.id }}"
+                data-report-title="{{ report.title }}"
+                data-working-report-unselected-label="Set as working report">
+          <i class="fas {% if active_engagement.report.id == report.id %}fa-bullseye{% else %}fa-crosshairs{% endif %}" aria-hidden="true"></i>
+          <span data-working-report-action-label>
+            {% if active_engagement.report.id == report.id %}Working report{% else %}Set as working report{% endif %}
+          </span>
+        </button>
+        <button type="button"
+                class="dropdown-item js-work-pin"
+                data-work-type="report"
+                data-work-id="{{ report.id }}">
+          <i class="fas fa-thumbtack" aria-hidden="true"></i>
+          <span data-work-pin-label>Pin to sidebar</span>
+        </button>
+        <div class="dropdown-divider"></div>
+        <a class="dropdown-item icon edit-icon" href="{% url 'reporting:report_update' report.id %}">Edit report</a>
+        <a class="dropdown-item icon clone-icon" href="{% url 'reporting:report_clone' report.id %}">Clone report</a>
+        <div class="dropdown-divider"></div>
+        <a class="dropdown-item icon project-icon" href="{% url 'rolodex:project_detail' report.project.id %}">View project</a>
+        <a class="dropdown-item icon company-icon" href="{% url 'rolodex:client_detail' report.project.client.id %}">View client</a>
+        <div class="dropdown-divider"></div>
+        <a class="dropdown-item icon archive-icon" href="{% url 'reporting:archive' report.id %}">Archive report</a>
+        <a class="dropdown-item icon trash-icon text-danger" href="{% url 'reporting:report_delete' report.id %}">Delete report</a>
+      </div>
     </div>
-  </div>
-
-  <div class="container offset-col-1 col-10">
-    <h2>{{ report.title }}</h2>
-  </div>
-  {% for tag in report.tags.names %}
-    <span class="badge badge-secondary">{{ tag }}</span>
-  {% endfor %}
-  <hr>
-
-  <p class="form-spacer"></p>
+  </header>
+  <hr class="w-100 my-3"/>
 
   <div>
-    <ul id="tab-bar" class="nav nav-tabs nav-justified">
+    <ul id="tab-bar" class="nav nav-tabs nav-justified" role="tablist" aria-label="Report sections">
       {% include "snippets/report_nav_tabs.html" %}
     </ul>
 
     <div class="tab-content">
       {% comment %} Status Tab {% endcomment %}
-      <div id="status" class="tab-pane">
-        <h4>Report Status</h4>
-        <hr/>
+      <div id="status" class="tab-pane" role="tabpanel" aria-labelledby="id_status">
+        <div class="detail-layout">
+          <section class="detail-panel" aria-labelledby="report-status-heading">
+            <div class="detail-panel-header">
+              <div>
+                <h4 id="report-status-heading">Report Status</h4>
+              </div>
+            </div>
+            <dl class="detail-grid detail-grid-three">
+              {% with report.project.end_date|add_days:report_config.target_delivery_date|date:"DATE_FORMAT" as delivery_date %}
+                <div class="detail-field">
+                  <dt>Target Due Date</dt>
+                  <dd class="operator-data {% if delivery_date|days_left <= 1 %}task-imminent{% elif delivery_date|days_left <= 5 %}task-due-soon{% else %}task-future{% endif %}">
+                    {{ delivery_date }}
+                  </dd>
+                </div>
+              {% endwith %}
+              <div class="detail-field">
+                <dt>Report Status</dt>
+                <dd class="report-state-control">
+                  <div class="report-state-copy">
+                    <span id="js-report-status" class="report-state-value">{% if report.complete %}Complete{% else %}Draft{% endif %}</span>
+                    <span id="report-status-help" class="report-state-help">Controls whether the report is still being edited.</span>
+                  </div>
+                  <div class="form-check form-switch report-state-switch">
+                    <input id="js-report-status-switch"
+                           class="form-check-input js-toggle-report-status"
+                           type="checkbox"
+                           role="switch"
+                           aria-describedby="report-status-help"
+                           aria-label="{% if report.complete %}Mark report as draft{% else %}Mark report as complete{% endif %}"
+                           toggle-report-status-csrftoken="{{ csrf_token }}"
+                           toggle-report-status-url="{% url 'reporting:ajax_toggle_report_status' report.id %}"
+                           toggle-report-status-id="{{ report.id }}"
+                           {% if report.complete %}checked{% endif %}>
+                  </div>
+                </dd>
+              </div>
+              <div class="detail-field">
+                <dt>Delivery Status</dt>
+                <dd class="report-state-control">
+                  <div class="report-state-copy">
+                    <span id="js-delivery-status" class="report-state-value">{% if report.delivered %}Delivered{% else %}Not Delivered{% endif %}</span>
+                    <span id="delivery-status-help" class="report-state-help">Records whether the final report reached the client.</span>
+                  </div>
+                  <div class="form-check form-switch report-state-switch">
+                    <input id="js-delivery-status-switch"
+                           class="form-check-input js-toggle-delivery-status"
+                           type="checkbox"
+                           role="switch"
+                           aria-describedby="delivery-status-help"
+                           aria-label="{% if report.delivered %}Mark report as not delivered{% else %}Mark report as delivered{% endif %}"
+                           toggle-delivery-status-csrftoken="{{ csrf_token }}"
+                           toggle-delivery-status-url="{% url 'reporting:ajax_toggle_report_delivery' report.id %}"
+                           toggle-delivery-status-id="{{ report.id }}"
+                           {% if report.delivered %}checked{% endif %}>
+                  </div>
+                </dd>
+              </div>
+            </dl>
+          </section>
 
-        {% with report.project.end_date|add_days:report_config.target_delivery_date|date:"DATE_FORMAT" as delivery_date %}
-          <h6>Target Due Date:
-            <span
-              class="{% if delivery_date|days_left <= 1 %}task-imminent{% elif delivery_date|days_left <= 5 %}task-due-soon{% else %}task-future{% endif %}">
-              {{ delivery_date }}
-            </span>
-          </h6>
-        {% endwith %}
-
-        <h6 class="row justify-content-md-center">
-          <span class="col-3 text-left">
-            Report Status:
-            {% if report.complete %}
-              <span id="js-report-status" class="pl-1">Complete</span>
-            {% else %}
-              <span id="js-report-status" class="pl-1">Draft</span>
-            {% endif %}
-          </span>
-          <span class="col-1">
-            {% if report.complete %}
-              <a title="Mark report as incomplete" data-toggle="tooltip" href="javascript:void(0)"
-                 class="clickable-link js-toggle-report-status" toggle-report-status-csrftoken="{{ csrf_token }}"
-                 toggle-report-status-url="{% url 'reporting:ajax_toggle_report_status' report.id %}"
-                 toggle-report-status-id="{{ report.id }}"><i id="js-report-status-icon"
-                                                              class="fas fa-toggle-on"></i></a>
-            {% else %}
-              <a title="Mark report as complete" data-toggle="tooltip" href="javascript:void(0)"
-                 class="clickable-link js-toggle-report-status" toggle-report-status-csrftoken="{{ csrf_token }}"
-                 toggle-report-status-url="{% url 'reporting:ajax_toggle_report_status' report.id %}"
-                 toggle-report-status-id="{{ report.id }}"><i id="js-report-status-icon" class="fas fa-toggle-off"></i></a>
-            {% endif %}
-          </span>
-        </h6>
-
-        <h6 class="row justify-content-md-center">
-          <span class="col-3 text-left">
-            Delivery Status:
-            {% if report.delivered %}
-              <span id="js-delivery-status">Delivered</span>
-            {% else %}
-              <span id="js-delivery-status">Not Delivered</span>
-            {% endif %}
-          </span>
-          <span class="col-1">
-            {% if report.delivered %}
-              <a title="Mark report as not delivered" data-toggle="tooltip" href="javascript:void(0)"
-                 class="clickable-link js-toggle-delivery-status" toggle-delivery-status-csrftoken="{{ csrf_token }}"
-                 toggle-delivery-status-url="{% url 'reporting:ajax_toggle_report_delivery' report.id %}"
-                 toggle-delivery-status-id="{{ report.id }}"><i id="js-delivery-status-icon"
-                                                                class="fas fa-toggle-on"></i></a>
-            {% else %}
-              <a title="Mark report as delivered" data-toggle="tooltip" href="javascript:void(0)"
-                 class="clickable-link js-toggle-delivery-status" toggle-delivery-status-csrftoken="{{ csrf_token }}"
-                 toggle-delivery-status-url="{% url 'reporting:ajax_toggle_report_delivery' report.id %}"
-                 toggle-delivery-status-id="{{ report.id }}"><i id="js-delivery-status-icon"
-                                                                class="fas fa-toggle-off"></i></a>
-            {% endif %}
-          </span>
-        </h6>
-
-        <h4>Report Configuration</h4>
-        <hr>
-
-        <table class="table table-responsive-lg table-borderless table-config">
-          <tr>
-            <td class="text-left icon hash-icon">Figure Label & Prefix</td>
-            <td class="text-justify">{{ report_config.label_figure }}{{ report_config.prefix_figure }}</td>
-          </tr>
-          <tr>
-            <td class="text-left icon hash-icon">Figure Caption Location</td>
-            <td class="text-justify">{{ report_config.get_figure_caption_location_display }}</td>
-          </tr>
-          <tr>
-            <td class="text-left icon align-icon">Default Evidence Image Alignment</td>
-            <td class="text-justify">{{ report_config.get_evidence_image_alignment_display }}</td>
-          </tr>
-          <tr>
-            <td class="text-left icon width-icon">Default Evidence Image Width</td>
-            <td class="text-justify">
+          <section class="detail-panel" aria-labelledby="report-config-heading">
+            <div class="detail-panel-header">
+              <div>
+                <h4 id="report-config-heading">Report Configuration</h4>
+              </div>
+            </div>
+            <dl class="detail-grid">
+              <div class="detail-field">
+                <dt class="icon hash-icon">Figure Label & Prefix</dt>
+                <dd>{{ report_config.label_figure }}{{ report_config.prefix_figure }}</dd>
+              </div>
+              <div class="detail-field">
+                <dt class="icon hash-icon">Figure Caption Location</dt>
+                <dd>{{ report_config.get_figure_caption_location_display }}</dd>
+              </div>
+              <div class="detail-field">
+                <dt class="icon align-icon">Default Evidence Image Alignment</dt>
+                <dd>{{ report_config.get_evidence_image_alignment_display }}</dd>
+              </div>
+              <div class="detail-field">
+                <dt class="icon width-icon">Default Evidence Image Width</dt>
+                <dd>
               {% if report_config.evidence_image_width is not None %}
                 {{ report_config.evidence_image_width }}
               {% else %}
                 6.5
               {% endif %}
               inches
-            </td>
-          </tr>
-          <tr>
-            <td class="text-left icon hash-icon">Table Label & Prefix</td>
-            <td class="text-justify">{{ report_config.label_table }}{{ report_config.prefix_table }}</td>
-          </tr>
-          <tr>
-            <td class="text-left icon hash-icon">Table Caption Location</td>
-            <td class="text-justify">{{ report_config.get_table_caption_location_display }}</td>
-          </tr>
-          <tr>
-            <td class="text-left icon toggle-on-icon">Title Case Captions</td>
-            <td class="text-justify">
+                </dd>
+              </div>
+              <div class="detail-field">
+                <dt class="icon hash-icon">Table Label & Prefix</dt>
+                <dd>{{ report_config.label_table }}{{ report_config.prefix_table }}</dd>
+              </div>
+              <div class="detail-field">
+                <dt class="icon hash-icon">Table Caption Location</dt>
+                <dd>{{ report_config.get_table_caption_location_display }}</dd>
+              </div>
+              <div class="detail-field">
+                <dt class="icon toggle-on-icon">Title Case Captions</dt>
+                <dd>
               {% if report_config.title_case_captions %}
-                <span class="align-middle healthy"><i class="fas fa-check"></i></span>
+                <span class="status-indicator report-config-enabled"><i class="fas fa-check" aria-hidden="true"></i> Enabled</span>
               {% else %}
-                <span class="align-middle burned"><i class="fas fa-times"></i></span>
+                <span class="status-indicator burned"><i class="fas fa-times" aria-hidden="true"></i> Disabled</span>
               {% endif %}
-            </td>
-          </tr>
-          <tr>
-            <td class="text-left icon wand-icon">Title Case Exceptions</td>
-            <td class="text-justify"> {{ report_config.title_case_exceptions|split_and_join:"," }}</td>
-          </tr>
-          <tr>
-            <td class="text-left icon toggle-on-icon">Image Borders</td>
-            <td class="text-justify">
+                </dd>
+              </div>
+              <div class="detail-field">
+                <dt class="icon wand-icon">Title Case Exceptions</dt>
+                <dd>{{ report_config.title_case_exceptions|split_and_join:"," }}</dd>
+              </div>
+              <div class="detail-field">
+                <dt class="icon toggle-on-icon">Image Borders</dt>
+                <dd>
               {% if report_config.enable_borders %}
-                <span class="align-middle healthy"><i class="fas fa-check"></i></span>
+                <span class="status-indicator report-config-enabled"><i class="fas fa-check" aria-hidden="true"></i> Enabled</span>
               {% else %}
-                <span class="align-middle burned"><i class="fas fa-times"></i></span>
+                <span class="status-indicator burned"><i class="fas fa-times" aria-hidden="true"></i> Disabled</span>
               {% endif %}
-            </td>
-          </tr>
+                </dd>
+              </div>
           {% if report_config.enable_borders %}
-            <tr>
-              <td class="text-left icon border-icon">Image Border Weight</td>
-              <td class="text-justify">{{ report_config.border_weight }} EMUs
+              <div class="detail-field">
+                <dt class="icon border-icon">Image Border Weight</dt>
+                <dd>{{ report_config.border_weight }} EMUs
                 ({{ report_config.border_weight|divide:12700 }}
                 pt)
-              </td>
-            </tr>
-            <tr>
-              <td class="text-left icon border-icon">Image Border Color</td>
-              <td class="text-justify">#{{ report_config.border_color }} <i class="fas fa-tint"
-                                                                            style="color:#{{ report_config.border_color }}"></i>
-              </td>
-            </tr>
-            <tr>
-              <td class="text-left icon signature-icon">Report Download Filename</td>
-              <td class="text-justify"> {{ report_config.report_filename }}</td>
-            </tr>
-            <tr>
-              <td class="text-left icon calendar-icon">Delivery Date</td>
-              <td class="text-justify">{% if report_config.target_delivery_date > 0 %}
+                </dd>
+              </div>
+              <div class="detail-field">
+                <dt class="icon border-icon">Image Border Color</dt>
+                <dd>#{{ report_config.border_color }} <i class="fas fa-tint"
+                                                         style="color:#{{ report_config.border_color }}"></i></dd>
+              </div>
+              <div class="detail-field">
+                <dt class="icon signature-icon">Report Download Filename</dt>
+                <dd>{{ report_config.report_filename }}</dd>
+              </div>
+              <div class="detail-field">
+                <dt class="icon calendar-icon">Delivery Date</dt>
+                <dd>{% if report_config.target_delivery_date > 0 %}
                 +{% endif %}{{ report_config.target_delivery_date }} business days
-              </td>
-            </tr>
-            <tr>
-              <td class="text-left icon tag-icon">Operation Log Tags</td>
-              <td class="text-justify">
+                </dd>
+              </div>
+              <div class="detail-field">
+                <dt class="icon tag-icon">Operation Log Tags</dt>
+                <dd>
                 {% if report_config.outline_tags %}
                   {{ report_config.outline_tags|humanize_comma_list }}
                 {% else %}
                   report and evidence
                 {% endif %}
-              </td>
-            </tr>
+                </dd>
+              </div>
           {% endif %}
-        </table>
+            </dl>
+          </section>
+        </div>
       </div>
 
       {% comment %} Findings Tab {% endcomment %}
-      <div id="findings" class="tab-pane in active">
-        <h4>Current Findings</h4>
-        <hr>
-
-        <p>Provide a search term and hit Enter to view search results or click an autocomplete option.</p>
+      <div id="findings" class="tab-pane in active" role="tabpanel" aria-labelledby="id_findings">
+        <header class="content-section-header">
+          <div class="content-section-heading">
+            <h4>Current Findings</h4>
+            <p class="content-section-intro">Search the finding library, add a blank finding, and manage the report's ordered findings.</p>
+          </div>
+          <button class="btn btn-primary btn-sm icon add-icon"
+                  type="button"
+                  onclick="attachBlankFinding()"
+                  data-bs-toggle="tooltip"
+                  data-bs-placement="top"
+                  title="Add a blank finding template to the bottom of the report">
+            Add a Blank Finding
+          </button>
+        </header>
 
         <!-- Search Section -->
-        <form action="{% url 'reporting:findings' %}" method="GET">
-          <div class="search form-row">
-            <div class="input-group offset-md-4 col-md-4">
-              <div class="input-group-prepend">
-                <span class="input-group-text fa fa-search" id="report-findings-search"></span>
-              </div>
+        <form class="mb-3" action="{% url 'reporting:findings' %}" method="GET">
+          <div class="report-library-search mx-auto">
+            <div class="input-group">
+              <span class="input-group-text fa fa-search" id="report-findings-search"></span>
               <input id="id_finding_search" autocomplete="off" type="text" class="form-control" name="finding"
                      placeholder="Search Findings..." aria-label="findings" aria-describedby="report-findings-search">
             </div>
@@ -243,42 +283,39 @@
           </div>
         </form>
 
-        <p class="mt-3 mb-1">Add a finding by adding a blank template below, by searching the library and then
-          clicking the <span class="p-1 add-icon"></span> button in the results, or
-          by clicking an autocomplete result above.</p>
-
-        <p class="mt-0">Drag and drop findings within a severity category to change its ordering. Edit
-          a finding to change its severity.</p>
-
-        <button class="btn btn-primary icon add-icon col-3"
-          onclick="attachBlankFinding()"
-          data-toggle="tooltip"
-          data-placement="top"
-          title="Add a blank finding template to the bottom of the report"
-        >
-          Add a Blank Finding
-        </button>
+        <div class="report-workflow-hint mb-3">
+          <i class="fas fa-grip-vertical" aria-hidden="true"></i>
+          <p class="mb-0"><strong>Arrange your report.</strong> Drag findings within a severity group to reorder them. Open a title to edit the finding or change its severity.</p>
+        </div>
 
         <!-- Finding Table Section -->
-        <div id="findingsTable">
+        <div id="findingsTable" class="mt-3">
           {% include "snippets/report_findings_table.html" with report=report csrf_token=csrf_token %}
         </div>
       </div>
 
       {% comment %} Observations Tab {% endcomment %}
       <div id="observations" class="tab-pane">
-        <h4>Current Observations</h4>
-        <hr>
-
-        <p>Provide a search term and hit Enter to view search results or click an autocomplete option.</p>
+        <header class="content-section-header">
+          <div class="content-section-heading">
+            <h4>Current Observations</h4>
+            <p class="content-section-intro">Search the observation library, add a blank observation, and manage the report's ordered observations.</p>
+          </div>
+          <button class="btn btn-primary btn-sm icon add-icon"
+                  type="button"
+                  onclick="attachBlankObservation()"
+                  data-bs-toggle="tooltip"
+                  data-bs-placement="top"
+                  title="Add a blank observation template to the bottom of the report">
+            Add a Blank Observation
+          </button>
+        </header>
 
         <!-- Search Section -->
-        <form action="{% url 'reporting:observations' %}" method="GET">
-          <div class="search form-row">
-            <div class="input-group offset-md-4 col-md-4">
-              <div class="input-group-prepend">
-                <span class="input-group-text fa fa-search" id="report-observations-search"></span>
-              </div>
+        <form class="mb-3" action="{% url 'reporting:observations' %}" method="GET">
+          <div class="report-library-search mx-auto">
+            <div class="input-group">
+              <span class="input-group-text fa fa-search" id="report-observations-search"></span>
               <input id="id_observation_search" autocomplete="off" type="text" class="form-control" name="observation"
                      placeholder="Search Observations..." aria-label="observations"
                      aria-describedby="report-observations-search">
@@ -287,124 +324,142 @@
           </div>
         </form>
 
-        <p class="mt-3">Add an observation by adding a blank template below, by searching the library and then
-          clicking the <span class="p-1 add-icon"></span> button in the results, or
-          by clicking an autocomplete result above.</p>
+        <div class="report-workflow-hint mb-3">
+          <i class="fas fa-grip-vertical" aria-hidden="true"></i>
+          <p class="mb-0"><strong>Arrange your report.</strong> Drag observations into the order they should appear. Open a title to edit its content.</p>
+        </div>
 
-          <button class="btn btn-primary icon add-icon col-3"
-                  onclick="attachBlankObservation()"
-                  data-toggle="tooltip"
-                  data-placement="top"
-                  title="Add a blank observation template to the bottom of the report"
-          >
-            Add a Blank Observation
-          </button>
-
-        <div id="observationsTable">
+        <div id="observationsTable" class="mt-3">
           {% include "snippets/report_observations_table.html" with report=report csrf_token=csrf_token %}
         </div>
       </div>
 
       {% comment %} Report Evidence Tab {% endcomment %}
       <div id="evidence" class="tab-pane">
-        <h4>Report Evidence</h4>
-        <hr>
-
-        <p>Upload evidence here to make it accessible to all findings and report sections.</p>
-
-        <p class="mt-3"><a class="icon add-icon btn btn-primary col-3"
-                           href="{% url 'reporting:upload_evidence' report.id %}" data-toggle="tooltip"
-                           data-placement="top" title="Upload evidence, attaching to a report">Upload Evidence</a></p>
+        <header class="content-section-header">
+          <div class="content-section-heading">
+            <h4>Report Evidence</h4>
+            <p class="content-section-intro">Upload files here to make them available to every finding and report section.</p>
+          </div>
+          <a class="icon add-icon btn btn-primary btn-sm"
+             href="{% url 'reporting:upload_evidence' report.id %}"
+             data-bs-toggle="tooltip"
+             data-bs-placement="top"
+             title="Upload evidence, attaching to a report">Upload Evidence</a>
+        </header>
 
         {% if report.evidence_set.all %}
-          <table id="evidences-table" class="table table-sm table-hover tablesorter">
-            <thead>
-            <tr>
-              <th class="align-middle text-left">Name</th>
-              <th class="align-middle text-left">Filename</th>
-              <th class="align-middle sorter-false">Options</th>
-            </tr>
-            </thead>
-            <tbody>
+          <div id="evidences-table" class="report-evidence-list mt-3">
             {% for evidence_file in report.evidence_set.all %}
-              <tr data-id="{{ evidence_file.id }}">
-                <td
-                  class="pl-3 text-left align-middle text-left icon {% if evidence_file|get_file_type == "image" %}avatar-upload-icon{% else %}code-icon{% endif %}">
-                  <a href="{% url 'reporting:evidence_detail' evidence_file.id %}" class="clickable">
-                    {{ evidence_file.friendly_name }}
-                  </a>
-                </td>
-                <td class="align-middle text-left">
-                  <em>{{ evidence_file.filename|truncate_filename:50 }}</em>
-                </td>
-
-                <td class="align-middle">
-                  <div class="d-flex justify-content-center">
-                    <span
-                      class="icon preview-icon clickable-link"
-                      title="View additional information"
-                      onclick="openModal('#evidence_detail_{{ evidence_file.id }}')"
-                    ></span>
-                    <a class="icon download-icon" href="javascript:void(0)"
-                       onclick="downloadEvidence({{ evidence_file.id }}, '{{ evidence_file.filename|escapejs }}')" title="Download this evidence file"></a>
-                    <a href="{% url 'reporting:evidence_update' evidence_file.id %}"
-                       title="Edit this evidence file"
-                       class="icon edit-icon"></a>
-                    <a href="{% url 'reporting:evidence_delete' evidence_file.id %}"
-                       title="Delete this evidence file"
-                       class="icon trash-icon"></a>
+              <article class="report-evidence-row" data-id="{{ evidence_file.id }}">
+                <div class="report-evidence-type" aria-hidden="true">
+                  <i class="fas {% if evidence_file|get_file_type == 'image' %}fa-image{% else %}fa-file-code{% endif %}"></i>
+                </div>
+                <div class="report-evidence-identity">
+                  <a href="{% url 'reporting:evidence_detail' evidence_file.id %}"
+                     class="report-evidence-title">{{ evidence_file.friendly_name }}</a>
+                  <span class="report-evidence-filename" title="{{ evidence_file.filename }}">
+                    {{ evidence_file.filename|truncate_filename:80 }}
+                  </span>
+                </div>
+                <div class="report-row-actions dropdown" aria-label="Actions for {{ evidence_file.friendly_name }}">
+                  <button id="evidence-actions-toggle-{{ evidence_file.id }}" type="button"
+                          class="btn btn-outline-secondary btn-sm report-row-actions-toggle"
+                          data-bs-toggle="dropdown" aria-expanded="false"
+                          aria-label="Open actions for {{ evidence_file.friendly_name }}">
+                    <i class="fas fa-ellipsis-h" aria-hidden="true"></i>
+                    <span>Actions</span>
+                  </button>
+                  <div class="dropdown-menu dropdown-menu-end report-row-actions-menu"
+                       aria-labelledby="evidence-actions-toggle-{{ evidence_file.id }}">
+                    <button type="button" class="report-row-action"
+                            title="Preview evidence" aria-label="Preview evidence"
+                            onclick="openModal('#evidence_detail_{{ evidence_file.id }}')">
+                      <i class="fas fa-eye" aria-hidden="true"></i>
+                    </button>
+                    <button type="button" class="report-row-action"
+                            onclick="downloadEvidence({{ evidence_file.id }}, '{{ evidence_file.filename|escapejs }}')"
+                            title="Download evidence" aria-label="Download evidence">
+                      <i class="fas fa-download" aria-hidden="true"></i>
+                    </button>
+                    <a class="report-row-action" href="{% url 'reporting:evidence_update' evidence_file.id %}"
+                       title="Edit evidence" aria-label="Edit evidence">
+                      <i class="fas fa-pen" aria-hidden="true"></i>
+                    </a>
+                    <a class="report-row-action report-row-action-danger"
+                       href="{% url 'reporting:evidence_delete' evidence_file.id %}"
+                       title="Delete evidence" aria-label="Delete evidence">
+                      <i class="fas fa-trash-alt" aria-hidden="true"></i>
+                    </a>
                   </div>
-                </td>
-              </tr>
+                </div>
+              </article>
             {% endfor %}
-            </tbody>
-          </table>
+          </div>
         {% else %}
-          <p class="mt-3">No evidence has been added to this report yet.</p>
+          <div class="empty-state mt-3">
+            <p class="empty-state-title">No report evidence yet</p>
+            <p class="empty-state-description">Upload evidence to reference it from findings and report sections.</p>
+          </div>
         {% endif %}
       </div>
 
       {% if report_extra_fields_spec %}
         {% comment %} Extra Fields Tab {% endcomment %}
         <div id="extra-fields" class="tab-pane">
-          <h4>Extra Fields</h4>
-          <hr/>
+          <header class="content-section-header">
+            <div class="content-section-heading">
+              <h4>Extra Fields</h4>
+              <p class="content-section-intro">Report-level values are available to templates using the reference shown on each card.</p>
+            </div>
+          </header>
 
-          <div class="extra-fields-grid">
+          <div class="extra-fields-grid client-extra-fields-grid report-extra-fields-grid">
             {% for field_spec in report_extra_fields_spec %}
-              <section class="extra-field-card">
-                <h5 class="extra-field-name">{{ field_spec.display_name }}</h5>
-                <div class="extra-field-type">
-                  {% if field_spec.type == "rich_text" %}
-                    Rich Text Field
-                  {% else %}
-                    {{ field_spec.get_type_display }} Field
-                  {% endif %}
+              <section class="extra-field-card" aria-labelledby="report-extra-field-{{ field_spec.internal_name }}">
+                <div class="extra-field-card-header">
+                  <h5 id="report-extra-field-{{ field_spec.internal_name }}" class="extra-field-name">{{ field_spec.display_name }}</h5>
+                  <span class="extra-field-type-badge">
+                    {% if field_spec.type == "rich_text" %}
+                      Rich Text
+                    {% else %}
+                      {{ field_spec.get_type_display }}
+                    {% endif %}
+                  </span>
                 </div>
-                <div class="extra-field-type">Reference as <code>extra_fields.{{ field_spec.internal_name }}</code></div>
+
+                <div class="extra-field-reference">
+                  <span>Template reference</span>
+                  <code>extra_fields.{{ field_spec.internal_name }}</code>
+                </div>
+
                 <div class="extra-field-value">
-                  {% if field_spec.type == "rich_text" %}
-                    <span class="extra-field-summary">Use Preview to view formatted content.</span>
-                  {% elif field_spec.type == "json" %}
-                    <span class="extra-field-summary">Use View JSON to inspect structured content.</span>
-                  {% else %}
-                    {% include "user_extra_fields/field.html" with extra_fields=report.extra_fields field_spec=field_spec preview_report=report %}
-                  {% endif %}
+                  <span class="extra-field-value-label">Current value</span>
+                  <div class="extra-field-value-content">
+                    {% if field_spec.type == "rich_text" %}
+                      <span class="extra-field-summary">Formatted content is available in Preview.</span>
+                    {% elif field_spec.type == "json" %}
+                      <span class="extra-field-summary">Structured content is available in View JSON.</span>
+                    {% else %}
+                      {% include "user_extra_fields/field.html" with extra_fields=report.extra_fields field_spec=field_spec preview_report=report %}
+                    {% endif %}
+                  </div>
                 </div>
-                <div class="extra-field-actions">
+
+                <footer class="extra-field-actions">
                   {% if field_spec.type == "rich_text" %}
-                    <button type="button" class="btn btn-primary btn-sm icon view-icon" data-toggle="modal"
-                            data-target="#field_spec_{{ field_spec.internal_name }}">Preview
+                    <button type="button" class="btn btn-primary btn-sm icon view-icon" data-bs-toggle="modal"
+                            data-bs-target="#field_spec_{{ field_spec.internal_name }}">Preview
                     </button>
                   {% elif field_spec.type == "json" %}
-                    <button type="button" class="btn btn-primary btn-sm icon code-icon" data-toggle="modal"
-                            data-target="#field_spec_{{ field_spec.internal_name }}">View JSON
+                    <button type="button" class="btn btn-primary btn-sm icon code-icon" data-bs-toggle="modal"
+                            data-bs-target="#field_spec_{{ field_spec.internal_name }}">View JSON
                     </button>
                   {% endif %}
                   <a href="{% url 'reporting:report_extra_field_edit' report.id field_spec.internal_name %}"
                      class="btn btn-outline-primary btn-sm icon edit-icon"
                      title="Edit {{ field_spec.display_name }}">Edit</a>
-                </div>
+                </footer>
               </section>
             {% endfor %}
           </div>
@@ -413,10 +468,14 @@
 
       {% comment %} Generate Report Tab {% endcomment %}
       <div id="generate" class="tab-pane">
-        <h4>Generate Reports</h4>
-        <hr>
+        <header class="content-section-header">
+          <div class="content-section-heading">
+            <h4>Generate Reports</h4>
+            <p class="content-section-intro">Choose an output template and build a downloadable report from the current content.</p>
+          </div>
+        </header>
 
-        <div>
+        <div class="generation-workspace">
           {% crispy form form.helper %}
         </div>
       </div>
@@ -445,7 +504,8 @@
 
   {{ autocomplete_data|json_script:"report-detail-autocomplete-data" }}
   <script>
-    const $spinnerModal = $('#spinner-modal')
+    const spinnerModalElement = document.getElementById('spinner-modal');
+    const spinnerModal = bootstrap.Modal.getOrCreateInstance(spinnerModalElement);
     const reportAutocompleteData = JSON.parse(document.getElementById('report-detail-autocomplete-data').textContent);
 
     {% comment %} Set variables used in `report_findings_table.html` that is updated on changes {% endcomment %}
@@ -461,7 +521,7 @@
       {% comment %} Handle successful WebSocket connection {% endcomment %}
       ws_report.onopen = function () {
         console.log('Connected to report notification WebSocket');
-        $spinnerModal.modal('hide');
+        spinnerModal.hide();
       };
 
       {% comment %} Handle receiving report-specific messages {% endcomment %}
@@ -470,7 +530,7 @@
         if (data.message['status'] === 'success') {
           console.log('Completed report generation');
           setTimeout(() => {
-            $spinnerModal.modal('hide');
+            spinnerModal.hide();
           }, 1000);
         }
       };
@@ -488,20 +548,23 @@
 
     {% comment %} Display the loading spinner while report generates {% endcomment %}
     $('.js-generate-report').click(function () {
-      $spinnerModal.modal('show');
+      spinnerModal.show();
       // Wait 30 seconds and hide the spinner – just in case there is an error that prevents it from closing via WebSockets
       setTimeout(() => {
-        $spinnerModal.modal('hide');
+        spinnerModal.hide();
       }, 20000);
     });
 
     {% comment %} Toggle Report Status with AJAX {% endcomment %}
-    $('.js-toggle-report-status').click(function () {
+    $('.js-toggle-report-status').change(function () {
+      let statusSwitch = $(this);
+      let previousState = !statusSwitch.prop('checked');
       let url = $(this).attr('toggle-report-status-url');
       let reportId = $(this).attr('toggle-report-status-id');
       let csrftoken = $(this).attr('toggle-report-status-csrftoken');
-      let statusIcon = $('#js-report-status-icon');
-      let statusText = $('#js-report-status')
+      let statusText = $('#js-report-status');
+      let headerStatus = $('#js-report-header-status');
+      statusSwitch.prop('disabled', true);
       // Prep AJAX request with CSRF token
       $.ajaxSetup({
         beforeSend: function (xhr, settings) {
@@ -519,29 +582,54 @@
           'report': reportId
         },
         success: function (data) {
-          console.log(statusText)
-          statusText.html(data['status']);
-          if (data['toggle']) {
-            statusIcon.removeClass('fa-toggle-off')
-            statusIcon.addClass('fa-toggle-on')
-          } else {
-            statusIcon.removeClass('fa-toggle-on')
-            statusIcon.addClass('fa-toggle-off')
+          if (data['result'] !== 'success') {
+            statusSwitch.prop('checked', previousState);
+            displayToastTop({
+              type: 'error',
+              string: data['message'] || 'Could not update report status.',
+              title: 'Report Update'
+            });
+            return;
+          }
+          statusSwitch.prop('checked', Boolean(data['toggle']));
+          statusSwitch.attr(
+            'aria-label',
+            data['toggle'] ? 'Mark report as draft' : 'Mark report as complete'
+          );
+          statusText.text(data['status']);
+          headerStatus.find('.report-header-status-text').text(data['status']);
+          headerStatus.toggleClass('report-status-tag-positive', data['toggle']);
+          headerStatus.toggleClass('report-status-tag-pending', !data['toggle']);
+          headerStatus.find('i')
+            .toggleClass('fa-check-circle', data['toggle'])
+            .toggleClass('fa-pencil-alt', !data['toggle']);
+          if ($('.engagement-context').attr('data-active-report-id') === String(reportId)) {
+            $('.engagement-context-report-status').text(data['toggle'] ? 'Complete' : 'Draft');
           }
           if (data['message']) {
             displayToastTop({type: data['result'], string: data['message'], title: 'Report Update'});
           }
+        },
+        error: function () {
+          statusSwitch.prop('checked', previousState);
+          displayToastTop({type: 'error', string: 'Could not update report status.', title: 'Report Update'});
+        },
+        complete: function () {
+          statusSwitch.prop('disabled', false);
         }
       });
     });
 
     {% comment %} Toggle Report Delivery Status with AJAX {% endcomment %}
-    $('.js-toggle-delivery-status').click(function () {
+    $('.js-toggle-delivery-status').change(function () {
+      let deliverySwitch = $(this);
+      let previousState = !deliverySwitch.prop('checked');
       let url = $(this).attr('toggle-delivery-status-url');
       let reportId = $(this).attr('toggle-delivery-status-id');
       let csrftoken = $(this).attr('toggle-delivery-status-csrftoken');
-      let statusIcon = $('#js-delivery-status-icon');
-      let statusText = $('#js-delivery-status')
+      let statusText = $('#js-delivery-status');
+      let headerStatus = $('#js-report-header-delivery');
+      deliverySwitch.prop('disabled', true);
       $.ajaxSetup({
         beforeSend: function (xhr, settings) {
           if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
@@ -557,17 +645,40 @@
           'report': reportId
         },
         success: function (data) {
-          statusText.html(data['status']);
-          if (data['toggle']) {
-            statusIcon.removeClass('fa-toggle-off')
-            statusIcon.addClass('fa-toggle-on')
-          } else {
-            statusIcon.removeClass('fa-toggle-on')
-            statusIcon.addClass('fa-toggle-off')
+          if (data['result'] !== 'success') {
+            deliverySwitch.prop('checked', previousState);
+            displayToastTop({
+              type: 'error',
+              string: data['message'] || 'Could not update delivery status.',
+              title: 'Report Update'
+            });
+            return;
+          }
+          deliverySwitch.prop('checked', Boolean(data['toggle']));
+          deliverySwitch.attr(
+            'aria-label',
+            data['toggle'] ? 'Mark report as not delivered' : 'Mark report as delivered'
+          );
+          statusText.text(data['status']);
+          headerStatus.find('.report-header-status-text').text(data['status']);
+          headerStatus.toggleClass('report-status-tag-positive', data['toggle']);
+          headerStatus.toggleClass('report-status-tag-neutral', !data['toggle']);
+          headerStatus.find('i')
+            .toggleClass('fa-paper-plane', data['toggle'])
+            .toggleClass('fa-clock', !data['toggle']);
+          if ($('.engagement-context').attr('data-active-report-id') === String(reportId)) {
+            $('.engagement-context-delivery-status').text(data['toggle'] ? 'Delivered' : 'Not delivered');
           }
           if (data['message']) {
             displayToastTop({type: data['result'], string: data['message'], title: 'Report Update'});
           }
+        },
+        error: function () {
+          deliverySwitch.prop('checked', previousState);
+          displayToastTop({type: 'error', string: 'Could not update delivery status.', title: 'Report Update'});
+        },
+        complete: function () {
+          deliverySwitch.prop('disabled', false);
         }
       });
     });
@@ -897,23 +1008,24 @@
   {% comment %} Finding preview modal {% endcomment %}
   <div id="finding-preview-modal" class="modal fade" tabindex="-1" role="dialog">
     <div class="modal-dialog modal-super-sized modal-dialog-scrollable" role="document">
-      <div class="modal-content">
-        <div class="modal-header">
+      <div class="modal-content report-preview-modal-content">
+        <div class="modal-header report-preview-modal-header">
           <div>
-            <h5 class="modal-title" id="finding-preview-modal-title">Finding Preview</h5>
+            <span class="detail-eyebrow">Report output preview</span>
+            <h5 class="modal-title" id="finding-preview-modal-title">Finding preview</h5>
             <p class="text-muted small mb-0">
-              This preview closely approximates report output using the report configuration and selected Word template settings. Only fields with content will be displayed in the preview.
+              Styled for quick review while preserving the content that will flow into the report.
             </p>
           </div>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
             <span aria-hidden="true">&times;</span>
           </button>
         </div>
-        <div class="modal-body" id="finding-preview-modal-body">
+        <div class="modal-body report-preview-modal-body" id="finding-preview-modal-body">
           <p class="text-muted mb-0">Finding preview will load when opened.</p>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary col-3" data-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-secondary col-3" data-bs-dismiss="modal">Close</button>
         </div>
       </div>
     </div>
@@ -933,11 +1045,8 @@
     $('#finding-preview-modal').on('show.bs.modal', function (event) {
       const $trigger = $(event.relatedTarget);
       const previewUrl = $trigger.data('finding-preview-url');
-      const findingTitle = $trigger.data('finding-title') || 'Finding Preview';
       const $body = $('#finding-preview-modal-body');
-      const $title = $('#finding-preview-modal-title');
 
-      $title.text(findingTitle);
       $body.html(findingPreviewLoading);
       findingPreviewAbortController = window.AbortController ? new AbortController() : null;
 
@@ -957,8 +1066,8 @@
               const remaining = Math.max(0, 350 - (performance.now() - loadingStartedAt));
               setTimeout(function () {
                 if (!$('#finding-preview-modal').hasClass('show')) return;
-                $body.html('<div class="rich-text-field-preview">' + html + '</div>');
-                $body.find('[data-toggle="tooltip"]').tooltip();
+                $body.html('<div class="rich-text-field-preview report-object-preview">' + html + '</div>');
+                $body.find('[data-bs-toggle="tooltip"]').tooltip();
               }, remaining);
             })
             .catch(error => {
@@ -974,30 +1083,31 @@
       if (findingPreviewAbortController) findingPreviewAbortController.abort();
       findingPreviewAbortController = null;
       $('#finding-preview-modal-body').html(findingPreviewPlaceholder);
-      $('#finding-preview-modal-title').text('Finding Preview');
+      $('#finding-preview-modal-title').text('Finding preview');
     });
   </script>
 
   {% comment %} Observation preview modal {% endcomment %}
   <div id="observation-preview-modal" class="modal fade" tabindex="-1" role="dialog">
     <div class="modal-dialog modal-super-sized modal-dialog-scrollable" role="document">
-      <div class="modal-content">
-        <div class="modal-header">
+      <div class="modal-content report-preview-modal-content">
+        <div class="modal-header report-preview-modal-header">
           <div>
-            <h5 class="modal-title" id="observation-preview-modal-title">Observation Preview</h5>
+            <span class="detail-eyebrow">Report output preview</span>
+            <h5 class="modal-title" id="observation-preview-modal-title">Observation preview</h5>
             <p class="text-muted small mb-0">
-              This preview closely approximates report output using the report configuration and selected Word template settings. Only fields with content will be displayed in the preview.
+              Styled for quick review while preserving the content that will flow into the report.
             </p>
           </div>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
             <span aria-hidden="true">&times;</span>
           </button>
         </div>
-        <div class="modal-body" id="observation-preview-modal-body">
+        <div class="modal-body report-preview-modal-body" id="observation-preview-modal-body">
           <p class="text-muted mb-0">Observation preview will load when opened.</p>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary col-3" data-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-secondary col-3" data-bs-dismiss="modal">Close</button>
         </div>
       </div>
     </div>
@@ -1017,11 +1127,8 @@
     $('#observation-preview-modal').on('show.bs.modal', function (event) {
       const $trigger = $(event.relatedTarget);
       const previewUrl = $trigger.data('observation-preview-url');
-      const obsTitle = $trigger.data('observation-title') || 'Observation Preview';
       const $body = $('#observation-preview-modal-body');
-      const $title = $('#observation-preview-modal-title');
 
-      $title.text(obsTitle);
       $body.html(observationPreviewLoading);
       observationPreviewAbortController = window.AbortController ? new AbortController() : null;
 
@@ -1041,8 +1148,8 @@
               const remaining = Math.max(0, 350 - (performance.now() - loadingStartedAt));
               setTimeout(function () {
                 if (!$('#observation-preview-modal').hasClass('show')) return;
-                $body.html('<div class="rich-text-field-preview">' + html + '</div>');
-                $body.find('[data-toggle="tooltip"]').tooltip();
+                $body.html('<div class="rich-text-field-preview report-object-preview">' + html + '</div>');
+                $body.find('[data-bs-toggle="tooltip"]').tooltip();
               }, remaining);
             })
             .catch(error => {
@@ -1058,7 +1165,7 @@
       if (observationPreviewAbortController) observationPreviewAbortController.abort();
       observationPreviewAbortController = null;
       $('#observation-preview-modal-body').html(observationPreviewPlaceholder);
-      $('#observation-preview-modal-title').text('Observation Preview');
+      $('#observation-preview-modal-title').text('Observation preview');
     });
   </script>
 

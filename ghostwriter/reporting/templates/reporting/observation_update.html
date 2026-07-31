@@ -14,3 +14,24 @@
         </ul>
     </nav>
 {% endblock %}
+
+{% block content %}
+    <div class="observation-edit-page">
+        <header class="detail-page-heading finding-detail-heading finding-edit-heading observation-edit-heading">
+            <div class="detail-page-heading-main finding-detail-heading-main">
+                <span class="detail-eyebrow">Edit Library Observation</span>
+                <h2 class="mb-0">{{ object.display_title }}</h2>
+                <p class="finding-edit-intro observation-edit-intro mb-0">Changes save automatically while the collaboration service is connected.</p>
+            </div>
+            <div class="detail-page-heading-actions">
+                <a class="btn btn-outline-primary btn-sm icon view-icon"
+                   href="{% url 'reporting:observation_detail' pk=object.id %}">View observation</a>
+            </div>
+        </header>
+
+        <div id="collab-form-container" class="finding-collab-form-host observation-collab-form-host">
+            <p>Loading observation editor...</p>
+            <noscript><p>JavaScript is required.</p></noscript>
+        </div>
+    </div>
+{% endblock %}

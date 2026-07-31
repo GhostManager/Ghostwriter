@@ -281,7 +281,6 @@ class BaseEvidenceFormTests:
         caption=None,
         description=None,
         evidence_queryset=None,
-        modal=False,
         **kwargs,
     ):
         if not evidence_queryset:
@@ -297,7 +296,6 @@ class BaseEvidenceFormTests:
                 "document": document,
             },
             evidence_queryset=evidence_queryset,
-            is_modal=modal,
         )
 
     def test_valid_data(self):
@@ -343,13 +341,6 @@ class BaseEvidenceFormTests:
         errors = form["friendly_name"].errors.as_data()
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0].code, "duplicate")
-
-    def test_modal_argument(self):
-        modal_evidence = self.evidence_dict.copy()
-        modal_evidence["friendly_name"] = "Modal Evidence"
-
-        form = self.form_data(**modal_evidence, is_modal=True)
-        self.assertTrue(form.is_valid())
 
     def test_null_evidence_queryset_argument(self):
         evidence = self.evidence_dict.copy()

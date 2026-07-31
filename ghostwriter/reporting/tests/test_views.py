@@ -76,6 +76,7 @@ from ghostwriter.modules.reportwriter.jinja_funcs import (
 from ghostwriter.reporting.models import (
     Evidence,
     EvidenceImageAlignmentOverride,
+    Report,
     ReportFindingLink,
     ReportObservationLink,
 )
@@ -321,7 +322,7 @@ class TemplateTagTests(TestCase):
             'src="/reporting/evidence/download/{}"'.format(evidence.pk), rendered
         )
         self.assertIn('alt="Preview Image"', rendered)
-        self.assertIn("text-left", rendered)
+        self.assertIn("text-start", rendered)
         self.assertIn("text-align: left", rendered)
         self.assertIn("display: inline-block", rendered)
         self.assertIn("width: 4.25in", rendered)
@@ -482,6 +483,14 @@ class EvidenceInjectionTests(TestCase):
         )
         self.assertNotIn("<script>", rendered)
         self.assertIn("&lt;script&gt;", rendered)
+
+    def test_preview_caption_uses_first_figure_number(self):
+        rendered = self._render_evidence_display(
+            friendly_name="normal name",
+            caption="Example caption",
+        )
+        self.assertIn("Figure 1", rendered)
+        self.assertNotIn("Figure#", rendered)
 
     def test_template_escapes_img_onerror_in_friendly_name(self):
         """An <img onerror=...> payload in friendly_name must be escaped."""
@@ -777,7 +786,7 @@ class AssignFindingTests(TestCase):
         )
 
         response = self.client_mgr.post(self.uri)
-        message = "Please select a report to edit in the sidebar or go to a report's dashboard to assign an finding."
+        message = "Choose a working report before adding a finding."
         data = {"result": "error", "message": message}
 
         self.assertJSONEqual(force_str(response.content), data)
@@ -790,7 +799,7 @@ class AssignFindingTests(TestCase):
         self.assertEqual(self.session["active_report"], None)
 
         response = self.client_mgr.post(self.uri)
-        message = "Please select a report to edit in the sidebar or go to a report's dashboard to assign an finding."
+        message = "Choose a working report before adding a finding."
         data = {"result": "error", "message": message}
 
         self.assertJSONEqual(force_str(response.content), data)
@@ -998,6 +1007,28 @@ class FindingsListViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "reporting/finding_list.html")
 
+    def test_finding_titles_are_left_aligned(self):
+        response = self.client_auth.get(self.uri)
+
+        self.assertContains(
+            response,
+            'class="align-middle text-start finding-title-cell library-primary-cell"',
+            count=self.num_of_findings,
+        )
+
+    def test_finding_library_uses_shared_library_layout(self):
+        response = self.client_auth.get(self.uri)
+
+        self.assertContains(response, 'class="library-page finding-library-page d-grid gap-4"')
+        self.assertContains(response, '<h2>Findings Library</h2>')
+        self.assertContains(response, 'class="filter-form library-filters finding-library-filters"')
+        self.assertContains(response, 'class="library-results finding-library-results"')
+        self.assertContains(response, "library-table library-table-wide finding-library-table")
+        self.assertContains(response, 'class="column-picker-toggle collapsed"')
+        self.assertContains(response, "library-filter-boolean", count=2)
+        self.assertContains(response, 'data-1p-ignore="true"', count=2)
+        self.assertNotContains(response, "btn btn-info col-2")
+
     def test_custom_context_exists(self):
         response = self.client_auth.get(self.uri)
         self.assertIn("filter", response.context)
@@ -1076,8 +1107,21 @@ class FindingDetailViewTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.finding = FindingFactory()
         cls.user = UserFactory(password=PASSWORD)
+        cls.finding = FindingFactory(
+            extra_fields={"operator_context": "Reusable finding context"}
+        )
+        cls.extra_field_model = ExtraFieldModelFactory(
+            model_internal_name="reporting.Finding",
+            model_display_name="Findings",
+        )
+        cls.extra_field = ExtraFieldSpecFactory(
+            internal_name="operator_context",
+            display_name="Operator Context",
+            type="single_line_text",
+            target_model=cls.extra_field_model,
+        )
+        cls.note = FindingNoteFactory(finding=cls.finding, operator=cls.user)
 
         cls.uri = reverse("reporting:finding_detail", kwargs={"pk": cls.finding.pk})
 
@@ -1101,6 +1145,29 @@ class FindingDetailViewTests(TestCase):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "reporting/finding_detail.html")
+
+    def test_view_uses_modern_detail_layout(self):
+        response = self.client_auth.get(self.uri)
+
+        self.assertContains(
+            response, 'class="detail-page-heading finding-detail-heading"'
+        )
+        self.assertContains(response, 'id="finding-actions-button"')
+        self.assertContains(
+            response, 'class="nav nav-tabs nav-justified finding-detail-tabs"'
+        )
+        self.assertContains(response, 'href="#overview"')
+        self.assertContains(response, 'href="#technical"')
+        self.assertContains(response, 'href="#extra-fields"')
+        self.assertContains(response, 'href="#notes"')
+        self.assertContains(response, 'class="detail-layout finding-overview-layout"')
+        self.assertContains(
+            response,
+            'class="extra-fields-grid client-extra-fields-grid finding-extra-fields-grid"',
+        )
+        self.assertContains(response, 'class="extra-field-card-header"')
+        self.assertContains(response, 'class="note-card-list"')
+        self.assertContains(response, 'class="note-card"')
 
 
 class FindingCreateViewTests(TestCase):
@@ -1186,6 +1253,26 @@ class FindingUpdateViewTests(TestCase):
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "reporting/finding_update.html")
+
+    def test_view_uses_modern_collaboration_form_shell(self):
+        response = self.client_mgr.get(self.uri)
+
+        self.assertContains(response, 'class="finding-edit-page"')
+        self.assertContains(
+            response,
+            'class="detail-page-heading finding-detail-heading finding-edit-heading"',
+        )
+        self.assertContains(response, "Edit Library Finding")
+        self.assertContains(response, 'class="finding-collab-form-host"')
+        self.assertContains(response, "Changes save automatically")
+        self.assertContains(
+            response,
+            f"assets/collab_forms_finding.js?v={settings.VERSION}",
+        )
+        self.assertContains(
+            response,
+            f"assets/collab_common.css?v={settings.VERSION}",
+        )
 
     def test_default_cvss_version_configuration(self):
         """Test that the default CVSS version from ReportConfiguration is passed to the frontend."""
@@ -1401,6 +1488,25 @@ class ReportsListViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "reporting/report_list.html")
 
+    def test_report_library_uses_shared_library_layout(self):
+        response = self.client_mgr.get(self.uri)
+
+        self.assertContains(response, 'class="library-page report-library-page d-grid gap-4"')
+        self.assertContains(response, '<h2>Report Library</h2>')
+        self.assertContains(response, 'class="filter-form library-filters report-library-filters"')
+        self.assertContains(response, 'class="library-results report-library-results"')
+        self.assertContains(response, "library-table library-table-wide")
+        self.assertContains(response, "library-tag library-tag-neutral library-tag-date")
+        self.assertContains(response, "library-tag library-tag-info")
+        self.assertContains(response, 'class="fas fa-user"')
+        self.assertContains(response, "js-activate-report btn btn-outline-primary")
+        self.assertContains(response, "fa-crosshairs")
+        self.assertContains(response, "Use report")
+        self.assertContains(response, "library-filter-boolean")
+        self.assertContains(response, 'data-1p-ignore="true"', count=2)
+        self.assertNotContains(response, "btn btn-info col-2")
+        self.assertNotContains(response, 'id="report-library-results-title"')
+
     def test_custom_context_exists(self):
         response = self.client_auth.get(self.uri)
         self.assertIn("filter", response.context)
@@ -1482,6 +1588,28 @@ class ReportDetailViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "reporting/report_detail.html")
 
+    def test_status_actions_render_as_switch_controls(self):
+        Report.objects.filter(pk=self.report.pk).update(
+            complete=True,
+            delivered=True,
+        )
+
+        response = self.client_mgr.get(self.uri)
+        content = force_str(response.content)
+
+        self.assertContains(response, 'id="js-report-status-switch"')
+        self.assertContains(response, 'id="js-delivery-status-switch"')
+        self.assertRegex(
+            content,
+            r'id="js-report-status-switch"[^>]+role="switch"',
+        )
+        self.assertRegex(
+            content,
+            r'id="js-delivery-status-switch"[^>]+role="switch"',
+        )
+        self.assertNotIn("fa-toggle-on", content)
+        self.assertNotIn("fa-toggle-off", content)
+
     def test_report_caption_configuration_is_safe_in_javascript_html(self):
         report_config = ReportConfiguration.get_solo()
         ReportConfiguration.objects.filter(pk=report_config.pk).update(
@@ -1535,11 +1663,93 @@ class ReportDetailViewTests(TestCase):
         )
         self.assertNotContains(response, payload)
 
+    def test_library_searches_use_bounded_responsive_layout(self):
+        response = self.client_mgr.get(self.uri)
+
+        self.assertContains(response, 'class="report-library-search mx-auto"', count=2)
+        self.assertNotContains(response, 'class="input-group offset-md-4 col-md-4"')
+
+    def test_status_and_configuration_use_detail_cards(self):
+        response = self.client_mgr.get(self.uri)
+
+        self.assertContains(response, 'class="detail-layout"')
+        self.assertContains(response, 'class="detail-grid detail-grid-three"')
+        self.assertContains(response, 'role="tablist"')
+        self.assertNotContains(response, "table-config")
+
+    def test_generation_spinner_uses_bootstrap_modal_api(self):
+        response = self.client_mgr.get(self.uri)
+
+        self.assertContains(response, "bootstrap.Modal.getOrCreateInstance")
+        self.assertNotContains(response, "$spinnerModal.modal")
+
+    def test_generation_workspace_uses_explicit_template_and_export_actions(self):
+        response = self.client_mgr.get(self.uri)
+
+        self.assertContains(response, 'class="generation-workspace"')
+        self.assertContains(response, 'class="generation-template-grid"')
+        self.assertContains(response, "Generate Word report")
+        self.assertContains(response, "Generate PowerPoint")
+        self.assertContains(response, "Open Word template details")
+        self.assertContains(response, "Open PowerPoint template details")
+        self.assertContains(response, 'class="fas fa-external-link-alt"')
+        self.assertContains(response, 'class="generation-export-grid"')
+        self.assertNotContains(response, "Template for DOCX")
+        self.assertNotContains(response, "Template for PPTX")
+
+    def test_detail_header_uses_report_identity_status_tags_and_actions(self):
+        response = self.client_mgr.get(self.uri)
+
+        self.assertContains(
+            response, 'class="detail-page-heading report-detail-heading"'
+        )
+        self.assertContains(response, '<span class="detail-eyebrow">Report</span>')
+        self.assertContains(response, 'id="js-report-header-status"')
+        self.assertContains(response, 'id="js-report-header-delivery"')
+        self.assertContains(response, 'id="report-actions-button"')
+        self.assertNotContains(response, 'class="dropdown-menu-btn"')
+
+    def test_report_content_sections_use_inline_actions_and_table_spacing(self):
+        EvidenceFactory(report=self.report)
+        response = self.client_mgr.get(self.uri)
+
+        self.assertGreaterEqual(
+            response.content.count(b'class="content-section-header"'), 4
+        )
+        self.assertContains(response, '<div id="findingsTable" class="mt-3">')
+        self.assertContains(response, '<div id="observationsTable" class="mt-3">')
+        self.assertContains(
+            response, 'id="evidences-table" class="report-evidence-list mt-3"'
+        )
+        self.assertContains(response, 'class="report-evidence-row"')
+        self.assertContains(response, 'aria-label="Preview evidence"')
+        self.assertNotContains(
+            response, 'class="table-responsive data-table-frame mt-3"'
+        )
+
+    def test_findings_and_observations_use_sortable_work_item_rows(self):
+        ReportFindingLinkFactory(report=self.report)
+        ReportObservationLinkFactory(report=self.report)
+
+        response = self.client_mgr.get(self.uri)
+
+        self.assertContains(response, "report-findings-table")
+        self.assertContains(response, "report-observations-table")
+        self.assertContains(response, "report-drag-handle", count=2)
+        self.assertContains(response, "fa-grip-vertical", count=4)
+        self.assertContains(response, "report-item-title", count=2)
+        self.assertContains(response, "report-status-badge", count=2)
+        self.assertContains(response, 'class="report-row-actions dropdown"', count=2)
+        self.assertContains(response, "report-row-actions-toggle", count=2)
+        self.assertContains(response, "report-row-actions-menu", count=2)
+        self.assertContains(response, "report-workflow-hint", count=2)
+        self.assertNotContains(response, "dropdown-menu-btn-table")
+
     def test_view_without_findings_does_not_initialize_severity_sortables(self):
         response = self.client_mgr.get(self.uri)
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "No findings have been added to this report yet.")
+        self.assertContains(response, "No findings yet")
         self.assertNotContains(response, "Sortable.create(severity_")
         self.assertNotContains(response, "findings-update-url")
 
@@ -1572,6 +1782,13 @@ class ReportDetailViewTests(TestCase):
         response = self.client_mgr.get(self.uri)
 
         self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            'class="extra-fields-grid client-extra-fields-grid report-extra-fields-grid"',
+        )
+        self.assertContains(response, 'class="extra-field-card-header"')
+        self.assertContains(response, 'class="extra-field-reference"')
+        self.assertContains(response, 'class="extra-field-value-content"')
         # Rich text previews are now lazy-loaded via AJAX, so the modal body
         # contains a placeholder and a data attribute pointing to the preview
         # endpoint instead of inline-rendered content.
@@ -2022,8 +2239,8 @@ class ReportCreateViewTests(TestCase):
         self.project.complete = False
         self.project.save()
 
-    def test_get_success_url_with_session_vars(self):
-        # Set up session variables to be clear
+    def test_updating_report_does_not_change_working_report(self):
+        # Editing a report is not an intentional working-context change.
         self.session = self.client_mgr.session
         self.session["active_report"] = {}
         self.session["active_report"]["id"] = ""
@@ -2147,7 +2364,7 @@ class ReportUpdateViewTests(TestCase):
         self.session = self.client_mgr.session
         self.assertEqual(
             self.session["active_report"],
-            {"id": self.report.pk, "title": f"{self.report.title}"},
+            {"id": "", "title": ""},
         )
 
 
@@ -2263,6 +2480,33 @@ class ReportActivateViewTests(TestCase):
         self.assertEqual(
             self.session["active_report"],
             {"id": self.report.id, "title": self.report.title},
+        )
+
+    def test_view_returns_active_engagement_context(self):
+        response = self.client_mgr.post(self.uri)
+
+        self.assertEqual(
+            response.json(),
+            {
+                "result": "success",
+                "report": self.report.title,
+                "report_url": self.report.get_absolute_url(),
+                "report_complete": self.report.complete,
+                "report_delivered": self.report.delivered,
+                "project": str(self.report.project),
+                "project_url": self.report.project.get_absolute_url(),
+                "client": self.report.project.client.name,
+                "client_url": self.report.project.client.get_absolute_url(),
+                "message": (
+                    "Working report updated. Findings and observations added "
+                    f"from the libraries will go to {self.report.title}."
+                ),
+            },
+        )
+        self.mgr_user.refresh_from_db()
+        self.assertEqual(
+            self.mgr_user.workspace_preferences["recent_reports"],
+            [self.report.id],
         )
 
     def test_view_requires_login_and_permissions(self):
@@ -2431,6 +2675,18 @@ class ReportFindingLinkUpdateViewTests(TestCase):
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "reporting/report_finding_link_update.html")
+
+    def test_view_uses_versioned_collaboration_assets(self):
+        response = self.client_mgr.get(self.uri)
+
+        self.assertContains(
+            response,
+            f"assets/collab_forms_reportfindinglink.js?v={settings.VERSION}",
+        )
+        self.assertContains(
+            response,
+            f"assets/collab_common.css?v={settings.VERSION}",
+        )
 
     def test_view_renders_numeric_evidence_report_id(self):
         response = self.client_mgr.get(self.uri)
@@ -2931,11 +3187,11 @@ class ReportFindingLinkPreviewTests(TestCase):
         self.assertIn("Test Finding", content)
         self.assertIn("Finding description", content)
 
-    def test_renders_severity_badge(self):
+    def test_renders_severity_summary(self):
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
         content = response.content.decode()
-        self.assertIn("badge", content)
+        self.assertIn("report-preview-severity", content)
 
     def test_renders_extra_field_with_display_name(self):
         response = self.client_mgr.get(self.uri)
@@ -2943,17 +3199,23 @@ class ReportFindingLinkPreviewTests(TestCase):
         content = response.content.decode()
         self.assertIn("Finding Notes", content)
         self.assertIn("Extra field content", content)
+        self.assertIn("report-preview-extras", content)
+        self.assertIn("Additional details", content)
+        self.assertLess(content.index("Description"), content.index("Additional details"))
 
-    def test_hr_separator_after_badges(self):
+    def test_renders_report_style_summary(self):
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
         content = response.content.decode()
-        self.assertIn("<hr>", content)
+        self.assertIn("report-finding-preview", content)
+        self.assertIn("report-preview-hero", content)
+        self.assertIn("report-preview-severity", content)
 
     def test_empty_fields_omitted(self):
         rfl = ReportFindingLinkFactory(
             report=self.report,
             title="Empty Finding",
+            affected_entities="",
             description="",
             impact="",
             mitigation="",
@@ -2967,8 +3229,9 @@ class ReportFindingLinkPreviewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         content = response.content.decode()
         self.assertIn("Empty Finding", content)
-        self.assertNotIn("<h3>Description</h3>", content)
-        self.assertNotIn("<h3>Impact</h3>", content)
+        self.assertNotIn(">Description</span></h3>", content)
+        self.assertNotIn(">Impact</span></h3>", content)
+        self.assertIn("No standard finding sections have content yet.", content)
 
     def test_render_export_error_returns_generic_preview_error(self):
         rfl = ReportFindingLinkFactory(
@@ -3083,6 +3346,9 @@ class ReportObservationLinkPreviewTests(TestCase):
         content = response.content.decode()
         self.assertIn("Observation Notes", content)
         self.assertIn("Observation extra", content)
+        self.assertIn("report-preview-extras", content)
+        self.assertIn("Additional details", content)
+        self.assertLess(content.index("Description"), content.index("Additional details"))
 
     def test_no_severity_badges(self):
         response = self.client_mgr.get(self.uri)
@@ -3101,7 +3367,8 @@ class ReportObservationLinkPreviewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         content = response.content.decode()
         self.assertIn("Empty Obs", content)
-        self.assertNotIn("<h3>Description</h3>", content)
+        self.assertNotIn(">Description</span></h3>", content)
+        self.assertIn("does not have a description yet", content)
 
     def test_render_export_error_returns_generic_preview_error(self):
         rol = ReportObservationLinkFactory(
@@ -3236,10 +3503,7 @@ class ExtraFieldRichTextPreviewPermissionTests(TestCase):
 
 
 class EvidenceDetailViewTests(TestCase):
-    """
-    Collection of tests for :view:`reporting.EvidenceDetailView` and the related
-    :view:`reporting.upload_evidence_modal_success`.
-    """
+    """Collection of tests for :view:`reporting.EvidenceDetailView`."""
 
     @classmethod
     def setUpTestData(cls):
@@ -3291,6 +3555,17 @@ class EvidenceDetailViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "reporting/evidence_detail.html")
 
+    def test_view_uses_evidence_workspace_and_actions(self):
+        response = self.client_mgr.get(self.img_uri)
+
+        self.assertContains(
+            response, 'class="detail-page-heading resource-detail-heading"'
+        )
+        self.assertContains(response, 'id="evidence-actions-button"')
+        self.assertContains(response, 'class="detail-layout evidence-detail-layout"')
+        self.assertNotContains(response, 'class="dropdown-menu-btn"')
+        self.assertNotContains(response, "offset-2 col-8")
+
 
 class BaseEvidenceCreateViewTests:
     """
@@ -3312,14 +3587,9 @@ class BaseEvidenceCreateViewTests:
         cls.user = UserFactory(password=PASSWORD)
         cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
         cls.uri = reverse("reporting:upload_evidence", kwargs={"pk": parent_pk})
-        cls.modal_uri = reverse(
-            "reporting:upload_evidence_modal",
-            kwargs={"pk": parent_pk, "modal": "modal"},
-        )
         cls.success_uri = reverse(
             "reporting:report_detail", args=(cls.evidence.report.pk,)
         )
-        cls.modal_success_uri = reverse("reporting:upload_evidence_modal_success")
 
     def setUp(self):
         self.client = Client()
@@ -3346,6 +3616,17 @@ class BaseEvidenceCreateViewTests:
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "reporting/evidence_form.html")
 
+    def test_view_uses_grouped_evidence_form(self):
+        response = self.client_mgr.get(self.uri)
+
+        self.assertContains(response, 'class="resource-form-card"', count=1)
+        self.assertContains(
+            response, 'class="resource-form-card resource-upload-card"', count=1
+        )
+        self.assertContains(response, "Evidence Identity")
+        self.assertContains(response, "Evidence File")
+        self.assertContains(response, "Upload Evidence")
+
     def test_custom_context_exists(self):
         response = self.client_mgr.get(self.uri)
         self.assertIn("cancel_link", response.context)
@@ -3354,39 +3635,7 @@ class BaseEvidenceCreateViewTests:
             f"{reverse('reporting:report_detail', kwargs={'pk': self.evidence.report.pk})}#evidence",
         )
 
-    # Testing modal form view
-    def test_view_modal_uri_exists_at_desired_location(self):
-        response = self.client_mgr.get(self.modal_uri)
-        self.assertEqual(response.status_code, 200)
-
-    def test_view_modal_requires_login_and_permissions(self):
-        response = self.client.get(self.modal_uri)
-        self.assertEqual(response.status_code, 302)
-
-        response = self.client_auth.get(self.modal_uri)
-        self.assertEqual(response.status_code, 302)
-
-        ProjectAssignmentFactory(
-            project=self.evidence.report.project, operator=self.user
-        )
-        response = self.client_auth.get(self.modal_uri)
-        self.assertEqual(response.status_code, 200)
-
-    def test_view_modal_uses_correct_template(self):
-        response = self.client_mgr.get(self.modal_uri)
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "reporting/evidence_form_modal.html")
-
-    def test_custom_modal_context_exists(self):
-        response = self.client_mgr.get(self.modal_uri)
-        self.assertIn("cancel_link", response.context)
-        self.assertIn("used_friendly_names", response.context)
-        self.assertEqual(
-            response.context["cancel_link"],
-            f"{reverse('reporting:report_detail', kwargs={'pk': self.evidence.report.pk})}#evidence",
-        )
-
-    def test_json_upload_creates_evidence_for_editor_modal(self):
+    def test_json_upload_creates_evidence_for_editor(self):
         ProjectAssignmentFactory(
             project=self.evidence.report.project, operator=self.user
         )
@@ -3395,7 +3644,7 @@ class BaseEvidenceCreateViewTests:
         )
 
         response = self.client_auth.post(
-            self.modal_uri,
+            self.uri,
             data={
                 "friendly_name": "Collab Evidence",
                 "document": upload,
@@ -3412,20 +3661,6 @@ class BaseEvidenceCreateViewTests:
         self.assertEqual(created.friendly_name, "Collab Evidence")
         self.assertEqual(created.caption, "Collab evidence caption")
         self.assertEqual(created.report_id, self.parent_pk)
-
-    # Testing modal success view
-    def test_view_modal_success_uri_exists_at_desired_location(self):
-        response = self.client_mgr.get(self.modal_success_uri)
-        self.assertEqual(response.status_code, 200)
-
-    def test_view_modal_success_requires_login(self):
-        response = self.client.get(self.modal_success_uri)
-        self.assertEqual(response.status_code, 302)
-
-    def test_view_modal_success_uses_correct_template(self):
-        response = self.client_mgr.get(self.modal_success_uri)
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "reporting/evidence_modal_success.html")
 
 
 class EvidenceForReportCreateViewTests(BaseEvidenceCreateViewTests, TestCase):
@@ -3480,6 +3715,17 @@ class EvidenceUpdateViewTests(TestCase):
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "reporting/evidence_form.html")
+
+    def test_view_uses_grouped_evidence_update_form(self):
+        response = self.client_mgr.get(self.uri)
+
+        self.assertContains(response, 'class="resource-form-card"', count=1)
+        self.assertContains(
+            response, 'class="resource-form-card resource-upload-card"', count=1
+        )
+        self.assertContains(response, "Evidence Identity")
+        self.assertContains(response, "Evidence File")
+        self.assertContains(response, "Save Changes")
 
     def test_custom_context_exists(self):
         response = self.client_mgr.get(self.uri)
@@ -3648,6 +3894,29 @@ class ReportTemplateListViewTests(TestCase):
         )
         self.assertNotContains(response, payload)
 
+    def test_template_library_uses_shared_library_layout(self):
+        project_docx_type = DocTypeFactory(
+            doc_type="project_docx", extension="docx", name="project_docx"
+        )
+        ReportTemplateFactory(protected=True, doc_type=project_docx_type)
+        response = self.client_mgr.get(self.uri)
+
+        self.assertContains(response, 'class="library-page template-library-page d-grid gap-4"')
+        self.assertContains(response, '<h2>Report Template Library</h2>')
+        self.assertContains(response, 'class="filter-form library-filters template-library-filters"')
+        self.assertContains(response, 'class="library-results template-library-results"')
+        self.assertContains(response, "library-table library-table-wide")
+        self.assertContains(response, 'class="library-cell-tags"')
+        self.assertContains(response, 'class="fas fa-lock"')
+        self.assertContains(response, 'class="fas fa-arrows-alt-v"')
+        self.assertContains(response, 'class="fas fa-building"')
+        self.assertContains(response, 'data-label="Project-Only"')
+        self.assertContains(response, 'class="fas fa-check-circle"')
+        self.assertContains(response, 'class="fas fa-minus-circle"')
+        self.assertContains(response, 'data-1p-ignore="true"', count=3)
+        self.assertNotContains(response, "btn btn-info col-2")
+        self.assertNotContains(response, 'id="template-library-results-title"')
+
     def test_template_filtering(self):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
@@ -3795,15 +4064,23 @@ class ReportTemplateDetailViewTests(TestCase):
 
     def test_view_for_protected_template(self):
         response = self.client_auth.get(self.uri)
-        self.assertInHTML(
-            '<div class="alert alert-danger icon lock-icon" role="alert">This template is protected – only admins and managers may edit it.</div>',
-            response.content.decode(),
+        self.assertContains(
+            response,
+            'class="alert alert-danger icon lock-icon mt-3"',
+        )
+        self.assertContains(
+            response,
+            "This template is protected. Only administrators and managers may change it.",
         )
 
         response = self.client_admin.get(self.uri)
-        self.assertInHTML(
-            '<div class="alert alert-secondary icon unlock-icon" role="alert">You may edit this protected template.</div>',
-            response.content.decode(),
+        self.assertContains(
+            response,
+            'class="alert alert-secondary icon unlock-icon mt-3"',
+        )
+        self.assertContains(
+            response,
+            "This is a protected template. Your role permits changes.",
         )
 
 
@@ -3917,6 +4194,20 @@ class ReportTemplateUpdateViewTests(TestCase):
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "reporting/report_template_form.html")
+
+    def test_view_uses_grouped_template_form(self):
+        response = self.client_mgr.get(self.uri)
+
+        self.assertContains(response, 'class="resource-form-card"', count=2)
+        self.assertContains(
+            response,
+            'class="resource-form-card resource-form-card-wide"',
+        )
+        self.assertContains(
+            response,
+            'class="resource-form-card resource-upload-card"',
+        )
+        self.assertContains(response, "Save Changes")
 
     def test_custom_context_exists(self):
         response = self.client_mgr.get(self.uri)
@@ -5540,6 +5831,20 @@ class ObservationListViewTests(TestCase):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "reporting/observation_list.html")
+        self.assertContains(
+            response,
+            'class="library-page observation-library-page d-grid gap-4"',
+        )
+        self.assertContains(response, "<h2>Observations Library</h2>")
+        self.assertContains(response, "1 observation")
+        self.assertContains(response, "Create Observation")
+        self.assertContains(
+            response,
+            'class="library-primary-link"',
+        )
+        self.assertContains(response, 'data-label="Title"')
+        self.assertContains(response, 'data-label="Tags"')
+        self.assertContains(response, 'data-1p-ignore="true"', count=2)
 
     def test_tags_are_scoped_to_observations(self):
         hidden_report = ReportFactory(title="Hidden Tagged Report")
@@ -5579,6 +5884,15 @@ class ObservationListViewTests(TestCase):
         self.assertNotIn(
             "other-observation-tag", response.context["autocomplete_data"]["tags"]
         )
+
+    def test_view_distinguishes_empty_filter_results(self):
+        response = self.client_auth.get(self.uri + "?title=does-not-exist")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "0 observations")
+        self.assertContains(response, "No matching observations")
+        self.assertContains(response, "Reset filters")
+        self.assertNotContains(response, 'id="observationsTable"')
 
 
 class ObservationCreateViewTests(TestCase):
@@ -5665,6 +5979,13 @@ class ObservationUpdateViewTests(TestCase):
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "reporting/observation_update.html")
+        self.assertContains(response, 'class="observation-edit-page"')
+        self.assertContains(response, "Edit Library Observation")
+        self.assertContains(response, "View observation")
+        self.assertContains(
+            response,
+            'id="collab-form-container" class="finding-collab-form-host observation-collab-form-host"',
+        )
 
 
 class ObservationDeleteViewTests(TestCase):
@@ -5803,7 +6124,7 @@ class AssignObservationViewTests(TestCase):
         )
 
         response = self.client_mgr.post(self.uri)
-        message = "Please select a report to edit in the sidebar or go to a report's dashboard to assign an observation."
+        message = "Choose a working report before adding an observation."
         data = {"result": "error", "message": message}
 
         self.assertJSONEqual(force_str(response.content), data)
@@ -5816,7 +6137,7 @@ class AssignObservationViewTests(TestCase):
         self.assertEqual(self.session["active_report"], None)
 
         response = self.client_mgr.post(self.uri)
-        message = "Please select a report to edit in the sidebar or go to a report's dashboard to assign an observation."
+        message = "Choose a working report before adding an observation."
         data = {"result": "error", "message": message}
 
         self.assertJSONEqual(force_str(response.content), data)
@@ -6016,6 +6337,8 @@ class ReportObservationLinkAssignTests(TestCase):
         self.assertTemplateUsed(
             response, "reporting/report_observation_link_assign.html"
         )
+        self.assertContains(response, 'class="resource-form-shell"')
+        self.assertContains(response, "Save Assignment")
 
     def test_form_only_shows_project_members(self):
         response = self.client_mgr.get(self.uri)

@@ -15,5 +15,20 @@
 {% endblock %}
 
 {% block content %}
+  <div class="resource-edit-page">
+    <header class="detail-page-heading resource-detail-heading resource-edit-heading">
+      <div class="detail-page-heading-main resource-detail-heading-main">
+        <span class="detail-eyebrow">{% if object %}Edit Report Evidence{% else %}Upload Report Evidence{% endif %}</span>
+        <h2 class="mb-0">{% if object %}{{ object.friendly_name }}{% else %}New evidence file{% endif %}</h2>
+        <p class="resource-edit-intro mb-0">Prepare a reusable file, caption, and operator-facing name for {{ report }}.</p>
+      </div>
+      {% if object %}
+        <div class="detail-page-heading-actions">
+          <a class="btn btn-outline-primary btn-sm icon view-icon"
+             href="{% url 'reporting:evidence_detail' object.id %}">View evidence</a>
+        </div>
+      {% endif %}
+    </header>
     {% include "reporting/evidence_form_template.html" with form=form %}
+  </div>
 {% endblock %}

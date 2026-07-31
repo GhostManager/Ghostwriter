@@ -48,11 +48,16 @@ export default function ExtraFieldsSection(props: {
         <>
             {specs.length > 0 && props.header}
             {specs.map((spec) => (
-                <div className="form-group col-md-12" key={spec.internal_name}>
+                <div
+                    className={`form-group col-md-12 extra-field-form-group extra-field-form-group-${spec.type}`}
+                    key={spec.internal_name}
+                >
                     {spec.type !== "checkbox" && (
                         <label>{spec.display_name}</label>
                     )}
-                    <ExtraFieldInput {...props} spec={spec} />
+                    <div className="extra-field-form-control">
+                        <ExtraFieldInput {...props} spec={spec} />
+                    </div>
                     {spec.description && (
                         <small className="form-text text-muted">
                             {spec.description}
@@ -91,7 +96,7 @@ export function ExtraFieldInput(props: {
                     provider={props.provider}
                     map={map}
                     mapKey={props.spec.internal_name}
-                    inputProps={{ className: "form-control mb-3" }}
+                    inputProps={{ className: "form-control" }}
                     defaultValue={0}
                     setEditing={props.setEditing}
                 />
@@ -103,7 +108,7 @@ export function ExtraFieldInput(props: {
                     provider={props.provider}
                     map={map}
                     mapKey={props.spec.internal_name}
-                    inputProps={{ className: "form-control mb-3" }}
+                    inputProps={{ className: "form-control" }}
                     defaultValue={0}
                     setEditing={props.setEditing}
                 />
@@ -115,7 +120,7 @@ export function ExtraFieldInput(props: {
                     provider={props.provider}
                     map={map}
                     mapKey={props.spec.internal_name}
-                    inputProps={{ className: "form-control mb-3" }}
+                    inputProps={{ className: "form-control" }}
                     setEditing={props.setEditing}
                 />
             );
@@ -165,15 +170,15 @@ function CheckboxExtraField(props: {
     );
 
     if (!props.connected && docValue === undefined) {
-        return <p className="form-text text-muted mb-3">Loading...</p>;
+        return <p className="form-text text-muted mb-0">Loading...</p>;
     }
 
     const inputId = `extra-field-${props.spec.internal_name}`;
 
     return (
-        <div className="custom-control custom-switch mb-3">
+        <div className="form-check form-switch extra-field-toggle">
             <input
-                className="custom-control-input"
+                className="form-check-input"
                 id={inputId}
                 type="checkbox"
                 disabled={!props.connected}
@@ -182,10 +187,7 @@ function CheckboxExtraField(props: {
                     setDocValue((ev.target as HTMLInputElement).checked);
                 }}
             />
-            <label
-                className="custom-control-label form-check-label"
-                htmlFor={inputId}
-            >
+            <label className="form-check-label" htmlFor={inputId}>
                 {props.spec.display_name}
             </label>
         </div>

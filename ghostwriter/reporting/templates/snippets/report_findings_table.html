@@ -1,143 +1,161 @@
 {% load report_tags %}
 
 {% if report.reportfindinglink_set.exists %}
-  <table id="findings-table" class="table table-sm table-hover"
-         findings-update-url="{% url 'reporting:update_report_findings' %}">
+  <div class="table-responsive data-table-frame findings-table-frame">
+    <table id="findings-table" class="table table-sm report-items-table report-findings-table"
+           findings-update-url="{% url 'reporting:update_report_findings' %}">
+    <colgroup>
+      <col class="report-drag-column">
+      <col class="report-title-column">
+      <col class="report-score-column">
+      <col class="report-owner-column">
+      <col class="report-status-column">
+      <col class="report-actions-column">
+    </colgroup>
+    <thead>
     <tr>
-      <th class="icon ol-list-icon text-center"></th>
-      <th class="align-middle text-left">Finding</th>
-      <th class="align-middle">CVSS Score</th>
-      <th class="align-middle text-left">
-        <div class="dropdown dropleft">
-          <span id="owner-info-btn" class="dropdown-info" data-toggle="dropdown" aria-haspopup="true"
-                aria-expanded="false">Owner</span>
-          <div id="owner-info" class="dropdown-menu dropdown-info-content" aria-labelledby="owner-info-btn">
-            <p>The assigned user is the person responsible for writing this finding. The assigned individual
-              will
-              have a link to the finding on their dashboard.</p>
-          </div>
-        </div>
-      </th>
-      <th class="align-middle text-left">
-        <div class="dropdown dropleft">
-          <span id="status-info-btn" class="dropdown-info" data-toggle="dropdown" aria-haspopup="true"
-                aria-expanded="false">Status</span>
-          <div id="status-info" class="dropdown-menu dropdown-info-content" aria-labelledby="status-info-btn">
-            <p>Mark a finding as ready or in need of editing.</p>
-          </div>
-        </div>
-      </th>
-      <th class="align-middle">Options</th>
+      <th><span class="visually-hidden">Reorder</span></th>
+      <th class="align-middle text-start">Finding</th>
+      <th class="align-middle text-start">CVSS</th>
+      <th class="align-middle text-start">Owner</th>
+      <th class="align-middle text-start">Status</th>
+      <th class="align-middle text-end">Actions</th>
     </tr>
+    </thead>
 
     {% group_by_severity report.reportfindinglink_set.all as severity_groups %}
     {% for group, values in severity_groups.items %}
-      <tbody>
-      <th id="{{ values.tpl_name }}_header" class="severity-header {{ values.tpl_name }}" colspan="6"
-          scope="colgroup">{{ group }}</th>
+      <tbody class="report-severity-heading-group">
+      <tr>
+        <th id="{{ values.tpl_name }}_header"
+            class="severity-header report-severity-header {{ values.tpl_name }}" colspan="6"
+            scope="colgroup">
+          <span class="report-severity-label">
+            <span class="report-severity-dot" aria-hidden="true"></span>
+            <span>{{ group }}</span>
+            <span class="report-severity-count">{{ values.findings|length }}</span>
+          </span>
+        </th>
+      </tr>
       </tbody>
       <tbody id="{{ values.tpl_name }}_severity" class="sortable_list connected_sortable"
              severity-weight="{{ values.weight }}">
       {% if values.findings %}
         {% for finding in values.findings %}
-          <tr id="finding_{{ finding.id }}" data-id="{{ finding.id }}" class="severity_row">
-            <td
-              class="holdme align-middle"
-              data-toggle="tooltip"
-              data-placement="top"
-              title="Click-n-drag to reposition within the severity category"
-            ></td>
-            <td class="align-middle text-left">
+          <tr id="finding_{{ finding.id }}" data-id="{{ finding.id }}" class="severity_row report-item-row">
+            <td class="report-drag-cell align-middle"
+              data-bs-toggle="tooltip"
+              data-bs-placement="bottom"
+              title="Drag to reorder within this severity">
+              <button type="button" class="holdme report-drag-handle"
+                      aria-label="Reorder {{ finding.title }}">
+                <i class="fas fa-grip-vertical" aria-hidden="true"></i>
+              </button>
+            </td>
+            <td class="report-item-primary-cell align-middle text-start">
               <a id="delete-target-content-finding-{{ finding.id }}"
-                {% if finding.added_as_blank %}
-                 class="clickable icon flag-icon" data-toggle="tooltip" data-placement="top"
-                 title="Finding started as a blank template, not from the finding library"
-                {% else %}
-                 class="clickable"
-                {% endif %}
+                 class="clickable report-item-title"
                  href="{% url 'reporting:local_edit' finding.id %}">{{ finding.title }}
               </a>
+              {% if finding.added_as_blank %}
+                <i class="fas fa-flag report-item-source-icon" aria-hidden="true"
+                   data-bs-toggle="tooltip" data-bs-placement="top"
+                   title="Started as a blank finding rather than a library template"></i>
+              {% endif %}
             </td>
-            <td class="neutral align-middle
-                {% if finding.severity.weight == 1 %}
-                    cvss-critical
-                {% elif finding.severity.weight == 2 %}
-                    cvss-high
-                {% elif finding.severity.weight == 3 %}
-                    cvss-medium
-                {% elif finding.severity.weight == 4 %}
-                    cvss-low
-                {% elif finding.severity.weight == 5 %}
-                    cvss-info
-                {% endif %}
-            ">
+            <td class="align-middle text-start">
               {% if finding.cvss_score %}
-                <span
-                  style="cursor: help"
-                  data-toggle="tooltip"
-                  data-placement="top"
+                <span class="report-score-badge
+                  {% if finding.severity.weight == 1 %}cvss-critical
+                  {% elif finding.severity.weight == 2 %}cvss-high
+                  {% elif finding.severity.weight == 3 %}cvss-medium
+                  {% elif finding.severity.weight == 4 %}cvss-low
+                  {% elif finding.severity.weight == 5 %}cvss-info{% endif %}"
+                  data-bs-toggle="tooltip"
+                  data-bs-placement="top"
                   title="{{ finding.cvss_vector }}"
                 >{{ finding.cvss_score }}</span>
-              {% else %}--{% endif %}
+              {% else %}<span class="missing-value">Not scored</span>{% endif %}
             </td>
             {% if finding.assigned_to == request.user %}
-              <td class="align-middle text-left">
-                <span id="assignee-status-{{ finding.id }}" class="
-                  {% if finding.complete %}
-                    healthy">
-                  {% else %}
-                    burned">
-                  {% endif %}
-                  You</span>
+              <td class="align-middle text-start">
+                <span id="assignee-status-{{ finding.id }}" class="report-owner-badge is-current">You</span>
               </td>
             {% else %}
               {% if finding.assigned_to %}
-                <td class="neutral align-middle text-left">{{ finding.assigned_to }}</td>
+                <td class="align-middle text-start">
+                  <span class="report-owner-badge">{{ finding.assigned_to }}</span>
+                </td>
               {% else %}
-                <td class="medium align-middle text-left">TBD</td>
+                <td class="align-middle text-start">
+                  <span class="report-owner-badge is-unassigned">Unassigned</span>
+                </td>
               {% endif %}
             {% endif %}
-            <td class="align-middle text-left">
-              <span id="finding-status-{{ finding.id }}" class="
-                {% if finding.complete %}
-                  healthy">Ready
-              {% else %}
-                burned"> Needs Editing
-              {% endif %}
+            <td class="align-middle text-start">
+              <span id="finding-status-{{ finding.id }}"
+                    class="report-status-badge {% if finding.complete %}is-ready{% else %}needs-editing{% endif %}">
+                <i class="fas {% if finding.complete %}fa-check-circle{% else %}fa-pencil-alt{% endif %}" aria-hidden="true"></i>
+                <span>{% if finding.complete %}Ready{% else %}Needs Editing{% endif %}</span>
               </span>
             </td>
-            <td class="align-middle">
-              <div class="dropdown dropleft">
-                <button id="finding-dropdown-btn-{{ finding.id }}" class="dropdown-menu-btn-table"
-                        data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
-                <div id="finding-dropdown-menu-{{ finding.id }}" class="dropdown-menu"
-                     aria-labelledby="dns-dropdown-btn_{{ finding.id }}">
-                  <a class="dropdown-item icon view-icon js-finding-preview" href="javascript:void(0);"
-                     data-finding-preview-url="{% url 'reporting:finding_preview' finding.id %}"
-                     data-finding-title="{{ finding.title }}"
-                     data-toggle="modal" data-target="#finding-preview-modal">Preview</a>
-                  <a class="dropdown-item icon edit-icon"
-                     href="{% url 'reporting:local_edit' finding.id %}">Edit</a>
-                  <a class="dropdown-item icon user-icon"
-                     href="{% url 'reporting:local_assign' finding.id %}">Re-Assign</a>
-                  <a class="dropdown-item icon toggle-off-icon js-set-finding-status" href="javascript:void(0);"
-                     set-finding-status-csrftoken="{{ csrf_token }}"
-                     set-finding-status-url="{% url 'reporting:ajax_set_finding_status' finding.id 'edit' %}"
-                     set-finding-status="edit" set-finding-status-id="{{ finding.id }}">Flag for Editing</a>
-                  <a class="dropdown-item icon toggle-on-icon js-set-finding-status" href="javascript:void(0);"
-                     set-finding-status-csrftoken="{{ csrf_token }}"
-                     set-finding-status-url="{% url 'reporting:ajax_set_finding_status' finding.id 'complete' %}"
-                     set-finding-status="complete" set-finding-status-id="{{ finding.id }}">Mark as Complete</a>
-                  <form style="display:contents" action="{% url 'reporting:convert_finding' finding.id %}" method="post">
-                    {% csrf_token %}
-                    <button class="dropdown-item icon clone-icon">Clone to Library</button>
-                  </form>
-                  <a id="finding-delete-button-{{ finding.id }}"
-                     class="dropdown-item icon trash-icon js-confirm-delete" data-toggle="modal"
-                     data-target="#confirm-delete-modal" href="javascript:void(0);"
-                     delete-target-csrftoken="{{ csrf_token }}"
-                     delete-target-url="{% url 'reporting:ajax_delete_local_finding' finding.id %}"
-                     delete-target-id="{{ finding.id }}" delete-target-type="finding">Delete</a>
+            <td class="align-middle text-end">
+              <div class="report-row-actions dropdown" aria-label="Actions for {{ finding.title }}">
+                <button id="finding-actions-toggle-{{ finding.id }}" type="button"
+                        class="btn btn-outline-secondary btn-sm report-row-actions-toggle"
+                        data-bs-toggle="dropdown" aria-expanded="false"
+                        aria-label="Open actions for {{ finding.title }}">
+                  <i class="fas fa-ellipsis-h" aria-hidden="true"></i>
+                  <span>Actions</span>
+                </button>
+                <div class="dropdown-menu dropdown-menu-end report-row-actions-menu"
+                     aria-labelledby="finding-actions-toggle-{{ finding.id }}">
+                <button type="button" class="report-row-action js-finding-preview"
+                        data-finding-preview-url="{% url 'reporting:finding_preview' finding.id %}"
+                        data-finding-title="{{ finding.title }}"
+                        data-bs-toggle="modal" data-bs-target="#finding-preview-modal"
+                        title="Preview finding" aria-label="Preview finding">
+                  <i class="fas fa-eye" aria-hidden="true"></i>
+                </button>
+                <a class="report-row-action" href="{% url 'reporting:local_edit' finding.id %}"
+                   title="Edit finding" aria-label="Edit finding">
+                  <i class="fas fa-pen" aria-hidden="true"></i>
+                </a>
+                <a class="report-row-action" href="{% url 'reporting:local_assign' finding.id %}"
+                   title="Reassign finding" aria-label="Reassign finding">
+                  <i class="fas fa-user-edit" aria-hidden="true"></i>
+                </a>
+                <button type="button"
+                        class="report-row-action js-set-finding-status js-status-edit {% if not finding.complete %}d-none{% endif %}"
+                        set-finding-status-csrftoken="{{ csrf_token }}"
+                        set-finding-status-url="{% url 'reporting:ajax_set_finding_status' finding.id 'edit' %}"
+                        set-finding-status="edit" set-finding-status-id="{{ finding.id }}"
+                        title="Flag for editing" aria-label="Flag finding for editing">
+                  <i class="fas fa-flag" aria-hidden="true"></i>
+                </button>
+                <button type="button"
+                        class="report-row-action js-set-finding-status js-status-complete {% if finding.complete %}d-none{% endif %}"
+                        set-finding-status-csrftoken="{{ csrf_token }}"
+                        set-finding-status-url="{% url 'reporting:ajax_set_finding_status' finding.id 'complete' %}"
+                        set-finding-status="complete" set-finding-status-id="{{ finding.id }}"
+                        title="Mark as ready" aria-label="Mark finding as ready">
+                  <i class="fas fa-check" aria-hidden="true"></i>
+                </button>
+                <form class="report-row-action-form" action="{% url 'reporting:convert_finding' finding.id %}" method="post">
+                  {% csrf_token %}
+                  <button type="submit" class="report-row-action" title="Clone to library" aria-label="Clone finding to library">
+                    <i class="fas fa-copy" aria-hidden="true"></i>
+                  </button>
+                </form>
+                <button type="button" id="finding-delete-button-{{ finding.id }}"
+                        class="report-row-action report-row-action-danger js-confirm-delete"
+                        data-bs-toggle="modal" data-bs-target="#confirm-delete-modal"
+                        delete-target-csrftoken="{{ csrf_token }}"
+                        delete-target-url="{% url 'reporting:ajax_delete_local_finding' finding.id %}"
+                        delete-target-id="{{ finding.id }}" delete-target-type="finding"
+                        title="Delete finding" aria-label="Delete finding">
+                  <i class="fas fa-trash-alt" aria-hidden="true"></i>
+                </button>
                 </div>
               </div>
             </td>
@@ -146,18 +164,24 @@
       {% else %}
         <tr id="{{ group|lower }}_placeholder" data-id="{{ group|lower }}_placeholder"
             class="severity-row-placeholder">
-          <td colspan="6" scope="colgroup">No findings with this severity</td>
+          <td colspan="6" scope="colgroup">
+            <span class="report-severity-empty">No findings with this severity</span>
+          </td>
         </tr>
       {% endif %}
-    {% endfor %}
     </tbody>
-  </table>
+    {% endfor %}
+    </table>
+  </div>
 {% else %}
-  <p class="mt-3">No findings have been added to this report yet.</p>
+  <div class="empty-state mt-3">
+    <p class="empty-state-title">No findings yet</p>
+    <p class="empty-state-description">Search the finding library or add a blank finding to get started.</p>
+  </div>
 {% endif %}
 
 <script>
-  $('#findings-table [data-target="#confirm-delete-modal"]').each(function () {
+  $('#findings-table [data-bs-target="#confirm-delete-modal"]').each(function () {
     $(this).click(function () {
       $('#confirm-delete-modal').attr('caller-id', $(this).attr('id'));
     });
@@ -244,9 +268,8 @@
       let findingId = $(this).attr('set-finding-status-id');
       let csrftoken = $(this).attr('set-finding-status-csrftoken');
       let statusColId = '#finding-status-' + findingId;
-      let assigneeStatusColId = '#assignee-status-' + findingId;
       let statusCol = $(statusColId);
-      let assigneeStatusCol = $(assigneeStatusColId);
+      let findingRow = $('#finding_' + findingId);
       $.ajaxSetup({
         beforeSend: function (xhr, settings) {
           if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
@@ -264,11 +287,15 @@
         },
         success: function (data) {
           if (data['result'] == 'success') {
-            statusCol.html(data['status']);
-            statusCol.removeClass();
-            statusCol.addClass(data['classes']);
-            assigneeStatusCol.removeClass();
-            assigneeStatusCol.addClass(data['classes']);
+            let isReady = newStatus === 'complete';
+            statusCol.toggleClass('is-ready', isReady);
+            statusCol.toggleClass('needs-editing', !isReady);
+            statusCol.find('i')
+              .toggleClass('fa-check-circle', isReady)
+              .toggleClass('fa-pencil-alt', !isReady);
+            statusCol.find('span').text(data['status']);
+            findingRow.find('.js-status-edit').toggleClass('d-none', !isReady);
+            findingRow.find('.js-status-complete').toggleClass('d-none', isReady);
           }
           if (data['message']) {
             displayToastTop({type: data['result'], string: data['message'], title: 'Finding Update'});

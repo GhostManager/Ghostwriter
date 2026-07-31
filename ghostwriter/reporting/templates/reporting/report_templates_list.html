@@ -1,7 +1,7 @@
 {% extends "base_generic.html" %}
 {% load crispy_forms_tags custom_tags %}
 
-{% block pagetitle %}Report Template List{% endblock %}
+{% block pagetitle %}Report Template Library{% endblock %}
 
 {% block breadcrumbs %}
   <nav aria-label="breadcrumb">
@@ -13,105 +13,179 @@
 {% endblock %}
 
 {% block content %}
-  <!-- Filter Section -->
-  <div class="filter-form">
-    {% crispy filter.form filter.helper %}
-  </div>
+  <div class="library-page template-library-page d-grid gap-4">
+    <header class="library-page-heading">
+      <div class="library-page-heading-main">
+        <div class="library-page-title-row">
+          <h2>Report Template Library</h2>
+          <span class="library-result-count">{{ filter.qs|length }} template{{ filter.qs|length|pluralize }}</span>
+        </div>
+        <p>Find Word and PowerPoint templates, inspect their readiness, or upload a new report design.</p>
+      </div>
+      <div class="library-page-actions">
+        <a class="btn btn-primary icon upload-icon" href="{% url 'reporting:template_create' %}">Upload Template</a>
+        {% if filter.qs|length > 0 %}
+          <button id="resetSortBtn" class="btn btn-outline-secondary icon sync-icon"
+                  type="button">Reset Sort</button>
+        {% endif %}
+      </div>
+    </header>
 
-  {% if filter.qs|length == 0 %}
-    <div class="alert alert-warning offset-md-2 col-md-8 mt-3" role="alert">There are no findings yet, or your search
-      returned no results. Create a finding above or adjust your filters.
+    <div class="filter-form library-filters template-library-filters">
+      {% crispy filter.form filter.helper %}
     </div>
-  {% else %}
-    <!-- Report Templates Table Section -->
-    <p class="mt-3">This page lists all report templates and their current status. To investigate a status, view the
-      template's details page.</p>
 
-    <p><strong>Note:</strong> Only admins and managers may edit protected report templates.</p>
-
-    <a class="btn btn-info icon upload-icon col-2" href="{% url 'reporting:template_create' %}">Upload</a>
-    <a id="resetSortBtn" class="btn btn-secondary col-2 icon sync-icon" role="button">Reset Sort</a>
-
-    <table id="reportTemplateTable" class="tablesorter table table-sm table-hover">
-      <thead>
-      <tr>
-        <th class="align-middle pr-4 text-left">Status</th>
-        <th class="align-middle pr-4">Doc Type</th>
-        <th class="align-middle pr-4 text-left">Name</th>
-        <th class="align-middle pr-4 text-left">Orientation</th>
-        <th class="align-middle pr-4 text-left">Client</th>
-        <th class="align-middle pr-4">Project-Only</th>
-        <th class="sorter-false align-middle">Options</th>
-      </tr>
-      </thead>
-
-      {% for template in filter.qs %}
-        <tr>
-          <td class="align-middle text-left">
-            {% with template.get_status as status %}
-              <span class="badge
-                                {% if status == "success" %}
-                                    badge-success">Ready</span>
-              {% else %}
-                {% if status == "warning" %}
-                  badge-warning
-                {% elif status == "unknown" %}
-                  badge-secondary
-                {% else %}
-                  badge-danger
-                {% endif %}
-                ">{{ status|capfirst }}</span>
-              {% endif %}
-            {% endwith %}
-          </td>
-          <td
-            class="align-middle icon {% if template.doc_type.extension == "docx" %}word-icon{% else %}pptx-icon{% endif %}"></td>
-          <td class="align-middle text-left"><a class="clickable"
-                                                href="{% url 'reporting:template_detail' template.id %}">{{ template.name }}</a>
-          </td>
-          <td class="align-middle text-left">{% if template.landscape %}Landscsape{% else %}Portrait{% endif %}</td>
-          <td class="align-middle text-left">
-            {% if template.client %}
-              {{ template.client }}
-            {% else %}
-              <span style="display:none;">N/A</span>
-            {% endif %}
-          </td>
-          <td
-            class="{% if template.doc_type.doc_type == "project_docx" %}icon check-icon{% endif %}">
-            {% if template.doc_type.doc_type == "project_docx" %}
-              <span style="display:none;">Project Only</span>
-            {% else %}
-              <span style="display:none;">N/A</span>
-            {% endif %}
-          </td>
-
-          <td class="align-middle">
-            <div class="d-flex justify-content-center">
-              <span
-                class="icon preview-icon clickable-link"
-                title="View additional information"
-                onclick="openModal('#template_detail_{{ template.id }}')"
-              ></span>
-              <a class="icon download-icon" href="javascript:void(0)"
-                 onclick="downloadTemplate({{ template.id }}, '{{ template.filename|escapejs }}')" title="Download template"></a>
-              {% if template.protected and request.user|is_privileged or not template.protected %}
-                <a class="icon edit-icon"
-                   href="{% url 'reporting:template_update' template.id %}"></a>
-                <a class="icon trash-icon" href="{% url 'reporting:template_delete' template.id %}"></a>
-              {% else %}
-                <a class="icon lock-icon" title="This template is protected and cannot be edited or deleted"
-                   href="javascript:void(0)"></a>
-              {% endif %}
-            </div>
-          </td>
-        </tr>
-      {% endfor %}
-    </table>
-  {% endif %}
+    <section class="library-results template-library-results" aria-label="Report Templates">
+      {% if filter.qs|length == 0 %}
+        <div class="empty-state m-3">
+          {% if request.GET %}
+            <p class="empty-state-title">No matching templates</p>
+            <p class="empty-state-description">Try broadening your filters or reset them to view available report templates.</p>
+            <a class="btn btn-outline-secondary btn-sm mt-3" href="{% url 'reporting:templates' %}">Reset filters</a>
+          {% else %}
+            <p class="empty-state-title">No report templates yet</p>
+            <p class="empty-state-description">Upload a Word or PowerPoint template to begin generating reports.</p>
+            <a class="btn btn-primary btn-sm icon upload-icon mt-3"
+               href="{% url 'reporting:template_create' %}">Upload Template</a>
+          {% endif %}
+        </div>
+      {% else %}
+        <div class="library-guidance" role="note">
+          <i class="fas fa-shield-alt" aria-hidden="true"></i>
+          <p><strong>Protected templates:</strong> only administrators and managers may edit or delete them. Open any template to investigate its current status.</p>
+        </div>
+        <div class="table-responsive data-table-frame library-table-frame">
+          <table id="reportTemplateTable" class="tablesorter table table-hover library-table library-table-wide">
+            <thead>
+              <tr>
+                <th class="align-middle text-start">Status</th>
+                <th class="align-middle text-start">Document Type</th>
+                <th class="align-middle text-start">Name</th>
+                <th class="align-middle text-start">Orientation</th>
+                <th class="align-middle text-start">Client</th>
+                <th class="align-middle text-start">Project-Only</th>
+                <th class="sorter-false align-middle text-end">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for template in filter.qs %}
+                <tr>
+                  <td class="align-middle text-start" data-label="Status">
+                    {% with template.get_status as status %}
+                      {% if status == "success" %}
+                        <span class="library-tag library-tag-success">
+                          <i class="fas fa-check-circle" aria-hidden="true"></i>Ready
+                        </span>
+                      {% elif status == "warning" %}
+                        <span class="library-tag library-tag-warning">
+                          <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>Warning
+                        </span>
+                      {% elif status == "unknown" %}
+                        <span class="library-tag library-tag-neutral">
+                          <i class="fas fa-question-circle" aria-hidden="true"></i>Unknown
+                        </span>
+                      {% else %}
+                        <span class="library-tag library-tag-danger">
+                          <i class="fas fa-times-circle" aria-hidden="true"></i>{{ status|capfirst }}
+                        </span>
+                      {% endif %}
+                    {% endwith %}
+                  </td>
+                  <td class="align-middle text-start" data-label="Document Type">
+                    <span class="icon {% if template.doc_type.extension == "docx" %}word-icon{% else %}pptx-icon{% endif %}">
+                      {{ template.doc_type.extension|upper }}
+                    </span>
+                  </td>
+                  <td class="align-middle text-start library-primary-cell" data-label="Name">
+                    <a class="library-primary-link" href="{% url 'reporting:template_detail' template.id %}">
+                      <span>{{ template.name }}</span>
+                      <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                    </a>
+                    {% if template.protected %}
+                      <div class="library-cell-tags">
+                        <span class="library-tag library-tag-warning">
+                          <i class="fas fa-lock" aria-hidden="true"></i>Protected
+                        </span>
+                      </div>
+                    {% endif %}
+                  </td>
+                  <td class="align-middle text-start" data-label="Orientation">
+                    {% if template.landscape %}
+                      <span class="library-tag library-tag-neutral">
+                        <i class="fas fa-arrows-alt-h" aria-hidden="true"></i>Landscape
+                      </span>
+                    {% else %}
+                      <span class="library-tag library-tag-neutral">
+                        <i class="fas fa-arrows-alt-v" aria-hidden="true"></i>Portrait
+                      </span>
+                    {% endif %}
+                  </td>
+                  <td class="align-middle text-start" data-label="Client">
+                    {% if template.client %}
+                      <span class="library-tag library-tag-info" title="{{ template.client }}">
+                        <i class="fas fa-building" aria-hidden="true"></i>
+                        <span class="library-tag-value">{{ template.client }}</span>
+                      </span>
+                    {% else %}
+                      <span class="library-tag library-tag-neutral">
+                        <i class="fas fa-globe" aria-hidden="true"></i>Any client
+                      </span>
+                    {% endif %}
+                  </td>
+                  <td class="align-middle text-start" data-label="Project-Only">
+                    {% if template.doc_type.doc_type == "project_docx" %}
+                      <span class="library-tag library-tag-success">
+                        <i class="fas fa-check-circle" aria-hidden="true"></i>Yes
+                      </span>
+                    {% else %}
+                      <span class="library-tag library-tag-neutral">
+                        <i class="fas fa-minus-circle" aria-hidden="true"></i>No
+                      </span>
+                    {% endif %}
+                  </td>
+                  <td class="align-middle text-end" data-label="Actions">
+                    <div class="library-row-actions">
+                      <button type="button" class="report-row-action"
+                              title="Preview template" aria-label="Preview {{ template.name }}"
+                              onclick="openModal('#template_detail_{{ template.id }}')">
+                        <i class="fas fa-eye" aria-hidden="true"></i>
+                      </button>
+                      <button type="button" class="report-row-action"
+                              onclick="downloadTemplate({{ template.id }}, '{{ template.filename|escapejs }}')"
+                              title="Download template" aria-label="Download {{ template.name }}">
+                        <i class="fas fa-download" aria-hidden="true"></i>
+                      </button>
+                      {% if template.protected and request.user|is_privileged or not template.protected %}
+                        <a class="report-row-action" href="{% url 'reporting:template_update' template.id %}"
+                           title="Edit template" aria-label="Edit {{ template.name }}">
+                          <i class="fas fa-pen" aria-hidden="true"></i>
+                        </a>
+                        <a class="report-row-action report-row-action-danger"
+                           href="{% url 'reporting:template_delete' template.id %}"
+                           title="Delete template" aria-label="Delete {{ template.name }}">
+                          <i class="fas fa-trash-alt" aria-hidden="true"></i>
+                        </a>
+                      {% else %}
+                        <span class="report-row-action"
+                              title="This protected template cannot be edited or deleted"
+                              aria-label="{{ template.name }} is protected">
+                          <i class="fas fa-lock" aria-hidden="true"></i>
+                        </span>
+                      {% endif %}
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+    </section>
+  </div>
 {% endblock %}
 
 {% block morescripts %}
+  {{ autocomplete_data|json_script:"report-template-autocomplete-data" }}
   <!-- jQuery Tablesorter Script -->
   <script>
     $(document).ready(function () {
@@ -175,7 +249,6 @@
     }
   </script>
 
-  {{ autocomplete_data|json_script:"report-template-autocomplete-data" }}
   <script>
     $(function () {
       const autocompleteData = JSON.parse(document.getElementById('report-template-autocomplete-data').textContent);

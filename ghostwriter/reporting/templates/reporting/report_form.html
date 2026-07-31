@@ -22,8 +22,16 @@
 {% endblock %}
 
 {% block content %}
-    <!-- Instructions Section -->
-    <p>Provide a meaningful name for this report, select the project to which it should be associated, and optionally select report templates to use:</p>
+    <header class="resource-form-page-heading mb-4">
+        <span class="detail-eyebrow">Report</span>
+        {% if object.pk %}
+            <h1>Edit {{ object.title }}</h1>
+            <p>Keep the report identity, engagement, and output templates current.</p>
+        {% else %}
+            <h1>Create report</h1>
+            <p>Connect a report to an active engagement and choose its initial output templates.</p>
+        {% endif %}
+    </header>
 
     <!-- Form Error Section -->
     {% if form.errors %}
@@ -39,6 +47,7 @@
         </script>
     {% endif %}
 
-    <!-- Form Section -->
-    {% crispy form form.helper %}
+    <div class="resource-form-shell">
+        {% crispy form form.helper %}
+    </div>
 {% endblock %}

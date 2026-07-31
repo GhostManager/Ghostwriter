@@ -92,7 +92,7 @@ export function TableCaptionBookmarkButton({ editor }: { editor: Editor }) {
 
 export function TableCellBackgroundColor({ editor }: { editor: Editor }) {
     const [modalMode, setModalMode] = useState<ColorModalMode>(null);
-    const [formColor, setFormColor] = useState<string>("#f00");
+    const [formColor, setFormColor] = useState<string>("#F3F5F7");
 
     const enabled = editor.can().setTableCellBackgroundColor(null);
 
@@ -104,7 +104,7 @@ export function TableCellBackgroundColor({ editor }: { editor: Editor }) {
                 onClick={(e) => {
                     const current =
                         editor.getAttributes(GwTableCell.name).bgColor || "";
-                    setFormColor(current);
+                    setFormColor(current || "#F3F5F7");
                     setModalMode("edit");
                 }}
             >
@@ -115,16 +115,13 @@ export function TableCellBackgroundColor({ editor }: { editor: Editor }) {
                 setModalMode={setModalMode}
                 formColor={formColor}
                 setFormColor={setFormColor}
-                setColor={() => {
-                    if (formColor)
-                        editor
-                            .chain()
-                            .setTableCellBackgroundColor(formColor || null)
-                            .run();
+                setColor={(color) => {
+                    editor.chain().setTableCellBackgroundColor(color).run();
                 }}
                 removeColor={() => {
                     editor.chain().setTableCellBackgroundColor(null).run();
                 }}
+                title="Cell background"
             />
         </>
     );

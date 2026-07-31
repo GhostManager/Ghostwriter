@@ -74,8 +74,8 @@ class ExportBasePptx(ExportBase):
 
     def render_rich_text_pptx(self, rich_text: LazilyRenderedTemplate, slide, shape):
         """
-        Renders a `LazilyRenderedTemplate`, converting the HTML from the TinyMCE rich text editor and inserting it into the passed in shape and slide.
-        Converts HTML from the TinyMCE rich text editor and inserts it into the passed in slide and shape
+        Renders a `LazilyRenderedTemplate`, converting rich-text HTML and inserting it into the passed in shape and slide.
+        Converts rich-text HTML and inserts it into the passed in slide and shape
         """
         ReportExportTemplateError.map_errors(
             lambda: HtmlToPptxWithEvidence.run(

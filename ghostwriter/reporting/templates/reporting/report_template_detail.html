@@ -1,188 +1,202 @@
-{% extends 'base_generic.html' %}
+{% extends "base_generic.html" %}
 
 {% load report_tags bleach_tags humanize %}
 
 {% block pagetitle %}Report Template Detail{% endblock %}
 
 {% block breadcrumbs %}
-    <nav aria-label="breadcrumb">
-        <ul class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'reporting:templates' %}">Report Templates</a></li>
-            <li class="breadcrumb-item active" aria-current="page">{{ reporttemplate.name }}</li>
-        </ul>
-    </nav>
+  <nav aria-label="breadcrumb">
+    <ul class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'reporting:templates' %}">Report Templates</a></li>
+      <li class="breadcrumb-item active" aria-current="page">{{ reporttemplate.name }}</li>
+    </ul>
+  </nav>
 {% endblock %}
 
 {% block content %}
-    <div class="dropdown">
-        <div class="dropdown-menu-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" onclick="hamburger(this)">
-            <div class="bar1"></div>
-            <div class="bar2"></div>
-            <div class="bar3"></div>
+  <div class="template-detail-page">
+    <header class="detail-page-heading resource-detail-heading">
+      <div class="detail-page-heading-main resource-detail-heading-main">
+        <span class="detail-eyebrow">Report Template</span>
+        <h2 class="mb-0">{{ reporttemplate.name|bleach }}</h2>
+        <div class="detail-tag-list mt-0" aria-label="Template properties and tags">
+          <span class="library-tag {% if reporttemplate.doc_type.extension == 'docx' %}library-tag-info{% else %}library-tag-neutral{% endif %}">
+            <i class="fas {% if reporttemplate.doc_type.extension == 'docx' %}fa-file-word{% else %}fa-file-powerpoint{% endif %}"
+               aria-hidden="true"></i>
+            <span>{% if reporttemplate.doc_type.extension == "docx" %}Word{% else %}PowerPoint{% endif %}</span>
+          </span>
+          {% if reporttemplate.protected %}
+            <span class="library-tag library-tag-warning"><i class="fas fa-lock" aria-hidden="true"></i>Protected</span>
+          {% endif %}
+          {% if reporttemplate.doc_type.doc_type == "project_docx" %}
+            <span class="library-tag library-tag-success"><i class="fas fa-project-diagram" aria-hidden="true"></i>Project document</span>
+          {% endif %}
+          <span class="library-tag library-tag-neutral">
+            <i class="fas fa-arrows-alt-{% if reporttemplate.landscape %}h{% else %}v{% endif %}" aria-hidden="true"></i>
+            {% if reporttemplate.landscape %}Landscape{% else %}Portrait{% endif %}
+          </span>
+          {% for tag in reporttemplate.tags.names %}
+            <span class="badge badge-secondary">{{ tag|bleach }}</span>
+          {% endfor %}
         </div>
-        <div class="dropdown-menu dropdown-menu-right" aria-labelledby="report-dropdown-btn">
-            <a class="dropdown-item icon download-icon" href="{% url 'reporting:template_download' reporttemplate.id %}">Download</a>
-            <a class="dropdown-item icon icon bug-icon js-lint-template" href="javascript:void(0)" lint-template-csrftoken="{{ csrf_token }}" lint-template-url="{% url 'reporting:ajax_lint_report_template' reporttemplate.id %}">Lint</a>
-            {% if request.user.is_staff or request.user.role == "manager" or request.user.role == "admin" or not reporttemplate.protected %}
-                <a class="dropdown-item icon edit-icon" href="{% url 'reporting:template_update' reporttemplate.id %}">Edit</a>
-                <a class="dropdown-item icon trash-icon" href="{% url 'reporting:template_delete' reporttemplate.id %}">Delete</a>
-            {% endif %}
-        </div>
-    </div>
+      </div>
 
-    <div class="container">
-        <h2>{{ reporttemplate.name }}</h2>
-    </div>
-    <span class="badge {% if reporttemplate.doc_type.extension == "docx" %}badge-word">Word{% else %}badge-pptx">PowerPoint{% endif %}</span>
-    {% for tag in reporttemplate.tags.names %}
-        <span class="badge badge-secondary">{{ tag|bleach }}</span>
-    {% endfor %}
-    <hr>
+      <div class="dropdown detail-page-heading-actions">
+        <button id="template-actions-button" type="button"
+                class="btn btn-outline-primary btn-sm dropdown-toggle"
+                data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+          <span>Actions</span>
+        </button>
+        <div class="dropdown-menu dropdown-menu-end" aria-labelledby="template-actions-button">
+          <a class="dropdown-item icon download-icon"
+             href="{% url 'reporting:template_download' reporttemplate.id %}">Download template</a>
+          <button type="button" class="dropdown-item icon bug-icon js-lint-template"
+                  lint-template-csrftoken="{{ csrf_token }}"
+                  lint-template-url="{% url 'reporting:ajax_lint_report_template' reporttemplate.id %}">
+            Run template lint
+          </button>
+          {% if request.user.is_staff or request.user.role == "manager" or request.user.role == "admin" or not reporttemplate.protected %}
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item icon edit-icon"
+               href="{% url 'reporting:template_update' reporttemplate.id %}">Edit template</a>
+            <a class="dropdown-item icon trash-icon text-danger"
+               href="{% url 'reporting:template_delete' reporttemplate.id %}">Delete template</a>
+          {% endif %}
+        </div>
+      </div>
+    </header>
 
     {% if reporttemplate.protected %}
-        <div
-            {% if request.user.is_staff or request.user.role == "manager" or request.user.role == "admin" %}
-                class="alert alert-secondary icon unlock-icon" role="alert">You may edit this protected template.
-            {% else %}
-                class="alert alert-danger icon lock-icon" role="alert">This template is protected – only admins and managers may edit it.
-            {% endif %}
-        </div>
+      <div class="alert {% if request.user.is_staff or request.user.role == 'manager' or request.user.role == 'admin' %}alert-secondary icon unlock-icon{% else %}alert-danger icon lock-icon{% endif %} mt-3"
+           role="alert">
+        {% if request.user.is_staff or request.user.role == "manager" or request.user.role == "admin" %}
+          This is a protected template. Your role permits changes.
+        {% else %}
+          This template is protected. Only administrators and managers may change it.
+        {% endif %}
+      </div>
     {% endif %}
 
-    <!-- Template Information Section -->
-    <div class="table-responsive" >
-        <table class="table table-borderless project-details-table offset-2 col-8">
-            <tr>
-                <td class="text-left bold">Uploaded By</td>
-                <td class="text-left">
-                    {% if reporttemplate.uploaded_by %}
-                        {{ reporttemplate.uploaded_by }}
-                    {% else %}
-                        Unknown
-                    {% endif %}
-                </td>
-            </tr>
-            <tr>
-                <td class="text-left bold">Upload Date</td>
-                <td class="text-left">{{ reporttemplate.upload_date|naturalday:"DATE_FORMAT" }}</td>
-            </tr>
-            <tr>
-                <td class="text-left bold">Last Update</td>
-                <td class="text-left">{{ reporttemplate.last_update|naturalday:"DATE_FORMAT" }}</td>
-            </tr>
-            <tr>
-                <td class="text-left bold">Client</td>
-                <td class="text-left">
-                    {% if reporttemplate.client %}
-                        {{ reporttemplate.client }}
-                    {% else %}
-                        N/A
-                    {% endif %}
-                </td>
-            </tr>
-            <tr>
-                <td class="text-left bold">Orientation</td>
-                <td class="text-left">{% if reporttemplate.landscape %}Landscape{% else %}Portrait{% endif %}</td>
-            </tr>
-            {% if reporttemplate.doc_type.extension == "docx" %}
-              <tr>
-                  <td class="text-left bold">New Paragraph Style</td>
-                  <td class="text-left">{% if reporttemplate.p_style %}{{ reporttemplate.p_style }}{% else %}Normal{% endif %}</td>
-              </tr>
-            {% endif %}
-			<tr>
-                <td class="text-left bold">Evidence Image Width</td>
-                <td class="text-left">
-                    {% if reporttemplate.evidence_image_width is not None %}
-                        {{ reporttemplate.evidence_image_width }} inches
-                    {% else %}
-                        Use global default
-                    {% endif %}
-                </td>
-            </tr>
-			<tr>
-                <td class="text-left bold">Evidence Image Alignment</td>
-                <td class="text-left">{{ reporttemplate.get_evidence_image_alignment_display }}</td>
-            </tr>
-			<tr>
-                <td class="text-left bold">References BloodHound Data</td>
-                <td class="text-left">{{ reporttemplate.contains_bloodhound_data }}</td>
-            </tr>
-        </table>
-    </div>
+    <div class="detail-layout template-detail-layout">
+      <section class="detail-panel" aria-labelledby="template-settings-heading">
+        <div class="detail-panel-header">
+          <div>
+            <span class="detail-eyebrow">Render behavior</span>
+            <h4 id="template-settings-heading">Template Settings</h4>
+          </div>
+          <i class="fas fa-sliders-h finding-section-icon" aria-hidden="true"></i>
+        </div>
+        <dl class="detail-grid template-settings-grid">
+          <div class="detail-field">
+            <dt>Client scope</dt>
+            <dd>{% if reporttemplate.client %}{{ reporttemplate.client }}{% else %}Any client{% endif %}</dd>
+          </div>
+          <div class="detail-field">
+            <dt>Uploaded by</dt>
+            <dd>{% if reporttemplate.uploaded_by %}{{ reporttemplate.uploaded_by }}{% else %}<span class="detail-empty">Unknown</span>{% endif %}</dd>
+          </div>
+          <div class="detail-field">
+            <dt>Uploaded</dt>
+            <dd class="operator-data">{{ reporttemplate.upload_date|naturalday:"DATE_FORMAT" }}</dd>
+          </div>
+          <div class="detail-field">
+            <dt>Last updated</dt>
+            <dd class="operator-data">{{ reporttemplate.last_update|naturalday:"DATE_FORMAT" }}</dd>
+          </div>
+          {% if reporttemplate.doc_type.extension == "docx" %}
+            <div class="detail-field">
+              <dt>New paragraph style</dt>
+              <dd>{% if reporttemplate.p_style %}{{ reporttemplate.p_style }}{% else %}Normal{% endif %}</dd>
+            </div>
+          {% endif %}
+          <div class="detail-field">
+            <dt>Evidence image width</dt>
+            <dd>{% if reporttemplate.evidence_image_width is not None %}{{ reporttemplate.evidence_image_width }} inches{% else %}Global default{% endif %}</dd>
+          </div>
+          <div class="detail-field">
+            <dt>Evidence alignment</dt>
+            <dd>{{ reporttemplate.get_evidence_image_alignment_display }}</dd>
+          </div>
+          <div class="detail-field">
+            <dt>BloodHound data</dt>
+            <dd>{% if reporttemplate.contains_bloodhound_data %}Referenced{% else %}Not referenced{% endif %}</dd>
+          </div>
+        </dl>
+      </section>
 
-    <h3 class="icon info-icon">Description</h3>
-    <hr>
-
-    <div class="offset-2 col-8 centered-container">
+      <section class="detail-panel detail-panel-quiet" aria-labelledby="template-description-heading">
+        <div class="detail-panel-header">
+          <div>
+            <span class="detail-eyebrow">Purpose</span>
+            <h4 id="template-description-heading">Description</h4>
+          </div>
+        </div>
         {% if reporttemplate.description %}
-            {{ reporttemplate.description|bleach }}
+          <div class="detail-prose rich-text-field-preview">{{ reporttemplate.description|bleach }}</div>
         {% else %}
-            <p class="text-center">No description provided.</p>
+          <div class="empty-state">
+            <p class="empty-state-title">No description provided</p>
+            <p class="empty-state-description">Add guidance that helps operators choose the right template.</p>
+          </div>
         {% endif %}
-    </div>
+      </section>
 
-    <!-- Template Linting Section -->
-    <div id="template-lint-results" js-update-results-url="{% url 'reporting:ajax_update_template_lint_results' reporttemplate.id %}">
+      <section id="template-lint-results" class="detail-panel template-detail-wide"
+               js-update-results-url="{% url 'reporting:ajax_update_template_lint_results' reporttemplate.id %}">
         {% include "snippets/template_lint_results.html" %}
-    </div>
+      </section>
 
-    <!-- Change Log Section -->
-    <h3 class="icon user-edit-icon">Template CHANGELOG</h3>
-    <hr>
-    <div id="changelog" class="container">
+      <section class="detail-panel template-detail-wide" aria-labelledby="template-changelog-heading">
+        <div class="detail-panel-header">
+          <div>
+            <span class="detail-eyebrow">Release history</span>
+            <h4 id="template-changelog-heading">Template Changelog</h4>
+          </div>
+          <i class="fas fa-history finding-section-icon" aria-hidden="true"></i>
+        </div>
         {% if reporttemplate.changelog %}
-            {{ reporttemplate.changelog|bleach }}
+          <div class="detail-prose rich-text-field-preview">{{ reporttemplate.changelog|bleach }}</div>
         {% else %}
-            <p class="text-center">No CHANGELOG data</p>
+          <div class="empty-state">
+            <p class="empty-state-title">No changelog entries</p>
+            <p class="empty-state-description">Record meaningful template changes so report authors know what changed.</p>
+          </div>
         {% endif %}
+      </section>
     </div>
+  </div>
 {% endblock %}
 
 {% block morescripts %}
-    <!-- Lint Template with AJAX -->
-    <script>
-        $('.js-lint-template').click(function () {
-            var url = $(this).attr('lint-template-url');
-            var templateId = $(this).attr('lint-template-id');
-            var csrftoken = $(this).attr('lint-template-csrftoken')
-            displayToastTop({type:'success', string:'Template linting request submitted', title:'Template Update'});
-            // Prep AJAX request with CSRF token
-            $.ajaxSetup({
-                beforeSend: function(xhr, settings) {
-                    if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-                        xhr.setRequestHeader('X-CSRFToken', csrftoken);
-                    }
-                }
-            });
-            // Send AJAX POST request
-            $.ajax({
-                url: url,
-                type: 'POST',
-                dataType: 'json',
-                data: {
-                    'template': templateId
-                },
-                success: function (data) {
-                    if (data['result']) {
-                        var lintResults = $('#template-lint-results');
-                        console.log(lintResults);
-                        var update_url = lintResults.attr('js-update-results-url');
-                        console.log(update_url);
-                        if (update_url != null) {
-                            console.log("Updating linter results...");
-                            // Refresh the HTML from the update URL
-                            lintResults.html('').load(update_url, function() {
-                                // Do something
-                            });
-                        }
-                    }
-                    if (data['message']) {
-                        displayToastTop({type:data['result'], string:data['message'], title:'Template Update'});
-                    }
-                }
-            });
-        });
-    </script>
+  <script>
+    $('.js-lint-template').click(function () {
+      const url = $(this).attr('lint-template-url');
+      const csrftoken = $(this).attr('lint-template-csrftoken');
+      displayToastTop({type: 'success', string: 'Template linting request submitted', title: 'Template Update'});
+      $.ajaxSetup({
+        beforeSend: function(xhr, settings) {
+          if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+            xhr.setRequestHeader('X-CSRFToken', csrftoken);
+          }
+        }
+      });
+      $.ajax({
+        url: url,
+        type: 'POST',
+        dataType: 'json',
+        success: function (data) {
+          if (data.result) {
+            const lintResults = $('#template-lint-results');
+            const updateUrl = lintResults.attr('js-update-results-url');
+            if (updateUrl) {
+              lintResults.load(updateUrl);
+            }
+          }
+          if (data.message) {
+            displayToastTop({type: data.result, string: data.message, title: 'Template Update'});
+          }
+        }
+      });
+    });
+  </script>
 {% endblock %}

@@ -6,7 +6,7 @@
 {% for field_spec in object_extra_fields_spec %}
   {% if field_spec.type != "rich_text" and field_spec.type != "json" %}
     <div class="row justify-content-md-center mb-1">
-      <h6 class="col-3 text-left">
+      <h6 class="col-3 text-start">
         {{ field_spec.display_name }}
       </h6>
       <div class="mt-2 col-3 text-md-center align-middle offset-2">
@@ -20,11 +20,11 @@
 {% for field_spec in object_extra_fields_spec %}
   {% if field_spec.type == "rich_text" %}
     <div class="row justify-content-md-center mb-1">
-      <h6 class="col-3 text-left">
+      <h6 class="col-3 text-start">
         {{ field_spec.display_name }}
       </h6>
-      <button type="button" class="btn btn-primary col-3 offset-2 icon view-icon" data-toggle="modal"
-              data-target="#field_spec_{{ field_spec.internal_name }}">Preview
+      <button type="button" class="btn btn-primary col-3 offset-2 icon view-icon" data-bs-toggle="modal"
+              data-bs-target="#field_spec_{{ field_spec.internal_name }}">Preview
       </button>
     </div>
   {% endif %}
@@ -35,11 +35,11 @@
 {% for field_spec in object_extra_fields_spec %}
   {% if field_spec.type == "json" %}
     <div class="row justify-content-md-center mb-1">
-      <h6 class="col-3 text-left">
+      <h6 class="col-3 text-start">
         {{ field_spec.display_name }}
       </h6>
-      <button type="button" class="btn btn-primary col-3 offset-2 icon view-icon" data-toggle="modal"
-              data-target="#field_spec_{{ field_spec.internal_name }}">Preview
+      <button type="button" class="btn btn-primary col-3 offset-2 icon view-icon" data-bs-toggle="modal"
+              data-bs-target="#field_spec_{{ field_spec.internal_name }}">Preview
       </button>
     </div>
   {% endif %}

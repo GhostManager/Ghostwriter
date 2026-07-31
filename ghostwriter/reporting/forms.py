@@ -67,13 +67,28 @@ class AssignReportFindingForm(forms.ModelForm):
         self.helper.form_show_labels = True
         self.helper.form_method = "post"
         self.helper.layout = Layout(
-            Field("assigned_to"),
-            ButtonHolder(
-                Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
+            Div(
                 HTML("""
-                    <a href="{{cancel_link}}" class="btn btn-outline-secondary col-md-4">Cancel</a>
-                """)
-            )
+                    <div class="resource-form-section-heading">
+                      <span class="resource-form-section-icon"><i class="fas fa-user-check" aria-hidden="true"></i></span>
+                      <div>
+                        <h4>Finding ownership</h4>
+                        <p>Choose the operator responsible for progressing and reviewing this finding.</p>
+                      </div>
+                    </div>
+                """),
+                Field("assigned_to"),
+                css_class="resource-form-card",
+            ),
+            Div(
+                HTML("""<span class="resource-form-actions-context">Updating finding ownership</span>"""),
+                Div(
+                    HTML("""<a href="{{ cancel_link }}" class="btn btn-outline-secondary">Cancel</a>"""),
+                    Submit("submit_btn", "Save Assignment", css_class="btn btn-primary"),
+                    css_class="resource-form-actions-buttons",
+                ),
+                css_class="resource-form-actions resource-form-actions-compact",
+            ),
         )
 
 class AssignReportObservationForm(forms.ModelForm):
@@ -88,13 +103,28 @@ class AssignReportObservationForm(forms.ModelForm):
         self.helper.form_show_labels = True
         self.helper.form_method = "post"
         self.helper.layout = Layout(
-            Field("assigned_to"),
-            ButtonHolder(
-                Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
+            Div(
                 HTML("""
-                    <a href="{{cancel_link}}" class="btn btn-outline-secondary col-md-4">Cancel</a>
-                """)
-            )
+                    <div class="resource-form-section-heading">
+                      <span class="resource-form-section-icon"><i class="fas fa-user-check" aria-hidden="true"></i></span>
+                      <div>
+                        <h4>Observation ownership</h4>
+                        <p>Choose the operator responsible for progressing and reviewing this observation.</p>
+                      </div>
+                    </div>
+                """),
+                Field("assigned_to"),
+                css_class="resource-form-card",
+            ),
+            Div(
+                HTML("""<span class="resource-form-actions-context">Updating observation ownership</span>"""),
+                Div(
+                    HTML("""<a href="{{ cancel_link }}" class="btn btn-outline-secondary">Cancel</a>"""),
+                    Submit("submit_btn", "Save Assignment", css_class="btn btn-primary"),
+                    css_class="resource-form-actions-buttons",
+                ),
+                css_class="resource-form-actions resource-form-actions-compact",
+            ),
         )
 
 
@@ -180,35 +210,68 @@ class ReportForm(forms.ModelForm):
         self.helper = FormHelper()
         self.helper.form_show_labels = True
         self.helper.form_method = "post"
+        self.helper.form_class = "resource-edit-form"
         self.helper.layout = Layout(
-            Row(
-                Column("title", css_class="form-group col-md-6 mb-0"),
-                Column("tags", css_class="form-group col-md-6 mb-0"),
-                css_class="form-row",
+            Div(
+                Div(
+                    HTML(
+                        """
+                        <div class="resource-form-section-heading">
+                          <span class="resource-form-section-icon"><i class="fas fa-fingerprint" aria-hidden="true"></i></span>
+                          <div>
+                            <h4>Report identity</h4>
+                            <p>Name the deliverable as operators and reviewers should see it throughout Ghostwriter.</p>
+                          </div>
+                        </div>
+                        """
+                    ),
+                    Row(
+                        Column("title", css_class="form-group col-md-7"),
+                        Column("tags", css_class="form-group col-md-5"),
+                        css_class="form-row",
+                    ),
+                    "project",
+                    css_class="resource-form-card",
+                ),
+                Div(
+                    HTML(
+                        """
+                        <div class="resource-form-section-heading">
+                          <span class="resource-form-section-icon"><i class="fas fa-file-export" aria-hidden="true"></i></span>
+                          <div>
+                            <h4>Output templates</h4>
+                            <p>Choose document-specific templates or leave a selection blank to use the configured default.</p>
+                          </div>
+                        </div>
+                        """
+                    ),
+                    Row(
+                        Column("docx_template", css_class="form-group col-md-6"),
+                        Column("pptx_template", css_class="form-group col-md-6"),
+                        css_class="form-row",
+                    ),
+                    css_class="resource-form-card",
+                ),
+                css_class="resource-form-grid report-form-grid",
             ),
-            "project",
-            HTML(
-                """
-                <h4 class="icon file-icon">Assign Templates</h4>
-                <hr />
-                <p>Select a template to use for the Word and PowerPoint versions of the report.
-                If you do not select a template, the global default template will be used.
-                If a default is not configured, you will need to select one here or on the report page.</p>
-                """
-            ),
-            Row(
-                Column("docx_template", css_class="form-group col-md-6 mb-0"),
-                Column("pptx_template", css_class="form-group col-md-6 mb-0"),
-                css_class="form-row",
-            ),
-            ButtonHolder(
-                Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
+            Div(
                 HTML(
                     """
-                    <button onclick="window.location.href='{{ cancel_link }}'"
-                    class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    <span class="resource-form-actions-context">
+                        {% if object.pk %}Editing {{ object.title }}{% else %}Creating a new report{% endif %}
+                    </span>
                     """
                 ),
+                Div(
+                    HTML("""<a href="{{ cancel_link }}" class="btn btn-outline-secondary">Cancel</a>"""),
+                    Submit(
+                        "submit",
+                        "Save Changes" if self.instance.pk else "Create Report",
+                        css_class="btn btn-primary",
+                    ),
+                    css_class="resource-form-actions-buttons",
+                ),
+                css_class="resource-form-actions",
             ),
         )
 
@@ -233,10 +296,9 @@ class EvidenceForm(forms.ModelForm):
         }
         field_classes = {
             "description": JinjaRichTextField,
-        }
+    }
 
     def __init__(self, *args, **kwargs):
-        self.is_modal = kwargs.pop("is_modal", None)
         self.evidence_queryset = kwargs.pop("evidence_queryset", None)
         super().__init__(*args, **kwargs)
         self.fields["caption"].required = True
@@ -248,67 +310,84 @@ class EvidenceForm(forms.ModelForm):
         self.fields["friendly_name"].widget.attrs["placeholder"] = "Friendly Name"
         self.fields["description"].widget.attrs["placeholder"] = "Brief Description or Note"
         self.fields["document"].label = ""
-        # Don't set form buttons for a modal pop-up
-        if self.is_modal:
-            submit = None
-            cancel_button = None
-        else:
-            submit = Submit("submit-button", "Submit", css_class="btn btn-primary col-md-4")
-            cancel_button = HTML(
-                """
-                <button onclick="window.location.href='{{ cancel_link }}'"
-                class="btn btn-outline-secondary col-md-4" type="button">Cancel
-                </button>
-                """
-            )
+        submit_label = "Save Changes" if self.instance.pk else "Upload Evidence"
+        submit = Submit("submit-button", submit_label, css_class="btn btn-primary")
+        cancel_button = HTML(
+            """
+            <a href="{{ cancel_link }}" class="btn btn-outline-secondary">Cancel</a>
+            """
+        )
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
         self.helper.form_show_errors = False
         self.helper.form_method = "post"
         self.helper.attrs = {"enctype": "multipart/form-data"}
         self.helper.form_id = "evidence-upload-form"
+        self.helper.form_class = "resource-edit-form"
         self.helper.layout = Layout(
-            HTML(
-                """
-                <h4 class="icon edit-icon">Evidence Information</h4>
-                <hr>
-                <p>The friendly name is used to reference this evidence in the report and the caption appears below
-                the figures in the generated reports.</p>
-                """
-            ),
-            Row(
-                Column("friendly_name", css_class="form-group col-md-6 mb-0"),
-                Column("tags", css_class="form-group col-md-6 mb-0"),
-                css_class="form-row",
-            ),
-            "caption",
-            "description",
-            HTML(
-                """
-                <h4 class="icon upload-icon">Upload a File</h4>
-                <hr>
-                <p>Attach text evidence (*.txt, *.log, or *.md) or image evidence (*.png, *.jpg, or *.jpeg).
-                Previews for images will appear below.</p>
-                <p><span class="bold">Tip:</span> You copy and paste an image (file or screenshot) into this page!
-                Make sure to <span class="italic">click outside of any form fields first</span>.</p>
-                <div id="findingPreview" class="pb-3"></div>
-                """
-            ),
             Div(
-                Field(
-                    "document",
-                    id="id_document",
-                    css_class="custom-file-input",
+                Div(
+                    HTML(
+                        """
+                        <div class="resource-form-section-heading">
+                          <span class="resource-form-section-icon"><i class="fas fa-fingerprint" aria-hidden="true"></i></span>
+                          <div>
+                            <h4>Evidence Identity</h4>
+                            <p>Name the file for operators and define how it will be labelled in report output.</p>
+                          </div>
+                        </div>
+                        """
+                    ),
+                    Row(
+                        Column("friendly_name", css_class="form-group col-md-6"),
+                        Column("tags", css_class="form-group col-md-6"),
+                        css_class="form-row",
+                    ),
+                    "caption",
+                    "description",
+                    css_class="resource-form-card",
                 ),
-                HTML(
-                    """
-                    <label id="filename" class="custom-file-label" for="id_document">
-                    Click here or drag and drop...</label>
-                    """
+                Div(
+                    HTML(
+                        """
+                        <div class="resource-form-section-heading">
+                          <span class="resource-form-section-icon"><i class="fas fa-paperclip" aria-hidden="true"></i></span>
+                          <div>
+                            <h4>Evidence File</h4>
+                            <p>Attach text evidence (*.txt, *.log, or *.md) or image evidence (*.png, *.jpg, or *.jpeg).</p>
+                          </div>
+                        </div>
+                        <div class="detail-guidance mb-3">
+                          Paste an image while focus is outside a form field, or choose a replacement file below.
+                        </div>
+                        <div id="findingPreview" class="evidence-form-preview"></div>
+                        """
+                    ),
+                    Div(
+                        Field(
+                            "document",
+                            id="id_document",
+                            css_class="custom-file-input",
+                        ),
+                        HTML(
+                            """
+                            <label id="filename" class="custom-file-label" for="id_document">
+                              <i class="fas fa-cloud-upload-alt" aria-hidden="true"></i>
+                              <span>Choose a file or drag it here</span>
+                            </label>
+                            """
+                        ),
+                        css_class="custom-file resource-file-dropzone",
+                    ),
+                    css_class="resource-form-card resource-upload-card",
                 ),
-                css_class="custom-file",
+                css_class="resource-form-grid evidence-form-grid",
             ),
-            ButtonHolder(submit, cancel_button, css_class="mt-3"),
+            ButtonHolder(
+                cancel_button,
+                submit,
+                css_class="resource-form-actions resource-form-actions-compact",
+            ),
         )
 
     def clean_document(self):
@@ -486,94 +565,120 @@ class ReportTemplateForm(forms.ModelForm):
         self.helper = FormHelper()
         self.helper.form_method = "post"
         self.helper.attrs = {"enctype": "multipart/form-data"}
+        self.helper.form_class = "resource-edit-form"
         self.helper.layout = Layout(
-            HTML(
-                """
-                <h4 class="icon file-icon">Template Information</h4>
-                <hr>
-                <p>The name appears in the template dropdown menus in reports.</p>
-                """
-            ),
-            Row(
-                Column("name", css_class="form-group col-md-6 mb-0"),
-                Column("client", css_class="form-group col-md-6 mb-0"),
-                css_class="form-row",
-            ),
-            Row(
-                Column("doc_type", css_class="form-group col-md-6 mb-0"),
-                Column("p_style", css_class="form-group col-md-6 mb-0"),
-                css_class="form-row",
-            ),
-            Row(
-                Column("evidence_image_alignment", css_class="form-group col-md-6 mb-0"),
-                Column("evidence_image_width", css_class="form-group col-md-6 mb-0"),
-                css_class="form-row",
-            ),
-            Row(
-                Column(
-                    "filename_override",
-                    css_class="form-group col-md-6 mb-0",
-                ),
-                Column(
-                    "bloodhound_heading_offset",
-                    css_class="form-group col-md-6 mb-0",
-                ),
-                css_class="form-row pb-2",
-            ),
-            Row(
-                Column(
-                    "tags", css_class="form-group col-md-12 mb-0"
-                ),
-                css_class="form-row pb-2",
-            ),
-            Row(
-                Column(
-                    SwitchToggle(
-                        "protected",
-                    ),
-                    css_class="form-group col-md-4 mb-0",
-                ),
-                Column(
-                    SwitchToggle(
-                        "landscape",
-                    ),
-                    css_class="form-group col-md-4 mb-0",
-                ),
-                Column(
-                    SwitchToggle(
-                        "contains_bloodhound_data",
-                    ),
-                    css_class="form-group col-md-4 mb-0",
-                ),
-                css_class="form-row pb-2",
-            ),
-            "description",
-            HTML(
-                """
-                <h4 class="icon upload-icon">Upload a File</h4>
-                <hr>
-                <p>Attach a document that matches your selected filetype to use as a report template</p>
-                """
-            ),
             Div(
-                "document",
-                HTML(
-                    """
-                    <label id="filename" class="custom-file-label" for="customFile">Choose template file...</label>
-                    """
+                Div(
+                    HTML(
+                        """
+                        <div class="resource-form-section-heading">
+                          <span class="resource-form-section-icon"><i class="fas fa-fingerprint" aria-hidden="true"></i></span>
+                          <div>
+                            <h4>Template Identity</h4>
+                            <p>Set where this template appears and help operators recognize when to use it.</p>
+                          </div>
+                        </div>
+                        """
+                    ),
+                    Row(
+                        Column("name", css_class="form-group col-md-6"),
+                        Column("client", css_class="form-group col-md-6"),
+                        css_class="form-row",
+                    ),
+                    Row(
+                        Column("doc_type", css_class="form-group col-md-6"),
+                        Column("tags", css_class="form-group col-md-6"),
+                        css_class="form-row",
+                    ),
+                    Div(
+                        Div(SwitchToggle("protected"), css_class="resource-toggle-item"),
+                        Div(SwitchToggle("landscape"), css_class="resource-toggle-item"),
+                        Div(SwitchToggle("contains_bloodhound_data"), css_class="resource-toggle-item"),
+                        css_class="resource-toggle-grid",
+                    ),
+                    css_class="resource-form-card",
                 ),
-                css_class="custom-file",
+                Div(
+                    HTML(
+                        """
+                        <div class="resource-form-section-heading">
+                          <span class="resource-form-section-icon"><i class="fas fa-sliders-h" aria-hidden="true"></i></span>
+                          <div>
+                            <h4>Document Behavior</h4>
+                            <p>Control generated paragraph, evidence, filename, and BloodHound formatting.</p>
+                          </div>
+                        </div>
+                        """
+                    ),
+                    Row(
+                        Column("p_style", css_class="form-group col-md-6"),
+                        Column("filename_override", css_class="form-group col-md-6"),
+                        css_class="form-row",
+                    ),
+                    Row(
+                        Column("evidence_image_alignment", css_class="form-group col-md-6"),
+                        Column("evidence_image_width", css_class="form-group col-md-6"),
+                        css_class="form-row",
+                    ),
+                    "bloodhound_heading_offset",
+                    css_class="resource-form-card",
+                ),
+                Div(
+                    HTML(
+                        """
+                        <div class="resource-form-section-heading">
+                          <span class="resource-form-section-icon"><i class="fas fa-file-upload" aria-hidden="true"></i></span>
+                          <div>
+                            <h4>Template File</h4>
+                            <p>Upload a document that matches the selected document type.</p>
+                          </div>
+                        </div>
+                        """
+                    ),
+                    Div(
+                        "document",
+                        HTML(
+                            """
+                            <label id="filename" class="custom-file-label" for="id_document">
+                              <i class="fas fa-cloud-upload-alt" aria-hidden="true"></i>
+                              <span>Choose a template file or drag it here</span>
+                            </label>
+                            """
+                        ),
+                        css_class="custom-file resource-file-dropzone",
+                    ),
+                    css_class="resource-form-card resource-upload-card",
+                ),
+                Div(
+                    HTML(
+                        """
+                        <div class="resource-form-section-heading">
+                          <span class="resource-form-section-icon"><i class="fas fa-align-left" aria-hidden="true"></i></span>
+                          <div>
+                            <h4>Operator Guidance</h4>
+                            <p>Explain the template’s purpose and record changes that matter to report authors.</p>
+                          </div>
+                        </div>
+                        """
+                    ),
+                    "description",
+                    "changelog",
+                    css_class="resource-form-card resource-form-card-wide",
+                ),
+                css_class="resource-form-grid template-form-grid",
             ),
-            "changelog",
             ButtonHolder(
-                Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
                     """
-                    <button onclick="window.location.href='{{ cancel_link }}'"
-                    class="btn btn-outline-secondary col-md-4" type="button">Cancel
-                    </button>
+                    <a href="{{ cancel_link }}" class="btn btn-outline-secondary">Cancel</a>
                     """
                 ),
+                Submit(
+                    "submit",
+                    "Save Changes" if self.instance.pk else "Create Template",
+                    css_class="btn btn-primary",
+                ),
+                css_class="resource-form-actions resource-form-actions-compact",
             ),
         )
 
@@ -619,147 +724,174 @@ class SelectReportTemplateForm(forms.ModelForm):
         self.helper.form_tag = True
         self.helper.form_action = reverse("reporting:ajax_swap_report_template", kwargs={"pk": self.instance.id})
         self.helper.layout = Layout(
-            Row(
-                Column(
-                    HTML(
-                        """
-                        <p>For Word (docx) and PowerPoint (pptx), select a template to determine the type and style of your document:</p>
-                        <p>Click the icon of the type of document you want to generate.</p>
-                        """
-                    ),
-                    css_class="col-md-12",
-                ),
-                css_class="justify-content-md-center",
+            HTML(
+                """
+                <div class="generation-guidance mb-4">
+                    <span class="generation-guidance-icon" aria-hidden="true">
+                        <i class="fas fa-file-export"></i>
+                    </span>
+                    <div>
+                        <h5>Build a report package</h5>
+                        <p>Choose a template for Word or PowerPoint, then generate the format you need. Template selections are saved automatically for this report.</p>
+                    </div>
+                </div>
+                """
             ),
-            Row(
-                Column(
-                    SwitchToggle("include_bloodhound_data"),
-                    css_class="col-md-12 mb-3",
+            Div(
+                HTML(
+                    """
+                    <span class="generation-option-icon" aria-hidden="true">
+                        <i class="fas fa-project-diagram"></i>
+                    </span>
+                    """
                 ),
-                css_class="justify-content-md-center",
+                SwitchToggle("include_bloodhound_data"),
+                css_class="generation-option-card mb-4",
             ) if has_bloodhound else None,
-            Row(
-                Column(
+            Div(
+                Div(
                     HTML(
                         """
-                        <p class="text-left mt-1">Template for DOCX</p>
+                        <header class="generation-template-header">
+                            <span class="generation-format-icon generation-format-icon-word" aria-hidden="true">
+                                <i class="fas fa-file-word"></i>
+                            </span>
+                            <div>
+                                <div class="generation-template-title-row">
+                                    <h5>Word document</h5>
+                                    <span class="generation-format-badge">DOCX</span>
+                                </div>
+                                <p>Generate the complete narrative report.</p>
+                            </div>
+                        </header>
+                        <label class="visually-hidden" for="id_docx_template">Word report template</label>
                         """
                     ),
-                    css_class="col-md-2",
-                ),
-                Column(
                     FieldWithButtons(
                         "docx_template",
                         HTML(
                             """
-                            <button
-                                class="btn btn-default word-btn js-generate-report"
-                                type="submit"
-                                formaction="{% url 'reporting:generate_docx' report.id %}"
-                                formmethod="get"
-                                data-toggle="tooltip"
-                                data-placement="top"
-                                title="Generate a DOCX report"
-                            >
-                            </button>
-                            """
-                        ),
-                        HTML(
-                            """
                             <a
-                                class="btn btn-default jump-btn js-jump-to-word-template"
-                                type="button"
+                                class="btn btn-outline-secondary generation-template-detail js-jump-to-word-template"
                                 href="#"
-                                data-toggle="tooltip"
-                                data-placement="top"
-                                title="Jump to Word template details"
+                                data-bs-toggle="tooltip"
+                                data-bs-placement="top"
+                                title="Open Word template details"
                                 target="_blank"
                             >
+                                <i class="fas fa-external-link-alt" aria-hidden="true"></i>
+                                <span class="visually-hidden">Open Word template details</span>
                             </a>
                             """
                         ),
                     ),
-                    css_class="col-md-4",
-                ),
-                css_class="justify-content-md-center",
-            ),
-            Row(
-                Column(
                     HTML(
                         """
-                        <p class="text-left mt-1">Template for PPTX</p>
+                        <button
+                            class="btn generation-create-button generation-create-word js-generate-report mt-3"
+                            type="submit"
+                            formaction="{% url 'reporting:generate_docx' report.id %}"
+                            formmethod="get"
+                        >
+                            <i class="fas fa-file-word" aria-hidden="true"></i>
+                            Generate Word report
+                        </button>
                         """
                     ),
-                    css_class="col-md-2",
+                    css_class="generation-template-card",
                 ),
-                Column(
+                Div(
+                    HTML(
+                        """
+                        <header class="generation-template-header">
+                            <span class="generation-format-icon generation-format-icon-powerpoint" aria-hidden="true">
+                                <i class="fas fa-file-powerpoint"></i>
+                            </span>
+                            <div>
+                                <div class="generation-template-title-row">
+                                    <h5>PowerPoint presentation</h5>
+                                    <span class="generation-format-badge">PPTX</span>
+                                </div>
+                                <p>Generate a presentation-ready slide deck.</p>
+                            </div>
+                        </header>
+                        <label class="visually-hidden" for="id_pptx_template">PowerPoint report template</label>
+                        """
+                    ),
                     FieldWithButtons(
                         "pptx_template",
                         HTML(
                             """
-                            <button
-                                class="btn btn-default pptx-btn"
-                                type="submit"
-                                formaction="{% url 'reporting:generate_pptx' report.id %}"
-                                formmethod="get"
-                                data-toggle="tooltip"
-                                data-placement="top"
-                                title="Generate a PPTX report"
-                            >
-                            </button>
-                            """
-                        ),
-                        HTML(
-                            """
                             <a
-                                class="btn btn-default jump-btn js-jump-to-pptx-template"
-                                type="button"
+                                class="btn btn-outline-secondary generation-template-detail js-jump-to-pptx-template"
                                 href="#"
-                                data-toggle="tooltip"
-                                data-placement="top"
-                                title="Jump to PowerPoint template details"
+                                data-bs-toggle="tooltip"
+                                data-bs-placement="top"
+                                title="Open PowerPoint template details"
                                 target="_blank"
                             >
+                                <i class="fas fa-external-link-alt" aria-hidden="true"></i>
+                                <span class="visually-hidden">Open PowerPoint template details</span>
                             </a>
                             """
                         ),
                     ),
-                    css_class="col-md-4",
+                    HTML(
+                        """
+                        <button
+                            class="btn generation-create-button generation-create-powerpoint mt-3"
+                            type="submit"
+                            formaction="{% url 'reporting:generate_pptx' report.id %}"
+                            formmethod="get"
+                        >
+                            <i class="fas fa-file-powerpoint" aria-hidden="true"></i>
+                            Generate PowerPoint
+                        </button>
+                        """
+                    ),
+                    css_class="generation-template-card",
                 ),
-                css_class="justify-content-md-center",
+                css_class="generation-template-grid",
             ),
             HTML(
                 """
-                <p class="mb-2">Other report types do not use templates:</p>
-                <div class="btn-group">
-                    <button
-                        class="btn btn-default excel-btn-icon"
-                        type="submit"
-                        formaction="{% url 'reporting:generate_xlsx' report.id %}"
-                        formmethod="get"
-                        data-toggle="tooltip"
-                        data-placement="top"
-                        title="Generate an XLSX report"
-                    ></button>
-                    <button
-                        class="btn btn-default json-btn-icon"
-                        type="submit"
-                        formaction="{% url 'reporting:generate_json' report.id %}"
-                        formmethod="get"
-                        data-toggle="tooltip"
-                        data-placement="top"
-                        title="Generate exportable JSON"
-                    ></button>
-                    <button
-                        class="btn btn-default archive-btn-icon js-generate-report"
-                        type="submit"
-                        formaction="{% url 'reporting:generate_all' report.id %}"
-                        formmethod="get"
-                        data-toggle="tooltip"
-                        data-placement="top"
-                        title="Generate and package all report types and evidence in a Zip"
-                    ></button>
-                </div>
+                <section class="generation-export-section mt-4">
+                    <header class="generation-export-header">
+                        <div>
+                            <h5>Data and package exports</h5>
+                            <p>These formats use the report data directly and do not require a template.</p>
+                        </div>
+                    </header>
+                    <div class="generation-export-grid">
+                        <button
+                            class="btn btn-outline-secondary generation-export-button"
+                            type="submit"
+                            formaction="{% url 'reporting:generate_xlsx' report.id %}"
+                            formmethod="get"
+                        >
+                            <i class="fas fa-file-excel generation-export-icon generation-export-icon-excel" aria-hidden="true"></i>
+                            <span><strong>Spreadsheet</strong><small>XLSX workbook</small></span>
+                        </button>
+                        <button
+                            class="btn btn-outline-secondary generation-export-button"
+                            type="submit"
+                            formaction="{% url 'reporting:generate_json' report.id %}"
+                            formmethod="get"
+                        >
+                            <i class="fas fa-file-code generation-export-icon generation-export-icon-json" aria-hidden="true"></i>
+                            <span><strong>Structured data</strong><small>Exportable JSON</small></span>
+                        </button>
+                        <button
+                            class="btn btn-primary generation-export-button js-generate-report"
+                            type="submit"
+                            formaction="{% url 'reporting:generate_all' report.id %}"
+                            formmethod="get"
+                        >
+                            <i class="fas fa-file-archive generation-export-icon" aria-hidden="true"></i>
+                            <span><strong>Complete package</strong><small>All formats and evidence</small></span>
+                        </button>
+                    </div>
+                </section>
                 """
             ),
         )
