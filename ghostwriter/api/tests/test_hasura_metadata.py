@@ -943,6 +943,33 @@ class HasuraMetadataUserRoleTests(SimpleTestCase):
                     f"{role} {permission_type}",
                 )
 
+    def test_user_cannot_protect_or_delete_report_templates_via_graphql(self):
+        table = load_yaml(HASURA_TABLE_DIR / "public_reporting_reporttemplate.yaml")
+        actions_metadata = load_yaml(HASURA_METADATA_DIR / "actions.yaml")
+        delete_action = next(
+            action
+            for action in actions_metadata["actions"]
+            if action["name"] == "deleteTemplate"
+        )
+
+        self.assertIsNone(get_role_permission(table, "user", "delete_permissions"))
+        # Hasura's built-in admin role has implicit access to every action.
+        self.assertSetEqual(
+            {
+                permission["role"]
+                for permission in delete_action.get("permissions", [])
+            },
+            {"manager"},
+        )
+        for permission_type in ("insert_permissions", "update_permissions"):
+            permission = get_role_permission(table, "user", permission_type)
+            if permission:
+                self.assertNotIn(
+                    "protected",
+                    permission["permission"].get("columns", []),
+                    permission_type,
+                )
+
     def test_report_project_is_not_graphql_updateable(self):
         table = load_yaml(HASURA_TABLE_DIR / "public_reporting_report.yaml")
 

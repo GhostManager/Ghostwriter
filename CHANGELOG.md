@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * Reorder requests containing a finding from another report are rejected without modifying any findings
 * Prevented report titles from being interpreted as HTML when activating a report
 * Restricted GraphQL local finding-note updates and deletions to the note owner for non-privileged users
+* Restricted report template protection, protected-template editing, and template deletion to managers and administrators across Django and Hasura
 * Hardened user-controlled values rendered in JavaScript contexts to prevent stored cross-site scripting
   * Autocomplete data is now serialized as inert JSON instead of being interpolated into JavaScript source
   * Tag autocomplete suggestions are scoped to objects the current user can access

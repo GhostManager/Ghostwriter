@@ -565,6 +565,8 @@ class ApiReportTemplateForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.user_obj = kwargs.pop("user_obj")
         super().__init__(*args, **kwargs)
+        if not self.user_obj.is_privileged:
+            self.fields.pop("protected", None)
         self.fields["client"].queryset = get_client_list(self.user_obj)
         self.fields["evidence_image_width"].required = False
         self.fields["evidence_image_alignment"].required = False

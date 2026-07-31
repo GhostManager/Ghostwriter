@@ -1211,6 +1211,14 @@ class GraphqlDeleteReportTemplateAction(JwtRequiredMixin, HasuraActionView):
     ]
 
     def post(self, request, *args, **kwargs):
+        if not utils.verify_user_is_privileged(self.user_obj):
+            return JsonResponse(
+                utils.generate_hasura_error_payload(
+                    "Unauthorized access", "Unauthorized"
+                ),
+                status=401,
+            )
+
         template_id = self.input["templateId"]
         try:
             template = ReportTemplate.objects.get(id=template_id)
@@ -1221,24 +1229,6 @@ class GraphqlDeleteReportTemplateAction(JwtRequiredMixin, HasuraActionView):
                 ),
                 status=400,
             )
-
-        if template.protected:
-            if not utils.verify_user_is_privileged(self.user_obj):
-                return JsonResponse(
-                    utils.generate_hasura_error_payload(
-                        "Unauthorized access", "Unauthorized"
-                    ),
-                    status=401,
-                )
-
-        if template.client:
-            if not template.client.user_can_edit(self.user_obj):
-                return JsonResponse(
-                    utils.generate_hasura_error_payload(
-                        "Unauthorized access", "Unauthorized"
-                    ),
-                    status=401,
-                )
 
         template.delete()
         data = {

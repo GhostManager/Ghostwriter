@@ -2049,6 +2049,7 @@ class GraphqlDeleteReportTemplateAction(TestCase):
 
         cls.user = UserFactory(password=PASSWORD)
         cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        cls.admin_user = UserFactory(password=PASSWORD, role="admin")
         cls.uri = reverse("api:graphql_delete_template")
 
         cls.template = ReportTemplateFactory()
@@ -2066,8 +2067,8 @@ class GraphqlDeleteReportTemplateAction(TestCase):
             }
         }
 
-    def test_deleting_template(self):
-        _, token = generate_user_jwt(self.user)
+    def test_manager_can_delete_template(self):
+        _, token = generate_user_jwt(self.mgr_user)
         response = self.client.post(
             self.uri,
             data=self.generate_data(self.template.id),
@@ -2082,8 +2083,40 @@ class GraphqlDeleteReportTemplateAction(TestCase):
             self.ReportTemplate.objects.filter(id=self.template.id).exists()
         )
 
-    def test_deleting_template_with_invalid_id(self):
+    def test_admin_can_delete_client_template(self):
+        _, token = generate_user_jwt(self.admin_user)
+        response = self.client.post(
+            self.uri,
+            data=self.generate_data(self.client_template.id),
+            content_type="application/json",
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(
+            self.ReportTemplate.objects.filter(id=self.client_template.id).exists()
+        )
+
+    def test_user_cannot_delete_template(self):
         _, token = generate_user_jwt(self.user)
+        response = self.client.post(
+            self.uri,
+            data=self.generate_data(self.template.id),
+            content_type="application/json",
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
+        )
+        self.assertEqual(response.status_code, 401)
+        self.assertTrue(
+            self.ReportTemplate.objects.filter(id=self.template.id).exists()
+        )
+
+    def test_deleting_template_with_invalid_id(self):
+        _, token = generate_user_jwt(self.mgr_user)
         response = self.client.post(
             self.uri,
             data=self.generate_data(999),
@@ -2121,6 +2154,10 @@ class GraphqlDeleteReportTemplateAction(TestCase):
         )
         self.assertEqual(response.status_code, 401)
 
+        self.assertTrue(
+            self.ReportTemplate.objects.filter(id=self.protected_template.id).exists()
+        )
+
         response = self.client.post(
             self.uri,
             data=self.generate_data(self.client_template.id),
@@ -2131,6 +2168,81 @@ class GraphqlDeleteReportTemplateAction(TestCase):
             },
         )
         self.assertEqual(response.status_code, 401)
+        self.assertTrue(
+            self.ReportTemplate.objects.filter(id=self.client_template.id).exists()
+        )
+
+
+class GraphqlUploadReportTemplateViewTests(TestCase):
+    """Collection of tests for :view:`GraphqlUploadReportTemplateView`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.ReportTemplate = ReportTemplateFactory._meta.model
+        cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        cls.admin_user = UserFactory(password=PASSWORD, role="admin")
+        cls.source_template = ReportTemplateFactory()
+        cls.uri = reverse("api:graphql_upload_report_template")
+
+    def setUp(self):
+        self.client = Client()
+
+    def generate_data(self, protected):
+        with self.source_template.document.open("rb") as template_file:
+            file_base64 = base64.b64encode(template_file.read()).decode("ascii")
+
+        return {
+            "input": {
+                "file_base64": file_base64,
+                "filename": "uploaded-template.docx",
+                "name": "Uploaded Template",
+                "description": "Uploaded through the Hasura action",
+                "protected": protected,
+                "changelog": "",
+                "landscape": False,
+                "filename_override": "",
+                "tags": "",
+                "client": None,
+                "doc_type": self.source_template.doc_type_id,
+                "p_style": "Normal",
+                "evidence_image_width": None,
+                "evidence_image_alignment": "USE_GLOBAL",
+            }
+        }
+
+    def upload(self, user, protected):
+        _, token = generate_user_jwt(user)
+        return self.client.post(
+            self.uri,
+            data=self.generate_data(protected),
+            content_type="application/json",
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
+        )
+
+    def test_user_cannot_mark_uploaded_template_as_protected(self):
+        response = self.upload(self.user, protected=True)
+
+        self.assertEqual(response.status_code, 201)
+        template = self.ReportTemplate.objects.get(id=response.json()["id"])
+        self.assertFalse(template.protected)
+
+    def test_manager_can_mark_uploaded_template_as_protected(self):
+        response = self.upload(self.mgr_user, protected=True)
+
+        self.assertEqual(response.status_code, 201)
+        template = self.ReportTemplate.objects.get(id=response.json()["id"])
+        self.assertTrue(template.protected)
+
+    def test_admin_can_mark_uploaded_template_as_protected(self):
+        response = self.upload(self.admin_user, protected=True)
+
+        self.assertEqual(response.status_code, 201)
+        template = self.ReportTemplate.objects.get(id=response.json()["id"])
+        self.assertTrue(template.protected)
 
 
 class GraphqlAttachFindingAction(TestCase):

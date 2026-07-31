@@ -826,7 +826,10 @@ class ReportTemplateUpdate(RoleBasedAccessControlMixin, UpdateView):
     def handle_no_permission(self):
         obj = self.get_object()
         if obj.protected:
-            messages.error(self.request, "That template is protected – only an admin can edit it.")
+            messages.error(
+                self.request,
+                "That template is protected – only admins and managers can edit it.",
+            )
         else:
             messages.error(self.request, "You do not have permission to access that.")
         if obj.user_can_view(self.request.user):
@@ -889,12 +892,7 @@ class ReportTemplateDelete(RoleBasedAccessControlMixin, DeleteView):
     template_name = "confirm_delete.html"
 
     def test_func(self):
-        obj: ReportTemplate = self.get_object()
-        if obj.protected:
-            return verify_user_is_privileged(self.request.user)
-        if obj.client:
-            return obj.client.user_can_edit(self.request.user)
-        return self.request.user.is_active
+        return verify_user_is_privileged(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")

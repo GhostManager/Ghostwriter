@@ -450,6 +450,10 @@ class ReportTemplateForm(forms.ModelForm):
 
     def __init__(self, user=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        user_is_privileged = bool(user and verify_user_is_privileged(user))
+        if not user_is_privileged:
+            self.fields.pop("protected", None)
+
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
 
@@ -477,6 +481,32 @@ class ReportTemplateForm(forms.ModelForm):
         self.fields["evidence_image_width"].required = False
         self.fields["evidence_image_width"].help_text = (
             "Leave blank to use the global default evidence image width. If the global default is blank, 6.5 inches is used."
+        )
+
+        flag_column_class = (
+            "form-group col-md-4 mb-0"
+            if user_is_privileged
+            else "form-group col-md-6 mb-0"
+        )
+        flag_columns = []
+        if user_is_privileged:
+            flag_columns.append(
+                Column(
+                    SwitchToggle("protected"),
+                    css_class=flag_column_class,
+                )
+            )
+        flag_columns.extend(
+            [
+                Column(
+                    SwitchToggle("landscape"),
+                    css_class=flag_column_class,
+                ),
+                Column(
+                    SwitchToggle("contains_bloodhound_data"),
+                    css_class=flag_column_class,
+                ),
+            ]
         )
 
         clients = get_client_list(user)
@@ -527,24 +557,7 @@ class ReportTemplateForm(forms.ModelForm):
                 css_class="form-row pb-2",
             ),
             Row(
-                Column(
-                    SwitchToggle(
-                        "protected",
-                    ),
-                    css_class="form-group col-md-4 mb-0",
-                ),
-                Column(
-                    SwitchToggle(
-                        "landscape",
-                    ),
-                    css_class="form-group col-md-4 mb-0",
-                ),
-                Column(
-                    SwitchToggle(
-                        "contains_bloodhound_data",
-                    ),
-                    css_class="form-group col-md-4 mb-0",
-                ),
+                *flag_columns,
                 css_class="form-row pb-2",
             ),
             "description",

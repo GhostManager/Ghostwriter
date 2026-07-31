@@ -453,6 +453,7 @@ class ReportTemplateFormTests(TestCase):
         cls.template = ReportDocxTemplateFactory()
         cls.template_dict = cls.template.__dict__
         cls.user = UserFactory(password=PASSWORD)
+        cls.manager = UserFactory(password=PASSWORD, role="manager")
 
     def setUp(self):
         pass
@@ -502,6 +503,24 @@ class ReportTemplateFormTests(TestCase):
 
         form = self.form_data(**template, user=self.user)
         self.assertTrue(form.is_valid())
+
+    def test_only_privileged_users_can_set_protected(self):
+        user_form = ReportTemplateForm(user=self.user)
+        manager_form = ReportTemplateForm(user=self.manager)
+
+        self.assertNotIn("protected", user_form.fields)
+        self.assertIn("protected", manager_form.fields)
+
+    def test_non_privileged_protected_submission_is_ignored(self):
+        template = self.template_dict.copy()
+        template["document"] = self.template.document.file
+        template["protected"] = True
+
+        form = self.form_data(**template, user=self.user)
+
+        self.assertTrue(form.is_valid())
+        self.assertNotIn("protected", form.cleaned_data)
+        self.assertFalse(form.save(commit=False).protected)
 
     def test_blank_template(self):
         template = self.template_dict.copy()

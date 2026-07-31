@@ -247,6 +247,7 @@ class ApiReportTemplateFormTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user = UserFactory(password=PASSWORD)
+        cls.manager = UserFactory(password=PASSWORD, role="manager")
         cls.docx_type = DocTypeFactory(doc_type="docx", extension="docx", name="docx")
         cls.pptx_type = DocTypeFactory(doc_type="pptx", extension="pptx", name="pptx")
         cls.report_client = ClientFactory(name="Test Client")
@@ -258,6 +259,34 @@ class ApiReportTemplateFormTests(TestCase):
 
     def setUp(self):
         pass
+
+    def test_only_privileged_users_can_set_protected(self):
+        user_form = ApiReportTemplateForm(data={}, user_obj=self.user)
+        manager_form = ApiReportTemplateForm(data={}, user_obj=self.manager)
+
+        self.assertNotIn("protected", user_form.fields)
+        self.assertIn("protected", manager_form.fields)
+
+    def test_non_privileged_protected_submission_is_ignored(self):
+        form = self.form_data(
+            name="Test Template",
+            description="Test Description",
+            protected=True,
+            changelog="Test Changelog",
+            landscape=False,
+            filename_override=None,
+            tags="Test, Tag",
+            doc_type=self.docx_type,
+            client=self.report_client,
+            p_style=None,
+            filename="test.docx",
+            file_base64=self.valid_docx,
+            user_obj=self.user,
+        )
+
+        self.assertTrue(form.is_valid())
+        self.assertNotIn("protected", form.cleaned_data)
+        self.assertFalse(form.save(commit=False).protected)
 
     def form_data(
         self,

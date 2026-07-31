@@ -27,7 +27,7 @@
     <p class="mt-3">This page lists all report templates and their current status. To investigate a status, view the
       template's details page.</p>
 
-    <p><strong>Note:</strong> Only admins and managers may edit protected report templates.</p>
+    <p><strong>Note:</strong> Only admins and managers may edit protected report templates or delete templates.</p>
 
     <a class="btn btn-info icon upload-icon col-2" href="{% url 'reporting:template_create' %}">Upload</a>
     <a id="resetSortBtn" class="btn btn-secondary col-2 icon sync-icon" role="button">Reset Sort</a>
@@ -95,13 +95,15 @@
               ></span>
               <a class="icon download-icon" href="javascript:void(0)"
                  onclick="downloadTemplate({{ template.id }}, '{{ template.filename|escapejs }}')" title="Download template"></a>
-              {% if template.protected and request.user|is_privileged or not template.protected %}
+              {% if template.protected and not request.user|is_privileged %}
+                <a class="icon lock-icon" title="This template is protected and cannot be edited"
+                   href="javascript:void(0)"></a>
+              {% else %}
                 <a class="icon edit-icon"
                    href="{% url 'reporting:template_update' template.id %}"></a>
+              {% endif %}
+              {% if request.user|is_privileged %}
                 <a class="icon trash-icon" href="{% url 'reporting:template_delete' template.id %}"></a>
-              {% else %}
-                <a class="icon lock-icon" title="This template is protected and cannot be edited or deleted"
-                   href="javascript:void(0)"></a>
               {% endif %}
             </div>
           </td>

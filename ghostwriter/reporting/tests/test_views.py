@@ -3703,6 +3703,17 @@ class ReportTemplateListViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "reporting/report_templates_list.html")
 
+    def test_delete_controls_require_privileged_user(self):
+        delete_uri = reverse(
+            "reporting:template_delete", kwargs={"pk": self.templates[0].pk}
+        )
+
+        response = self.client_auth.get(self.uri)
+        self.assertNotContains(response, delete_uri)
+
+        response = self.client_mgr.get(self.uri)
+        self.assertContains(response, delete_uri)
+
     def test_tags_are_scoped_to_visible_templates(self):
         self.templates[0].tags.add("visible-template-tag")
 
@@ -3876,6 +3887,19 @@ class ReportTemplateDetailViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "reporting/report_template_detail.html")
 
+    def test_delete_control_requires_privileged_user(self):
+        self.template.protected = False
+        self.template.save(update_fields=["protected"])
+        delete_uri = reverse(
+            "reporting:template_delete", kwargs={"pk": self.template.pk}
+        )
+
+        response = self.client_auth.get(self.uri)
+        self.assertNotContains(response, delete_uri)
+
+        response = self.client_admin.get(self.uri)
+        self.assertContains(response, delete_uri)
+
     def test_view_for_protected_template(self):
         response = self.client_auth.get(self.uri)
         self.assertInHTML(
@@ -4016,6 +4040,16 @@ class ReportTemplateUpdateViewTests(TestCase):
         response = self.client_admin.get(self.uri)
         self.assertEqual(response.status_code, 200)
 
+    def test_non_privileged_user_cannot_modify_protected_template(self):
+        original_name = self.template.name
+
+        response = self.client_auth.post(self.uri, {"name": "Modified Template"})
+
+        self.assertEqual(response.status_code, 302)
+        self.template.refresh_from_db()
+        self.assertEqual(self.template.name, original_name)
+        self.assertTrue(self.template.protected)
+
     def test_view_denies_client_scoped_template_without_access(self):
         response = self.client_auth.get(self.scoped_uri)
         self.assertEqual(response.status_code, 302)
@@ -4039,7 +4073,7 @@ class ReportTemplateDeleteViewTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.template = ReportTemplateFactory(protected=True)
+        cls.template = ReportTemplateFactory(protected=False)
         cls.user = UserFactory(password=PASSWORD)
         cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
         cls.admin_user = UserFactory(password=PASSWORD, role="admin")
@@ -4099,6 +4133,16 @@ class ReportTemplateDeleteViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         response = self.client_admin.get(self.uri)
         self.assertEqual(response.status_code, 200)
+
+    def test_non_privileged_user_cannot_delete_unprotected_template(self):
+        response = self.client_auth.post(self.uri)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(
+            ReportTemplateFactory._meta.model.objects.filter(
+                pk=self.template.pk
+            ).exists()
+        )
 
 
 class ReportTemplateLintViewTests(TestCase):

@@ -77,7 +77,6 @@ actions:
         - name: Hasura-Action-Secret
           value_from_env: HASURA_ACTION_SECRET
     permissions:
-      - role: user
       - role: manager
     comment: Delete the specified template file and remove the associated file from the filesystem
   - name: downloadEvidence
