@@ -132,9 +132,9 @@ class RichTextTemplatingTests(SimpleTestCase):
     def test_standard_jinja_globals_remain_available(self):
         env = prepare_jinja2_env()
 
-        self.assertTrue(
-            {"cycler", "dict", "joiner", "lipsum", "namespace", "range"}
-            <= env.globals.keys()
+        self.assertLessEqual(
+            {"cycler", "dict", "joiner", "lipsum", "namespace", "range"},
+            env.globals.keys(),
         )
 
     def test_registered_globals_and_template_macros_remain_callable(self):
