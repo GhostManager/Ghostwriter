@@ -1033,14 +1033,22 @@ class FindingsListViewTests(TestCase):
         self.assertIn("visible-finding-tag", tag_names)
         self.assertNotIn("hidden-report-tag", tag_names)
         self.assertNotIn("hidden-project-tag", tag_names)
-        self.assertIn("visible-finding-tag", response.context["autocomplete_data"]["tags"])
-        self.assertNotIn("hidden-report-tag", response.context["autocomplete_data"]["tags"])
-        self.assertNotIn("hidden-project-tag", response.context["autocomplete_data"]["tags"])
+        self.assertIn(
+            "visible-finding-tag", response.context["autocomplete_data"]["tags"]
+        )
+        self.assertNotIn(
+            "hidden-report-tag", response.context["autocomplete_data"]["tags"]
+        )
+        self.assertNotIn(
+            "hidden-project-tag", response.context["autocomplete_data"]["tags"]
+        )
 
     def test_search_report_findings(self):
         response = self.client_auth.get(self.uri + "?on_reports=on")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.context["filter"].qs), len(self.accessibleReportFindings))
+        self.assertEqual(
+            len(response.context["filter"].qs), len(self.accessibleReportFindings)
+        )
 
         response = self.client_auth.get(self.uri + "?on_reports=on&not_cloned=on")
         self.assertEqual(response.status_code, 200)
@@ -1435,8 +1443,12 @@ class ReportsListViewTests(TestCase):
         tag_names = list(response.context["tags"].values_list("name", flat=True))
         self.assertIn("visible-report-tag", tag_names)
         self.assertNotIn("hidden-report-tag", tag_names)
-        self.assertIn("visible-report-tag", response.context["autocomplete_data"]["tags"])
-        self.assertNotIn("hidden-report-tag", response.context["autocomplete_data"]["tags"])
+        self.assertIn(
+            "visible-report-tag", response.context["autocomplete_data"]["tags"]
+        )
+        self.assertNotIn(
+            "hidden-report-tag", response.context["autocomplete_data"]["tags"]
+        )
 
 
 class ReportDetailViewTests(TestCase):
@@ -1492,9 +1504,7 @@ class ReportDetailViewTests(TestCase):
         response = self.client_mgr.get(self.uri)
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(
-            response, r"Figure\u2028window.captionXss\u003Dtrue//"
-        )
+        self.assertContains(response, r"Figure\u2028window.captionXss\u003Dtrue//")
         self.assertContains(response, r"\u0026lt\u003B/p\u0026gt\u003B")
         self.assertNotContains(response, "</p><img src=x")
 
@@ -1581,7 +1591,10 @@ class ReportDetailViewTests(TestCase):
         # Verify the preview endpoint itself renders the list content
         preview_url = reverse(
             "reporting:report_extra_field_richtext",
-            kwargs={"pk": self.report.pk, "extra_field_name": "out_of_scope_activities"},
+            kwargs={
+                "pk": self.report.pk,
+                "extra_field_name": "out_of_scope_activities",
+            },
         )
         preview_response = self.client_mgr.get(preview_url)
         self.assertEqual(preview_response.status_code, 200)
@@ -1730,10 +1743,10 @@ class ReportOplogOutlineGenerateTests(TestCase):
                     "html": "<p><strong>Initial foothold</strong> confirmed.</p>",
                 },
                 {"type": "paragraph", "text": "Output:"},
-                {"type": "code", "text": "{% raw %}PORT 80/tcp open http{% endraw %}"},
-                {"type": "paragraph", "text": "{{.ref Alpha}}"},
+                {"type": "code", "text": "PORT 80/tcp open http"},
+                {"type": "reference", "ref": "Alpha"},
                 {"type": "evidence", "evidence_id": report_evidence.id},
-                {"type": "paragraph", "text": "{{.ref Bravo}}"},
+                {"type": "reference", "ref": "Bravo"},
                 {"type": "evidence", "evidence_id": finding_evidence.id},
                 {
                     "type": "narrative",
@@ -1747,9 +1760,7 @@ class ReportOplogOutlineGenerateTests(TestCase):
             ],
         )
 
-    def test_view_wraps_output_as_jinja_literal_text(self):
-        from ghostwriter.modules.reportwriter import prepare_jinja2_env
-
+    def test_view_returns_output_as_unmodified_literal_block_data(self):
         output = "\n".join(
             [
                 "project={{ project }}",
@@ -1788,14 +1799,11 @@ class ReportOplogOutlineGenerateTests(TestCase):
             if block["type"] == "code"
         ]
         self.assertEqual(len(code_blocks), 1)
+        self.assertEqual(code_blocks[0], output)
 
-        rendered = prepare_jinja2_env(debug=False).from_string(code_blocks[0]).render(
-            {"project": "Rendered Project"}
-        )
-        self.assertEqual(rendered, output)
-        self.assertNotIn("project=Rendered Project", rendered)
-
-    def test_view_includes_entries_matching_configured_exact_tag_case_insensitively(self):
+    def test_view_includes_entries_matching_configured_exact_tag_case_insensitively(
+        self,
+    ):
         self.report_config.outline_tags = "Credential"
         self.report_config.save()
 
@@ -2657,7 +2665,9 @@ class ReportExtraFieldEditViewTests(TestCase):
         self.assertNotIn("nested", rendered)
 
     def test_report_detail_json_lazy_loader_has_loading_spinner(self):
-        response = self.client_mgr.get(reverse("reporting:report_detail", kwargs={"pk": self.report.pk}))
+        response = self.client_mgr.get(
+            reverse("reporting:report_detail", kwargs={"pk": self.report.pk})
+        )
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "fa-spinner fa-spin")
         self.assertContains(response, "Loading JSON content...")
@@ -2719,6 +2729,75 @@ class ReportExtraFieldEditViewTests(TestCase):
 
         response = self.client_mgr.get(uri)
         self.assertEqual(response.status_code, 200)
+
+    def test_richtext_preview_renders_user_authored_jinja(self):
+        self.report.extra_fields["narrative"] = (
+            "<p>{{ client.name }}</p>"
+            '<p>{% for value in ["one", "two"] %}'
+            "{{ loop.index }}={{ value }} "
+            "{% endfor %}</p>"
+        )
+        self.report.save(update_fields=["extra_fields"])
+        uri = reverse(
+            "reporting:report_extra_field_richtext",
+            kwargs={
+                "pk": self.report.pk,
+                "extra_field_name": self.extra_field.internal_name,
+            },
+        )
+
+        response = self.client_mgr.get(uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.report.project.client.name)
+        self.assertContains(response, "1=one 2=two")
+
+    def test_richtext_preview_blocks_jinja_environment_access(self):
+        self.report.extra_fields["narrative"] = (
+            "<p>{{ project.description_rt.template.environment.template_class("
+            '"{{ 7 * 7 }}").render() }}</p>'
+        )
+        self.report.save(update_fields=["extra_fields"])
+        uri = reverse(
+            "reporting:report_extra_field_richtext",
+            kwargs={
+                "pk": self.report.pk,
+                "extra_field_name": self.extra_field.internal_name,
+            },
+        )
+
+        response = self.client_mgr.get(uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Template Error")
+        self.assertNotContains(response, ">49<")
+
+    def test_richtext_preview_treats_marked_oplog_content_as_literal_data(self):
+        self.report.extra_fields["narrative"] = (
+            '<div data-gw-jinja-literal="true">'
+            "<p>Logged payload: {{ client.name }}</p>"
+            "<pre><code>{% endraw %}{#</code></pre>"
+            "</div>"
+            "<p>Authored template: {{ client.name }}</p>"
+        )
+        self.report.save(update_fields=["extra_fields"])
+        uri = reverse(
+            "reporting:report_extra_field_richtext",
+            kwargs={
+                "pk": self.report.pk,
+                "extra_field_name": self.extra_field.internal_name,
+            },
+        )
+
+        response = self.client_mgr.get(uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Logged payload: {{ client.name }}")
+        self.assertContains(
+            response,
+            f"Authored template: {self.report.project.client.name}",
+        )
+        self.assertNotContains(response, "data-gw-jinja-literal")
 
     def test_richtext_preview_endpoint_rejects_non_richtext_fields(self):
         uri = reverse(
@@ -2807,7 +2886,10 @@ class ExpandEvidenceAndSanitizeTests(TestCase):
     """Tests for expand_evidence_and_sanitize marker expansion."""
 
     def test_ref_marker_expanded(self):
-        from ghostwriter.commandcenter.templatetags.extra_fields import expand_evidence_and_sanitize
+        from ghostwriter.commandcenter.templatetags.extra_fields import (
+            expand_evidence_and_sanitize,
+        )
+
         html = '<p>See <span data-gw-ref="evA"></span> for details</p>'
         result = expand_evidence_and_sanitize(html, None)
         self.assertIn("Figure", result)
@@ -2815,7 +2897,10 @@ class ExpandEvidenceAndSanitizeTests(TestCase):
         self.assertNotIn("data-gw-ref", result)
 
     def test_inline_caption_marker_expanded(self):
-        from ghostwriter.commandcenter.templatetags.extra_fields import expand_evidence_and_sanitize
+        from ghostwriter.commandcenter.templatetags.extra_fields import (
+            expand_evidence_and_sanitize,
+        )
+
         html = '<p><span data-gw-caption=""></span>My Caption</p>'
         result = expand_evidence_and_sanitize(html, None)
         self.assertIn("Figure", result)
@@ -2823,7 +2908,10 @@ class ExpandEvidenceAndSanitizeTests(TestCase):
         self.assertNotIn("data-gw-caption", result)
 
     def test_block_caption_wrapped_in_p(self):
-        from ghostwriter.commandcenter.templatetags.extra_fields import expand_evidence_and_sanitize
+        from ghostwriter.commandcenter.templatetags.extra_fields import (
+            expand_evidence_and_sanitize,
+        )
+
         html = '<div data-gw-caption="bookmark">Caption Text</div>'
         result = expand_evidence_and_sanitize(html, None)
         self.assertIn("<p>", result)
@@ -2831,7 +2919,10 @@ class ExpandEvidenceAndSanitizeTests(TestCase):
         self.assertIn("Figure", result)
 
     def test_image_marker_without_client_decomposed(self):
-        from ghostwriter.commandcenter.templatetags.extra_fields import expand_evidence_and_sanitize
+        from ghostwriter.commandcenter.templatetags.extra_fields import (
+            expand_evidence_and_sanitize,
+        )
+
         html = '<div data-gw-image="CLIENT_LOGO"></div>'
         result = expand_evidence_and_sanitize(html, None)
         self.assertNotIn("CLIENT_LOGO", result)
@@ -2839,12 +2930,17 @@ class ExpandEvidenceAndSanitizeTests(TestCase):
 
     def test_image_marker_with_client_logo(self):
         from unittest.mock import MagicMock, PropertyMock, patch
-        from ghostwriter.commandcenter.templatetags.extra_fields import expand_evidence_and_sanitize
+        from ghostwriter.commandcenter.templatetags.extra_fields import (
+            expand_evidence_and_sanitize,
+        )
+
         client = ClientFactory()
         logo_mock = MagicMock()
         logo_mock.__bool__ = lambda s: True
         logo_mock.name = "test_logo.png"
-        with patch.object(type(client), "logo", new_callable=PropertyMock, return_value=logo_mock):
+        with patch.object(
+            type(client), "logo", new_callable=PropertyMock, return_value=logo_mock
+        ):
             html = '<div data-gw-image="CLIENT_LOGO"></div>'
             result = expand_evidence_and_sanitize(html, None, client=client)
         self.assertIn("<img", result)
@@ -2852,14 +2948,20 @@ class ExpandEvidenceAndSanitizeTests(TestCase):
         self.assertNotIn("__GW_IMAGE_PREVIEW_", result)
 
     def test_evidence_markers_without_report_decomposed(self):
-        from ghostwriter.commandcenter.templatetags.extra_fields import expand_evidence_and_sanitize
+        from ghostwriter.commandcenter.templatetags.extra_fields import (
+            expand_evidence_and_sanitize,
+        )
+
         html = '<p><span data-gw-evidence="999"></span></p>'
         result = expand_evidence_and_sanitize(html, None)
         self.assertNotIn("data-gw-evidence", result)
 
     def test_plain_html_passes_through(self):
-        from ghostwriter.commandcenter.templatetags.extra_fields import expand_evidence_and_sanitize
-        html = '<p>Hello <strong>world</strong></p>'
+        from ghostwriter.commandcenter.templatetags.extra_fields import (
+            expand_evidence_and_sanitize,
+        )
+
+        html = "<p>Hello <strong>world</strong></p>"
         result = expand_evidence_and_sanitize(html, None)
         self.assertIn("Hello", result)
         self.assertIn("world", result)
@@ -3208,7 +3310,9 @@ class ExtraFieldRichTextPreviewPermissionTests(TestCase):
         self.assertEqual(response.status_code, 404)
 
     def test_template_error_returns_200_with_error_message(self):
-        self.report.extra_fields = {"test_rt": "<p>{% for x in %}broken{% endfor %}</p>"}
+        self.report.extra_fields = {
+            "test_rt": "<p>{% for x in %}broken{% endfor %}</p>"
+        }
         self.report.save(update_fields=["extra_fields"])
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
@@ -3217,7 +3321,9 @@ class ExtraFieldRichTextPreviewPermissionTests(TestCase):
         self.assertIn("alert-danger", content)
 
     def test_export_error_returns_generic_preview_error(self):
-        self.report.extra_fields = {"test_rt": "<p>{{ 'content'|regex_search('(') }}</p>"}
+        self.report.extra_fields = {
+            "test_rt": "<p>{{ 'content'|regex_search('(') }}</p>"
+        }
         self.report.save(update_fields=["extra_fields"])
 
         response = self.client_mgr.get(self.uri)
@@ -5583,7 +5689,6 @@ class ObservationListViewTests(TestCase):
 
 class ObservationCreateViewTests(TestCase):
     """Collection of tests for :view:`reporting.ObservationCreate`."""
-
 
     @classmethod
     def setUpTestData(cls):

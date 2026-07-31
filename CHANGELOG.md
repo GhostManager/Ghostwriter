@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [7.2.5] - 27 July 2026
+## [7.2.5] - 31 July 2026
 
 ### Changed
 
@@ -22,6 +22,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+* Hardened Jinja2 report rendering against sandbox escapes while preserving user-authored report templates and previews
+  * Operation-log values are treated as literal report data, including values containing captured Jinja2 payloads
+  * Lazy rich-text rendering now rejects templates that were not compiled by Ghostwriter's sandboxed environment
+  * Report template objects, Python callables, and document-export objects no longer expose unsafe attributes or call paths to Jinja2
 * Hardened user-controlled values rendered in JavaScript contexts to prevent stored cross-site scripting
   * Autocomplete data is now serialized as inert JSON instead of being interpolated into JavaScript source
   * Tag autocomplete suggestions are scoped to objects the current user can access

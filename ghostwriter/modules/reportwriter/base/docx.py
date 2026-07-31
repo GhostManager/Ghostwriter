@@ -34,11 +34,12 @@ EXPECTED_STYLES = [
     "Caption",
     "List Paragraph",
     "Blockquote",
-    "footnote text",        # Lowercase to match style name
-    "footnote reference"    # Lowercase to match style name
+    "footnote text",  # Lowercase to match style name
+    "footnote reference",  # Lowercase to match style name
 ] + [f"Heading {i}" for i in range(1, 7)]
 
 _img_desc_replace_re = re.compile(r"^\s*\[\s*([a-zA-Z0-9_]+)\s*\]\s*(.*)$")
+
 
 class ExportDocxBase(ExportBase):
     """
@@ -92,10 +93,18 @@ class ExportDocxBase(ExportBase):
         try:
             self.word_doc = DocxTemplate(report_template.document.path)
         except PackageNotFoundError as err:
-            logger.exception("Failed to load the provided template document: %s", report_template.document.path)
-            raise ReportExportTemplateError("Template document file could not be found - try re-uploading it") from err
+            logger.exception(
+                "Failed to load the provided template document: %s",
+                report_template.document.path,
+            )
+            raise ReportExportTemplateError(
+                "Template document file could not be found - try re-uploading it"
+            ) from err
         except Exception:
-            logger.exception("Failed to load the provided template document: %s", report_template.document.path)
+            logger.exception(
+                "Failed to load the provided template document: %s",
+                report_template.document.path,
+            )
             raise
 
         self.global_report_config = ReportConfiguration.get_solo()
@@ -113,21 +122,28 @@ class ExportDocxBase(ExportBase):
             )
 
             ReportExportTemplateError.map_errors(
-                lambda: self.word_doc.render(docx_context, self.jinja_env, autoescape=True), "the DOCX template"
+                lambda: self.word_doc.render(
+                    docx_context, self.jinja_env, autoescape=True
+                ),
+                "the DOCX template",
             )
             ReportExportTemplateError.map_errors(
                 lambda: self.render_properties(docx_context), "the DOCX properties"
             )
         except UnrecognizedImageError as err:
-            raise ReportExportTemplateError(f"Could not load an image: {err}", "the DOCX template") from err
+            raise ReportExportTemplateError(
+                f"Could not load an image: {err}", "the DOCX template"
+            ) from err
         except PackageNotFoundError as err:
             raise ReportExportTemplateError(
-                "The word template could not be found on the server – try uploading it again.", "the DOCX template"
+                "The word template could not be found on the server – try uploading it again.",
+                "the DOCX template",
             ) from err
         except FileNotFoundError as err:
             logger.exception("Missing file")
             raise ReportExportTemplateError(
-                "An evidence file was missing – try uploading it again.", "the DOCX template"
+                "An evidence file was missing – try uploading it again.",
+                "the DOCX template",
             ) from err
 
         out = io.BytesIO()
@@ -155,7 +171,10 @@ class ExportDocxBase(ExportBase):
 
             # Access the footnotes part (requires accessing internal python-docx members)
             # pylint: disable=protected-access
-            if not hasattr(doc._part, '_footnotes_part') or doc._part._footnotes_part is None:
+            if (
+                not hasattr(doc._part, "_footnotes_part")
+                or doc._part._footnotes_part is None
+            ):
                 docx_bytes.seek(0)
                 return docx_bytes
 
@@ -275,16 +294,19 @@ class ExportDocxBase(ExportBase):
                 continue
 
             out = ReportExportTemplateError.map_errors(
-                lambda: self.jinja_env.from_string(template_src).render(context), f"DOCX property {attr}"
+                lambda: self.jinja_env.from_string(template_src).render(context),
+                f"DOCX property {attr}",
             )
             setattr(self.word_doc.core_properties, attr, out)
 
-    def render_rich_text_docx(self, rich_text: RichTextBase) -> LazySubdocRender | DocxRichText:
+    def render_rich_text_docx(
+        self, rich_text: RichTextBase
+    ) -> LazySubdocRender | DocxRichText:
         """
         Renders a `RichTextBase`, converting the HTML from the rich text editor, to a Word subdoc.
         """
         if isinstance(rich_text, HtmlAndObject):
-            return rich_text.obj
+            return rich_text.exporter_object
 
         def render():
             doc = self.word_doc.new_subdoc()
@@ -300,6 +322,7 @@ class ExportDocxBase(ExportBase):
                 getattr(rich_text, "location", None),
             )
             return doc
+
         return LazySubdocRender(render)
 
     def replace_images(self):
@@ -324,14 +347,16 @@ class ExportDocxBase(ExportBase):
             for hp in headers_and_footers:
                 if not hp._has_definition:
                     continue
-                toplevels.append((
-                    hp.part,
-                    hp.part._element,
-                ))
+                toplevels.append(
+                    (
+                        hp.part,
+                        hp.part._element,
+                    )
+                )
 
         # Go through each part and replace matcing drawings
         image_rids_and_objs = {}
-        for (part, element) in toplevels:
+        for part, element in toplevels:
             for drawing in element.xpath(".//w:drawing"):
                 docpr = next(iter(drawing.xpath(".//wp:docPr")), None)
                 if docpr is None:
@@ -340,7 +365,10 @@ class ExportDocxBase(ExportBase):
                 blip = next(iter(drawing.xpath(".//pic:pic//a:blip")), None)
                 if blip is None:
                     continue
-                if "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}embed" not in blip.attrib:
+                if (
+                    "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}embed"
+                    not in blip.attrib
+                ):
                     continue
 
                 # Get image name from alt text
@@ -364,8 +392,9 @@ class ExportDocxBase(ExportBase):
                     image_rids_and_objs[key] = rid
 
                 # Replace image
-                blip.attrib["{http://schemas.openxmlformats.org/officeDocument/2006/relationships}embed"] = rid
-
+                blip.attrib[
+                    "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}embed"
+                ] = rid
 
     @classmethod
     def lint(cls, report_template: ReportTemplate) -> Tuple[List[str], List[str]]:
@@ -381,7 +410,10 @@ class ExportDocxBase(ExportBase):
         logger.info("Linting docx file %r", report_template.document.path)
         try:
             if not os.path.exists(report_template.document.path):
-                logger.error("Template file path did not exist: %r", report_template.document.path)
+                logger.error(
+                    "Template file path did not exist: %r",
+                    report_template.document.path,
+                )
                 errors.append("Template file does not exist – upload it again")
                 return warnings, errors
 
@@ -395,42 +427,72 @@ class ExportDocxBase(ExportBase):
             logger.info("Template loaded for linting")
 
             undeclared_variables = ReportExportTemplateError.map_errors(
-                lambda: exporter.word_doc.get_undeclared_template_variables(exporter.jinja_env), "the DOCX template"
+                lambda: exporter.word_doc.get_undeclared_template_variables(
+                    exporter.jinja_env
+                ),
+                "the DOCX template",
             )
             for variable in undeclared_variables:
                 if variable not in lint_data:
-                    warnings.append("Potential undefined variable: {!r}".format(variable))
+                    warnings.append(
+                        "Potential undefined variable: {!r}".format(variable)
+                    )
 
             document_styles = exporter.word_doc.get_docx().styles
             for style in EXPECTED_STYLES:
                 if style not in document_styles:
-                    warnings.append("Template is missing a recommended style (see documentation): " + style)
+                    warnings.append(
+                        "Template is missing a recommended style (see documentation): "
+                        + style
+                    )
                 else:
                     if style == "CodeInline":
                         if document_styles[style].type != WD_STYLE_TYPE.CHARACTER:
-                            warnings.append("CodeInline style is not a character style (see documentation)")
+                            warnings.append(
+                                "CodeInline style is not a character style (see documentation)"
+                            )
                     if style == "CodeBlock":
                         if document_styles[style].type != WD_STYLE_TYPE.PARAGRAPH:
-                            warnings.append("CodeBlock style is not a paragraph style (see documentation)")
+                            warnings.append(
+                                "CodeBlock style is not a paragraph style (see documentation)"
+                            )
                     if style == "Bullet List":
                         if document_styles[style].type != WD_STYLE_TYPE.PARAGRAPH:
-                            warnings.append("Bullet List style is not a paragraph style (see documentation)")
+                            warnings.append(
+                                "Bullet List style is not a paragraph style (see documentation)"
+                            )
                     if style == "Number List":
                         if document_styles[style].type != WD_STYLE_TYPE.PARAGRAPH:
-                            warnings.append("Number List style is not a paragraph style (see documentation)")
+                            warnings.append(
+                                "Number List style is not a paragraph style (see documentation)"
+                            )
                     if style == "List Paragraph":
                         if document_styles[style].type != WD_STYLE_TYPE.PARAGRAPH:
-                            warnings.append("List Paragraph style is not a paragraph style (see documentation)")
+                            warnings.append(
+                                "List Paragraph style is not a paragraph style (see documentation)"
+                            )
                     if style == "footnote text":
                         if document_styles[style].type != WD_STYLE_TYPE.PARAGRAPH:
-                            warnings.append("Footnote Text style is not a character style (see documentation)")
+                            warnings.append(
+                                "Footnote Text style is not a character style (see documentation)"
+                            )
                     if style == "footnote reference":
                         if document_styles[style].type != WD_STYLE_TYPE.CHARACTER:
-                            warnings.append("Footnote Reference style is not a character style (see documentation)")
+                            warnings.append(
+                                "Footnote Reference style is not a character style (see documentation)"
+                            )
             if "Table Grid" not in document_styles:
-                errors.append("Template is missing a required style (see documentation): Table Grid")
-            if report_template.p_style and report_template.p_style not in document_styles:
-                warnings.append("Template is missing your configured default paragraph style: " + report_template.p_style)
+                errors.append(
+                    "Template is missing a required style (see documentation): Table Grid"
+                )
+            if (
+                report_template.p_style
+                and report_template.p_style not in document_styles
+            ):
+                warnings.append(
+                    "Template is missing your configured default paragraph style: "
+                    + report_template.p_style
+                )
 
             exporter.run()
 
@@ -443,7 +505,9 @@ class ExportDocxBase(ExportBase):
             logger.exception("Template failed linting")
             errors.append("Template rendering failed unexpectedly")
 
-        logger.info("Linting finished: %d warnings, %d errors", len(warnings), len(errors))
+        logger.info(
+            "Linting finished: %d warnings, %d errors", len(warnings), len(errors)
+        )
         return warnings, errors
 
     def bloodhound_heading_offset(self) -> int:
