@@ -10,6 +10,7 @@ from django.conf import settings
 from django.contrib.auth.models import Group
 from django.db.models import Q
 from django.utils import timezone
+from django.utils.text import slugify
 
 # 3rd Party Libraries
 from bs4 import BeautifulSoup
@@ -258,3 +259,139 @@ def translate_domain_sid(sid: str, domains: dict):
             if sid == domain["domain_sid"]:
                 return domain["name"]
     return sid
+
+
+@register.simple_tag
+def prepare_bhe_findings(findings, domains):
+    """Prepare BloodHound Enterprise findings for the project dashboard."""
+    severity_weights = {
+        "critical": 1,
+        "high": 2,
+        "moderate": 3,
+        "medium": 3,
+        "low": 4,
+        "informational": 5,
+        "info": 5,
+    }
+    domain_names = {
+        domain.get("domain_sid"): domain.get("name")
+        for domain in (domains or [])
+        if isinstance(domain, dict) and domain.get("domain_sid")
+    }
+    groups = {}
+    environments = {}
+    categories = set()
+    principal_count = 0
+    tier_zero_count = 0
+
+    for index, finding in enumerate(findings or [], start=1):
+        if not isinstance(finding, dict):
+            continue
+
+        assets = (
+            finding.get("assets") if isinstance(finding.get("assets"), dict) else {}
+        )
+        severity = str(finding.get("severity") or "Unknown").strip()
+        severity_key = slugify(severity) or "unknown"
+        environment_id = finding.get("environment_id")
+        environment = (
+            domain_names.get(environment_id) or environment_id or "Unknown environment"
+        )
+        title = assets.get("title") or finding.get("finding_name") or "Untitled finding"
+        category = assets.get("type") or "Uncategorized"
+        principals = (
+            finding.get("principals")
+            if isinstance(finding.get("principals"), list)
+            else []
+        )
+        is_tier_zero = bool(finding.get("is_tier_zero"))
+        impact_values = []
+        exposure_values = []
+        for principal in principals:
+            if not isinstance(principal, dict):
+                continue
+            for key, values in (
+                ("impact_percentage", impact_values),
+                ("exposure_percentage", exposure_values),
+            ):
+                try:
+                    values.append(float(principal[key]))
+                except (KeyError, TypeError, ValueError):
+                    continue
+        identifier = slugify(str(finding.get("id") or index)) or str(index)
+        item = {
+            "finding": finding,
+            "title": title,
+            "category": category,
+            "environment": environment,
+            "environment_key": slugify(str(environment)) or "unknown-environment",
+            "category_key": slugify(str(category)) or "uncategorized",
+            "severity": severity,
+            "severity_key": severity_key,
+            "principal_count": len(principals),
+            "peak_impact": max(impact_values, default=None),
+            "peak_exposure": max(exposure_values, default=None),
+            "is_tier_zero": is_tier_zero,
+            "modal_id": f"bhe-finding-{identifier}-{index}",
+            "search_text": " ".join(
+                str(value)
+                for value in (
+                    title,
+                    category,
+                    environment,
+                    finding.get("finding_name"),
+                )
+                if value
+            ),
+        }
+
+        if severity_key not in groups:
+            groups[severity_key] = {
+                "label": severity,
+                "key": severity_key,
+                "weight": severity_weights.get(severity_key, 99),
+                "items": [],
+            }
+        groups[severity_key]["items"].append(item)
+        environments[item["environment_key"]] = environment
+        categories.add(str(category))
+        principal_count += len(principals)
+        tier_zero_count += int(is_tier_zero)
+
+    ordered_groups = sorted(
+        groups.values(),
+        key=lambda group: (group["weight"], group["label"].lower()),
+    )
+    return {
+        "total": sum(len(group["items"]) for group in ordered_groups),
+        "critical": len(groups.get("critical", {}).get("items", [])),
+        "environment_count": len(environments),
+        "principal_count": principal_count,
+        "tier_zero_count": tier_zero_count,
+        "groups": ordered_groups,
+        "environments": [
+            {"key": key, "label": label}
+            for key, label in sorted(
+                environments.items(), key=lambda item: str(item[1]).lower()
+            )
+        ],
+        "categories": [
+            {"key": slugify(category) or "uncategorized", "label": category}
+            for category in sorted(categories, key=str.lower)
+        ],
+    }
+
+
+@register.filter(name="bhe_percent")
+def bhe_percent(value):
+    """Format a BloodHound decimal ratio as a compact percentage."""
+    try:
+        percentage = float(value)
+    except (TypeError, ValueError):
+        return "--"
+    if -1 <= percentage <= 1:
+        percentage *= 100
+    percentage = round(percentage, 1)
+    if percentage.is_integer():
+        return str(int(percentage))
+    return str(percentage)

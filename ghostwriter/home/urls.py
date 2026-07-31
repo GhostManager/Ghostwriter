@@ -13,6 +13,21 @@ app_name = "home"
 urlpatterns = [
     path("", views.Dashboard.as_view(), name="dashboard"),
     path("management/", views.Management.as_view(), name="management"),
+    path(
+        "navigation/preferences/",
+        views.update_sidebar_preferences,
+        name="sidebar_preferences",
+    ),
+    path(
+        "navigation/working-context/",
+        views.working_context_catalog,
+        name="working_context_catalog",
+    ),
+    path(
+        "navigation/workspace-pin/",
+        views.toggle_workspace_pin,
+        name="toggle_workspace_pin",
+    ),
 ]
 
 # URLs for AJAX test functions

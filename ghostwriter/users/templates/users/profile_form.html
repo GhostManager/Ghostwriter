@@ -14,8 +14,20 @@
 {% endblock %}
 
 {% block content %}
-  <!-- Current Avatar -->
-  <img class="avatar mt-3" src="{%  url 'users:avatar_download' slug=request.user.username %}" alt="User Image">
+  <header class="resource-form-page-heading mb-4">
+    <span class="detail-eyebrow">Profile</span>
+    {% if form.avatar %}
+      <h1>Update profile image</h1>
+      <p>Choose the image operators will see in navigation, assignments, and activity.</p>
+    {% else %}
+      <h1>Edit operator profile</h1>
+      <p>Keep the identity, timezone, and contact details Ghostwriter uses across engagements current.</p>
+    {% endif %}
+  </header>
+
+  {% if form.avatar %}
+    <img class="avatar mb-3" src="{% url 'users:avatar_download' slug=request.user.username %}" alt="Current profile image">
+  {% endif %}
 
   <!-- Form Error Section -->
   {% if form.errors %}
@@ -31,11 +43,13 @@
     </script>
   {% endif %}
 
-  <!-- Avatar Upload Form -->
-  {% crispy form form.helper %}
+  <div class="resource-form-shell">
+    {% crispy form form.helper %}
+  </div>
 {% endblock %}
 
 {% block morescripts %}
+  {% if form.avatar %}
   <script>
     const fileInput = document.getElementById('id_avatar')
     const previewDiv = document.getElementById('avatarPreview')
@@ -73,4 +87,5 @@
       renderAvatarPreview(fileInput, previewDiv)
     });
   </script>
+  {% endif %}
 {% endblock %}

@@ -15,7 +15,8 @@
   <link rel="shortcut icon" href="{% static 'favicon.ico' %}"/>
 
   <!-- Bootstrap CSS -->
-  <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}"/>
+  <link rel="stylesheet" href="{% static 'vendor/bootstrap/5.3.8/css/bootstrap.min.css' %}"/>
+  <link rel="stylesheet" href="{% static 'css/bootstrap5_compat.css' %}"/>
 
   <!-- Font Awesome -->
   <link rel="stylesheet" href="{% static 'css/fontawesome/all.css' %}"/>
@@ -23,8 +24,9 @@
   <!-- jQuery JS -->
   <script src="{% static 'js/jquery-3.6.1.min.js' %}"></script>
   <script src="{% static 'js/jquery-ui.js' %}"></script>
-  <script src="{% static 'js/popper.min.js' %}"></script>
-  <script src="{% static 'js/bootstrap.min.js' %}"></script>
+
+  <!-- Bootstrap JS bundle (includes Popper) -->
+  <script src="{% static 'vendor/bootstrap/5.3.8/js/bootstrap.bundle.min.js' %}"></script>
 
   <!-- Sugar Parser -->
   <script src="{% static 'js/sugar.min.js' %}"></script>
@@ -42,17 +44,19 @@
   <link rel="stylesheet" type="text/css" href="{% static 'css/toastr.min.css' %}">
   <script type="text/javascript" src="{% static 'js/toastr.min.js' %}"></script>
 
-  <!-- TinyMCE -->
-  <script src="{% static 'js/tinymce/tinymce.min.js' %}"></script>
+  <!-- Rich-text editor shortcuts -->
   {% include "snippets/editor_shortcuts_config.html" %}
 
   <!-- Ghostwriter JS & CSS -->
   <script src="{% static 'js/project.js' %}"></script>
-  <script src="{% static 'js/active-report.js' %}"></script>
-  <link rel="stylesheet" href="{% static 'css/styles.css' %}"/>
+  <script src="{% static 'js/active-report.js' %}?v={{ VERSION }}"></script>
+  <script src="{% static 'js/working-context.js' %}?v={{ VERSION }}"></script>
+  <link rel="stylesheet" href="{% static 'css/styles.css' %}?v={{ VERSION }}"/>
+  <link rel="stylesheet" href="{% static 'css/app_shell.css' %}?v={{ VERSION }}"/>
+  <link rel="stylesheet" href="{% static 'css/design_system.css' %}?v={{ VERSION }}-ui9"/>
 
-  <!-- TinyMCE -->
-  <script type="application/javascript" src="{% static 'js/tinymce/config.js' %}"></script>
+  <!-- Standalone Tiptap editor (packaged for offline deployments) -->
+  <script type="module" src="{% static 'assets/standalone_tiptap_loader.js' %}?v={{ VERSION }}"></script>
 
   <!-- FullCalendar -->
   <script src="{% static 'js/fullcalendar-main.min.js' %}"></script>
@@ -77,6 +81,7 @@
         theme = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
       }
       document.documentElement.setAttribute('data-theme', theme);
+      document.documentElement.setAttribute('data-bs-theme', theme);
     } catch(e) {}
   })();
   </script>
@@ -88,373 +93,203 @@
   {% if user.is_authenticated %}
     <nav id="sidebar" class="{% if request.session.sidebar.sticky %}active{% endif %}">
       <!-- Sidebar Top Section -->
-      <div class="sidebar-header col d-flex align-items-center justify-content-center">
-        <a href="{% url 'home:dashboard' %}">
-          <img src="{% static 'images/inverted_header_alt.png' %}" alt="Ghostwriter">
+      <div class="sidebar-header">
+        <a class="sidebar-brand-mark" href="{% url 'home:dashboard' %}" aria-label="Ghostwriter dashboard">
+          <img class="sidebar-logo-mark" src="{% static 'images/laughing_logo.png' %}" alt="">
         </a>
-        <div class="sidebar-header-tab">
-          <div class="square">
-            <i
-              class="sidebar-toggle-btn fas fa-angle-double-right {% if request.session.sidebar.sticky %}fa-flip-horizontal{% endif %}"></i>
-          </div>
+        <div class="sidebar-product-meta">
+          <span class="sidebar-product-name">Ghostwriter</span>
+          <span class="sidebar-build-meta">v{{ VERSION }}</span>
+          <span class="sidebar-build-meta">Build {{ RELEASE_DATE }}</span>
         </div>
+        <button
+          type="button"
+          class="sidebar-toggle-control sidebar-desktop-toggle"
+          aria-controls="sidebar"
+          aria-expanded="{% if request.session.sidebar.sticky %}true{% else %}false{% endif %}"
+          aria-label="{% if request.session.sidebar.sticky %}Collapse{% else %}Expand{% endif %} navigation"
+          title="{% if request.session.sidebar.sticky %}Collapse{% else %}Expand{% endif %} navigation"
+          data-bs-toggle="tooltip"
+          data-bs-placement="right"
+        >
+          <i
+            aria-hidden="true"
+            class="sidebar-toggle-btn fas fa-chevron-right {% if request.session.sidebar.sticky %}fa-flip-horizontal{% endif %}"></i>
+        </button>
       </div>
 
-      <div class="sidebar-body">
-        <!-- Project Shortcut Section -->
-        <ul class="list-unstyled components">
-          <p class="sideheader icon icon home-icon">Project Shortcuts</p>
+      {% include "snippets/sidebar_navigation.html" %}
 
-          <a
-            class="btn btn-primary mb-3 col-9 active-report-shortcut icon ext-link-icon {% if not request.session.active_report.id and not request.session.active_report.title %}btn-disabled{% endif %}"
-            href={% if request.session.active_report.id and request.session.active_report.title %}"{% url 'reporting:report_detail' request.session.active_report.id %}{% else %}"#"{% endif %}"
-            data-toggle="tooltip" data-placement="right" title="Open your active report after selecting one below"
-            >Jump to Report
+      <div class="sidebar-actions">
+        <div class="sidebar-account-row">
+          <a class="sidebar-account-profile" href="{% url 'users:user_detail' request.user.username %}">
+            <img src="{% url 'users:avatar_download' slug=request.user.username %}" alt="">
+            <span>{{ request.user.username }}</span>
           </a>
-
-          <!-- Menu Section -->
-          <li>
-            <a href="#activeReportsSubmenu" data-toggle="collapse" aria-expanded="false"
-               class="dropdown-toggle sidebar-dropdown-toggle" data-target="#activeReportsSubmenu">
-              My Active Reports
-              <div class="expand_caret caret"></div>
-            </a>
-            <ul class="collapse list-unstyled text-left" id="activeReportsSubmenu">
-              {% get_assignment_data request as user_project_data %}
-              {% if user_project_data.1 %}
-                {% for report in user_project_data.1 %}
-                  <li>
-                    <a title="Set this report as your active report"
-                       class="js-activate-report icon toggle-off-icon
-                                                {% if request.session.active_report.id and request.session.active_report.title and request.session.active_report.id == report.id %}
-                                                    selected-report
-                                                {% endif %}
-                                                " activate-report-csrftoken="{{ csrf_token }}"
-                       activate-report-url="{% url 'reporting:ajax_activate_report' report.id %}"
-                       activate-report-id="{{ report.id }}">
-                      {{ report.title }} ({{ report.project.codename }})</a>
-                  </li>
-                {% endfor %}
-              {% else %}
-                <li><a href="{% url 'reporting:reports' %}">You do not have any active reports; click here to visit the
-                  library.</a>
-                </li>
-              {% endif %}
-            </ul>
-          </li>
-
-          <li>
-            <a href="#activeProjectsSubmenu" data-toggle="collapse" aria-expanded="false"
-               class="dropdown-toggle sidebar-dropdown-toggle" data-target="#activeProjectsSubmenu">
-              My Active Projects
-              <div class="expand_caret caret"></div>
-            </a>
-            <ul class="collapse list-unstyled text-left" id="activeProjectsSubmenu">
-              {% if user_project_data.0 %}
-                {% for assignment in user_project_data.0 %}
-                  <li><a href="{% url 'rolodex:project_detail' assignment.id %}">{{ assignment }}</a>
-                  </li>
-                {% endfor %}
-              {% else %}
-                <li><a href="{% url 'rolodex:projects' %}">You do not have any active assignments; click here to visit
-                  the library.</a></li>
-              {% endif %}
-            </ul>
-          </li>
-        </ul>
-
-        <!-- Rolodex Section -->
-        <ul class="list-unstyled components">
-          <p class="sideheader icon icon tasks-icon">Pre-engagement</p>
-
-          <!-- Menu Section -->
-          <li>
-            <a href="#clientSubmenu" data-toggle="collapse" aria-expanded="false"
-               class="dropdown-toggle sidebar-dropdown-toggle" data-target="#clientSubmenu">
-              Clients
-              <div class="expand_caret caret"></div>
-            </a>
-            <ul class="collapse list-unstyled text-left" id="clientSubmenu">
-              {% comment %} Search for Clients {% endcomment %}
-              <form class="px-6 py-2" action="{% url 'rolodex:clients' %}" method="GET">
-                <input type="search" autocomplete="off" class="form-control" id="client-search" name="name"
-                       placeholder="Search Clients..." autofocus="autofocus">
-              </form>
-              {% comment %} Clients Submenu Items {% endcomment %}
-              <li><a class="icon list-icon" href="{% url 'rolodex:clients' %}">Client Library</a></li>
-              {% if request.user|is_privileged %}
-                <li><a class="icon plus-icon" href="{% url 'rolodex:client_create' %}">Add New Client</a></li>
-              {% endif %}
-            </ul>
-          </li>
-          <li>
-            <a href="#findingsSubmenu" data-toggle="collapse" aria-expanded="false"
-               class="dropdown-toggle sidebar-dropdown-toggle">Findings</a>
-            <ul class="collapse list-unstyled text-left" id="findingsSubmenu">
-              {% comment %} Search for Findings {% endcomment %}
-              <form class="px-6 py-2" action="{% url 'reporting:findings' %}" method="GET">
-                <input type="search" autocomplete="off" class="form-control" id="finding-search" name="title"
-                       placeholder="Search Findings..." autofocus="autofocus">
-              </form>
-              {% comment %} Findings Submenu Items {% endcomment %}
-              <li><a class="icon list-icon" href="{% url 'reporting:findings' %}">Finding Library</a></li>
-              {% if request.user|can_create_finding %}
-                <li>
-                  <form action="{% url 'reporting:finding_create' %}" method="POST" style="display:contents">
-                    {% csrf_token %}
-                    <button class="icon plus-icon">Add New Finding</button>
-                  </form>
-                </li>
-              {% endif %}
-            </ul>
-          </li>
-          <li>
-            <a href="#observationsSubmenu" data-toggle="collapse" aria-expanded="false"
-               class="dropdown-toggle sidebar-dropdown-toggle">Observations</a>
-            <ul class="collapse list-unstyled text-left" id="observationsSubmenu">
-              {% comment %} Search for observations {% endcomment %}
-              <form class="px-6 py-2" action="{% url 'reporting:observations' %}" method="GET">
-                <input type="search" autocomplete="off" class="form-control" id="observation-search" name="title"
-                       placeholder="Search Observations..." autofocus="autofocus">
-              </form>
-              {% comment %} observations Submenu Items {% endcomment %}
-              <li><a class="icon list-icon" href="{% url 'reporting:observations' %}">Observation Library</a></li>
-              {% if request.user|can_create_observation %}
-                <li>
-                  <form action="{% url 'reporting:observation_create' %}" method="POST" style="display:contents">
-                    {% csrf_token %}
-                    <button class="icon plus-icon">Add New Observation</button>
-                  </form>
-                </li>
-              {% endif %}
-            </ul>
-          </li>
-        </ul>
-
-        <!-- Operations Section -->
-        <ul class="list-unstyled components">
-          <p class="sideheader icon execution-icon">Execution</p>
-
-          <!-- Menu Section -->
-          {% if user.is_authenticated %}
-            <li><a href="{% url 'shepherd:user_assets' %}">My Active Assets</a></li>
-          {% endif %}
-          <li>
-            <a href="#projectSubmenu" data-toggle="collapse" aria-expanded="false"
-               class="dropdown-toggle sidebar-dropdown-toggle">Projects</a>
-            <ul class="collapse list-unstyled text-left" id="projectSubmenu">
-              <li><a class="icon list-icon" href="{% url 'rolodex:projects' %}">Projects Library</a></li>
-              {% if request.user|is_privileged %}
-                <li><a class="icon plus-icon" href="{% url 'rolodex:project_create_no_client' %}">Add New Project</a>
-                </li>
-              {% endif %}
-            </ul>
-          </li>
-          <li>
-            <a href="#oplogSubmenu" data-toggle="collapse" aria-expanded="false"
-               class="dropdown-toggle sidebar-dropdown-toggle">Operation Logs</a>
-            <ul class="collapse list-unstyled text-left" id="oplogSubmenu">
-              <li><a class="icon list-icon" href="{% url 'oplog:index' %}">Oplog Library</a></li>
-              <li><a class="icon plus-icon" href="{% url 'oplog:oplog_create_no_project' %}">Add New Oplog</a></li>
-              <li><a class="icon import-icon" href="{% url 'oplog:oplog_import' %}">Import Oplog Entries</a></li>
-            </ul>
-          </li>
-        </ul>
-
-        <!-- Reporting Section -->
-        <ul class="list-unstyled components">
-          <p class="sideheader icon file-icon">Reporting</p>
-
-          <!-- Menu Section -->
-          <li>
-            <a href="#reportSubmenu" data-toggle="collapse" aria-expanded="false"
-               class="dropdown-toggle sidebar-dropdown-toggle">Reports</a>
-            <ul class="collapse list-unstyled text-left" id="reportSubmenu">
-              <li><a class="icon list-icon" href="{% url 'reporting:reports' %}">Report Library</a></li>
-              <li><a class="icon plus-icon" href="{% url 'reporting:report_create_no_project' %}">Add New Report</a>
-              </li>
-            </ul>
-          </li>
-          <li>
-            <a href="#templateSubmenu" data-toggle="collapse" aria-expanded="false"
-               class="dropdown-toggle sidebar-dropdown-toggle">Templates</a>
-            <ul class="collapse list-unstyled text-left" id="templateSubmenu">
-              <li><a class="icon list-icon" href="{% url 'reporting:templates' %}">Report Template Library</a></li>
-              <li><a class="icon plus-icon" href="{% url 'reporting:template_create' %}">Add New Report Template</a>
-              </li>
-            </ul>
-          </li>
-          <li><a href="{% url 'reporting:archived_reports' %}">Archived Reports</a></li>
-        </ul>
-
-        <!-- Shepherd Section -->
-        <ul class="list-unstyled components">
-          <p class="sideheader icon maintain-icon">Maintain</p>
-
-          <!-- Menu Section -->
-          <li>
-            <a href="#serverSubmenu" data-toggle="collapse" aria-expanded="false"
-               class="dropdown-toggle sidebar-dropdown-toggle">Servers</a>
-            <ul class="collapse list-unstyled text-left" id="serverSubmenu">
-              {% comment %} Search for All Servers {% endcomment %}
-              <form class="px-6 py-2" action="{% url 'shepherd:infrastructure_search' %}" method="GET">
-                <input type="search" autocomplete="off" class="form-control" id="server-search" name="query"
-                       placeholder="Search Servers..." autofocus="autofocus">
-              </form>
-              {% comment %} Server Submenu Items {% endcomment %}
-              <li><a class="icon list-icon" href="{% url 'shepherd:servers' %}">Server Library</a></li>
-              <li><a class="icon plus-icon" href="{% url 'shepherd:server_create' %}">Add New Server</a></li>
-            </ul>
-          </li>
-          <li>
-            <a href="#shepSubmenu" data-toggle="collapse" aria-expanded="false"
-               class="dropdown-toggle sidebar-dropdown-toggle">Domains</a>
-            <ul class="collapse list-unstyled text-left" id="shepSubmenu">
-              {% comment %} Search for Domains {% endcomment %}
-              <form class="px-6 py-2" action="{% url 'shepherd:domains' %}" method="GET">
-                <input type="search" autocomplete="off" class="form-control" id="domain-search" name="domain"
-                       placeholder="Search Domains..." autofocus="autofocus">
-              </form>
-              {% comment %} Domains Submenu Items {% endcomment %}
-              <li><a class="icon list-icon" href="{% url 'shepherd:domains' %}">Domain Library</a></li>
-              <li><a class="icon plus-icon" href="{% url 'shepherd:domain_create' %}">Add New Domain</a></li>
-            </ul>
-          </li>
-          <li><a href="{% url 'shepherd:update' %}">Update Controls</a></li>
-        </ul>
-
-        <!-- Admin Section -->
-        <ul class="list-unstyled components">
-          <!-- Admin Panel Shortcuts -->
-          <p class="sideheader icon admin-icon">Administration</p>
-          {% if request.user.is_staff or request.user.role == "admin" %}
-            <li><a href="{% url 'home:management' %}">Review Configuration</a></li>
-            <li>
-              <a href="#adminSubmenu" data-toggle="collapse" aria-expanded="false"
-                 class="dropdown-toggle sidebar-dropdown-toggle">Admin Panel</a>
-              <ul class="collapse list-unstyled text-left" id="adminSubmenu">
-                <li><a class="icon gears-icon" href="{% url 'admin:index' %}">Admin Panel</a></li>
-                <li><a class="icon slider-icon" href="{% url 'admin:index' %}commandcenter">Configuration Mgmt</a></li>
-                {% if perms.users.view_user %}
-                  <li><a class="icon users-icon" href="{% url 'admin:users_user_changelist' %}">User Mgmt</a></li>
-                {% endif %}
-                {% if perms.django_q.view_task %}
-                  <li><a class="icon calendar-icon" href="{% url 'admin:app_list' 'django_q' %}">Scheduled Tasks</a>
-                  </li>
-                {% endif %}
-              </ul>
-            </li>
-            <!-- Bulk Import & Export Shortcuts -->
-            <li>
-              <a href="#bulkSubmenu" data-toggle="collapse" aria-expanded="false"
-                 class="dropdown-toggle sidebar-dropdown-toggle">Import & Export</a>
-              <ul class="collapse list-unstyled text-left" id="bulkSubmenu">
-                <li><a class="icon import-icon" href="{% url 'admin:reporting_finding_import' %}">Upload Bulk
-                  Findings</a></li>
-                <li><a class="icon export-icon" href="{% url 'reporting:export_findings_to_csv' %}">Export Findings to
-                  CSV</a></li>
-                <hr>
-                <li><a class="icon import-icon" href="{% url 'admin:reporting_observation_import' %}">Upload Bulk
-                  Observations</a></li>
-                <li><a class="icon export-icon" href="{% url 'reporting:export_observations_to_csv' %}">Export
-                  Observations to
-                  CSV</a></li>
-                <hr>
-                <li><a class="icon import-icon" href="{% url 'admin:shepherd_domain_import' %}">Upload Bulk Domains</a>
-                </li>
-                <li><a class="icon export-icon" href="{% url 'shepherd:export_domains_to_csv' %}">Export Domains to
-                  CSV</a></li>
-                <hr>
-                <li><a class="icon import-icon" href="{% url 'admin:shepherd_staticserver_import' %}">Upload Bulk
-                  Servers</a></li>
-                <li><a class="icon export-icon" href="{% url 'shepherd:export_servers_to_csv' %}">Export Servers to
-                  CSV</a></li>
-              </ul>
-            </li>
-          {% endif %}
-          <!-- Documentation Section -->
-          <li>
-            <a href="#docsSubmenu" data-toggle="collapse" aria-expanded="false"
-               class="dropdown-toggle sidebar-dropdown-toggle">Documentation</a>
-            <ul class="collapse list-unstyled text-left" id="docsSubmenu">
-              <li><a class="icon docs-icon" href="https://ghostwriter.wiki">Ghostwriter Wiki</a></li>
-              <li><a class="icon github-icon" href="https://github.com/GhostManager/Ghostwriter">Ghostwriter on
-                GitHub</a></li>
-            </ul>
-          </li>
-        </ul>
-
-        <!-- Sidebar Buttons -->
-        <div class="align-middle text-center">
-          {% if user.is_authenticated %}
-            <a href="{% url 'account_logout' %}" class="btn btn-primary col-9 icon logout-icon">Logout</a>
-          {% else %}
-            <a href="{% url 'account_login' %}" class="btn btn-primary col-9 icon login-icon">Login</a>
-          {% endif %}
-
-          <!-- Theme Toggle -->
-          {% comment %}
-          <div class="mt-2 col-9 mx-auto">
-            <label for="theme-toggle" class="d-block mb-1" style="font-size: 14px; color: var(--sidebar-text-color);">Theme</label>
-            <select id="theme-toggle" class="form-control form-control-sm" style="font-size: 14px;">
-              <option value="light">Light</option>
-              <option value="dark">Dark</option>
-              <option value="auto">Auto</option>
-            </select>
-          </div>
-          {% endcomment %}
-
-          <!-- Animated Theme Toggle -->
-          <div class="mt-2 col-9 mx-auto theme-toggle-container">
+          <a class="sidebar-account-logout"
+             href="{% url 'account_logout' %}"
+             aria-label="Logout"
+             title="Logout">
+            <i class="fas fa-sign-out-alt" aria-hidden="true"></i>
+          </a>
+        </div>
+        <div class="theme-toggle-container">
+          <div class="sidebar-theme-control">
+            <div class="sidebar-action-heading">
+              <span><i class="fas fa-adjust" aria-hidden="true"></i> Theme</span>
+              <span id="sidebar-theme-status">Light</span>
+            </div>
             <div class="theme-toggle-wrapper">
-              <label class="theme-switch">
+              <label class="theme-switch" aria-label="Toggle dark mode">
                 <input type="checkbox" id="theme-toggle-switch">
                 <span class="theme-slider">
-                  <div class="sun"></div>
-                  <div class="cloud"></div>
-                  <div class="moon"></div>
-                  <div class="star"></div>
-                  <div class="star"></div>
-                  <div class="star"></div>
-                  <div class="star"></div>
-                  <div class="star"></div>
+                  <span class="sun"></span>
+                  <span class="cloud"></span>
+                  <span class="moon"></span>
+                  <span class="star"></span>
+                  <span class="star"></span>
+                  <span class="star"></span>
+                  <span class="star"></span>
+                  <span class="star"></span>
                 </span>
               </label>
             </div>
-
-            <div class="auto-checkbox-wrapper">
-              <input type="checkbox" id="theme-auto-checkbox">
-              <label for="theme-auto-checkbox">Auto (follow system)</label>
-            </div>
+          </div>
+          <div class="auto-checkbox-wrapper">
+            <input type="checkbox" id="theme-auto-checkbox">
+            <label for="theme-auto-checkbox">Follow system theme</label>
           </div>
         </div>
       </div>
-
-      <div class="sidebar-footer col d-flex align-items-center justify-content-center mt-2">
-        <span>v{{ VERSION }}, released {{ RELEASE_DATE }}</span>
-      </div>
-
-      <div class="sidebar-footer col d-flex align-items-center justify-content-center mt-2"><a href="https://www.specterops.io"><img class="col-8" src="{% static 'images/domain.png' %}"
-                                                   alt="SpecterOps"></a>
-      </div>
     </nav>
+    {% include "snippets/sidebar_preferences_modal.html" %}
+    {% include "snippets/working_context_modal.html" %}
+    <button
+      type="button"
+      class="sidebar-toggle-control sidebar-mobile-toggle"
+      aria-controls="sidebar"
+      aria-expanded="{% if request.session.sidebar.sticky %}true{% else %}false{% endif %}"
+      aria-label="{% if request.session.sidebar.sticky %}Collapse{% else %}Expand{% endif %} navigation"
+      title="{% if request.session.sidebar.sticky %}Collapse{% else %}Expand{% endif %} navigation"
+    >
+      <i
+        aria-hidden="true"
+        class="sidebar-toggle-btn fas fa-chevron-right {% if request.session.sidebar.sticky %}fa-flip-horizontal{% endif %}"></i>
+    </button>
+    <button type="button" class="sidebar-backdrop" aria-label="Close navigation" tabindex="-1"></button>
   {% endif %}
 
   <!-- Page Content Holder -->
   <div id="content">
     {% if user.is_authenticated %}
-      <div class="top-bar container-fluid align-middle mb-3">
-        <!-- Breadcrumb Links -->
-        {% block breadcrumbs %}{% endblock %}
-
-        <!-- User Profile & Avatar -->
-        <a href="{% url 'users:user_detail' request.user.username %}">
-          <img class="navbar-avatar"
-               data-toggle="tooltip" data-placement="top" title="Logged-in as {{ request.user.username }}"
-               src="{% url 'users:avatar_download' slug=request.user.username %}"
-               alt="Avatar">
-        </a>
-      </div>
+      <aside class="engagement-context{% if active_engagement %} engagement-context-active{% endif %}"
+             data-active-report-id="{% if active_engagement %}{{ active_engagement.report.id }}{% endif %}"
+             data-active-report-title="{% if active_engagement %}{{ active_engagement.report.title }}{% endif %}"
+             data-active-report-url="{% if active_engagement %}{{ active_engagement.report.get_absolute_url }}{% endif %}"
+             data-active-client="{% if active_engagement %}{{ active_engagement.client.name }}{% endif %}"
+             data-active-client-url="{% if active_engagement %}{{ active_engagement.client.get_absolute_url }}{% endif %}"
+             data-active-project="{% if active_engagement %}{{ active_engagement.project }}{% endif %}"
+             data-active-project-url="{% if active_engagement %}{{ active_engagement.project.get_absolute_url }}{% endif %}"
+             data-active-report-complete="{% if active_engagement and active_engagement.report.complete %}true{% else %}false{% endif %}"
+             data-active-report-delivered="{% if active_engagement and active_engagement.report.delivered %}true{% else %}false{% endif %}"
+             aria-label="Working engagement">
+        <div class="engagement-context-label">
+          <span class="engagement-context-label-copy">
+            <span class="engagement-context-pulse" aria-hidden="true"></span>
+            <span>Working on</span>
+          </span>
+          <button type="button"
+                  class="engagement-context-switch"
+                  data-bs-toggle="modal"
+                  data-bs-target="#workingContextModal"
+                  data-working-context-launcher="all">
+            <i class="fas fa-exchange-alt" aria-hidden="true"></i>
+            <span data-working-report-switch-label>{% if active_engagement %}Switch report{% else %}Choose report{% endif %}</span>
+          </button>
+        </div>
+        <div class="engagement-context-empty{% if active_engagement %} d-none{% endif %}">
+          <span>No working report selected. Choose where library quick-adds should go.</span>
+        </div>
+        <div class="engagement-context-details{% if not active_engagement %} d-none{% endif %}">
+          <div class="engagement-context-identity">
+            <a class="engagement-context-report"
+               href="{% if active_engagement %}{{ active_engagement.report.get_absolute_url }}{% endif %}"
+               title="{% if active_engagement %}{{ active_engagement.report.title }}{% endif %}">
+              <i class="fas fa-file-alt engagement-context-report-icon" aria-hidden="true"></i>
+              <span class="engagement-context-report-text">
+                {% if active_engagement %}{{ active_engagement.report.title }}{% endif %}
+              </span>
+              <i class="fas fa-arrow-right engagement-context-report-open" aria-hidden="true"></i>
+            </a>
+          </div>
+          <div class="engagement-context-scope" aria-label="Client and project">
+            <div class="engagement-context-scope-item">
+              <i class="fas fa-building engagement-context-scope-icon" aria-hidden="true"></i>
+              <span class="engagement-context-scope-copy">
+                <span class="engagement-context-scope-label">Client</span>
+                <a class="engagement-context-client"
+                   href="{% if active_engagement %}{{ active_engagement.client.get_absolute_url }}{% endif %}"
+                   title="{% if active_engagement %}{{ active_engagement.client.name }}{% endif %}">
+                  <span class="engagement-context-client-text">
+                    {% if active_engagement %}{{ active_engagement.client.name }}{% endif %}
+                  </span>
+                </a>
+              </span>
+            </div>
+            <div class="engagement-context-scope-item">
+              <i class="fas fa-project-diagram engagement-context-scope-icon" aria-hidden="true"></i>
+              <span class="engagement-context-scope-copy">
+                <span class="engagement-context-scope-label">Project</span>
+                <a class="engagement-context-project"
+                   href="{% if active_engagement %}{{ active_engagement.project.get_absolute_url }}{% endif %}"
+                   title="{% if active_engagement %}{{ active_engagement.project }}{% endif %}">
+                  <span class="engagement-context-project-text">
+                    {% if active_engagement %}{{ active_engagement.project }}{% endif %}
+                  </span>
+                </a>
+              </span>
+            </div>
+          </div>
+          <div class="engagement-context-state" aria-label="Working report state">
+            <span class="engagement-context-state-item">
+              <i class="fas fa-pencil-alt" aria-hidden="true"></i>
+              <span class="engagement-context-report-status">
+                {% if active_engagement.report.complete %}Complete{% else %}Draft{% endif %}
+              </span>
+            </span>
+            <span class="engagement-context-state-item">
+              <i class="fas fa-paper-plane" aria-hidden="true"></i>
+              <span class="engagement-context-delivery-status">
+                {% if active_engagement.report.delivered %}Delivered{% else %}Not delivered{% endif %}
+              </span>
+            </span>
+          </div>
+          <details class="engagement-context-mobile-context">
+            <summary aria-label="Show client and project context" title="Show client and project context">
+              <i class="fas fa-sitemap" aria-hidden="true"></i>
+              <span>Context</span>
+            </summary>
+            <div class="engagement-context-mobile-menu">
+              <span class="engagement-context-mobile-label">Client</span>
+              <a class="engagement-context-client"
+                 href="{% if active_engagement %}{{ active_engagement.client.get_absolute_url }}{% endif %}"
+                 title="{% if active_engagement %}{{ active_engagement.client.name }}{% endif %}">
+                <span class="engagement-context-client-text">
+                  {% if active_engagement %}{{ active_engagement.client.name }}{% endif %}
+                </span>
+              </a>
+              <span class="engagement-context-mobile-label">Project</span>
+              <a class="engagement-context-project"
+                 href="{% if active_engagement %}{{ active_engagement.project.get_absolute_url }}{% endif %}"
+                 title="{% if active_engagement %}{{ active_engagement.project }}{% endif %}">
+                <span class="engagement-context-project-text">
+                  {% if active_engagement %}{{ active_engagement.project }}{% endif %}
+                </span>
+              </a>
+            </div>
+          </details>
+        </div>
+      </aside>
     {% endif %}
 
     {%  comment %} MOTD Banner {% endcomment %}
@@ -462,7 +297,7 @@
       {% if user.is_authenticated or banner_config.public_banner %}
         <div id="globalBanner" class="container-fluid mb-3" expiryDate="{{ expiry_date }}">
           <div class="alert alert-success text-center mb-0" role="alert">
-            <button type="button" class="close" data-dismiss="alert" aria-label="Close" style="position: absolute; right: 0.5rem; top: 0.5rem;">
+            <button type="button" class="close" data-bs-dismiss="alert" aria-label="Close" style="position: absolute; right: 0.5rem; top: 0.5rem;">
               <span aria-hidden="true">&times;</span>
             </button>
 
@@ -491,11 +326,12 @@
 <script>
   {% comment %} Open a modal by ID {% endcomment %}
   function openModal(modalId) {
-    // Add # prefix if not present for jQuery selector
+    // Add # prefix if not present for the selector
     const selector = modalId.startsWith('#') ? modalId : '#' + modalId;
-
-    // Show the modal
-    $(selector).modal('show');
+    const modal = document.querySelector(selector);
+    if (modal) {
+      bootstrap.Modal.getOrCreateInstance(modal).show();
+    }
   }
 
   function moveFocusOutOfModal(modal) {
@@ -526,7 +362,7 @@
       return;
     }
 
-    const dismissButton = target.closest('[data-dismiss="modal"]');
+    const dismissButton = target.closest('[data-bs-dismiss="modal"]');
     const modal = dismissButton ? dismissButton.closest('.modal') : null;
 
     if (modal) {
@@ -569,16 +405,52 @@
     $('html, body').animate({scrollTop: 0}, '300');
   });
 
-  {% comment %} Persist the active report in browser storage across login sessions {% endcomment %}
+  {% comment %} Persist the working report in browser storage across login sessions {% endcomment %}
   GhostwriterActiveReport.init({
     reportUrlTemplate: '{% url 'reporting:report_detail' 0 %}',
+    activationUrlTemplate: '{% url 'reporting:ajax_activate_report' 0 %}',
   });
 
   {% comment %} Open and close the sidebar {% endcomment %}
 
+  let sidebarTransitionTimer = null;
+
+  function syncSidebarState() {
+    const isOpen = $('#sidebar').hasClass('active');
+    const toggleButtons = document.querySelectorAll('.sidebar-toggle-control');
+
+    toggleButtons.forEach(function(toggleButton) {
+      const label = (isOpen ? 'Collapse' : 'Expand') + ' navigation';
+      toggleButton.setAttribute('aria-expanded', String(isOpen));
+      toggleButton.setAttribute('aria-label', label);
+      toggleButton.setAttribute('title', label);
+
+      const tooltip = bootstrap.Tooltip.getInstance(toggleButton);
+      if (tooltip) {
+        tooltip.hide();
+        tooltip.setContent({'.tooltip-inner': label});
+      }
+    });
+
+    document.body.classList.toggle('sidebar-open', isOpen);
+  }
+
   function sidebarOpen() {
+    const sidebar = document.getElementById('sidebar');
+    const isOpening = !sidebar.classList.contains('active');
+
+    window.clearTimeout(sidebarTransitionTimer);
+    sidebar.classList.remove('sidebar-transition-opening', 'sidebar-transition-closing');
+    void sidebar.offsetWidth;
+    sidebar.classList.add(isOpening ? 'sidebar-transition-opening' : 'sidebar-transition-closing');
+
     $('#sidebar').toggleClass('active');
     $('.sidebar-toggle-btn').toggleClass('fa-flip-horizontal');
+    syncSidebarState();
+
+    sidebarTransitionTimer = window.setTimeout(function () {
+      sidebar.classList.remove('sidebar-transition-opening', 'sidebar-transition-closing');
+    }, 360);
 
     {% comment %} Send AJAX POST request to update session {% endcomment %}
     $.ajax({
@@ -592,20 +464,179 @@
   }
 
   {% comment %} Open the sidebar {% endcomment %}
-  $('.sidebar-header-tab').click(function () {
+  $('.sidebar-toggle-control').click(function () {
     sidebarOpen();
   });
 
-  {% comment %} Activate Bootstrap hover tooltips {% endcomment %}
-  $(document).ready(function () {
-    $('[data-toggle="tooltip"]').tooltip({boundary: "window"});
+  $('.sidebar-backdrop').click(function () {
+    if ($('#sidebar').hasClass('active')) {
+      sidebarOpen();
+    }
   });
+
+  $(document).on('keydown', function (event) {
+    if (event.key === 'Escape' && window.matchMedia('(max-width: 767.98px)').matches && $('#sidebar').hasClass('active')) {
+      sidebarOpen();
+      const toggleButton = document.querySelector('.sidebar-mobile-toggle');
+      if (toggleButton) {
+        toggleButton.focus();
+      }
+    }
+  });
+
+  {% comment %} Mark and reveal the sidebar destination that best matches the current route. {% endcomment %}
+  (function markCurrentSidebarDestination() {
+    const normalizePath = function (path) {
+      return path === '/' ? path : path.replace(/\/$/, '');
+    };
+    const currentPath = normalizePath(window.location.pathname);
+    let bestPath = null;
+
+    const sidebarLocationLinks = [
+      '#sidebar .sidebar-rail a[href]:not(.sidebar-rail-work-link)',
+      '#sidebar .sidebar-body a[href]:not(.sidebar-pinned-work-link)',
+    ].join(', ');
+
+    $(sidebarLocationLinks).each(function () {
+      const rawHref = this.getAttribute('href');
+      if (!rawHref || rawHref.startsWith('#') || rawHref.startsWith('javascript:')) {
+        return;
+      }
+
+      const targetUrl = new URL(this.href, window.location.origin);
+      if (targetUrl.origin !== window.location.origin) {
+        return;
+      }
+
+      const targetPath = normalizePath(targetUrl.pathname);
+      const matches = currentPath === targetPath || (targetPath !== '/' && currentPath.startsWith(targetPath + '/'));
+      if (matches && (!bestPath || targetPath.length > bestPath.length)) {
+        bestPath = targetPath;
+      }
+    });
+
+    if (!bestPath) {
+      return;
+    }
+
+    let expandedMenuLink = null;
+    $(sidebarLocationLinks).each(function () {
+      const rawHref = this.getAttribute('href');
+      if (!rawHref || rawHref.startsWith('#') || rawHref.startsWith('javascript:')) {
+        return;
+      }
+
+      const targetUrl = new URL(this.href, window.location.origin);
+      if (targetUrl.origin === window.location.origin && normalizePath(targetUrl.pathname) === bestPath) {
+        this.classList.add('sidebar-current');
+        this.setAttribute('aria-current', 'page');
+        if (this.closest('.sidebar-body')) {
+          expandedMenuLink = this;
+        }
+      }
+    });
+
+    const parentCollapse = expandedMenuLink ? expandedMenuLink.closest('.collapse') : null;
+    if (parentCollapse) {
+      bootstrap.Collapse.getOrCreateInstance(parentCollapse, {toggle: false}).show();
+    }
+  })();
+
+  syncSidebarState();
+
+  {% comment %} Activate Bootstrap hover tooltips {% endcomment %}
+  document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('[data-bs-toggle="tooltip"], [data-working-context-tooltip], .table-row-action[title]').forEach(function (tooltip) {
+      const options = {boundary: document.body};
+      if (tooltip.matches('.table-row-action[title]')) {
+        options.placement = 'top';
+        options.fallbackPlacements = ['bottom'];
+      }
+      bootstrap.Tooltip.getOrCreateInstance(tooltip, options);
+    });
+  });
+
+  {% comment %} Sidebar shortcut customization {% endcomment %}
+  (function() {
+    const form = document.querySelector('[data-sidebar-preferences-form]');
+    if (!form) {
+      return;
+    }
+
+    function initializeOrderedList(options) {
+      const list = form.querySelector(options.listSelector);
+      const orderInput = form.querySelector(options.orderSelector);
+      if (!list || !orderInput) {
+        return function() {};
+      }
+
+      function rows() {
+        return Array.from(list.querySelectorAll(options.rowSelector));
+      }
+
+      function updateOrderControls() {
+        const currentRows = rows();
+        currentRows.forEach(function(row, index) {
+          const upButton = row.querySelector('[' + options.moveAttribute + '="up"]');
+          const downButton = row.querySelector('[' + options.moveAttribute + '="down"]');
+          upButton.disabled = index === 0;
+          downButton.disabled = index === currentRows.length - 1;
+        });
+        orderInput.value = currentRows.map(function(row) {
+          return row.getAttribute(options.idAttribute);
+        }).join(',');
+      }
+
+      list.addEventListener('click', function(event) {
+        const button = event.target.closest('[' + options.moveAttribute + ']');
+        if (!button) {
+          return;
+        }
+
+        const row = button.closest(options.rowSelector);
+        const direction = button.getAttribute(options.moveAttribute);
+        if (direction === 'up' && row.previousElementSibling) {
+          list.insertBefore(row, row.previousElementSibling);
+        } else if (direction === 'down' && row.nextElementSibling) {
+          list.insertBefore(row.nextElementSibling, row);
+        }
+        updateOrderControls();
+        button.focus();
+      });
+
+      updateOrderControls();
+      return updateOrderControls;
+    }
+
+    const updateToolOrder = initializeOrderedList({
+      listSelector: '[data-sidebar-preferences-list]',
+      rowSelector: '[data-sidebar-item-id]',
+      idAttribute: 'data-sidebar-item-id',
+      moveAttribute: 'data-sidebar-move',
+      orderSelector: '[data-sidebar-order]',
+    });
+    const updatePanelOrder = initializeOrderedList({
+      listSelector: '[data-sidebar-panel-list]',
+      rowSelector: '[data-sidebar-panel-id]',
+      idAttribute: 'data-sidebar-panel-id',
+      moveAttribute: 'data-sidebar-panel-move',
+      orderSelector: '[data-sidebar-panel-order]',
+    });
+
+    form.addEventListener('submit', function() {
+      updateToolOrder();
+      updatePanelOrder();
+    });
+  })();
 
   {% comment %} Theme Toggle Functionality {% endcomment %}
   (function() {
     const THEME_STORAGE_KEY = 'ghostwriter-theme';
     const themeToggleSwitch = document.getElementById('theme-toggle-switch');
     const themeAutoCheckbox = document.getElementById('theme-auto-checkbox');
+    const themeStatus = document.getElementById('sidebar-theme-status');
+    const themeButtons = document.querySelectorAll('[data-theme-value]');
+    const railThemeButton = document.querySelector('[data-sidebar-theme-trigger]');
 
     // Function to get the system theme preference
     function getSystemTheme() {
@@ -622,36 +653,35 @@
         actualTheme = getSystemTheme();
       }
       document.documentElement.setAttribute('data-theme', actualTheme);
+      document.documentElement.setAttribute('data-bs-theme', actualTheme);
 
-      // Swap images for dark mode
-      const sidebarHeaderImg = document.querySelector('.sidebar-header img');
-      const sidebarFooterImg = document.querySelector('a[href="https://www.specterops.io"] img');
-
-      if (actualTheme === 'dark') {
-        // Switch to dark mode images (when they exist)
-        if (sidebarHeaderImg) {
-          sidebarHeaderImg.src = sidebarHeaderImg.src.replace('inverted_header_alt.png', 'inverted_header_alt_dark.png');
-        }
-        if (sidebarFooterImg) {
-          sidebarFooterImg.src = sidebarFooterImg.src.replace('domain.png', 'domain_dark.png');
-        }
-      } else {
-        // Switch back to light mode images
-        if (sidebarHeaderImg) {
-          sidebarHeaderImg.src = sidebarHeaderImg.src.replace('inverted_header_alt_dark.png', 'inverted_header_alt.png');
-        }
-        if (sidebarFooterImg) {
-          sidebarFooterImg.src = sidebarFooterImg.src.replace('domain_dark.png', 'domain.png');
-        }
+      if (themeToggleSwitch) {
+        themeToggleSwitch.checked = actualTheme === 'dark';
       }
 
-      // Update toggle UI based on theme
-      if (themeToggleSwitch) {
-        if (theme === 'auto') {
-          themeToggleSwitch.checked = actualTheme === 'dark';
+      if (themeAutoCheckbox) {
+        themeAutoCheckbox.checked = theme === 'auto';
+      }
+
+      if (themeStatus) {
+        themeStatus.textContent = theme === 'auto'
+          ? 'System (' + actualTheme.charAt(0).toUpperCase() + actualTheme.slice(1) + ')'
+          : actualTheme.charAt(0).toUpperCase() + actualTheme.slice(1);
+      }
+
+      themeButtons.forEach(function(button) {
+        const isCurrent = button.dataset.themeValue === theme;
+        if (isCurrent) {
+          button.setAttribute('aria-current', 'true');
         } else {
-          themeToggleSwitch.checked = theme === 'dark';
+          button.removeAttribute('aria-current');
         }
+      });
+
+      if (railThemeButton) {
+        const themeName = theme === 'auto' ? 'System' : theme.charAt(0).toUpperCase() + theme.slice(1);
+        railThemeButton.setAttribute('aria-label', 'Theme settings. Current: ' + themeName);
+        railThemeButton.setAttribute('title', 'Theme: ' + themeName);
       }
     }
 
@@ -667,35 +697,32 @@
     }
 
     // Initialize theme on page load
-    const savedTheme = getCurrentTheme();
-    if (themeAutoCheckbox) {
-      themeAutoCheckbox.checked = savedTheme === 'auto';
-    }
-    applyTheme(savedTheme);
+    applyTheme(getCurrentTheme());
 
-    // Handle toggle switch change
     if (themeToggleSwitch) {
       themeToggleSwitch.addEventListener('change', function() {
-        // If auto mode is enabled, disable it when user manually toggles
-        if (themeAutoCheckbox && themeAutoCheckbox.checked) {
+        if (themeAutoCheckbox) {
           themeAutoCheckbox.checked = false;
         }
-        const selectedTheme = this.checked ? 'dark' : 'light';
-        saveAndApplyTheme(selectedTheme);
+        saveAndApplyTheme(this.checked ? 'dark' : 'light');
       });
     }
 
-    // Handle auto checkbox change
     if (themeAutoCheckbox) {
       themeAutoCheckbox.addEventListener('change', function() {
         if (this.checked) {
           saveAndApplyTheme('auto');
         } else {
-          const manualTheme = themeToggleSwitch && themeToggleSwitch.checked ? 'dark' : 'light';
-          saveAndApplyTheme(manualTheme);
+          saveAndApplyTheme(themeToggleSwitch && themeToggleSwitch.checked ? 'dark' : 'light');
         }
       });
     }
+
+    themeButtons.forEach(function(button) {
+      button.addEventListener('click', function() {
+        saveAndApplyTheme(this.dataset.themeValue);
+      });
+    });
 
     // Listen for system theme changes when in auto mode
     if (window.matchMedia) {
@@ -751,10 +778,10 @@
   // Handle library-filter accordion clicks
   $(document).ready(function() {
     // Listen for clicks on library-filter accordions or their toggle controls
-    $(document).on('click', '.library-filter, [data-target*=".library-filter"], [href*=".library-filter"]', function(e) {
+    $(document).on('click', '.library-filter, [data-bs-target*=".library-filter"], [href*=".library-filter"]', function(e) {
       // Get the accordion ID if available
       let accordionId = $(this).attr('id') ||
-                        $(this).data('target') ||
+                        $(this).attr('data-bs-target') ||
                         $(this).attr('href') ||
                         'unknown';
 
@@ -786,7 +813,7 @@
       ws_proto = 'wss://'
     }
     const protocol = ws_proto
-    const username = '{{ user.get_clean_username }}';
+    const username = '{{ user.get_clean_username|escapejs }}';
 
     {% comment %} Connect to channel for individual notifications {% endcomment %}
     const ws_user = new WebSocket(
@@ -840,25 +867,18 @@
     };
   {% endif %}
 
-  // Make sidebar dropdowns behave like an accordion
-  $(document).on('click', '.sidebar-dropdown-toggle', function(e) {
-    // Don't interfere with default Bootstrap collapse behavior
-    e.preventDefault();
-
-    // Get the target dropdown from data-target or href attribute
-    const targetDropdown = $(this).data('target') || $(this).attr('href');
-
-    // Close all other dropdowns except the one that was clicked
-    $('.sidebar-dropdown-toggle').not(this).each(function() {
-      const otherDropdown = $(this).data('target') || $(this).attr('href');
-      if ($(otherDropdown).hasClass('show')) {
-        $(otherDropdown).collapse('hide');
-      }
+  // Make sidebar dropdowns behave like an accordion without overriding
+  // Bootstrap's click and keyboard handling.
+  const sidebar = document.getElementById('sidebar');
+  if (sidebar) {
+    sidebar.addEventListener('show.bs.collapse', function (event) {
+      sidebar.querySelectorAll('.collapse.show').forEach(function (openDropdown) {
+        if (openDropdown !== event.target) {
+          bootstrap.Collapse.getOrCreateInstance(openDropdown, {toggle: false}).hide();
+        }
+      });
     });
-
-    // Toggle the clicked dropdown
-    $(targetDropdown).collapse('toggle');
-  });
+  }
 
   // Helper to get banner content as a unique key
   function getBannerKey() {
@@ -907,6 +927,28 @@
         if (tabHash && window.location.hash !== tabHash) {
           window.history.pushState(null, '', tabHash);
         }
+      });
+
+      $('#tab-bar').on('keydown', 'a[data-bs-toggle="tab"]', function (event) {
+        const tabs = Array.from(this.closest('#tab-bar').querySelectorAll('a[data-bs-toggle="tab"]'));
+        const currentIndex = tabs.indexOf(this);
+        let nextIndex = currentIndex;
+
+        if (event.key === 'ArrowRight') {
+          nextIndex = (currentIndex + 1) % tabs.length;
+        } else if (event.key === 'ArrowLeft') {
+          nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+        } else if (event.key === 'Home') {
+          nextIndex = 0;
+        } else if (event.key === 'End') {
+          nextIndex = tabs.length - 1;
+        } else {
+          return;
+        }
+
+        event.preventDefault();
+        tabs[nextIndex].focus();
+        tabs[nextIndex].click();
       });
     });
   </script>
@@ -1042,14 +1084,14 @@
   {% comment %} Switch to Tab with Invalid Inputs {% endcomment %}
   <script>
     // Open tab with the first invalid/missing field on submission but before POST
-    $('#submit-id-submit').click(function () {
-      $('input:invalid').each(function () {
+    $('[id^="submit-id-"]').click(function () {
+      $(':input:invalid').each(function () {
         // Find the tab-pane that this element is inside, and get the id
         let $closest = $(this).closest('.tab-pane');
         let id = $closest.attr('id');
 
         // Find the link that corresponds to the pane and have it show
-        $('.nav a[data-target="#' + id + '"], .nav a[href="#' + id + '"]').first().tab('show');
+        $('.nav a[data-bs-target="#' + id + '"], .nav a[href="#' + id + '"]').first().tab('show');
 
         // Only want to do it once
         return false;
@@ -1063,20 +1105,20 @@
         let id = $closest.attr('id');
 
         // Find the link that corresponds to the pane and have it show
-        $('.nav a[data-target="#' + id + '"], .nav a[href="#' + id + '"]').first().tab('show');
+        $('.nav a[data-bs-target="#' + id + '"], .nav a[href="#' + id + '"]').first().tab('show');
 
         // Only want to do it once
         return false;
       });
       // If no invalid fields, look for invalid-feedback messages
-      // This catches invalid fields taken over by TinyMCE
+      // This catches invalid fields enhanced by a rich-text editor
       $('span.invalid-feedback').each(function () {
         // Find the tab-pane that this element is inside, and get the id
         let $closest = $(this).closest('.tab-pane');
         let id = $closest.attr('id');
 
         // Find the link that corresponds to the pane and have it show
-        $('.nav a[data-target="#' + id + '"], .nav a[href="#' + id + '"]').first().tab('show');
+        $('.nav a[data-bs-target="#' + id + '"], .nav a[href="#' + id + '"]').first().tab('show');
 
         // Only want to do it once
         return false;

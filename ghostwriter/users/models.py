@@ -5,7 +5,7 @@ from binascii import hexlify
 
 # Django Imports
 from django.contrib.auth.models import AbstractUser
-from django.db.models import BooleanField, CharField
+from django.db.models import BooleanField, CharField, JSONField
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
@@ -83,10 +83,20 @@ class User(AbstractUser):
     )
     require_mfa = BooleanField(
         # Keep the original database column name for backward compatibility with existing databases
-        db_column='require_2fa',
+        db_column="require_2fa",
         default=False,
         help_text="Require the user to set up multi-factor authentication",
         verbose_name="Require MFA",
+    )
+    sidebar_preferences = JSONField(
+        default=dict,
+        blank=True,
+        help_text="Versioned IDs for the user's pinned sidebar shortcuts",
+    )
+    workspace_preferences = JSONField(
+        default=dict,
+        blank=True,
+        help_text="Versioned pinned work and recent working-report IDs",
     )
 
     def get_absolute_url(self):
@@ -95,7 +105,9 @@ class User(AbstractUser):
     def get_display_name(self):
         """Return a display name appropriate for dropdown menus."""
         if self.name:
-            display_name = "{full_name} ({username})".format(full_name=self.name, username=self.username)
+            display_name = "{full_name} ({username})".format(
+                full_name=self.name, username=self.username
+            )
         else:
             display_name = self.username.capitalize()
 

@@ -107,23 +107,23 @@ class UserProfileTokenDisplayTests(TestCase):
             count=2,
         )
         self.assertContains(
-            response, '<th class="align-middle text-left">Last Used</th>', count=2
+            response, '<th class="align-middle text-start">Last Used</th>', count=2
         )
 
         self.assertContains(
             response,
-            'class="align-middle text-left warning"',
+            'class="align-middle text-start warning"',
             count=2,
         )
         self.assertContains(response, "Later API Token")
         self.assertContains(response, "Later Service Token")
         self.assertContains(
             response,
-            'class="align-middle text-left burned js-expired-token js-expired-api-token"',
+            'class="align-middle text-start burned js-expired-token js-expired-api-token"',
         )
         self.assertContains(
             response,
-            'class="align-middle text-left burned js-expired-token js-expired-service-token"',
+            'class="align-middle text-start burned js-expired-token js-expired-service-token"',
         )
 
         self.assertContains(
@@ -213,10 +213,10 @@ class UserProfileTokenDisplayTests(TestCase):
         response = self.client_auth.get(self.uri)
 
         self.assertNotContains(
-            response, '<th class="align-middle text-left">Service Principal</th>'
+            response, '<th class="align-middle text-start">Service Principal</th>'
         )
         self.assertNotContains(
-            response, '<th class="align-middle text-left">Scope</th>'
+            response, '<th class="align-middle text-start">Scope</th>'
         )
         self.assertContains(
             response,

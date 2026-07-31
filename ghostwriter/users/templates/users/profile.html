@@ -41,11 +41,11 @@
 
   {% comment %} Users Profile Section {% endcomment %}
   <div id="profile-overview-card" class="card mt-4 mb-4">
-    <div class="card-header text-left">
+    <div class="card-header text-start">
       <h4 class="icon user-icon m-0">Profile Overview</h4>
     </div>
     <div class="card-body pt-3 pb-1">
-      <div class="row text-left">
+      <div class="row text-start">
         <div class="col-md-6 col-xl-4 mb-3">
           <p class="bold icon user-icon mb-1">Full Name</p>
           <p class="mb-0">{% if user.name %}{{ user.name }}{% else %}Missing Full Name{% endif %}</p>
@@ -97,23 +97,23 @@
   {%  if user.projectassignment_set.all %}
     {% if request.user|is_privileged or request.user == user %}
       <div id="assignment-card" class="card mt-4 mb-4">
-        <div class="card-header text-left">
+        <div class="card-header text-start">
           <h4 class="icon assignment-icon m-0">Active Project Assignments</h4>
         </div>
         <div class="card-body pb-1">
           <div class="table-responsive">
             <table id="assignmentTable" class="tablesorter table-sm table-hover mt-2 mb-2">
               <thead>
-              <th class="align-middle text-left">Project</th>
-              <th class="align-middle text-left">Role</th>
-              <th class="align-middle sorter-date-range-dMMMyyyy text-left">Execution Dates</th>
+              <th class="align-middle text-start">Project</th>
+              <th class="align-middle text-start">Role</th>
+              <th class="align-middle sorter-date-range-dMMMyyyy text-start">Execution Dates</th>
               </thead>
               {% for assignment in user.projectassignment_set.all %}
                 {% if not assignment.project.complete %}
                   <tr id="assignment_{{ assignment.id }}">
-                    <td class="align-middle text-left"><a class="clickable" href="{{ assignment.project.get_absolute_url }}">{{ assignment.project.codename|bleach }}</a></td>
-                    <td class="align-middle text-left">{{ assignment.role }}</td>
-                    <td class="align-middle text-left" data-text="{{ assignment.start_date|date:"Y-m-d" }}">{{ assignment.start_date|date:"DATE_FORMAT" }} – {{ assignment.end_date|date:"DATE_FORMAT" }}</td>
+                    <td class="align-middle text-start"><a class="clickable" href="{{ assignment.project.get_absolute_url }}">{{ assignment.project.codename|bleach }}</a></td>
+                    <td class="align-middle text-start">{{ assignment.role }}</td>
+                    <td class="align-middle text-start" data-text="{{ assignment.start_date|date:"Y-m-d" }}">{{ assignment.start_date|date:"DATE_FORMAT" }} – {{ assignment.end_date|date:"DATE_FORMAT" }}</td>
                   </tr>
                 {% endif %}
               {% endfor %}
@@ -129,8 +129,8 @@
       <div class="card-header d-flex flex-column flex-md-row justify-content-between align-items-md-center">
         <h4 class="icon user-secret-icon m-0 align-middle">Personal Access Tokens</h4>
         <div class="d-flex align-items-center mt-3 mt-md-0">
-          <label class="d-flex align-items-center mb-0 mr-3">
-            <span class="switch mr-2">
+          <label class="d-flex align-items-center mb-0 me-3">
+            <span class="switch me-2">
               <input id="js-hide-expired-tokens" class="js-hide-expired-tokens" data-expired-token-selector=".js-expired-token" data-storage-key="profileHideExpiredTokens" type="checkbox">
               <span class="slider round"></span>
             </span>
@@ -143,11 +143,11 @@
         </div>
       </div>
       <div class="card-body pb-1">
-        <p class="card-text text-left">
+        <p class="card-text text-start">
           User tokens authenticate as your user account and inherit your current Ghostwriter permissions. Use them for personal access.
           Service tokens authenticate as non-human service principals and use only the permissions assigned to the token. Use these for automation and integrations.
         </p>
-        <p class="card-text text-left text-muted">
+        <p class="card-text text-start text-muted">
           Tokens are shown once when created or regenerated. Expiration dates cannot be further out than {{ general_config.token_max_lifetime_days }} days.
           Shortening expiry keeps the same token. Extending expiry
           {% if general_config.token_extend_requires_rotation %}rotates the token and immediately invalidates the old value{% else %}
@@ -158,27 +158,27 @@
 
         <div class="js-token-table-wrapper">
           <div class="js-token-table-section">
-            <h5 class="text-left mt-4 mb-2">User Tokens</h5>
+            <h5 class="text-start mt-4 mb-2">User Tokens</h5>
             {% if user.apikey_set.get_usable_keys %}
               <div class="table-responsive js-token-table-responsive">
                 <table id="tokenTable" class="tablesorter table-sm table-hover mt-2 mb-2">
                 <thead>
-                <th class="align-middle text-left">Name</th>
-                <th class="align-middle text-left">Added</th>
-                <th class="align-middle text-left">Expires</th>
-                <th class="align-middle text-left">Last Used</th>
+                <th class="align-middle text-start">Name</th>
+                <th class="align-middle text-start">Added</th>
+                <th class="align-middle text-start">Expires</th>
+                <th class="align-middle text-start">Last Used</th>
                 <th class="align-middle sorter-false">Actions</th>
                 </thead>
                 {% for key in user.apikey_set.get_usable_keys %}
                   <tr id="token_{{ key.id }}" class="js-token-row">
-                    <td id="key_name_{{ key.id }}" class="align-middle text-left">{{ key.name|bleach }}</td>
-                    <td class="align-middle text-left">{{ key.created|date:"d M Y @ H:i:s e" }}</td>
+                    <td id="key_name_{{ key.id }}" class="align-middle text-start">{{ key.name|bleach }}</td>
+                    <td class="align-middle text-start">{{ key.created|date:"d M Y @ H:i:s e" }}</td>
                     {% if key.has_expired %}
-                      <td id="token-expiry-display-{{ key.id }}" class="align-middle text-left burned js-expired-token js-expired-api-token">{{ key.expiry_date|date:"d M Y @ H:i:s e" }}</td>
+                      <td id="token-expiry-display-{{ key.id }}" class="align-middle text-start burned js-expired-token js-expired-api-token">{{ key.expiry_date|date:"d M Y @ H:i:s e" }}</td>
                     {% elif key.expires_soon %}
-                      <td id="token-expiry-display-{{ key.id }}" class="align-middle text-left warning">{{ key.expiry_date|date:"d M Y @ H:i:s e" }}</td>
+                      <td id="token-expiry-display-{{ key.id }}" class="align-middle text-start warning">{{ key.expiry_date|date:"d M Y @ H:i:s e" }}</td>
                     {% else %}
-                      <td id="token-expiry-display-{{ key.id }}" class="align-middle text-left">
+                      <td id="token-expiry-display-{{ key.id }}" class="align-middle text-start">
                         {% if key.expiry_date %}
                           {{ key.expiry_date|date:"d M Y @ H:i:s e" }}
                         {% else %}
@@ -186,7 +186,7 @@
                         {% endif %}
                       </td>
                     {% endif %}
-                    <td class="align-middle text-left">
+                    <td class="align-middle text-start">
                       {% if key.last_used_at %}
                         {{ key.last_used_at|date:"d M Y @ H:i:s e" }}
                       {% else %}
@@ -206,8 +206,8 @@
                            href="javascript:void(0);">
                           Details
                         </a>
-                        <a id="token-expiry-button-{{ key.id }}" class="btn btn-secondary btn-sm token-action-button js-edit-token-expiry" data-toggle="modal"
-                           data-target="#edit-token-expiry-modal" href="javascript:void(0);"
+                        <a id="token-expiry-button-{{ key.id }}" class="btn btn-secondary btn-sm token-action-button js-edit-token-expiry" data-bs-toggle="modal"
+                           data-bs-target="#edit-token-expiry-modal" href="javascript:void(0);"
                            data-expiry-target-url="{% url 'api:update_token_expiry' key.id %}"
                            data-expiry-target-preview="{{ key.name }}"
                            data-expiry-current="{% if key.expiry_date %}{{ key.expiry_date|date:'Y-m-d' }}T{{ key.expiry_date|date:'H:i:s' }}{% endif %}"
@@ -218,15 +218,15 @@
                         <form class="d-flex m-0 js-regenerate-token-form" method="post" action="{% url 'api:regenerate_token' key.id %}">
                           {% csrf_token %}
                           {% if key.has_expired %}
-                            <span class="d-flex" data-toggle="tooltip" tabindex="0" title="Extend expiry before regenerating this token.">
+                            <span class="d-flex" data-bs-toggle="tooltip" tabindex="0" title="Extend expiry before regenerating this token.">
                               <button id="token-regenerate-button-{{ key.id }}" class="btn btn-primary btn-sm rounded-0 h-100 token-action-button" type="submit" disabled>Regenerate</button>
                             </span>
                           {% else %}
                             <button id="token-regenerate-button-{{ key.id }}" class="btn btn-primary btn-sm rounded-0 h-100 token-action-button" type="submit">Regenerate</button>
                           {% endif %}
                         </form>
-                        <a id="token-revoke-button-{{ key.id }}" class="btn btn-danger btn-sm token-action-button js-confirm-revoke" data-toggle="modal"
-                           data-target="#confirm-revoke-modal" href="javascript:void(0);"
+                        <a id="token-revoke-button-{{ key.id }}" class="btn btn-danger btn-sm token-action-button js-confirm-revoke" data-bs-toggle="modal"
+                           data-bs-target="#confirm-revoke-modal" href="javascript:void(0);"
                            data-revoke-target-csrftoken="{{ csrf_token }}" data-revoke-target-url="{% url 'api:ajax_revoke_token' key.id %}"
                            data-revoke-target-id="{{ key.id }}" data-revoke-target-preview="{{ key.name }}">
                           Revoke
@@ -244,28 +244,28 @@
           </div>
 
           <div class="js-token-table-section">
-            <h5 class="text-left mt-4 mb-2">Service Tokens</h5>
+            <h5 class="text-start mt-4 mb-2">Service Tokens</h5>
             {% with service_tokens=user.service_tokens.get_usable_tokens %}
             {% if service_tokens %}
               <div class="table-responsive js-token-table-responsive">
               <table id="serviceTokenTable" class="tablesorter table-sm table-hover mt-2 mb-2">
               <thead>
-              <th class="align-middle text-left">Name</th>
-              <th class="align-middle text-left">Added</th>
-              <th class="align-middle text-left">Expires</th>
-              <th class="align-middle text-left">Last Used</th>
+              <th class="align-middle text-start">Name</th>
+              <th class="align-middle text-start">Added</th>
+              <th class="align-middle text-start">Expires</th>
+              <th class="align-middle text-start">Last Used</th>
               <th class="align-middle sorter-false">Actions</th>
               </thead>
               {% for key in service_tokens %}
                 <tr id="service_token_{{ key.id }}" class="js-token-row">
-                  <td class="align-middle text-left">{{ key.name|bleach }}</td>
-                  <td class="align-middle text-left">{{ key.created|date:"d M Y @ H:i:s e" }}</td>
+                  <td class="align-middle text-start">{{ key.name|bleach }}</td>
+                  <td class="align-middle text-start">{{ key.created|date:"d M Y @ H:i:s e" }}</td>
                   {% if key.has_expired %}
-                    <td id="service-token-expiry-display-{{ key.id }}" class="align-middle text-left burned js-expired-token js-expired-service-token">{{ key.expiry_date|date:"d M Y @ H:i:s e" }}</td>
+                    <td id="service-token-expiry-display-{{ key.id }}" class="align-middle text-start burned js-expired-token js-expired-service-token">{{ key.expiry_date|date:"d M Y @ H:i:s e" }}</td>
                   {% elif key.expires_soon %}
-                    <td id="service-token-expiry-display-{{ key.id }}" class="align-middle text-left warning">{{ key.expiry_date|date:"d M Y @ H:i:s e" }}</td>
+                    <td id="service-token-expiry-display-{{ key.id }}" class="align-middle text-start warning">{{ key.expiry_date|date:"d M Y @ H:i:s e" }}</td>
                   {% else %}
-                    <td id="service-token-expiry-display-{{ key.id }}" class="align-middle text-left">
+                    <td id="service-token-expiry-display-{{ key.id }}" class="align-middle text-start">
                       {% if key.expiry_date %}
                         {{ key.expiry_date|date:"d M Y @ H:i:s e" }}
                       {% else %}
@@ -273,7 +273,7 @@
                       {% endif %}
                     </td>
                   {% endif %}
-                  <td class="align-middle text-left">
+                  <td class="align-middle text-start">
                     {% if key.last_used_at %}
                       {{ key.last_used_at|date:"d M Y @ H:i:s e" }}
                     {% else %}
@@ -293,8 +293,8 @@
                          href="javascript:void(0);">
                         Details
                       </a>
-                      <a id="service-token-expiry-button-{{ key.id }}" class="btn btn-secondary btn-sm token-action-button js-edit-token-expiry" data-toggle="modal"
-                         data-target="#edit-token-expiry-modal" href="javascript:void(0);"
+                      <a id="service-token-expiry-button-{{ key.id }}" class="btn btn-secondary btn-sm token-action-button js-edit-token-expiry" data-bs-toggle="modal"
+                         data-bs-target="#edit-token-expiry-modal" href="javascript:void(0);"
                          data-expiry-target-url="{% url 'api:update_service_token_expiry' key.id %}"
                          data-expiry-target-preview="{{ key.name }}"
                          data-expiry-current="{% if key.expiry_date %}{{ key.expiry_date|date:'Y-m-d' }}T{{ key.expiry_date|date:'H:i:s' }}{% endif %}"
@@ -305,15 +305,15 @@
                       <form class="d-flex m-0 js-regenerate-token-form" method="post" action="{% url 'api:regenerate_service_token' key.id %}">
                         {% csrf_token %}
                         {% if key.has_expired %}
-                          <span class="d-flex" data-toggle="tooltip" tabindex="0" title="Extend expiry before regenerating this token.">
+                          <span class="d-flex" data-bs-toggle="tooltip" tabindex="0" title="Extend expiry before regenerating this token.">
                             <button id="service-token-regenerate-button-{{ key.id }}" class="btn btn-primary btn-sm rounded-0 h-100 token-action-button" type="submit" disabled>Regenerate</button>
                           </span>
                         {% else %}
                           <button id="service-token-regenerate-button-{{ key.id }}" class="btn btn-primary btn-sm rounded-0 h-100 token-action-button" type="submit">Regenerate</button>
                         {% endif %}
                       </form>
-                      <a id="service-token-revoke-button-{{ key.id }}" class="btn btn-danger btn-sm token-action-button js-confirm-revoke" data-toggle="modal"
-                         data-target="#confirm-revoke-modal" href="javascript:void(0);"
+                      <a id="service-token-revoke-button-{{ key.id }}" class="btn btn-danger btn-sm token-action-button js-confirm-revoke" data-bs-toggle="modal"
+                         data-bs-target="#confirm-revoke-modal" href="javascript:void(0);"
                          data-revoke-target-csrftoken="{{ csrf_token }}" data-revoke-target-url="{% url 'api:ajax_revoke_service_token' key.id %}"
                          data-revoke-target-id="{{ key.id }}" data-revoke-target-preview="{{ key.name }}">
                         Revoke
@@ -338,11 +338,11 @@
             <div id="api-token-details-modal-content" class="modal-content">
               <div class="modal-header">
                 <h5 class="modal-title" id="api-token-details-modal-label">API Token Access Details</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
                   <span aria-hidden="true">&times;</span>
                 </button>
               </div>
-              <div class="modal-body text-left">
+              <div class="modal-body text-start">
                 <div class="text-center text-muted py-4">Loading API token details...</div>
               </div>
             </div>
@@ -354,11 +354,11 @@
             <div id="service-token-details-modal-content" class="modal-content">
               <div class="modal-header">
                 <h5 class="modal-title" id="service-token-details-modal-label">Service Token Access Details</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
                   <span aria-hidden="true">&times;</span>
                 </button>
               </div>
-              <div class="modal-body text-left">
+              <div class="modal-body text-start">
                 <div class="text-center text-muted py-4">Loading service token details...</div>
               </div>
             </div>
@@ -604,14 +604,14 @@
       }
 
       function showReplacementTokenModal(replacementToken) {
-        let modalHtml = '<div class="modal" data-backdrop="static" data-keyboard="false" tabindex="-1" role="dialog" aria-hidden="false">' +
+        let modalHtml = '<div class="modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" role="dialog" aria-hidden="false">' +
           '<div class="modal-dialog token-modal modal-dialog-centered" role="document">' +
           '<div class="modal-content">' +
           '<div class="modal-header"><h5 class="modal-title">Your Replacement Token</h5></div>' +
           '<div class="modal-body confirm-token"><code></code></div>' +
           '<div class="modal-footer d-flex flex-column align-items-stretch">' +
-          '<p class="mb-2 text-left">Please store it somewhere safe; you will not be able to see it again!</p>' +
-          '<button type="button" class="btn btn-danger align-self-end" data-dismiss="modal">I Saved It</button>' +
+          '<p class="mb-2 text-start">Please store it somewhere safe; you will not be able to see it again!</p>' +
+          '<button type="button" class="btn btn-danger align-self-end" data-bs-dismiss="modal">I Saved It</button>' +
           '</div>' +
           '</div></div></div>';
         let $replacementModal = $(modalHtml);
@@ -627,15 +627,15 @@
       function buildTokenDetailsModalHtml(modalLabelId, modalTitle, bodyHtml, includeFooter) {
         let modalHtml = '<div class="modal-header">' +
           '<h5 class="modal-title" id="' + modalLabelId + '">' + modalTitle + '</h5>' +
-          '<button type="button" class="close" data-dismiss="modal" aria-label="Close">' +
+          '<button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">' +
           '<span aria-hidden="true">&times;</span></button></div>' +
-          '<div class="modal-body text-left">' +
+          '<div class="modal-body text-start">' +
           bodyHtml +
           '</div>';
 
         if (includeFooter) {
           modalHtml += '<div class="modal-footer">' +
-            '<button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>' +
+            '<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>' +
             '</div>';
         }
         return modalHtml;
@@ -745,7 +745,7 @@
 
           if ($expiryDisplay.length) {
             $expiryDisplay
-              .attr('class', 'align-middle text-left ' + response.expiryStatusClass)
+              .attr('class', 'align-middle text-start ' + response.expiryStatusClass)
               .text(response.expiry);
           }
           $modal.modal('hide');
@@ -800,7 +800,7 @@
 
   {% for message in messages %}
     {% if "api-token" in message.tags or "service-token" in message.tags %}
-      <div class="modal" id="confirm-token-modal" data-backdrop="static" data-keyboard="false" tabindex="-1"
+      <div class="modal" id="confirm-token-modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
            caller-id="" role="dialog" aria-labelledby="confirm-token-modal-label" aria-hidden="false">
         <div class="modal-dialog token-modal modal-dialog-centered" role="document">
           <div class="modal-content">
@@ -811,8 +811,8 @@
               <code>{{ message }}</code>
             </div>
             <div class="modal-footer d-flex flex-column align-items-stretch">
-              <p class="mb-2 text-left">Please store it somewhere safe; you will not be able to see it again!</p>
-              <button type="button" class="btn btn-danger align-self-end" data-dismiss="modal">I Saved It</button>
+              <p class="mb-2 text-start">Please store it somewhere safe; you will not be able to see it again!</p>
+              <button type="button" class="btn btn-danger align-self-end" data-bs-dismiss="modal">I Saved It</button>
             </div>
           </div>
         </div>
@@ -827,11 +827,11 @@
         {% csrf_token %}
         <div class="modal-header">
           <h5 class="modal-title" id="edit-token-expiry-modal-label">Edit Token Expiry</h5>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
             <span aria-hidden="true">&times;</span>
           </button>
         </div>
-        <div class="modal-body text-left">
+        <div class="modal-body text-start">
           <p class="mb-3">Update the expiry date for <span id="edit-token-expiry-name" class="bold"></span>.</p>
           <p id="edit-token-expiry-regeneration-warning" class="alert alert-warning d-none">
             Extending this token's expiry will generate a replacement token. The current token value will stop working after you save, and the new token will be shown once.
@@ -844,7 +844,7 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
           <button type="submit" class="btn btn-primary">Save Expiry</button>
         </div>
       </form>

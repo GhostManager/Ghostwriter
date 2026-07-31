@@ -1,0 +1,309 @@
+<div class="sidebar-rail" aria-label="Quick navigation">
+  <div class="sidebar-rail-primary">
+    {% for item in sidebar_navigation.core %}
+      <a
+        href="{{ item.url }}"
+        class="{% if item.active %}sidebar-current{% endif %}"
+        aria-label="{{ item.label }}"
+        {% if item.active %}aria-current="page"{% endif %}
+        data-bs-toggle="tooltip"
+        data-bs-placement="right"
+        title="{{ item.label }}"
+      >
+        <i class="{{ item.icon }}" aria-hidden="true"></i>
+      </a>
+    {% endfor %}
+    {% if sidebar_navigation.preferences.visible_panels %}
+      <span class="sidebar-rail-divider" aria-hidden="true"></span>
+      <div class="sidebar-rail-panels">
+        {% for panel in sidebar_navigation.panels %}
+          {% if panel.visible %}
+            <div class="sidebar-rail-panel" data-sidebar-panel-id="{{ panel.id }}">
+              {% if panel.id == "working_context" %}
+                <button
+                  type="button"
+                  class="sidebar-rail-action sidebar-working-context-action{% if active_engagement %} has-working-report{% endif %}"
+                  aria-label="{% if active_engagement %}Switch working report{% else %}Choose working report{% endif %}"
+                  data-working-context-tooltip
+                  data-bs-toggle="modal"
+                  data-bs-target="#workingContextModal"
+                  data-working-context-launcher="all"
+                  title="{% if active_engagement %}Working report: {{ active_engagement.report.title }}{% else %}Choose working report{% endif %}"
+                >
+                  <i class="fas {% if active_engagement %}fa-bullseye{% else %}fa-crosshairs{% endif %}" aria-hidden="true"></i>
+                </button>
+              {% elif panel.id == "pinned_work" %}
+                <div class="sidebar-rail-pinned-work{% if not pinned_work %} d-none{% endif %}"
+                     data-sidebar-rail-pinned-work>
+                  {% for item in pinned_work %}
+                    <a class="sidebar-rail-work-link"
+                       href="{{ item.url }}"
+                       aria-label="Pinned {{ item.type }}: {{ item.label }}"
+                       data-bs-toggle="tooltip"
+                       data-bs-placement="right"
+                       title="{{ item.label }}">
+                      <i class="{{ item.icon }}" aria-hidden="true"></i>
+                    </a>
+                  {% endfor %}
+                </div>
+              {% endif %}
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    {% endif %}
+    {% if sidebar_navigation.pinned %}
+      <span class="sidebar-rail-divider" aria-hidden="true"></span>
+      {% for item in sidebar_navigation.pinned %}
+        <a
+          href="{{ item.url }}"
+          class="{% if item.active %}sidebar-current{% endif %}"
+          aria-label="{{ item.label }}"
+          {% if item.active %}aria-current="page"{% endif %}
+          data-bs-toggle="tooltip"
+          data-bs-placement="right"
+          title="{{ item.label }}"
+        >
+          <i class="{{ item.icon }}" aria-hidden="true"></i>
+        </a>
+      {% endfor %}
+    {% endif %}
+  </div>
+
+  <div class="sidebar-rail-more dropend">
+    <button
+      type="button"
+      class="sidebar-rail-action{% if sidebar_navigation.has_active_more %} sidebar-current{% endif %}"
+      aria-label="More Ghostwriter tools"
+      data-bs-toggle="dropdown"
+      aria-expanded="false"
+      title="More tools"
+    >
+      <i class="fas fa-ellipsis-h" aria-hidden="true"></i>
+    </button>
+    <div class="dropdown-menu sidebar-more-menu">
+      <div class="sidebar-more-menu-heading">
+        <span>More tools</span>
+        <button
+          type="button"
+          class="btn btn-sm btn-link"
+          data-bs-toggle="modal"
+          data-bs-target="#sidebarPreferencesModal"
+        >
+          Customize
+        </button>
+      </div>
+      {% for group in sidebar_navigation.more_groups %}
+        <div class="sidebar-more-group">
+          <span class="sidebar-more-group-label">{{ group.label }}</span>
+          {% for item in group.items %}
+            <a
+              class="dropdown-item{% if item.active %} active{% endif %}"
+              href="{{ item.url }}"
+              {% if item.active %}aria-current="page"{% endif %}
+            >
+              <i class="{{ item.icon }}" aria-hidden="true"></i>
+              <span>{{ item.label }}</span>
+            </a>
+          {% endfor %}
+        </div>
+      {% empty %}
+        <p class="sidebar-more-empty">All available tools are pinned.</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="sidebar-rail-utilities">
+    <a
+      class="sidebar-rail-profile"
+      href="{% url 'users:user_detail' request.user.username %}"
+      aria-label="Profile for {{ request.user.username }}"
+      data-bs-toggle="tooltip"
+      data-bs-placement="right"
+      title="Profile"
+    >
+      <img src="{% url 'users:avatar_download' slug=request.user.username %}" alt="">
+    </a>
+    <div class="dropend">
+      <button
+        type="button"
+        class="sidebar-rail-action"
+        aria-label="Theme settings"
+        data-sidebar-theme-trigger
+        data-bs-toggle="dropdown"
+        aria-expanded="false"
+        title="Theme settings"
+      >
+        <i class="fas fa-adjust" aria-hidden="true"></i>
+      </button>
+      <ul class="dropdown-menu sidebar-theme-menu">
+        <li><button type="button" class="dropdown-item" data-theme-value="light"><i class="fas fa-sun" aria-hidden="true"></i> Light</button></li>
+        <li><button type="button" class="dropdown-item" data-theme-value="dark"><i class="fas fa-moon" aria-hidden="true"></i> Dark</button></li>
+        <li><button type="button" class="dropdown-item" data-theme-value="auto"><i class="fas fa-desktop" aria-hidden="true"></i> System</button></li>
+      </ul>
+    </div>
+    <a href="{% url 'account_logout' %}" aria-label="Logout" data-bs-toggle="tooltip" data-bs-placement="right" title="Logout">
+      <i class="fas fa-sign-out-alt" aria-hidden="true"></i>
+    </a>
+  </div>
+</div>
+
+<div class="sidebar-body">
+  <div class="sidebar-navigation-toolbar">
+    <button
+      type="button"
+      class="sidebar-toggle-control sidebar-expanded-toggle"
+      aria-controls="sidebar"
+      aria-expanded="{% if request.session.sidebar.sticky %}true{% else %}false{% endif %}"
+      aria-label="Collapse navigation"
+      title="Collapse navigation"
+    >
+      <i
+        aria-hidden="true"
+        class="sidebar-toggle-btn fas fa-chevron-right {% if request.session.sidebar.sticky %}fa-flip-horizontal{% endif %}"></i>
+    </button>
+    <button
+      type="button"
+      class="btn btn-sm sidebar-customize-button"
+      data-bs-toggle="modal"
+      data-bs-target="#sidebarPreferencesModal"
+    >
+      <i class="fas fa-pen" aria-hidden="true"></i>
+      <span>Customize</span>
+    </button>
+  </div>
+
+  <nav class="sidebar-navigation" aria-label="Ghostwriter navigation">
+    <section class="sidebar-navigation-section" aria-labelledby="sidebar-core-heading">
+      <h2 id="sidebar-core-heading">Workspace</h2>
+      <ul class="list-unstyled">
+        {% for item in sidebar_navigation.core %}
+          <li>
+            <a
+              href="{{ item.url }}"
+              class="sidebar-navigation-link{% if item.active %} sidebar-current{% endif %}"
+              {% if item.active %}aria-current="page"{% endif %}
+            >
+              <span class="sidebar-navigation-icon"><i class="{{ item.icon }}" aria-hidden="true"></i></span>
+              <span>{{ item.label }}</span>
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    {% for panel in sidebar_navigation.panels %}
+      {% if panel.visible %}
+        {% if panel.id == "working_context" %}
+          <section class="sidebar-navigation-section sidebar-working-section"
+                   data-sidebar-panel-id="{{ panel.id }}"
+                   aria-labelledby="sidebar-working-heading">
+            <div class="sidebar-navigation-section-heading">
+              <h2 id="sidebar-working-heading">Working context</h2>
+              <i class="fas fa-crosshairs" aria-hidden="true"></i>
+            </div>
+            <button type="button"
+                    class="sidebar-working-report{% if active_engagement %} has-working-report{% endif %}"
+                    data-bs-toggle="modal"
+                    data-bs-target="#workingContextModal"
+                    data-working-context-launcher="all">
+              <span class="sidebar-working-report-icon">
+                <i class="fas {% if active_engagement %}fa-bullseye{% else %}fa-crosshairs{% endif %}" aria-hidden="true"></i>
+              </span>
+              <span class="sidebar-working-report-copy">
+                <small>Working report</small>
+                <strong data-working-report-title>
+                  {% if active_engagement %}{{ active_engagement.report.title }}{% else %}Choose a report{% endif %}
+                </strong>
+              </span>
+              <i class="fas fa-exchange-alt sidebar-working-report-switch" aria-hidden="true"></i>
+            </button>
+          </section>
+        {% elif panel.id == "pinned_work" %}
+          <section class="sidebar-navigation-section sidebar-pinned-work-section"
+                   data-sidebar-panel-id="{{ panel.id }}"
+                   aria-labelledby="sidebar-pinned-work-heading">
+            <div class="sidebar-navigation-section-heading">
+              <h2 id="sidebar-pinned-work-heading">Pinned work</h2>
+              <button type="button"
+                      class="sidebar-pinned-work-manage"
+                      data-bs-toggle="modal"
+                      data-bs-target="#workingContextModal"
+                      data-working-context-launcher="pinned"
+                      aria-label="Manage pinned work"
+                      title="Manage pinned work">
+                <i class="fas fa-thumbtack" aria-hidden="true"></i>
+              </button>
+            </div>
+            {% include "snippets/pinned_work_list.html" %}
+          </section>
+        {% endif %}
+      {% endif %}
+    {% endfor %}
+
+    <section class="sidebar-navigation-section" aria-labelledby="sidebar-pinned-heading">
+      <div class="sidebar-navigation-section-heading">
+        <h2 id="sidebar-pinned-heading">Pinned tools</h2>
+        <i class="fas fa-thumbtack" aria-hidden="true"></i>
+      </div>
+      {% if sidebar_navigation.pinned %}
+        <ul class="list-unstyled">
+          {% for item in sidebar_navigation.pinned %}
+            <li>
+              <a
+                href="{{ item.url }}"
+                class="sidebar-navigation-link{% if item.active %} sidebar-current{% endif %}"
+                {% if item.active %}aria-current="page"{% endif %}
+              >
+                <span class="sidebar-navigation-icon"><i class="{{ item.icon }}" aria-hidden="true"></i></span>
+                <span>{{ item.label }}</span>
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="sidebar-navigation-empty">Pin the tools you use during an engagement.</p>
+      {% endif %}
+    </section>
+
+    <section class="sidebar-navigation-section sidebar-navigation-catalog" aria-labelledby="sidebar-more-heading">
+      <button
+        type="button"
+        class="sidebar-navigation-disclosure{% if sidebar_navigation.has_active_more %} sidebar-current{% endif %}"
+        data-bs-toggle="collapse"
+        data-bs-target="#sidebarMoreNavigation"
+        aria-expanded="{% if sidebar_navigation.has_active_more %}true{% else %}false{% endif %}"
+        aria-controls="sidebarMoreNavigation"
+      >
+        <span>
+          <span class="sidebar-navigation-icon"><i class="fas fa-ellipsis-h" aria-hidden="true"></i></span>
+          <span id="sidebar-more-heading">More tools</span>
+        </span>
+        <i class="fas fa-chevron-down sidebar-navigation-caret" aria-hidden="true"></i>
+      </button>
+      <div id="sidebarMoreNavigation" class="collapse{% if sidebar_navigation.has_active_more %} show{% endif %}">
+        {% for group in sidebar_navigation.more_groups %}
+          <div class="sidebar-navigation-more-group">
+            <h3>{{ group.label }}</h3>
+            <ul class="list-unstyled">
+              {% for item in group.items %}
+                <li>
+                  <a
+                    href="{{ item.url }}"
+                    class="sidebar-navigation-link{% if item.active %} sidebar-current{% endif %}"
+                    {% if item.active %}aria-current="page"{% endif %}
+                  >
+                    <span class="sidebar-navigation-icon"><i class="{{ item.icon }}" aria-hidden="true"></i></span>
+                    <span>{{ item.label }}</span>
+                  </a>
+                </li>
+              {% endfor %}
+            </ul>
+          </div>
+        {% empty %}
+          <p class="sidebar-navigation-empty">All available tools are pinned.</p>
+        {% endfor %}
+      </div>
+    </section>
+  </nav>
+</div>

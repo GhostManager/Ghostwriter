@@ -1,0 +1,74 @@
+<div
+  class="modal fade working-context-modal"
+  id="workingContextModal"
+  tabindex="-1"
+  aria-labelledby="workingContextModalLabel"
+  aria-hidden="true"
+  data-working-context-modal
+  data-catalog-url="{% url 'home:working_context_catalog' %}"
+  data-pin-url="{% url 'home:toggle_workspace_pin' %}"
+>
+  {% csrf_token %}
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div>
+          <span class="working-context-eyebrow">Working context</span>
+          <h2 class="modal-title" id="workingContextModalLabel">Switch working report</h2>
+          <p>Quick-add actions from the Findings and Observations libraries go to this report.</p>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="working-context-tools">
+          <label class="working-context-search">
+            <span class="visually-hidden">Search clients, projects, and reports</span>
+            <i class="fas fa-search" aria-hidden="true"></i>
+            <input
+              type="search"
+              class="form-control"
+              placeholder="Search clients, projects, and reports"
+              autocomplete="off"
+              data-1p-ignore
+              data-lpignore="true"
+              data-working-context-search
+            >
+          </label>
+          <div class="working-context-filter-group" role="group" aria-label="Report choices">
+            <button type="button" class="btn active" data-working-context-filter="all" aria-pressed="true">
+              Available
+            </button>
+            <button type="button" class="btn" data-working-context-filter="pinned" aria-pressed="false">
+              Pinned
+            </button>
+            <label class="working-context-completed-toggle">
+              <input class="form-check-input" type="checkbox" role="switch" data-working-context-completed>
+              <span>Show completed</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="working-context-loading" data-working-context-loading role="status">
+          <i class="fas fa-circle-notch fa-spin" aria-hidden="true"></i>
+          <span>Loading report choices…</span>
+        </div>
+        <div class="working-context-list d-none" data-working-context-list aria-live="polite"></div>
+        <div class="working-context-empty d-none" data-working-context-empty>
+          <i class="fas fa-crosshairs" aria-hidden="true"></i>
+          <strong>No reports match this view</strong>
+          <span>Try a broader search or include completed reports.</span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <p>
+          <i class="fas fa-thumbtack" aria-hidden="true"></i>
+          Pins are navigation shortcuts. Only a working report receives quick-adds.
+        </p>
+        <a class="btn btn-outline-secondary" href="{% url 'reporting:report_create_no_project' %}">
+          Create report
+        </a>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>

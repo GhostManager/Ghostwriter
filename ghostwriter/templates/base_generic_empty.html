@@ -13,15 +13,17 @@
   <link rel="shortcut icon" href="{% static 'favicon.ico' %}"/>
 
   <!-- Bootstrap CSS -->
-  <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}"/>
+  <link rel="stylesheet" href="{% static 'vendor/bootstrap/5.3.8/css/bootstrap.min.css' %}"/>
+  <link rel="stylesheet" href="{% static 'css/bootstrap5_compat.css' %}"/>
 
   <!-- Font Awesome -->
   <link rel="stylesheet" href="{% static 'css/fontawesome/all.css' %}"/>
 
   <!-- jQuery JS -->
   <script src="{% static 'js/jquery-3.6.1.min.js' %}"></script>
-  <script src="{% static 'js/popper.min.js' %}"></script>
-  <script src="{% static 'js/bootstrap.min.js' %}"></script>
+
+  <!-- Bootstrap JS bundle (includes Popper) -->
+  <script src="{% static 'vendor/bootstrap/5.3.8/js/bootstrap.bundle.min.js' %}"></script>
 
   <!-- Sugar Parser -->
   <script src="{% static 'js/sugar.min.js' %}"></script>
@@ -39,17 +41,17 @@
   <link rel="stylesheet" type="text/css" href="{% static 'css/toastr.min.css' %}">
   <script type="text/javascript" src="{% static 'js/toastr.min.js' %}"></script>
 
-  <!-- TinyMCE -->
-  <script src="{% static 'js/tinymce/tinymce.min.js' %}"></script>
+  <!-- Rich-text editor shortcuts -->
   {% include "snippets/editor_shortcuts_config.html" %}
 
   <!-- Ghostwriter JS & CSS -->
   <script src="{% static 'js/project.js' %}"></script>
   <script src="{% static 'js/active-report.js' %}"></script>
-  <link rel="stylesheet" href="{% static 'css/styles.css' %}"/>
+  <link rel="stylesheet" href="{% static 'css/styles.css' %}?v={{ VERSION }}"/>
+  <link rel="stylesheet" href="{% static 'css/design_system.css' %}?v={{ VERSION }}-ui9"/>
 
-  <!-- TinyMCE -->
-  <script type="text/javascript" src="{% static 'js/tinymce/config.js' %}"></script>
+  <!-- Standalone Tiptap editor (packaged for offline deployments) -->
+  <script type="module" src="{% static 'assets/standalone_tiptap_loader.js' %}?v={{ VERSION }}"></script>
 
   <!-- FullCalendar -->
   <script src="{% static 'js/fullcalendar-main.min.js' %}"></script>
@@ -70,6 +72,7 @@
         theme = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
       }
       document.documentElement.setAttribute('data-theme', theme);
+      document.documentElement.setAttribute('data-bs-theme', theme);
     } catch(e) {}
   })();
   </script>
@@ -87,7 +90,7 @@
         <!-- User Profile & Avatar -->
         <a href="{% url 'users:user_detail' request.user.username %}">
           <img class="navbar-avatar"
-               data-toggle="tooltip" data-placement="top" title="Logged-in as {{ request.user.username }}"
+               data-bs-toggle="tooltip" data-bs-placement="top" title="Logged-in as {{ request.user.username }}"
                src="{%  url 'users:avatar_download' slug=request.user.username %}"
                alt="Avatar">
         </a>
@@ -107,11 +110,12 @@
 <script>
   {% comment %} Open a modal by ID {% endcomment %}
   function openModal(modalId) {
-    // Add # prefix if not present for jQuery selector
+    // Add # prefix if not present for the selector
     const selector = modalId.startsWith('#') ? modalId : '#' + modalId;
-
-    // Show the modal
-    $(selector).modal('show');
+    const modal = document.querySelector(selector);
+    if (modal) {
+      bootstrap.Modal.getOrCreateInstance(modal).show();
+    }
   }
 
   function moveFocusOutOfModal(modal) {
@@ -142,7 +146,7 @@
       return;
     }
 
-    const dismissButton = target.closest('[data-dismiss="modal"]');
+    const dismissButton = target.closest('[data-bs-dismiss="modal"]');
     const modal = dismissButton ? dismissButton.closest('.modal') : null;
 
     if (modal) {
@@ -185,9 +189,10 @@
     $('html, body').animate({scrollTop: 0}, '300');
   });
 
-  {% comment %} Persist the active report in browser storage across login sessions {% endcomment %}
+  {% comment %} Persist the working report in browser storage across login sessions {% endcomment %}
   GhostwriterActiveReport.init({
     reportUrlTemplate: '{% url 'reporting:report_detail' 0 %}',
+    activationUrlTemplate: '{% url 'reporting:ajax_activate_report' 0 %}',
     redirectToShortcutAfterMessage: true,
   });
 
@@ -214,8 +219,10 @@
   });
 
   {% comment %} Activate Bootstrap hover tooltips {% endcomment %}
-  $(document).ready(function () {
-    $('[data-toggle="tooltip"]').tooltip();
+  document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (tooltip) {
+      bootstrap.Tooltip.getOrCreateInstance(tooltip, {boundary: document.body});
+    });
   });
 
   {% comment %} All of the Toastr JavaScript {% endcomment %}
@@ -261,10 +268,10 @@
   // Handle library-filter accordion clicks
   $(document).ready(function() {
     // Listen for clicks on library-filter accordions or their toggle controls
-    $(document).on('click', '.library-filter, [data-target*=".library-filter"], [href*=".library-filter"]', function(e) {
+    $(document).on('click', '.library-filter, [data-bs-target*=".library-filter"], [href*=".library-filter"]', function(e) {
       // Get the accordion ID if available
       let accordionId = $(this).attr('id') ||
-                        $(this).data('target') ||
+                        $(this).attr('data-bs-target') ||
                         $(this).attr('href') ||
                         'unknown';
 
@@ -296,7 +303,7 @@
       ws_proto = 'wss://'
     }
     const protocol = ws_proto
-    const username = '{{ user.get_clean_username }}';
+    const username = '{{ user.get_clean_username|escapejs }}';
 
     {% comment %} Connect to channel for individual notifications {% endcomment %}
     const ws_user = new WebSocket(
@@ -369,6 +376,7 @@
         actualTheme = getSystemTheme();
       }
       document.documentElement.setAttribute('data-theme', actualTheme);
+      document.documentElement.setAttribute('data-bs-theme', actualTheme);
       if (themeToggleSwitch) {
         if (theme === 'auto') {
           themeToggleSwitch.checked = actualTheme === 'dark';
@@ -490,14 +498,14 @@
   {% comment %} Switch to Tab with Invalid Inputs {% endcomment %}
   <script>
     // Open tab with the first invalid/missing field on submission but before POST
-    $('#submit-id-submit').click(function () {
-      $('input:invalid').each(function () {
+    $('[id^="submit-id-"]').click(function () {
+      $(':input:invalid').each(function () {
         // Find the tab-pane that this element is inside, and get the id
         let $closest = $(this).closest('.tab-pane');
         let id = $closest.attr('id');
 
         // Find the link that corresponds to the pane and have it show
-        $('.nav a[data-target="#' + id + '"], .nav a[href="#' + id + '"]').first().tab('show');
+        $('.nav a[data-bs-target="#' + id + '"], .nav a[href="#' + id + '"]').first().tab('show');
 
         // Only want to do it once
         return false;
@@ -511,20 +519,20 @@
         let id = $closest.attr('id');
 
         // Find the link that corresponds to the pane and have it show
-        $('.nav a[data-target="#' + id + '"], .nav a[href="#' + id + '"]').first().tab('show');
+        $('.nav a[data-bs-target="#' + id + '"], .nav a[href="#' + id + '"]').first().tab('show');
 
         // Only want to do it once
         return false;
       });
       // If no invalid fields, look for invalid-feedback messages
-      // This catches invalid fields taken over by TinyMCE
+      // This catches invalid fields enhanced by a rich-text editor
       $('span.invalid-feedback').each(function () {
         // Find the tab-pane that this element is inside, and get the id
         let $closest = $(this).closest('.tab-pane');
         let id = $closest.attr('id');
 
         // Find the link that corresponds to the pane and have it show
-        $('.nav a[data-target="#' + id + '"], .nav a[href="#' + id + '"]').first().tab('show');
+        $('.nav a[data-bs-target="#' + id + '"], .nav a[href="#' + id + '"]').first().tab('show');
 
         // Only want to do it once
         return false;

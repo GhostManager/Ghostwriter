@@ -1,0 +1,32 @@
+<ul class="list-unstyled sidebar-pinned-work-list{% if not pinned_work %} d-none{% endif %}"
+    data-sidebar-pinned-work-list>
+  {% for item in pinned_work %}
+    <li data-pinned-work-type="{{ item.type }}" data-pinned-work-id="{{ item.id }}">
+      <a class="sidebar-navigation-link sidebar-pinned-work-link"
+         href="{{ item.url }}"
+         title="{{ item.label }}">
+        <span class="sidebar-navigation-icon"><i class="{{ item.icon }}" aria-hidden="true"></i></span>
+        <span class="sidebar-pinned-work-copy">
+          <span>{{ item.label }}</span>
+          <small>{{ item.meta }}</small>
+        </span>
+      </a>
+      {% if item.type == "report" %}
+        <button type="button"
+                class="sidebar-pinned-work-target js-activate-report{% if item.working %} selected-report{% endif %}"
+                activate-report-csrftoken="{{ csrf_token }}"
+                activate-report-url="{{ item.activate_url }}"
+                activate-report-id="{{ item.id }}"
+                data-report-title="{{ item.label }}"
+                aria-label="{% if item.working %}Current working report{% else %}Use {{ item.label }} as the working report{% endif %}"
+                title="{% if item.working %}Current working report{% else %}Use for quick-adds{% endif %}">
+          <i class="fas {% if item.working %}fa-bullseye{% else %}fa-crosshairs{% endif %}" aria-hidden="true"></i>
+        </button>
+      {% endif %}
+    </li>
+  {% endfor %}
+</ul>
+<p class="sidebar-navigation-empty{% if pinned_work %} d-none{% endif %}"
+   data-sidebar-pinned-work-empty>
+  Pin a client, project, or report from the working-context switcher.
+</p>

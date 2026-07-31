@@ -6,7 +6,7 @@ from django.contrib.auth import get_user_model
 
 # 3rd Party Libraries
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import HTML, ButtonHolder, Column, Layout, Row, Submit
+from crispy_forms.layout import Div, HTML, ButtonHolder, Column, Layout, Row, Submit
 
 # Ghostwriter Libraries
 from ghostwriter.home.models import UserProfile
@@ -29,6 +29,7 @@ class UserProfileForm(forms.ModelForm):
         self.helper.form_method = "post"
         self.helper.attrs = {"enctype": "multipart/form-data"}
         self.helper.form_show_labels = False
+        self.helper.form_class = "resource-edit-form"
         self.helper.layout = Layout(
             HTML(
                 """
@@ -76,15 +77,14 @@ class UserProfileForm(forms.ModelForm):
                     css_class="col-8 offset-md-2",
                 )
             ),
-            ButtonHolder(
-                Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
-                HTML(
-                    """
-                    <button onclick="window.location.href='{{ cancel_link }}'"
-                    class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
-                    """
+            Div(
+                HTML("""<span class="resource-form-actions-context">Updating your profile image</span>"""),
+                Div(
+                    HTML("""<a href="{{ cancel_link }}" class="btn btn-outline-secondary">Cancel</a>"""),
+                    Submit("submit", "Save Avatar", css_class="btn btn-primary"),
+                    css_class="resource-form-actions-buttons",
                 ),
-                css_class="mt-3"
+                css_class="resource-form-actions",
             ),
         )
 

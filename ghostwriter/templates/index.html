@@ -2,263 +2,426 @@
 {% load custom_tags %}
 {% load determine_primary %}
 
-{% block pagetitle %}Ghostwriter Dashboard{% endblock %}
+{% block pagetitle %}Operator Brief | Ghostwriter{% endblock %}
 {% block navtitle %}Ghostwriter{% endblock %}
 
-{% block breadcrumbs %}
-  <nav aria-label="breadcrumb">
-    <ul class="breadcrumb">
-      <li class="breadcrumb-item active" aria-current="page">Welcome, {{ user|capfirst }}!</li>
-    </ul>
-  </nav>
-{% endblock %}
-
 {% block content %}
-  <div id="calendar" class="mt-3 mb-3"></div>
-
   {% hide_quickstart request as hide_quickstart %}
-  <div class="admin">
-    <main class="admin__main">
-      <div class="dashboard">
 
-        {% if not hide_quickstart %}
-        <div class="dashboard__item dashboard__item--full">
-          <div class="card">
-            <p class="dashboard-header text-center">Quickstart</p>
-            <div class="text-left">
-                <p>Welcome to Ghostwriter! This platform streamlines security assessment reporting and team collaboration.</p>
-
-                <p>Ghostwriter helps you manage the entire assessment lifecycle through:</p>
-                <ul>
-                  <li>Client management and project tracking</li>
-                  <li>Findings library with reusable content</li>
-                  <li>Infrastructure tracking for assessments</li>
-                  <li>Report generation and collaboration with customizable templates</li>
-                </ul>
-
-                <p>To get started:</p>
-                <ul>
-                  <li>Explore existing clients and projects via the sidebar</li>
-                  <li>Set your active report to track your current work</li>
-                  <li>Add findings to your report from the library or create custom ones</li>
-                  <li>Generate reports with consistent formatting</li>
-                </ul>
-
-                <p>Use the sidebar navigation to access all features. This dashboard will show your assignments and project calendar events to keep you organized.</p>
-                <p>If you don't see any clients or projects, you may need to create them or request access. A manager or admin can assign you to an existing project to get you started. Once you have a project and a report, you can easily access them at any time from the left-hand sidebar available on every page.</p>
-
-              <p>Learn more from the <a href="https://ghostwriter.wiki/" class="dashboard-link">Ghostwriter Wiki</a>. Join our <a href="https://ghst.ly/BHSlack" class="dashboard-link">SpecterOps Slack Community</a> and the <em>#ghostwriter</em> channel to discuss Ghostwriter, ask questions, and get help.</p>
-
-              <button id="hideQuickstart" csrftoken="{{ csrf_token }}" class="btn btn-primary float-right"><span aria-hidden="true">&times;</span> Don't Show This Again</button>
-            </div>
-          </div>
-        </div>
-        {% endif %}
-
-        <div class="dashboard__item dashboard__item--full">
-          <div class="card">
-            <p class="dashboard-header text-center">Ready to Work?</p>
-            <div class="text-left">
-              {% if active_projects %}
-                <p>You're assigned to some active projects. Check those out here:</p>
-                <ul class="dashboard-list">
-                {% for project in active_projects %}
-                  <li><a
-                    class="dashboard-link"
-                    href="{% url 'rolodex:project_detail' project.project.id %}">{{ project.project.client }} {{ project.project.project_type }}
-                    ({{ project.role }})</a></li>
-                {% endfor %}
-                </ul>
-                <p>Open the sidebar on the left to view/manage your reports under <em>My Active Reports</em>.</p>
-                <p>Select a report to mark it as active. If you're managing multiple reports, you can switch your active reports from there, too.</p>
-              {% else %}
-                <p>You're not assigned to any projects right now. If you're looking for a project, visit the <a class="dashboard-link" href="{% url 'rolodex:projects' %}">Project Library</a>. You can also contact a manager or admin to get assigned to a project.</p>
-              {% endif %}
-            </div>
-          </div>
-        </div>
-
-        {% if active_projects %}
-          <div class="dashboard__item">
-            <div class="card">
-              <p class="dashboard-header text-center">Assigned Findings</p>
-              {% if assigned_findings %}
-                {% for finding in assigned_findings %}
-                  <p class="text-left mb-1"><a class="dashboard-link" href="{% url 'reporting:local_edit' finding.id %}">{{ finding.title }}</a></p>
-                {% endfor %}
-              {% else %}
-                <p class="text-center healthy mb-1">All Tasks Complete!</p>
-              {% endif %}
-            </div>
-          </div>
-
-          <div class="dashboard__item">
-            <div class="card">
-              <p class="dashboard-header text-center">Assigned Observations</p>
-              {% if assigned_observations %}
-                {% for observation in assigned_observations %}
-                  <p class="text-left mb-1"><a class="dashboard-link" href="{% url 'reporting:local_observation_edit' observation.id %}">{{ observation.title }}</a></p>
-                {% endfor %}
-              {% else %}
-                <p class="text-center healthy mb-1">All Tasks Complete!</p>
-              {% endif %}
-            </div>
-          </div>
-        {% endif %}
-
-        {%  if request.user|is_privileged %}
-          <div class="dashboard__item">
-            <div class="card">
-              <p class="dashboard-header text-center">Recent Background Tasks</p>
-              <table>
-                {% if recent_tasks %}
-                  {% for task in recent_tasks %}
-                    <tr>
-                      {% if task.success %}
-                        <td class="text-center healthy align-middle">SUCCESS</td>
-                        <td class="align-middle text-center">{{ task.group }}</td>
-                      {% else %}
-                        <td class="text-center burned">
-                          {% if task.result %}
-                            <div class="dropdown dropleft">
-                              <span id="task-status-info-btn" class="dropdown-info dropdown-info-dashboard"
-                                    data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">FAILED</span>
-                              <div id="task-status-info" class="dropdown-menu dropdown-info-content"
-                                   aria-labelledby="task-status-info-btn">
-                                <p>Unsuccessful task returned this message/stack trace:</p>
-                                <br/>
-                                <code>{{ task.result }}</code>
-                              </div>
-                            </div>
-                          {% endif %}
-                        </td>
-                        <td class="align-middle text-center">{{ task.group }}</td>
-                      {% endif %}
-                    </tr>
-                  {% endfor %}
-                {% else %}
-                  <tr>
-                    <td class="align-middle text-center">No completed tasks.</td>
-                  </tr>
-                {% endif %}
-              </table>
-            </div>
-          </div>
-
-          <div class="dashboard__item">
-            <div class="card">
-              <p class="dashboard-header text-center">System Status</p>
-              <div class="float-right {% if system_health == "OK" %}led-green{% else %}led-red{% endif %}"></div>
-              {% if system_health == "OK" %}
-                <table class="align-middle">
-                  <tr>
-                    <td class="text-center healthy align-middle">All Systems Go!</td>
-                  </tr>
-                </table>
-              {% else %}
-                <table>
-                  <tr>
-                    <td class="text-center burned align-middle">Issues Detected!</td>
-                  </tr>
-                </table>
-              {% endif %}
-              <p class="mt-auto">Visit the <a class="clickable italic" href="{% url 'status:healthcheck' %}">Detailed
-                Status Page</a></p>
-            </div>
-          </div>
-        {% endif %}
+  <div class="operator-dashboard">
+    <header class="operator-dashboard-header">
+      <div>
+        <span class="operator-dashboard-eyebrow">Daily operations</span>
+        <h1>Operator Brief</h1>
+        <p>Assigned report work and engagement timing in one place.</p>
       </div>
-    </main>
+      <div class="operator-dashboard-summary" aria-label="Dashboard summary">
+        <span class="operator-summary-item">
+          <i class="fas fa-tasks" aria-hidden="true"></i>
+          {{ work_item_count }} todo item{{ work_item_count|pluralize }}
+        </span>
+        <span class="operator-summary-item">
+          <i class="fas fa-briefcase" aria-hidden="true"></i>
+          {{ dashboard_engagements|length }} engagement{{ dashboard_engagements|length|pluralize }}
+        </span>
+        <span class="operator-summary-date operator-data">{% now "D, M j" %}</span>
+      </div>
+    </header>
+
+    {% if not hide_quickstart %}
+      {% if not active_projects or not active_engagement %}
+        <section class="operator-setup-guide" aria-labelledby="operator-setup-title">
+          <div class="operator-setup-copy">
+            <span class="operator-setup-icon" aria-hidden="true">
+              <i class="fas fa-route"></i>
+            </span>
+            <div>
+              <h2 id="operator-setup-title">Get ready to work</h2>
+              <p>Complete the missing step to make Ghostwriter open directly into your current engagement.</p>
+            </div>
+          </div>
+          <ol class="operator-setup-steps">
+            <li class="{% if active_projects %}is-complete{% endif %}">
+              <i class="fas {% if active_projects %}fa-check-circle{% else %}fa-circle{% endif %}" aria-hidden="true"></i>
+              {% if active_projects %}
+                Project assignment ready
+              {% else %}
+                <a href="{% url 'rolodex:projects' %}">Find your project assignment</a>
+              {% endif %}
+            </li>
+            <li class="{% if active_engagement %}is-complete{% endif %}">
+              <i class="fas {% if active_engagement %}fa-check-circle{% else %}fa-circle{% endif %}" aria-hidden="true"></i>
+              {% if active_engagement %}
+                Working report selected
+              {% else %}
+                <button type="button"
+                        class="btn btn-link p-0 align-baseline"
+                        data-bs-toggle="modal"
+                        data-bs-target="#workingContextModal"
+                        data-working-context-launcher="all">
+                  Choose a working report
+                </button>
+              {% endif %}
+            </li>
+          </ol>
+          <button id="hideQuickstart"
+                  type="button"
+                  class="btn btn-sm btn-outline-secondary operator-setup-dismiss"
+                  data-csrf-token="{{ csrf_token }}">
+            <i class="fas fa-times" aria-hidden="true"></i>
+            Dismiss guide
+          </button>
+        </section>
+      {% endif %}
+    {% endif %}
+
+    <div class="operator-dashboard-grid">
+      <section class="card operator-dashboard-panel operator-work-panel" aria-labelledby="operator-work-title">
+        <header class="operator-panel-header">
+          <div>
+            <span class="operator-panel-kicker">Priority queue</span>
+            <h2 id="operator-work-title">Your work</h2>
+            <p>Report content assigned to you and still awaiting QA.</p>
+          </div>
+          <span class="operator-panel-count">{{ work_item_count }} todo</span>
+        </header>
+
+        {% if work_items %}
+          <div class="operator-work-list">
+            {% for item in work_items %}
+              <a class="operator-work-item is-{{ item.kind|lower }}{% if item.is_active_report %} is-active-report{% endif %}"
+                 href="{{ item.edit_url }}"
+                 {% if item.severity_color %}style="--operator-severity-color: {{ item.severity_color }};"{% endif %}
+                 aria-label="Edit {{ item.kind|lower }}: {{ item.title }}">
+                <span class="operator-work-kind-icon" aria-hidden="true">
+                  <i class="fas {{ item.kind_icon }}"></i>
+                </span>
+                <span class="operator-work-content">
+                  <span class="operator-work-labels">
+                    <span class="operator-work-kind">{{ item.kind }}</span>
+                    {% if item.is_active_report %}
+                      <span class="operator-active-tag">
+                        <i class="fas fa-bullseye" aria-hidden="true"></i>
+                        Working report
+                      </span>
+                    {% endif %}
+                  </span>
+                  <span class="operator-work-title">{{ item.title }}</span>
+                  <span class="operator-work-context">
+                    {{ item.client }}
+                    <span aria-hidden="true">/</span>
+                    {% if item.project.codename %}
+                      {{ item.project.codename }}
+                    {% else %}
+                      {{ item.project.project_type }}
+                    {% endif %}
+                    <span aria-hidden="true">/</span>
+                    {{ item.report.title }}
+                  </span>
+                </span>
+                <span class="operator-work-meta">
+                  {% if item.severity %}
+                    <span class="operator-severity-tag">
+                      <i class="fas fa-shield-alt" aria-hidden="true"></i>
+                      {{ item.severity }}
+                    </span>
+                  {% endif %}
+                  <span class="operator-work-date operator-data">
+                    <i class="far fa-clock" aria-hidden="true"></i>
+                    Ends {{ item.project.end_date|date:"M j" }}
+                  </span>
+                </span>
+                <i class="fas fa-arrow-right operator-work-arrow" aria-hidden="true"></i>
+              </a>
+            {% endfor %}
+          </div>
+
+          {% if work_item_count > work_item_limit %}
+            <p class="operator-list-note">
+              Showing the {{ work_item_limit }} items tied to the soonest-ending engagements.
+              <a href="{% url 'reporting:reports' %}">Open all reports</a>
+            </p>
+          {% endif %}
+        {% else %}
+          <div class="empty-state operator-empty-state">
+            <span class="operator-empty-icon" aria-hidden="true">
+              <i class="fas fa-check"></i>
+            </span>
+            <div>
+              <p class="empty-state-title">No report work is assigned to you.</p>
+              <p class="empty-state-description">
+                Assigned findings and observations will appear here until they are marked ready for QA.
+              </p>
+            </div>
+          </div>
+        {% endif %}
+      </section>
+
+      <section class="card operator-dashboard-panel operator-runway-panel" aria-labelledby="operator-runway-title">
+        <header class="operator-panel-header">
+          <div>
+            <span class="operator-panel-kicker">Schedule</span>
+            <h2 id="operator-runway-title">Engagement runway</h2>
+            <p>Your current and upcoming project assignments.</p>
+          </div>
+          <a class="btn btn-sm btn-outline-secondary" href="{% url 'rolodex:projects' %}">
+            All projects
+            <i class="fas fa-arrow-right ms-1" aria-hidden="true"></i>
+          </a>
+        </header>
+
+        {% if dashboard_engagements %}
+          <ol class="engagement-runway">
+            {% for engagement in dashboard_engagements %}
+              <li class="engagement-runway-item is-{{ engagement.status }}">
+                <span class="engagement-runway-marker" aria-hidden="true"></span>
+                <div class="engagement-runway-content">
+                  <div class="engagement-runway-heading">
+                    <a href="{{ engagement.project.get_absolute_url }}">
+                      {% if engagement.project.codename %}
+                        {{ engagement.project.codename }}
+                      {% else %}
+                        {{ engagement.project.project_type }}
+                      {% endif %}
+                    </a>
+                    <span class="engagement-runway-status">{{ engagement.status_label }}</span>
+                  </div>
+                  <p class="engagement-runway-client">
+                    {{ engagement.client }}
+                    <span aria-hidden="true">·</span>
+                    {{ engagement.project.project_type }}
+                  </p>
+                  <div class="engagement-runway-meta">
+                    <span>
+                      <i class="fas fa-user-shield" aria-hidden="true"></i>
+                      {{ engagement.role }}
+                    </span>
+                    <span class="operator-data">
+                      <i class="far fa-calendar-alt" aria-hidden="true"></i>
+                      {% if engagement.start_date %}{{ engagement.start_date|date:"M j" }}{% else %}Unscheduled{% endif %}
+                      –
+                      {% if engagement.end_date %}{{ engagement.end_date|date:"M j" }}{% else %}Open ended{% endif %}
+                    </span>
+                  </div>
+                  {% if active_engagement and engagement.project.id == active_engagement.project.id %}
+                    <span class="engagement-runway-active-report">
+                      <i class="fas fa-bullseye" aria-hidden="true"></i>
+                      Working report
+                    </span>
+                  {% endif %}
+                </div>
+              </li>
+            {% endfor %}
+          </ol>
+        {% else %}
+          <div class="empty-state operator-empty-state">
+            <span class="operator-empty-icon" aria-hidden="true">
+              <i class="fas fa-briefcase"></i>
+            </span>
+            <div>
+              <p class="empty-state-title">No active project assignments.</p>
+              <p class="empty-state-description">
+                Visit the project library or ask a manager to add you to an engagement.
+              </p>
+            </div>
+          </div>
+        {% endif %}
+      </section>
+    </div>
+
+    {% if calendar_events %}
+      <section class="card operator-schedule-panel">
+        <button class="operator-schedule-toggle"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#dashboardSchedule"
+                aria-expanded="false"
+                aria-controls="dashboardSchedule">
+          <span class="operator-schedule-toggle-copy">
+            <span class="operator-schedule-icon" aria-hidden="true">
+              <i class="far fa-calendar-alt"></i>
+            </span>
+            <span>
+              <strong>Project calendar</strong>
+              <small>Review all ongoing engagements available to you.</small>
+            </span>
+          </span>
+          <span class="operator-schedule-toggle-meta">
+            {{ calendar_events|length }} project{{ calendar_events|length|pluralize }}
+            <i class="fas fa-chevron-down" aria-hidden="true"></i>
+          </span>
+        </button>
+        <div class="collapse" id="dashboardSchedule">
+          <div class="operator-schedule-content">
+            <div id="calendar" class="gw-calendar" aria-label="Project calendar"></div>
+          </div>
+        </div>
+      </section>
+    {% endif %}
+
+    {% if request.user|is_privileged %}
+      {% if failed_tasks or system_health != "OK" %}
+        <section class="card operator-exceptions-panel" aria-labelledby="operator-exceptions-title">
+          <header class="operator-panel-header">
+            <div>
+              <span class="operator-panel-kicker">Admin attention</span>
+              <h2 id="operator-exceptions-title">System exceptions</h2>
+              <p>Only failed jobs and unhealthy services are shown here.</p>
+            </div>
+            <a class="btn btn-sm btn-outline-secondary" href="{% url 'status:healthcheck' %}">
+              System status
+            </a>
+          </header>
+          <div class="operator-exception-list">
+            {% if system_health != "OK" %}
+              <div class="operator-exception-item is-critical">
+                <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+                <div>
+                  <strong>System health requires attention</strong>
+                  <span>Database or cache checks did not return a healthy result.</span>
+                </div>
+              </div>
+            {% endif %}
+            {% for task in failed_tasks %}
+              <div class="operator-exception-item">
+                <i class="fas fa-times-circle" aria-hidden="true"></i>
+                <div>
+                  <strong>{{ task.group|default:"Background job" }}</strong>
+                  <span>Background task failed{% if task.stopped %} on {{ task.stopped|date:"M j, Y" }}{% endif %}.</span>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </section>
+      {% else %}
+        <div class="operator-system-ready">
+          <i class="fas fa-check-circle" aria-hidden="true"></i>
+          <span>Systems ready</span>
+          <a href="{% url 'status:healthcheck' %}">View status</a>
+        </div>
+      {% endif %}
+    {% endif %}
   </div>
 {% endblock %}
 
 {% block morescripts %}
   {{ calendar_events|json_script:"dashboard-calendar-events" }}
-  <!-- FullCalendar Rendering -->
   <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      // Track the initial calendar view in local storage
-      var defaultView = (localStorage.getItem('fcDefaultView') !== null ? localStorage.getItem('fcDefaultView') : 'dayGridWeek');
-      var calendarEl = document.getElementById('calendar');
-      var calendarEvents = JSON.parse(document.getElementById('dashboard-calendar-events').textContent);
-      var calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: defaultView,
-        height: 'auto',
-        events: calendarEvents,
-        headerToolbar: {
-          left: 'today prev,next',
-          center: 'title',
-          right: 'dayGridDay dayGridWeek dayGridMonth listWeek'
-        },
-        eventClick: function (info) {
-          let eventObj = info.event;
-          window.open(eventObj.url);
-          info.jsEvent.preventDefault(); // Prevents browser from following link in current tab.
-        },
-        // On view change, save the selected view to local storage so it persists between page loads
-        viewClassNames: function (info) {
-          localStorage.setItem("fcDefaultView", info.view.type);
-        },
-        eventDidMount: function (info) {
-          let assignedOperators = info.event.extendedProps.assignedOperators || ['No assigned operators'];
-          let calendarKind = info.event.extendedProps.calendarKind || 'Assignment';
-          let popoverTitle = $('<div>').text(calendarKind + ': ' + info.event.title).html();
-          $(info.el).popover({
-            title: popoverTitle,
-            placement: 'top',
-            trigger: 'hover',
-            html: true,
-            sanitize: true,
-            content: function () {
-              return $('<div>')
-                .append($('<p>').text('Assigned: ' + assignedOperators.join(', ')))
-                .append($('<p>').text('Click event in calendar to view details.'))
-                .html();
-            },
-            container: 'body'
-          });
-        },
-      });
-      calendar.render();
-    });
+    document.addEventListener("DOMContentLoaded", function () {
+      const scheduleCollapse = document.getElementById("dashboardSchedule");
+      const calendarEl = document.getElementById("calendar");
+      let calendar = null;
 
-    {% comment %} Hide the Quickstart card when the button is clicked {% endcomment %}
-    document.addEventListener('DOMContentLoaded', function() {
-      const hideQuickstartBtn = document.getElementById('hideQuickstart');
+      function readCalendarView() {
+        if (window.matchMedia("(max-width: 767.98px)").matches) {
+          return "listWeek";
+        }
 
-      if (hideQuickstartBtn) {
-          hideQuickstartBtn.addEventListener('click', function() {
-              let csrftoken = $(this).attr('csrftoken');
-
-              // Send POST request to update user preference
-              fetch('{% url "users:hide_quickstart" request.user.username %}', {
-                  method: 'POST',
-                  headers: {
-                      'Content-Type': 'application/json',
-                      'X-CSRFToken': csrftoken
-                  },
-                  body: JSON.stringify({
-                      'hide_quickstart': true,
-                      'username': '{{ user.username|escapejs }}'
-                  })
-              })
-              .then(response => {
-                  if (response.ok) {
-                      // Hide the quickstart div on success
-                      const quickstartCard = hideQuickstartBtn.closest('.dashboard__item--full');
-                      if (quickstartCard) {
-                          quickstartCard.style.display = 'none';
-                      }
-                  } else {
-                      console.error('Failed to update preferences');
-                      console.error('Response:', response);
-                  }
-              })
-              .catch(error => {
-                  console.error('Error:', error);
-              });
-          });
+        try {
+          return localStorage.getItem("fcDefaultView") || "dayGridWeek";
+        } catch (error) {
+          return "dayGridWeek";
+        }
       }
-  });
+
+      function saveCalendarView(viewName) {
+        if (window.matchMedia("(max-width: 767.98px)").matches) {
+          return;
+        }
+
+        try {
+          localStorage.setItem("fcDefaultView", viewName);
+        } catch (error) {
+          // The calendar remains usable when browser storage is unavailable.
+        }
+      }
+
+      function renderCalendar() {
+        if (calendar || !calendarEl) {
+          if (calendar) {
+            calendar.updateSize();
+          }
+          return;
+        }
+
+        const calendarEvents = JSON.parse(
+          document.getElementById("dashboard-calendar-events").textContent
+        );
+        const compactCalendar = window.matchMedia("(max-width: 767.98px)").matches;
+
+        calendar = new FullCalendar.Calendar(calendarEl, {
+          initialView: readCalendarView(),
+          height: "auto",
+          events: calendarEvents,
+          headerToolbar: compactCalendar
+            ? {
+                left: "prev,next",
+                center: "title",
+                right: "listWeek",
+              }
+            : {
+                left: "today prev,next",
+                center: "title",
+                right: "dayGridDay dayGridWeek dayGridMonth listWeek",
+              },
+          datesSet: function (info) {
+            saveCalendarView(info.view.type);
+          },
+          eventDidMount: function (info) {
+            const assignedOperators =
+              info.event.extendedProps.assignedOperators || ["No assigned operators"];
+            const calendarKind = info.event.extendedProps.calendarKind || "Assignment";
+
+            bootstrap.Popover.getOrCreateInstance(info.el, {
+              title: calendarKind + ": " + info.event.title,
+              placement: "top",
+              trigger: "hover focus",
+              content: "Assigned: " + assignedOperators.join(", "),
+              container: "body",
+            });
+          },
+          eventWillUnmount: function (info) {
+            const popover = bootstrap.Popover.getInstance(info.el);
+            if (popover) {
+              popover.dispose();
+            }
+          },
+        });
+        calendar.render();
+      }
+
+      if (scheduleCollapse) {
+        scheduleCollapse.addEventListener("shown.bs.collapse", renderCalendar);
+      }
+
+      const hideQuickstartBtn = document.getElementById("hideQuickstart");
+      if (hideQuickstartBtn) {
+        hideQuickstartBtn.addEventListener("click", function () {
+          fetch('{% url "users:hide_quickstart" request.user.username %}', {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-CSRFToken": this.dataset.csrfToken,
+            },
+            body: JSON.stringify({
+              hide_quickstart: true,
+              username: "{{ user.username|escapejs }}",
+            }),
+          })
+            .then((response) => {
+              if (!response.ok) {
+                throw new Error("Unable to save the dashboard preference.");
+              }
+              const setupGuide = hideQuickstartBtn.closest(".operator-setup-guide");
+              if (setupGuide) {
+                setupGuide.remove();
+              }
+            })
+            .catch((error) => {
+              console.error(error);
+            });
+        });
+      }
+    });
   </script>
 {% endblock %}

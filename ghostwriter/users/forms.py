@@ -17,7 +17,7 @@ from allauth.mfa.base.internal.flows import check_rate_limit
 from allauth.mfa.models import Authenticator
 from allauth.mfa.totp.forms import ActivateTOTPForm, DeactivateTOTPForm
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import HTML, ButtonHolder, Column, Layout, Row, Submit
+from crispy_forms.layout import Div, HTML, ButtonHolder, Column, Layout, Row, Submit
 
 User = get_user_model()
 
@@ -48,23 +48,36 @@ class UserChangeForm(UserChangeForm):
         self.fields["phone"].label = "Your Contact Number"
         self.helper = FormHelper()
         self.helper.form_method = "post"
+        self.helper.form_class = "resource-edit-form"
         self.helper.layout = Layout(
-            Row(
-                Column("name", css_class="form-group col-md-12 mb-0"),
-                css_class="form-row mt-4",
-            ),
-            Row(
-                Column("phone", css_class="form-group col-md-6 mb-0"),
-                Column("timezone", css_class="form-group col-md-6 mb-0"),
-                css_class="form-row",
-            ),
-            ButtonHolder(
-                Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
+            Div(
                 HTML(
                     """
-                    <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    <div class="resource-form-section-heading">
+                      <span class="resource-form-section-icon"><i class="fas fa-user" aria-hidden="true"></i></span>
+                      <div>
+                        <h4>Operator identity</h4>
+                        <p>Keep the contact details and timezone used for assignments and reports current.</p>
+                      </div>
+                    </div>
                     """
                 ),
+                "name",
+                Row(
+                    Column("phone", css_class="form-group col-md-6"),
+                    Column("timezone", css_class="form-group col-md-6"),
+                    css_class="form-row",
+                ),
+                css_class="resource-form-card",
+            ),
+            Div(
+                HTML("""<span class="resource-form-actions-context">Editing your profile</span>"""),
+                Div(
+                    HTML("""<a href="{{ cancel_link }}" class="btn btn-outline-secondary">Cancel</a>"""),
+                    Submit("submit", "Save Changes", css_class="btn btn-primary"),
+                    css_class="resource-form-actions-buttons",
+                ),
+                css_class="resource-form-actions",
             ),
         )
 

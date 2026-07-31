@@ -2,7 +2,8 @@
 
 # Standard Libraries
 import logging
-from datetime import timedelta
+import re
+from datetime import date, timedelta
 
 # Django Imports
 from django.conf import settings
@@ -12,8 +13,11 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Prefetch, Q
 from django.http import HttpResponseNotAllowed, JsonResponse
 from django.shortcuts import redirect, render
+from django.urls import reverse
+from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.cache import never_cache
-from django.views.decorators.http import require_GET
+from django.views.decorators.http import require_GET, require_POST
 from django.views.generic.edit import View
 
 # 3rd Party Libraries
@@ -21,8 +25,26 @@ from django_q.models import Task
 from django_q.tasks import async_task
 
 # Ghostwriter Libraries
-from ghostwriter.api.utils import RoleBasedAccessControlMixin, get_project_list, verify_user_is_privileged
+from ghostwriter.api.utils import (
+    RoleBasedAccessControlMixin,
+    get_project_list,
+    verify_user_is_privileged,
+)
 from ghostwriter.home.editor_shortcuts import get_editor_shortcuts_date_config
+from ghostwriter.home.navigation import (
+    DEFAULT_PANEL_ORDER,
+    OPTIONAL_NAVIGATION_BY_ID,
+    SIDEBAR_PREFERENCES_VERSION,
+    get_allowed_optional_ids,
+    get_sidebar_navigation,
+    normalize_sidebar_preferences,
+)
+from ghostwriter.home.working_context import (
+    PINNABLE_WORK_TYPES,
+    build_working_context_catalog,
+    get_pinned_work,
+    toggle_pinned_work,
+)
 from ghostwriter.modules.health_utils import DjangoHealthChecks
 from ghostwriter.reporting.models import ReportFindingLink, ReportObservationLink
 from ghostwriter.rolodex.models import ProjectAssignment
@@ -31,6 +53,9 @@ User = get_user_model()
 
 # Using __name__ resolves to ghostwriter.home.views
 logger = logging.getLogger(__name__)
+
+DASHBOARD_WORK_ITEM_LIMIT = 12
+HEX_COLOR_PATTERN = re.compile(r"^[0-9A-Fa-f]{6}$")
 
 
 @login_required
@@ -84,7 +109,9 @@ def build_dashboard_calendar_events(user):
         .select_related("client", "project_type")
         .prefetch_related(assigned_project_prefetch)
         .filter(complete=False)
-        .order_by("start_date", "end_date", "client__name", "project_type__project_type")
+        .order_by(
+            "start_date", "end_date", "client__name", "project_type__project_type"
+        )
         .distinct()
     )
     events = []
@@ -99,8 +126,8 @@ def build_dashboard_calendar_events(user):
                 "allDay": True,
                 "start": project.start_date.isoformat(),
                 "end": _calendar_end_date(project.end_date).isoformat(),
-                "backgroundColor": "var(--primary-color)",
-                "borderColor": "var(--secondary-color-light)",
+                "backgroundColor": "var(--gw-information-slate)",
+                "borderColor": "var(--gw-engagement-violet)",
                 "classNames": ["calendar-exec-icon"],
                 "url": project.get_absolute_url(),
                 "extendedProps": {
@@ -110,6 +137,140 @@ def build_dashboard_calendar_events(user):
             }
         )
     return events
+
+
+def _get_active_report_id(request):
+    """Return the working report ID stored in the legacy session key."""
+    active_report = request.session.get("active_report") or {}
+    try:
+        return int(active_report.get("id"))
+    except (TypeError, ValueError):
+        return None
+
+
+def _normalize_severity_color(value):
+    """Return a safe CSS hex color for a configured severity."""
+    if isinstance(value, str) and HEX_COLOR_PATTERN.fullmatch(value):
+        return f"#{value.upper()}"
+    return "#6C809A"
+
+
+def _build_dashboard_work_queue(findings, observations, active_report_id):
+    """Combine assigned report content into one operator-focused work queue."""
+    work_items = []
+
+    for finding in findings:
+        work_items.append(
+            {
+                "kind": "Finding",
+                "kind_icon": "fa-bug",
+                "object": finding,
+                "title": finding.display_title,
+                "report": finding.report,
+                "project": finding.report.project,
+                "client": finding.report.project.client,
+                "severity": finding.severity,
+                "severity_color": _normalize_severity_color(finding.severity.color),
+                "edit_url": finding.get_edit_url(),
+                "is_active_report": finding.report_id == active_report_id,
+                "sort_weight": finding.severity.weight,
+            }
+        )
+
+    for observation in observations:
+        work_items.append(
+            {
+                "kind": "Observation",
+                "kind_icon": "fa-binoculars",
+                "object": observation,
+                "title": observation.title,
+                "report": observation.report,
+                "project": observation.report.project,
+                "client": observation.report.project.client,
+                "severity": None,
+                "severity_color": None,
+                "edit_url": reverse(
+                    "reporting:local_observation_edit", kwargs={"pk": observation.pk}
+                ),
+                "is_active_report": observation.report_id == active_report_id,
+                "sort_weight": date.max.toordinal(),
+            }
+        )
+
+    work_items.sort(
+        key=lambda item: (
+            not item["is_active_report"],
+            item["project"].end_date or date.max,
+            item["sort_weight"],
+            item["kind"],
+            item["title"].casefold(),
+        )
+    )
+    return work_items[:DASHBOARD_WORK_ITEM_LIMIT]
+
+
+def _build_dashboard_engagements(assignments, today):
+    """Describe project assignments as a compact operational runway."""
+    engagements = []
+
+    for assignment in assignments:
+        project = assignment.project
+        start_date = assignment.start_date or project.start_date
+        end_date = assignment.end_date or project.end_date
+
+        if end_date and end_date < today:
+            status = "overdue"
+            status_label = "Past end date"
+            status_order = 0
+        elif end_date and end_date == today:
+            status = "ending"
+            status_label = "Ends today"
+            status_order = 1
+        elif (
+            end_date
+            and 0 < (end_date - today).days <= 7
+            and (not start_date or start_date <= today)
+        ):
+            status = "ending"
+            status_label = f"Ends in {(end_date - today).days} days"
+            status_order = 1
+        elif start_date and start_date > today:
+            status = "upcoming"
+            days_until_start = (start_date - today).days
+            status_label = (
+                "Starts tomorrow"
+                if days_until_start == 1
+                else f"Starts in {days_until_start} days"
+            )
+            status_order = 3
+        else:
+            status = "active"
+            status_label = "Active"
+            status_order = 2
+
+        engagements.append(
+            {
+                "assignment": assignment,
+                "project": project,
+                "client": project.client,
+                "role": assignment.role,
+                "start_date": start_date,
+                "end_date": end_date,
+                "status": status,
+                "status_label": status_label,
+                "status_order": status_order,
+            }
+        )
+
+    engagements.sort(
+        key=lambda engagement: (
+            engagement["status_order"],
+            engagement["end_date"] or date.max,
+            engagement["start_date"] or date.max,
+            engagement["client"].name.casefold(),
+        )
+    )
+    return engagements
 
 
 ##################
@@ -145,6 +306,132 @@ def update_session(request):
     return HttpResponseNotAllowed(["POST"])
 
 
+@login_required
+@require_POST
+def update_sidebar_preferences(request):
+    """Persist a user's permission-filtered sidebar shortcuts."""
+    allowed_ids = get_allowed_optional_ids(request.user)
+
+    if request.POST.get("action") == "reset":
+        preferences = normalize_sidebar_preferences({}, allowed_ids)
+        message = "Sidebar shortcuts reset to the Ghostwriter defaults."
+    else:
+        current_preferences = normalize_sidebar_preferences(
+            getattr(request.user, "sidebar_preferences", {}),
+            allowed_ids,
+        )
+        requested_pins = request.POST.getlist("pinned")
+        requested_order = [
+            item_id.strip()
+            for item_id in request.POST.get("order", "").split(",")
+            if item_id.strip() in OPTIONAL_NAVIGATION_BY_ID
+        ]
+        if "panel_order" in request.POST:
+            requested_panel_order = [
+                panel_id.strip()
+                for panel_id in request.POST.get("panel_order", "").split(",")
+                if panel_id.strip() in DEFAULT_PANEL_ORDER
+            ]
+            requested_visible_panels = request.POST.getlist("visible_panels")
+        else:
+            # Preserve panel settings submitted by a sidebar form opened before
+            # the version-two customizer was deployed.
+            requested_panel_order = current_preferences["panel_order"]
+            requested_visible_panels = current_preferences["visible_panels"]
+        preferences = normalize_sidebar_preferences(
+            {
+                "version": SIDEBAR_PREFERENCES_VERSION,
+                "pinned": requested_pins,
+                "order": requested_order,
+                "panel_order": requested_panel_order,
+                "visible_panels": requested_visible_panels,
+            },
+            allowed_ids,
+        )
+        message = "Sidebar shortcuts updated."
+
+    request.user.sidebar_preferences = preferences
+    request.user.save(update_fields=["sidebar_preferences"])
+    messages.success(request, message)
+
+    next_url = request.POST.get("next", "")
+    if not url_has_allowed_host_and_scheme(
+        next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return redirect("home:dashboard")
+    return redirect(next_url)
+
+
+@login_required
+@require_GET
+def working_context_catalog(request):
+    """Return permission-filtered working-report and pinned-work choices."""
+    active_report_id = _get_active_report_id(request)
+    return JsonResponse(
+        build_working_context_catalog(request.user, active_report_id)
+    )
+
+
+@login_required
+@require_POST
+def toggle_workspace_pin(request):
+    """Toggle a visible client, project, or report in the sidebar."""
+    item_type = request.POST.get("type", "")
+    try:
+        object_id = int(request.POST.get("id", ""))
+    except (TypeError, ValueError):
+        object_id = 0
+
+    if item_type not in PINNABLE_WORK_TYPES or object_id < 1:
+        return JsonResponse(
+            {
+                "result": "error",
+                "message": "Choose a valid client, project, or report to pin.",
+            },
+            status=400,
+        )
+
+    # Import here to keep application startup and migration discovery lightweight.
+    from ghostwriter.reporting.models import Report
+    from ghostwriter.rolodex.models import Client, Project
+
+    model = {
+        "client": Client,
+        "project": Project,
+        "report": Report,
+    }[item_type]
+    obj = model.objects.filter(pk=object_id).first()
+    if obj is None or not obj.user_can_view(request.user):
+        return JsonResponse(
+            {
+                "result": "error",
+                "message": "You do not have permission to pin that workspace item.",
+            },
+            status=403,
+        )
+
+    pinned = toggle_pinned_work(request.user, item_type, object_id)
+    active_report_id = _get_active_report_id(request)
+    return JsonResponse(
+        {
+            "result": "success",
+            "pinned": pinned,
+            "type": item_type,
+            "id": object_id,
+            "message": (
+                f"Pinned {item_type} to the sidebar."
+                if pinned
+                else f"Removed {item_type} from the sidebar."
+            ),
+            "pinned_items": get_pinned_work(
+                request.user, active_report_id
+            ),
+        }
+    )
+
+
 class Dashboard(RoleBasedAccessControlMixin, View):
     """
     Display the home page.
@@ -155,12 +442,16 @@ class Dashboard(RoleBasedAccessControlMixin, View):
         All :model:`reporting.ProjectAssignment` for current :model:`users.User`
     ``active_projects``
         All :model:`reporting.ProjectAssignment` for active :model:`rolodex.Project` and current :model:`users.User`
-    ``recent_tasks``
-        Five most recent :model:`django_q.Task` entries
+    ``failed_tasks``
+        Five most recent failed :model:`django_q.Task` entries for privileged users
     ``assigned_findings``
         Incomplete :model:`reporting.ReportFindingLink` for current :model:`users.User`
     ``assigned_observations``
         Incomplete :model:`reporting.ReportObservationLink` for current :model:`users.User`
+    ``work_items``
+        Assigned findings and observations combined into one prioritized queue
+    ``dashboard_engagements``
+        Active project assignments prepared for the engagement runway
     ``calendar_events``
         FullCalendar event data for all ongoing projects available to the current user
     ``system_health``
@@ -172,53 +463,100 @@ class Dashboard(RoleBasedAccessControlMixin, View):
     """
 
     def get(self, request, *args, **kwargs):
-        # Get the most recent :model:`django_q.Task` entries
-        recent_tasks = Task.objects.all()[:5]
-        # Get incomplete :model:`reporting.ReportFindingLink` and `reporting.ReportObservationLink` for current :model:`users.User`
-        assigned_findings = (
-            ReportFindingLink.objects.select_related("report", "report__project")
-            .filter(Q(assigned_to=request.user) & Q(report__complete=False) & Q(complete=False))
-            .order_by("report__project__end_date")[:10]
+        active_report_id = _get_active_report_id(request)
+
+        assigned_findings_queryset = (
+            ReportFindingLink.objects.select_related(
+                "report",
+                "report__project",
+                "report__project__client",
+                "report__project__project_type",
+                "severity",
+            )
+            .filter(
+                Q(assigned_to=request.user)
+                & Q(report__complete=False)
+                & Q(complete=False)
+            )
+            .order_by("report__project__end_date", "severity__weight", "title")
         )
-        assigned_observations = (
-            ReportObservationLink.objects.select_related("report", "report__project")
-            .filter(Q(assigned_to=request.user) & Q(report__complete=False) & Q(complete=False))
-            .order_by("report__project__end_date")[:10]
+        assigned_observations_queryset = (
+            ReportObservationLink.objects.select_related(
+                "report",
+                "report__project",
+                "report__project__client",
+                "report__project__project_type",
+            )
+            .filter(
+                Q(assigned_to=request.user)
+                & Q(report__complete=False)
+                & Q(complete=False)
+            )
+            .order_by("report__project__end_date", "title")
         )
-        # Get active :model:`reporting.ProjectAssignment` for current :model:`users.User`
+
+        assigned_finding_count = assigned_findings_queryset.count()
+        assigned_observation_count = assigned_observations_queryset.count()
+        assigned_findings = list(
+            assigned_findings_queryset[: DASHBOARD_WORK_ITEM_LIMIT + 1]
+        )
+        assigned_observations = list(
+            assigned_observations_queryset[: DASHBOARD_WORK_ITEM_LIMIT + 1]
+        )
+        work_item_count = assigned_finding_count + assigned_observation_count
+        work_items = _build_dashboard_work_queue(
+            assigned_findings, assigned_observations, active_report_id
+        )
+
         user_projects = ProjectAssignment.objects.select_related(
             "operator",
             "project",
             "project__client",
+            "project__project_type",
             "role",
         ).filter(operator=request.user)
-        # Get future :model:`reporting.ProjectAssignment` for current :model:`users.User`
-        active_project = ProjectAssignment.objects.select_related("project", "project__client", "role").filter(
-            Q(operator=request.user) & Q(project__complete=False)
+        active_projects = list(
+            user_projects.filter(project__complete=False).order_by(
+                "project__start_date",
+                "project__end_date",
+                "project__client__name",
+                "role__position",
+            )
         )
-        # Get system status
-        system_health = "OK"
-        try:
-            healthcheck = DjangoHealthChecks()
-            db_status = healthcheck.get_database_status()
-            cache_status = healthcheck.get_cache_status()
-            if not db_status["default"] or not cache_status["default"]:
-                system_health = "WARNING"
-        except Exception:  # pragma: no cover
-            logger.exception("Unable to retrieve dashboard system health.")
-            system_health = "ERROR"
+        dashboard_engagements = _build_dashboard_engagements(
+            active_projects, timezone.localdate()
+        )
 
-        # Assemble the context dictionary to pass to the dashboard
+        failed_tasks = []
+        system_health = None
+        if request.user.is_privileged:
+            failed_tasks = list(Task.objects.filter(success=False)[:5])
+            system_health = "OK"
+            try:
+                healthcheck = DjangoHealthChecks()
+                db_status = healthcheck.get_database_status()
+                cache_status = healthcheck.get_cache_status()
+                if not db_status["default"] or not cache_status["default"]:
+                    system_health = "WARNING"
+            except Exception:  # pragma: no cover
+                logger.exception("Unable to retrieve dashboard system health.")
+                system_health = "ERROR"
+
         context = {
             "user_projects": user_projects,
-            "active_projects": active_project,
-            "recent_tasks": recent_tasks,
+            "active_projects": active_projects,
+            "dashboard_engagements": dashboard_engagements,
+            "failed_tasks": failed_tasks,
             "assigned_findings": assigned_findings,
             "assigned_observations": assigned_observations,
+            "assigned_finding_count": assigned_finding_count,
+            "assigned_observation_count": assigned_observation_count,
+            "work_items": work_items,
+            "work_item_count": work_item_count,
+            "work_item_limit": DASHBOARD_WORK_ITEM_LIMIT,
             "calendar_events": build_dashboard_calendar_events(request.user),
             "system_health": system_health,
         }
-        # Render the HTML template index.html with the data in the context variable
         return render(request, "index.html", context=context)
 
 
