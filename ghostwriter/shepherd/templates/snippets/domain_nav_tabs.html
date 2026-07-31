@@ -1,42 +1,42 @@
 {% load humanize %}
 
 <li class="nav-item active">
-    <a class="nav-link active icon info-icon" data-toggle="tab" href="#details">
+    <a class="nav-link active icon info-icon" data-bs-toggle="tab" href="#details">
         General
         <span class=
             {% if domain.is_expired %}
-                "badge badge-pill badge-danger">EXPIRED
+                "badge rounded-pill badge-danger">EXPIRED
             {% else %}
-                "badge badge-pill badge-light">{{ domain.get_domain_age|intcomma }} Days Old
+                "badge rounded-pill badge-light">{{ domain.get_domain_age|intcomma }} Days Old
             {% endif %}
         </span>
     </a>
 </li>
 <li class="nav-item">
-    <a class="nav-link icon server-icon" data-toggle="tab" href="#dns">
+    <a class="nav-link icon server-icon" data-bs-toggle="tab" href="#dns">
     DNS Records</a>
 </li>
 <li class="nav-item">
-    <a class="nav-link icon heartbeat-icon" data-toggle="tab" href="#health">
+    <a class="nav-link icon heartbeat-icon" data-bs-toggle="tab" href="#health">
         Health
-        <span class="badge badge-pill {% if domain.health_status.health_status == "Healthy" %}badge-light{% else %} badge-danger{% endif %}">{{ domain.health_status }}</span>
+        <span class="badge rounded-pill {% if domain.health_status.health_status == "Healthy" %}badge-light{% else %} badge-danger{% endif %}">{{ domain.health_status }}</span>
     </a>
 </li>
 <li class="nav-item">
-    <a class="nav-link icon history-icon" data-toggle="tab" href="#history">
+    <a class="nav-link icon history-icon" data-bs-toggle="tab" href="#history">
         Project History
-        <span class="badge badge-pill badge-light">{{ domain.history_set.all.count }}</span>
+        <span class="badge rounded-pill badge-light">{{ domain.history_set.all.count }}</span>
     </a>
 </li>
 <li class="nav-item">
-    <a class="nav-link icon comment-icon" data-toggle="tab" href="#notes">
+    <a class="nav-link icon comment-icon" data-bs-toggle="tab" href="#notes">
         Notes
-        <span class="badge badge-pill badge-light">{{ domain.domainnote_set.all.count }}</span>
+        <span class="badge rounded-pill badge-light">{{ domain.domainnote_set.all.count }}</span>
     </a>
 </li>
 {% if domain_extra_fields_spec %}
     <li class="nav-item">
-        <a id="id_extra-fields" class="nav-link icon custom-field-icon" data-toggle="tab" href="#extra-fields">
+        <a id="id_extra-fields" class="nav-link icon custom-field-icon" data-bs-toggle="tab" href="#extra-fields">
             Extra Fields
         </a>
     </li>

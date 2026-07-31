@@ -225,9 +225,29 @@ $(document).ready(function () {
     }
 
     function truncateText(text, maxLen) {
-        if (!text) return '';
+        if (text === undefined || text === null || text === '') return '';
         let str = String(text);
         return str.length > maxLen ? str.slice(0, maxLen) + '\u2026' : str;
+    }
+
+    function stringifyStructuredValue(value, pretty) {
+        if (typeof value !== 'object' || value === null) {
+            return String(value ?? '');
+        }
+
+        try {
+            return JSON.stringify(value, null, pretty ? 2 : 0);
+        } catch (error) {
+            return '';
+        }
+    }
+
+    function formatExtraFieldSummary(value, type) {
+        if (value === undefined || value === null) return '';
+        if (type === 'json' || typeof value === 'object') {
+            return `<span class="operator-data">${jsEscape(truncateText(stringifyStructuredValue(value, false), 100))}</span>`;
+        }
+        return jsEscape(truncateText(value, 100));
     }
 
     function stylizeTags(tagString) {
@@ -279,7 +299,7 @@ $(document).ready(function () {
                     return jsEscape(truncateText($('<div>').html(safe).text(), 100));
                 };
             } else {
-                toHtmlFunc = jsEscape;
+                toHtmlFunc = v => formatExtraFieldSummary(v, spec.type);
             }
 
             summaryColumns.push({
@@ -288,7 +308,8 @@ $(document).ready(function () {
                 prettyName: jsEscape(spec.display_name),
                 internalName: jsEscape(spec.internal_name),
                 toHtml: toHtmlFunc,
-                getValue: entry => entry.extra_fields[spec.internal_name],
+                getValue: entry => (entry.extra_fields || {})[spec.internal_name],
+                showByDefault: false,
             });
         });
     }
@@ -296,7 +317,7 @@ $(document).ready(function () {
     function generateTableHeaders() {
         let out = '<tr>';
         summaryColumns.forEach((col, idx) => {
-            out += `<th class="${col.columnClass} text-left none" data-sorter="text" data-col-index="${idx}" style="cursor:pointer;">${col.prettyName}</th>`;
+            out += `<th class="${col.columnClass} text-start none" data-sorter="text" data-col-index="${idx}" style="cursor:pointer;">${col.prettyName}</th>`;
         });
         out += '</tr>';
         return out;
@@ -424,7 +445,7 @@ $(document).ready(function () {
         summaryColumns.forEach(col => {
             let value = col.getValue ? col.getValue(entry) : entry[col.internalName];
             let toHtml = col.toHtml ?? jsEscape;
-            out += `<td class="${col.columnClass} text-left">${toHtml(value)}</td>`;
+            out += `<td class="${col.columnClass} text-start">${toHtml(value)}</td>`;
         });
         out += '</tr>';
         return out;
@@ -450,12 +471,12 @@ $(document).ready(function () {
             html += `<span class="oplog-detail-id">${jsEscape(entry.entry_identifier)}</span>`;
         }
         html += `<div class="oplog-detail-actions">
-            <button class="btn btn-sm btn-outline-secondary" data-toggle="tooltip" title="Edit entry" onclick="editEntry(${safeId})"><i class="fas fa-edit"></i></button>
-            <button class="btn btn-sm btn-outline-secondary" data-toggle="tooltip" title="Copy entry" onclick="copyEntry(this)" entry-id="${safeId}"><i class="fa fa-copy"></i></button>
-            <button class="btn btn-sm btn-outline-secondary" data-toggle="tooltip" title="Copy as JSON" onclick="convertRowToJSON(${safeId})"><i class="fas fa-clipboard"></i></button>
-            <button class="btn btn-sm btn-outline-secondary" data-toggle="tooltip" title="Copy deep link" onclick="copyDeepLink(${safeId})"><i class="fas fa-link"></i></button>
-            <button class="btn btn-sm btn-outline-danger danger" data-toggle="tooltip" title="Delete entry" onclick="deleteEntry(this)" entry-id="${safeId}"><i class="fa fa-trash"></i></button>
-            <button class="btn btn-sm btn-outline-secondary" data-toggle="tooltip" title="Close details (ESC)" onclick="deselectEntry()"><i class="fas fa-times"></i></button>
+            <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" title="Edit entry" onclick="editEntry(${safeId})"><i class="fas fa-edit"></i></button>
+            <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" title="Copy entry" onclick="copyEntry(this)" entry-id="${safeId}"><i class="fa fa-copy"></i></button>
+            <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" title="Copy as JSON" onclick="convertRowToJSON(${safeId})"><i class="fas fa-clipboard"></i></button>
+            <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" title="Copy deep link" onclick="copyDeepLink(${safeId})"><i class="fas fa-link"></i></button>
+            <button class="btn btn-sm btn-outline-danger danger" data-bs-toggle="tooltip" title="Delete entry" onclick="deleteEntry(this)" entry-id="${safeId}"><i class="fa fa-trash"></i></button>
+            <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" title="Close details (ESC)" onclick="deselectEntry()"><i class="fas fa-times"></i></button>
         </div>`;
         html += `</div>`;
         if (tags) {
@@ -505,8 +526,7 @@ $(document).ready(function () {
         if (entry.extra_fields && oplog_entry_extra_fields_spec.length > 0) {
             oplog_entry_extra_fields_spec.forEach(spec => {
                 let val = entry.extra_fields[spec.internal_name];
-                if (val === undefined || val === null || val.toString().trim() === '') return;
-                if ((spec.type === 'integer' || spec.type === 'float') && val === 0) return;
+                if (val === undefined || val === null || stringifyStructuredValue(val, false).trim() === '') return;
 
                 html += `<div class="oplog-detail-section">`;
                 html += `<div class="oplog-detail-label">${jsEscape(spec.display_name)}</div>`;
@@ -517,6 +537,8 @@ $(document).ready(function () {
                 } else if (spec.type === 'rich_text') {
                     let safeVal = (typeof DOMPurify !== 'undefined') ? DOMPurify.sanitize(val) : jsEscape(val);
                     html += `<div class="oplog-rich-content">${safeVal}</div>`;
+                } else if (spec.type === 'json' || typeof val === 'object') {
+                    html += `<pre class="oplog-code-block">${jsEscape(stringifyStructuredValue(val, true))}</pre>`;
                 } else if (spec.type === 'integer') {
                     html += `<div class="oplog-rich-content">${jsEscape(val)}</div>`;
                 } else if (spec.type === 'float') {
@@ -545,8 +567,8 @@ $(document).ready(function () {
         } else {
             let projectUrl = jsEscape($splitContainer.attr('data-project-url') || '#');
             html += `<div class="alert alert-info mb-0 d-flex align-items-center" role="alert">
-                <i class="fas fa-info-circle fa-lg flex-shrink-0 mr-3"></i>
-                <p class="mb-0 text-left mb-0">No reports exist for this project. <a class="clickable" href="${projectUrl}#documents">Create a report</a> to upload evidence.</p>
+                <i class="fas fa-info-circle fa-lg flex-shrink-0 me-3"></i>
+                <p class="mb-0 text-start mb-0">No reports exist for this project. <a class="clickable" href="${projectUrl}#documents">Create a report</a> to upload evidence.</p>
             </div>`;
         }
         html += `</div>`;
@@ -578,7 +600,9 @@ $(document).ready(function () {
         html += `</div>`; // end body
         $detailContent.html(html).show();
         $detailEmpty.hide();
-        $('[data-toggle="tooltip"]').tooltip();
+        $detailContent[0].querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (tooltip) {
+            bootstrap.Tooltip.getOrCreateInstance(tooltip);
+        });
 
         // Initialize asciinema player if recording data is available
         if (typeof AsciinemaPlayer !== 'undefined') {
@@ -973,7 +997,7 @@ $(document).ready(function () {
                     preview = `<img src="${jsEscape('/reporting/evidence/download/' + ev.id)}" alt="${jsEscape(ev.friendly_name)}" class="oplog-evidence-thumb text-center" onclick="openLightbox('${jsEscape('/reporting/evidence/download/' + ev.id)}')" loading="lazy">`;
                 }
                 let detailUrl = window.location.origin + '/reporting/reports/evidence/' + ev.id;
-                html += `<div class="oplog-evidence-item text-left mt-2">
+                html += `<div class="oplog-evidence-item text-start mt-2">
                     <div class="oplog-evidence-item-header">
                         <i class="fas ${icon}"></i>
                         <a href="${jsEscape(detailUrl)}" target="_blank" title="View">${jsEscape(ev.friendly_name)} (${jsEscape(ev.uploaded_by_user)})</a>
@@ -1438,12 +1462,17 @@ $(document).ready(function () {
                 success: function (xhr) {
                     if ($(xhr).find('.has-error').length > 0) {
                         submissionPending = false;
+                        if (window.gwDestroyTiptapEditors) {
+                            window.gwDestroyTiptapEditors(modal);
+                        }
                         $(modal).find('.oplog-form-div').html(xhr);
-                        formAjaxSubmit(form, modal);
+                        if (window.gwInitTiptapTextareas) {
+                            window.gwInitTiptapTextareas(modal);
+                        }
+                        formAjaxSubmit($(modal).find('form').first(), modal);
                     } else {
                         $(modal).modal('hide');
                     }
-                    tinymceRemove();
                 },
                 error: function () {
                     submissionPending = false;
@@ -1453,7 +1482,9 @@ $(document).ready(function () {
     };
 
     $('#edit-modal').on('hide.bs.modal', function () {
-        tinymceRemove();
+        if (window.gwDestroyTiptapEditors) {
+            window.gwDestroyTiptapEditors(this);
+        }
     });
 
     $('#edit-modal').on('keydown', function (event) {

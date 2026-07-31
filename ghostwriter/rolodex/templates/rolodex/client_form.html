@@ -21,9 +21,16 @@
 {% endblock %}
 
 {% block content %}
-  <strong class="icon client-icon">Setup a Client</strong>
-  <hr>
-  <p>Use the tabs to provide basic client information and add points of contact:</p>
+  <header class="resource-form-page-heading mb-4">
+    <span class="detail-eyebrow">Client</span>
+    {% if object.id %}
+      <h1>Edit {{ object.name }}</h1>
+      <p>Keep the client identity, contacts, access, and reporting metadata current.</p>
+    {% else %}
+      <h1>Create client</h1>
+      <p>Establish the client workspace first; contacts and access can be added when they are known.</p>
+    {% endif %}
+  </header>
 
   <!-- Form Error Section -->
   {% if form.errors %}
@@ -40,14 +47,94 @@
   {% endif %}
 
   <!-- Form Section -->
-  {% crispy form form.helper %}
+  <div class="client-form-shell tabbed-form-shell">
+    {% crispy form form.helper %}
+  </div>
 {% endblock %}
 
 {% block morescripts %}
   <script>
-    function initTinyMceEditors($container) {
-      if (window.gwInitTinyMceTextareas) {
-        window.gwInitTinyMceTextareas($container[0], {includeInactiveTabs: true, preserveScroll: true});
+    function getCollectionCard($element) {
+      return $element.closest('.formset-container').find('.collection-form-card').first();
+    }
+
+    function getCollectionDisplayValue($field) {
+      if (!$field.length) {
+        return '';
+      }
+      if ($field.is('select')) {
+        let value = $field.val();
+        return value ? $field.find('option:selected').text().trim() : '';
+      }
+      return String($field.val() || '').trim();
+    }
+
+    function updateCollectionCardSummary(card) {
+      let $card = $(card);
+      let itemType = $card.data('collection-item');
+      let $container = $card.closest('.formset-container');
+      let $title = $card.find('.collection-form-card-title').first();
+      let $meta = $card.find('.collection-form-card-meta').first();
+
+      if (itemType === 'contact') {
+        let name = getCollectionDisplayValue($container.find(':input[id$="-name"]').first());
+        let jobTitle = getCollectionDisplayValue($container.find(':input[id$="-job_title"]').first());
+        let email = getCollectionDisplayValue($container.find(':input[id$="-email"]').first());
+        let metadata = [jobTitle, email].filter(Boolean);
+        $title.text(name || 'New contact');
+        $meta.text(metadata.length ? metadata.join(' · ') : 'Add contact details');
+
+        let isPrimary = $container.find(':input[id$="-primary"]').is(':checked');
+        let $status = $card.find('.collection-form-card-status').first();
+        $status.text(isPrimary ? 'Primary' : '');
+        $status.toggleClass('d-none', !isPrimary);
+      } else if (itemType === 'access') {
+        let operator = getCollectionDisplayValue($container.find('select[id$="-user"]').first());
+        $title.text(operator || 'Select an operator');
+      }
+    }
+
+    function updateCollectionState(itemType, tabHash) {
+      let selector = '.collection-form-card[data-collection-item="' + itemType + '"]';
+      let $cards = $(selector).filter(function () {
+        let $container = $(this).closest('.formset-container');
+        return !$(this).closest('[id^="empty-form-"]').length &&
+          !$container.find(':input[id$="-DELETE"]').is(':checked');
+      });
+      let count = $cards.length;
+      let $emptyState = $('[data-collection-empty="' + itemType + '"]');
+      $emptyState.toggleClass('d-none', count !== 0);
+
+      let $tab = $('#tab-bar a[data-tab-hash="' + tabHash + '"]');
+      let $badge = $tab.find('.collection-tab-count');
+      if (!$badge.length) {
+        $badge = $('<span>', {
+          class: 'badge collection-tab-count',
+          'aria-label': 'item count'
+        });
+        $tab.append($badge);
+      }
+      $badge.text(count);
+    }
+
+    function refreshClientCollections() {
+      $('.collection-form-card').filter(function () {
+        return !$(this).closest('[id^="empty-form-"]').length;
+      }).each(function () {
+        let $card = $(this);
+        if ($card.find('.is-invalid, .invalid-feedback').length) {
+          $card.prop('open', true);
+          initRichTextEditors($card);
+        }
+        updateCollectionCardSummary(this);
+      });
+      updateCollectionState('contact', '#contacts');
+      updateCollectionState('access', '#invites');
+    }
+
+    function initRichTextEditors($container) {
+      if (window.gwInitTiptapStableContainer) {
+        window.gwInitTiptapStableContainer($container[0]);
       }
     }
 
@@ -57,9 +144,10 @@
       $('#formset-{{ contacts.prefix }}').append($('#empty-form-{{ contacts.prefix }}').html().replace(/__prefix__/g, form_idx));
       $('#id_{{ contacts.prefix }}-TOTAL_FORMS').val(parseInt(form_idx) + 1);
       let new_form = $('#formset-{{ contacts.prefix }}').find('div.formset-container').last()
-      new_form.find('span.counter').html(parseInt(form_idx) + 1);
-      initTinyMceEditors(new_form);
+      getCollectionCard(new_form).prop('open', true);
+      initRichTextEditors(new_form);
       window.gwHighlightNewFormset(new_form[0]);
+      refreshClientCollections();
     });
 
     $('.formset-add-{{ invites.prefix }}').click(function () {
@@ -67,9 +155,34 @@
       $('#formset-{{ invites.prefix }}').append($('#empty-form-{{ invites.prefix }}').html().replace(/__prefix__/g, form_idx));
       $('#id_{{ invites.prefix }}-TOTAL_FORMS').val(parseInt(form_idx) + 1);
       let new_form = $('#formset-{{ invites.prefix }}').find('div.formset-container').last()
-      new_form.find('span.counter').html(parseInt(form_idx) + 1);
-      initTinyMceEditors(new_form);
+      getCollectionCard(new_form).prop('open', true);
+      initRichTextEditors(new_form);
       window.gwHighlightNewFormset(new_form[0]);
+      refreshClientCollections();
+    });
+
+    $(document).on(
+      'input change',
+      '.collection-form-card :input:not([id$="-DELETE"])',
+      function () {
+        updateCollectionCardSummary($(this).closest('.collection-form-card')[0]);
+      }
+    );
+
+    $(document).on('click', '.client-form-shell .formset-del-button', function () {
+      let $container = $(this).closest('.formset-container');
+      window.setTimeout(function () {
+        $container.find('.collection-form-card').prop('hidden', true);
+        refreshClientCollections();
+      }, 0);
+    });
+
+    $(document).on('click', '.client-form-shell .formset-undo-button', function () {
+      let $container = $(this).closest('.formset-container');
+      window.setTimeout(function () {
+        $container.find('.collection-form-card').prop('hidden', false);
+        refreshClientCollections();
+      }, 0);
     });
 
     {% comment %} Roll Codename with AJAX {% endcomment %}
@@ -92,5 +205,9 @@
       displayToastTop({type: 'success', string: 'Updated the primary contact (there must be one and only one).', title: 'Contacts Updated'})
       obj.checked = true;
     }
+
+    $(function () {
+      refreshClientCollections();
+    });
   </script>
 {% endblock %}

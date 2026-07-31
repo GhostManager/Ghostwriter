@@ -41,7 +41,13 @@ class ClientFilter(django_filters.FilterSet):
     name = django_filters.CharFilter(
         method="search_all_names",
         label="Client Name Contains",
-        widget=TextInput(attrs={"placeholder": "Partial Name, Short Name, or Codename", "autocomplete": "off"}),
+        widget=TextInput(
+            attrs={
+                "placeholder": "Partial Name, Short Name, or Codename",
+                "autocomplete": "off",
+                "data-1p-ignore": "true",
+            }
+        ),
     )
     tags = django_filters.CharFilter(
         method="search_tags",
@@ -50,6 +56,7 @@ class ClientFilter(django_filters.FilterSet):
             attrs={
                 "placeholder": "Client Tag",
                 "autocomplete": "off",
+                "data-1p-ignore": "true",
             }
         ),
     )
@@ -87,13 +94,13 @@ class ClientFilter(django_filters.FilterSet):
                             css_class="form-row",
                         ),
                         ButtonHolder(
-                            Submit("submit_btn", "Filter", css_class="btn btn-primary col-1"),
+                            Submit("submit_btn", "Filter", css_class="btn btn-primary"),
                             HTML(
                                 """
-                                <a class="btn btn-outline-secondary col-1" role="button" href="{%  url 'rolodex:clients' %}">Reset</a>
+                                <a class="btn btn-outline-secondary" role="button" href="{%  url 'rolodex:clients' %}">Reset</a>
                                 """
                             ),
-                            css_class="mt-3",
+                            css_class="library-filter-actions mt-1",
                         ),
                     ),
                     active=is_active,
@@ -145,6 +152,7 @@ class ProjectFilter(django_filters.FilterSet):
             attrs={
                 "placeholder": "Partial Client Name",
                 "autocomplete": "off",
+                "data-1p-ignore": "true",
             }
         ),
     )
@@ -155,6 +163,7 @@ class ProjectFilter(django_filters.FilterSet):
             attrs={
                 "placeholder": "Partial Project Codename",
                 "autocomplete": "off",
+                "data-1p-ignore": "true",
             }
         ),
     )
@@ -165,6 +174,7 @@ class ProjectFilter(django_filters.FilterSet):
             attrs={
                 "placeholder": "Project Tag",
                 "autocomplete": "off",
+                "data-1p-ignore": "true",
             }
         ),
     )
@@ -274,14 +284,14 @@ class ProjectFilter(django_filters.FilterSet):
                             css_class="form-row",
                         ),
                         ButtonHolder(
-                            Submit("submit_btn", "Filter", css_class="btn btn-primary col-1"),
+                            Submit("submit_btn", "Filter", css_class="btn btn-primary"),
                             HTML(
                                 """
-                                <a class="btn btn-outline-secondary col-1" role="button"
+                                <a class="btn btn-outline-secondary" role="button"
                                 href="{%  url 'rolodex:projects' %}">Reset</a>
                                 """
                             ),
-                            css_class="mt-3",
+                            css_class="library-filter-actions mt-1",
                         ),
                     ),
                     active=is_active,

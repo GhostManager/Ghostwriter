@@ -146,6 +146,7 @@ class ClientContactForm(forms.ModelForm):
         self.fields["phone"].widget.attrs["placeholder"] = "(212) 897-1964"
         self.fields["phone"].label = "Phone Number"
         self.fields["description"].widget.attrs["placeholder"] = "Janine is our main contact for assessment work and ..."
+        self.fields["description"].widget.attrs["class"] = "gw-tiptap-compact"
         self.fields["timezone"].initial = general_config.default_timezone
         self.helper = FormHelper()
         # Disable the <form> tags because this will be part of an instance of `ClientForm()`
@@ -170,11 +171,38 @@ class ClientContactForm(forms.ModelForm):
                     block=False,
                     dismiss=False,
                 ),
+                HTML(
+                    """
+                    <details
+                        class="collection-form-card"
+                        data-collection-item="contact"
+                        {% if form.errors or not form.instance.pk %}open{% endif %}
+                    >
+                        <summary class="collection-form-card-summary">
+                            <span class="collection-form-card-icon poc-icon" aria-hidden="true"></span>
+                            <span class="collection-form-card-identity">
+                                <span class="collection-form-card-title" data-summary-field="name">
+                                    Contact details
+                                </span>
+                                <span class="collection-form-card-meta" data-summary-fields="job_title,email">
+                                    Add contact details
+                                </span>
+                            </span>
+                            <span class="collection-form-card-status" data-summary-field="primary"></span>
+                            <i class="fas fa-chevron-down collection-form-card-chevron" aria-hidden="true"></i>
+                        </summary>
+                        <div class="collection-form-card-body">
+                    """
+                ),
                 Div(
                     HTML(
                         """
-                        <h6>Contact #<span class="counter">{{ forloop.counter }}</span></h6>
-                        <hr>
+                        <div class="collection-form-card-heading mb-3">
+                            <div>
+                                <h3>Contact details</h3>
+                                <p>Keep the operator-facing identity and communication details current.</p>
+                            </div>
+                        </div>
                         """
                     ),
                     Row(
@@ -190,24 +218,18 @@ class ClientContactForm(forms.ModelForm):
                     ),
                     SwitchToggle("primary", onchange="cbChange(this)", css_class="js-cb-toggle"),
                     "description",
-                    Row(
-                        Column(
-                            Button(
-                                "formset-del-button",
-                                "Delete Contact",
-                                css_class="btn-outline-danger formset-del-button col-8",
-                            ),
-                            css_class="form-group col-6 offset-3",
+                    Field("DELETE", style="display: none;", visibility="hidden", template="delete_checkbox.html"),
+                    Div(
+                        Button(
+                            "formset-del-button",
+                            "Remove Contact",
+                            css_class="btn-outline-danger formset-del-button formset-action-button",
                         ),
-                        Column(
-                            Field(
-                                "DELETE", style="display: none;", visibility="hidden", template="delete_checkbox.html"
-                            ),
-                            css_class="form-group col-3 text-center",
-                        ),
+                        css_class="formset-actions",
                     ),
-                    css_class="formset",
+                    css_class="formset collection-form-card-fields",
                 ),
+                HTML("</div></details>"),
                 css_class="formset-container",
             )
         )
@@ -238,6 +260,7 @@ class ClientInviteForm(forms.ModelForm):
         self.fields["user"].label = "Operator"
         self.fields["user"].queryset = self.fields["user"].queryset.order_by("-is_active", "username", "name")
         self.fields["user"].label_from_instance = lambda obj: obj.get_display_name
+        self.fields["comment"].widget.attrs["class"] = "gw-tiptap-compact"
 
         self.helper = FormHelper()
         # Disable the <form> tags because this will be part of an instance of `ClientForm()`
@@ -261,30 +284,54 @@ class ClientInviteForm(forms.ModelForm):
                     block=False,
                     dismiss=False,
                 ),
+                HTML(
+                    """
+                    <details
+                        class="collection-form-card"
+                        data-collection-item="access"
+                        {% if form.errors or not form.instance.pk %}open{% endif %}
+                    >
+                        <summary class="collection-form-card-summary">
+                            <span class="collection-form-card-icon users-icon" aria-hidden="true"></span>
+                            <span class="collection-form-card-identity">
+                                <span class="collection-form-card-title" data-summary-field="user">
+                                    Operator access
+                                </span>
+                                <span class="collection-form-card-meta">Client-level visibility</span>
+                            </span>
+                            <i class="fas fa-chevron-down collection-form-card-chevron" aria-hidden="true"></i>
+                        </summary>
+                        <div class="collection-form-card-body">
+                    """
+                ),
                 Div(
+                    HTML(
+                        """
+                        <div class="collection-form-card-heading mb-3">
+                            <div>
+                                <h3>Access details</h3>
+                                <p>Grant an operator visibility into this client and all associated projects.</p>
+                            </div>
+                        </div>
+                        """
+                    ),
                     Row(
                         Column("user", css_class="form-group col-md-12"),
                         css_class="form-row",
                     ),
                     "comment",
-                    Row(
-                        Column(
-                            Button(
-                                "formset-del-button",
-                                "Delete Invite",
-                                css_class="btn-outline-danger formset-del-button col-8",
-                            ),
-                            css_class="form-group col-6 offset-3",
+                    Field("DELETE", style="display: none;", visibility="hidden", template="delete_checkbox.html"),
+                    Div(
+                        Button(
+                            "formset-del-button",
+                            "Remove Access",
+                            css_class="btn-outline-danger formset-del-button formset-action-button",
                         ),
-                        Column(
-                            Field(
-                                "DELETE", style="display: none;", visibility="hidden", template="delete_checkbox.html"
-                            ),
-                            css_class="form-group col-3 text-center",
-                        ),
+                        css_class="formset-actions",
                     ),
-                    css_class="formset",
+                    css_class="formset collection-form-card-fields",
                 ),
+                HTML("</div></details>"),
                 css_class="formset-container"
             )
         )
@@ -354,6 +401,8 @@ class ClientForm(forms.ModelForm):
         self.fields["short_name"].widget.attrs["placeholder"] = "Specter"
         self.fields["description"].widget.attrs["placeholder"] = "This client approached us with concerns in these areas ..."
         self.fields["address"].widget.attrs["placeholder"] = "14 N Moore St, New York, NY 10013"
+        self.fields["address"].widget.attrs["class"] = "gw-tiptap-compact"
+        self.fields["description"].widget.attrs["class"] = "gw-tiptap-narrative"
         self.fields["timezone"].initial = general_config.default_timezone
         self.fields["tags"].widget.attrs["placeholder"] = "cybersecurity, industry:infosec, ..."
         self.fields["description"].label = "Description"
@@ -362,6 +411,139 @@ class ClientForm(forms.ModelForm):
 
         has_extra_fields = bool(self.fields["extra_fields"].specs)
 
+        tabs = [
+            CustomTab(
+                "Client Information",
+                HTML(
+                    """
+                    <div class="form-section-heading mb-3">
+                        <h2>Identity</h2>
+                        <p>Name the client as operators should see it throughout Ghostwriter.</p>
+                    </div>
+                    """
+                ),
+                Row(
+                    Column("name", css_class="form-group col-md-6 mb-0"),
+                    Column("short_name", css_class="form-group col-md-6 mb-0"),
+                    css_class="form-row",
+                ),
+                Row(
+                    Column(
+                        FieldWithButtons(
+                            "codename",
+                            HTML(
+                                """
+                                <button
+                                    class="btn btn-secondary js-roll-codename"
+                                    roll-codename-url="{% url 'rolodex:ajax_roll_codename' %}"
+                                    type="button"
+                                >
+                                <i class="fas fa-dice"></i>
+                                </button>
+                                """
+                            ),
+                        ),
+                        css_class="col-md-6",
+                    ),
+                    Column("timezone", css_class="form-group col-md-6 mb-0"),
+                ),
+                "tags",
+                HTML(
+                    """
+                    <div class="form-section-heading mt-2 mb-3">
+                        <h2>Client profile</h2>
+                        <p>Add the context operators need when planning and reporting work.</p>
+                    </div>
+                    """
+                ),
+                Field("logo", wrapper_class="file-field"),
+                "address",
+                "description",
+                link_css_class="client-icon",
+                css_id="client",
+            ),
+            CustomTab(
+                "Points of Contact",
+                Div(
+                    Div(
+                        HTML(
+                            """
+                            <h2>Points of contact</h2>
+                            <p>People who coordinate, approve, or receive work for this client.</p>
+                            """
+                        ),
+                        css_class="collection-toolbar-copy",
+                    ),
+                    Button(
+                        "add-contact",
+                        "Add Contact",
+                        css_class="btn-outline-secondary formset-add-poc",
+                    ),
+                    css_class="collection-toolbar mb-3",
+                ),
+                HTML(
+                    """
+                    <div class="empty-state collection-empty-state{% if contacts.forms %} d-none{% endif %}"
+                         data-collection-empty="contact">
+                        <i class="fas fa-address-card empty-state-icon" aria-hidden="true"></i>
+                        <h3 class="empty-state-title">No contacts yet</h3>
+                        <p class="empty-state-description">
+                            Add a point of contact when someone coordinates or approves this client's work.
+                        </p>
+                    </div>
+                    """
+                ),
+                Formset("contacts", object_context_name="Contact"),
+                link_css_class="poc-icon",
+                css_id="contacts",
+            ),
+            CustomTab(
+                "Access",
+                Div(
+                    Div(
+                        HTML(
+                            """
+                            <h2>Client access</h2>
+                            <p>Operators listed here can view this client and its associated projects.</p>
+                            """
+                        ),
+                        css_class="collection-toolbar-copy",
+                    ),
+                    Button(
+                        "add-invite",
+                        "Grant Access",
+                        css_class="btn-outline-secondary formset-add-invite",
+                    ),
+                    css_class="collection-toolbar mb-3",
+                ),
+                HTML(
+                    """
+                    <div class="empty-state collection-empty-state{% if invites.forms %} d-none{% endif %}"
+                         data-collection-empty="access">
+                        <i class="fas fa-user-shield empty-state-icon" aria-hidden="true"></i>
+                        <h3 class="empty-state-title">No client-level access</h3>
+                        <p class="empty-state-description">
+                            Grant access only when an operator needs visibility across this client's work.
+                        </p>
+                    </div>
+                    """
+                ),
+                Formset("invites", object_context_name="Invite"),
+                link_css_class="tab-icon users-icon",
+                css_id="invites",
+            ),
+        ]
+
+        if has_extra_fields:
+            tabs.append(
+                CustomTab(
+                    "Extra Fields",
+                    "extra_fields",
+                    link_css_class="tab-icon custom-field-icon",
+                    css_id="extra-fields",
+                )
+            )
+
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
         # Turn on <form> tags for this parent form
@@ -369,80 +551,33 @@ class ClientForm(forms.ModelForm):
         self.helper.form_method = "post"
         self.helper.layout = Layout(
             TabHolder(
-                CustomTab(
-                    "Client Information",
-                    Row(
-                        Column("name", css_class="form-group col-md-6 mb-0"),
-                        Column("short_name", css_class="form-group col-md-6 mb-0"),
-                        css_class="form-row",
-                    ),
-                    Row(
-                        Column("tags", css_class="form-group col-md-4 mb-0"),
-                        Column(
-                            FieldWithButtons(
-                                "codename",
-                                HTML(
-                                    """
-                                    <button
-                                        class="btn btn-secondary js-roll-codename"
-                                        roll-codename-url="{% url 'rolodex:ajax_roll_codename' %}"
-                                        type="button"
-                                    >
-                                    <i class="fas fa-dice"></i>
-                                    </button>
-                                    """
-                                ),
-                            ),
-                            css_class="col-md-4",
-                        ),
-                        Column("timezone", css_class="form-group col-md-4 mb-0"),
-                    ),
-                    "address",
-                    Field("logo", wrapper_class="file-field"),
-                    "description",
-                    HTML(
-                        """
-                        <h4 class="icon custom-field-icon">Extra Fields</h4>
-                        <hr />
-                        """
-                    ) if has_extra_fields else None,
-                    "extra_fields" if has_extra_fields else None,
-                    link_css_class="client-icon",
-                    css_id="client",
-                ),
-                CustomTab(
-                    "Points of Contact",
-                    Formset("contacts", object_context_name="Contact"),
-                    Button(
-                        "add-contact",
-                        "Add Contact",
-                        css_class="btn-block btn-secondary formset-add-poc mb-2 offset-4 col-4",
-                    ),
-                    link_css_class="poc-icon",
-                    css_id="contacts",
-                ),
-                CustomTab(
-                    "Invites",
-                    Formset("invites", object_context_name="Invite"),
-                    Button(
-                        "add-invite",
-                        "Add Invite",
-                        css_class="btn-block btn-secondary formset-add-invite mb-2 offset-4 col-4",
-                    ),
-                    link_css_class="tab-icon users-icon",
-                    css_id="invites",
-                ),
+                *tabs,
                 template="tab.html",
                 css_class="nav-justified",
+                css_id="tab-bar",
             ),
-            ButtonHolder(
-                Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
+            Div(
                 HTML(
                     """
-                    <button onclick="window.location.href='{{ cancel_link }}'"
-                    class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    <span class="resource-form-actions-context client-form-actions-context">
+                        {% if object.pk %}Editing {{ object.name }}{% else %}Creating a new client{% endif %}
+                    </span>
                     """
                 ),
+                Div(
+                    HTML(
+                        """
+                        <a href="{{ cancel_link }}" class="btn btn-outline-secondary">Cancel</a>
+                        """
+                    ),
+                    Submit(
+                        "submit-button",
+                        "Save Changes" if self.instance.pk else "Create Client",
+                        css_class="btn btn-primary",
+                    ),
+                    css_class="resource-form-actions-buttons client-form-actions-buttons",
+                ),
+                css_class="resource-form-actions client-form-actions",
             ),
         )
 

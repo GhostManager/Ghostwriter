@@ -1,6 +1,6 @@
 {% extends "base_generic.html" %}
 
-{% load determine_primary bleach_tags custom_tags extra_fields settings_tags static json_enc %}
+{% load determine_primary bleach_tags custom_tags extra_fields report_tags settings_tags static json_enc %}
 
 {% block pagetitle %}{{ project.client }} {{ project.project_type }} Details{% endblock %}
 
@@ -8,7 +8,7 @@
   <nav aria-label="breadcrumb">
     <ul class="breadcrumb">
       <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-      <li class="breadcrumb-item"><a data-toggle="tooltip" title="{{ project.client }}"
+      <li class="breadcrumb-item"><a data-bs-toggle="tooltip" title="{{ project.client }}"
                                      href="{% url 'rolodex:client_detail' project.client.id %}">{{ project.client.name }}</a>
       </li>
       <li class="breadcrumb-item active"
@@ -18,32 +18,60 @@
 {% endblock %}
 
 {% block content %}
-  {% if request.user|is_privileged %}
-    <div class="dropdown">
-      <div class="dropdown-menu-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
-           onclick="hamburger(this)">
-        <div class="bar1"></div>
-        <div class="bar2"></div>
-        <div class="bar3"></div>
-      </div>
-      <div class="dropdown-menu dropdown-menu-right" aria-labelledby="project-dropdown-btn">
-        <a class="dropdown-item icon edit-icon" href="{% url 'rolodex:project_update' project.id %}">Edit</a>
-        <a class="dropdown-item icon trash-icon" href="{% url 'rolodex:project_delete' project.id %}">Delete</a>
+  <header class="detail-page-heading project-detail-heading">
+    <div class="detail-page-heading-main project-detail-heading-main">
+      <span class="detail-eyebrow">Project</span>
+      <h2 class="mb-0">{% if project.codename %}{{ project.codename }}{% else %}Project {{ project.id }}{% endif %}</h2>
+      <div class="project-context-badges" aria-label="Project context">
+        <a class="project-context-badge project-context-badge-client"
+           href="{% url 'rolodex:client_detail' project.client.id %}"
+           title="{{ project.client.name }}">
+          <i class="fas fa-building" aria-hidden="true"></i>
+          <span>{{ project.client.name }}</span>
+        </a>
+        <span class="project-context-badge" title="Project type: {{ project.project_type }}">
+          <i class="fas fa-crosshairs" aria-hidden="true"></i>
+          <span>{{ project.project_type }}</span>
+        </span>
+        <span class="project-context-badge" title="Execution window">
+          <i class="far fa-calendar-alt" aria-hidden="true"></i>
+          <span>{{ project.start_date|date:"DATE_FORMAT" }} – {{ project.end_date|date:"DATE_FORMAT" }}</span>
+        </span>
       </div>
     </div>
-  {% endif %}
 
-  {% comment %} Project title constructed from attributes {% endcomment %}
-  <div class="container offset-col-1 col-10">
-    <h2>{{ project.client }} {{ project.project_type }}</h2>
-    <h3>{{ project.start_date }}</h3>
-  </div>
+    <div class="dropdown detail-page-heading-actions">
+      <button id="project-actions-button"
+              type="button"
+              class="btn btn-outline-primary btn-sm dropdown-toggle"
+              data-bs-toggle="dropdown"
+              aria-haspopup="true"
+              aria-expanded="false">
+        <span>Actions</span>
+      </button>
+      <div class="dropdown-menu dropdown-menu-end" aria-labelledby="project-actions-button">
+        <button type="button"
+                class="dropdown-item js-work-pin"
+                data-work-type="project"
+                data-work-id="{{ project.id }}">
+          <i class="fas fa-thumbtack" aria-hidden="true"></i>
+          <span data-work-pin-label>Pin to sidebar</span>
+        </button>
+        {% if request.user|is_privileged %}
+          <div class="dropdown-divider"></div>
+          <a class="dropdown-item icon edit-icon" href="{% url 'rolodex:project_update' project.id %}">Edit project</a>
+          <div class="dropdown-divider"></div>
+          <a class="dropdown-item icon trash-icon text-danger" href="{% url 'rolodex:project_delete' project.id %}">Delete project</a>
+        {% endif %}
+      </div>
+    </div>
+  </header>
   {% if project.tags.all %}
-    {% for tag in project.tags.names %}<span class="badge badge-secondary">{{ tag|bleach }}</span>{% endfor %}
+    <div class="detail-tag-list" aria-label="Project tags">
+      {% for tag in project.tags.names %}<span class="badge badge-secondary">{{ tag|bleach }}</span>{% endfor %}
+    </div>
   {% endif %}
-  <hr/>
-
-  <p class="form-spacer"></p>
+  <hr class="w-100 my-3"/>
 
   <div>
     {% comment %}
@@ -58,113 +86,114 @@
     <div class="tab-content">
       {% comment %} Planning Tab {% endcomment %}
       <div id="planning" class="tab-pane in active">
-        <h4>Project Details</h4>
-        <hr/>
-
-        <table class="table table-borderless project-details-table offset-2 col-8">
-          <tr>
-            <td class="text-left bold">Project Status</td>
-            <td class="text-left">
-              <span data-toggle="tooltip"
+        <div class="detail-layout project-overview-layout">
+          <section class="detail-panel" aria-labelledby="project-details-heading">
+            <div class="detail-panel-header">
+              <div>
+                <h4 id="project-details-heading">Project Details</h4>
+              </div>
+            </div>
+            <dl class="detail-grid detail-grid-three">
+              <div class="detail-field">
+                <dt>Project Status</dt>
+                <dd>
+                  <span data-bs-toggle="tooltip"
                     title="Toggle the project's status between executing and complete">
-                  {% if project.complete %}
-                    <a href="javascript:void(0)" class="clickable-link js-toggle-project-status"
-                       toggle-project-status-csrftoken="{{ csrf_token }}"
-                       toggle-project-status-url="{% url 'rolodex:ajax_toggle_project' project.id %}"
-                       toggle-project-status-id="{{ project.id }}">
+                    {% if project.complete %}
+                      <a href="javascript:void(0)" class="clickable-link js-toggle-project-status status-indicator"
+                         toggle-project-status-csrftoken="{{ csrf_token }}"
+                         toggle-project-status-url="{% url 'rolodex:ajax_toggle_project' project.id %}"
+                         toggle-project-status-id="{{ project.id }}">
                           <i id="js-toggle-project-status-icon" class="fas fa-toggle-on"></i> <span
-                      id="js-project-status">Complete</span>
+                        id="js-project-status">Complete</span>
                       </a>
-                  {% else %}
-                    <a href="javascript:void(0)" class="clickable-link js-toggle-project-status"
-                       toggle-project-status-csrftoken="{{ csrf_token }}"
-                       toggle-project-status-url="{% url 'rolodex:ajax_toggle_project' project.id %}"
-                       toggle-project-status-id="{{ project.id }}">
+                    {% else %}
+                      <a href="javascript:void(0)" class="clickable-link js-toggle-project-status status-indicator"
+                         toggle-project-status-csrftoken="{{ csrf_token }}"
+                         toggle-project-status-url="{% url 'rolodex:ajax_toggle_project' project.id %}"
+                         toggle-project-status-id="{{ project.id }}">
                           <i id="js-toggle-project-status-icon" class="fas fa-toggle-off"></i> <span
-                      id="js-project-status">In Progress</span>
+                        id="js-project-status">In Progress</span>
                       </a>
-                  {% endif %}
-              </span>
-            </td>
-          </tr>
-          <tr>
-            <td class="text-left bold">Codename</td>
-            <td class="text-left">
-              {% if project.codename %} {{ project.codename }} {% else %} No Codename {% endif %}
-            </td>
-          </tr>
-          <tr>
-            <td class="text-left bold">Execution Dates</td>
-            <td class="text-left">{{ project.start_date|date:"DATE_FORMAT" }}
-              – {{ project.end_date|date:"DATE_FORMAT" }}</td>
-          </tr>
-          <tr>
-            <td class="text-left bold">Working Hours</td>
-            <td class="text-left">
-              {% if project.start_time and project.end_time %} {{ project.start_time|date:"G:i" }} to
-                {{ project.end_time|date:"G:i" }} ({{ project.timezone }}) {% else %} No Working Hours Set {% endif %}
-            </td>
-          </tr>
-          <tr>
-            <td class="text-left bold">Slack Channel</td>
-            <td class="text-left">
-              {% if project.slack_channel %} {{ project.slack_channel }} {% else %} No Slack Channel {% endif %}
-            </td>
-          </tr>
-          <tr>
-            <td class="text-left bold">Project Description</td>
-            <td class="text-left">
-              <a href="javascript:void(0);" id="projectDescriptionDropdown" class="align-icon icon add-icon">Show
-                Description</a>
-            </td>
-          </tr>
-        </table>
+                    {% endif %}
+                  </span>
+                </dd>
+              </div>
+              <div class="detail-field">
+                <dt>Codename</dt>
+                <dd class="operator-data">{% if project.codename %}{{ project.codename }}{% else %}<span class="detail-empty">Not provided</span>{% endif %}</dd>
+              </div>
+              <div class="detail-field">
+                <dt>Execution Dates</dt>
+                <dd class="operator-data">{{ project.start_date|date:"DATE_FORMAT" }} – {{ project.end_date|date:"DATE_FORMAT" }}</dd>
+              </div>
+              <div class="detail-field">
+                <dt>Working Hours</dt>
+                <dd class="operator-data">{% if project.start_time and project.end_time %}{{ project.start_time|date:"G:i" }} to {{ project.end_time|date:"G:i" }} ({{ project.timezone }}){% else %}<span class="detail-empty">Not provided</span>{% endif %}</dd>
+              </div>
+              <div class="detail-field">
+                <dt>Slack Channel</dt>
+                <dd>{% if project.slack_channel %}{{ project.slack_channel }}{% else %}<span class="detail-empty">Not provided</span>{% endif %}</dd>
+              </div>
+            </dl>
+          </section>
 
-        <div id="projectDescription" class="description-block offset-md-2 col-8">
-          {% if project.description %}
-            {{ project.description|bleach }}
-          {% else %}
-            <p class="text-center">No one has added a description of this project. <a class="clickable"
-                                                                                      href="{% url 'rolodex:project_update' project.id %}">Fix
-              that here.
-            </a>
-            </p>
-          {% endif %}
+          <section class="detail-panel detail-panel-quiet" aria-labelledby="project-description-heading">
+            <div class="detail-panel-header">
+              <div>
+                <h4 id="project-description-heading">Project Description</h4>
+              </div>
+            </div>
+            <div id="projectDescription" class="detail-prose">
+              {% if project.description %}
+                {{ project.description|bleach }}
+              {% else %}
+                <p>No description has been added for this project. <a class="clickable"
+                    href="{% url 'rolodex:project_update' project.id %}">Add a description</a>.</p>
+              {% endif %}
+            </div>
+          </section>
         </div>
 
-        {% comment %} This element prevents the "jump" that happens when the description is toggled {% endcomment %}
-        <div class="hidden-element"></div>
-
         {% comment %} Calendar Section {% endcomment %}
-        <h4>Project Calendar</h4>
-        <hr/>
-
-        <div id="calendar"></div>
+        <section class="detail-panel project-calendar-panel" aria-labelledby="project-calendar-heading">
+          <div class="detail-panel-header">
+            <div>
+              <span class="detail-eyebrow">Schedule</span>
+              <h4 id="project-calendar-heading">Project Calendar</h4>
+            </div>
+          </div>
+          <div id="calendar" class="gw-calendar" aria-label="Project calendar"></div>
+        </section>
       </div>
 
       {% comment %} People Tab {% endcomment %}
       <div id="people" class="tab-pane">
         {% comment %} Assignment Section {% endcomment %}
-        <h4>Project Team Assignments</h4>
-        <hr/>
-
-        {% if request.user|is_privileged %}
-          <a class="icon edit-icon btn btn-primary mb-1 col-3"
-             href="{% url 'rolodex:project_update' project.id %}#assignments">Add & Edit Assignments</a>
-        {% endif %}
+        <header class="content-section-header">
+          <div class="content-section-heading">
+            <h4>Project Team Assignments</h4>
+            <p class="content-section-intro">Operators assigned here can access the project and track their role, working dates, and assignment notes.</p>
+          </div>
+          {% if request.user|is_privileged %}
+            <a class="icon edit-icon btn btn-primary btn-sm"
+               href="{% url 'rolodex:project_update' project.id %}#assignments">Add & Edit Assignments</a>
+          {% endif %}
+        </header>
         {% if project.projectassignment_set.all %}
-          <table id="assignmentTable" class="tablesorter table">
+          <div class="table-responsive data-table-frame">
+            <table id="assignmentTable" class="tablesorter table">
             <thead>
-            <th class="align-middle pr-4 text-left">Operator</th>
-            <th class="align-middle pr-4 text-left">Role</th>
-            <th class="sorter-date-range-dMMMyyyy align-middle pr-4 text-left">Dates</th>
-            <th class="sorter-false align-middle text-left">Note</th>
+            <th class="align-middle pe-4 text-start">Operator</th>
+            <th class="align-middle pe-4 text-start">Role</th>
+            <th class="sorter-date-range-dMMMyyyy align-middle pe-4 text-start">Dates</th>
+            <th class="sorter-false align-middle text-start">Note</th>
             {% if request.user|is_privileged %}
-              <th class="sorter-false text-center align-middle">Options</th>{% endif %}
+              <th class="sorter-false text-end align-middle">Options</th>{% endif %}
             </thead>
             {% for operator in project.projectassignment_set.all %}
               <tr>
-                <td id="delete-target-content-assignment-{{ operator.id }}" class="align-middle text-left">
+                <td id="delete-target-content-assignment-{{ operator.id }}" class="align-middle text-start">
                   <a class="clickable" href="{% url 'users:user_detail' operator.operator.username %}">
                     {% if operator.operator.name %}
                       {{ operator.operator.name }}
@@ -173,32 +202,42 @@
                     {% endif %}
                   </a>
                 </td>
-                <td class="align-middle text-left">{{ operator.role }}</td>
-                <td class="align-middle text-left" data-text="{{ operator.start_date|date:"Y-m-d" }}">{{ operator.start_date|date:"DATE_FORMAT" }} –
+                <td class="align-middle text-start">{{ operator.role }}</td>
+                <td class="align-middle text-start" data-text="{{ operator.start_date|date:"Y-m-d" }}">{{ operator.start_date|date:"DATE_FORMAT" }} –
                   <br/> {{ operator.end_date|date:"DATE_FORMAT" }}</td>
-                <td class="text-justify align-middle text-left">{{ operator.note|bleach }}</td>
+                <td class="text-justify align-middle text-start">
+                  {% if operator.description %}
+                    {{ operator.description|bleach }}
+                  {% else %}
+                    <span class="missing-value">Not provided</span>
+                  {% endif %}
+                </td>
                 {% if request.user|is_privileged %}
-                  <td class="align-middle">
-                    <div class="d-flex justify-content-center">
-                        <a class="icon edit-icon"
+                  <td class="align-middle text-end">
+                    <div class="table-row-actions">
+                        <a class="table-row-action"
                            title="Edit this assignment"
-                           href="{% url 'rolodex:project_update' project.id %}#assignments"></a>
+                           aria-label="Edit this assignment"
+                           href="{% url 'rolodex:project_update' project.id %}#assignments"><i class="fas fa-pen" aria-hidden="true"></i></a>
                         <a id="assignment-delete-button-{{ operator.id }}"
                            title="Delete this assignment"
-                           class="js-confirm-delete icon trash-icon" data-toggle="modal"
-                           data-target="#confirm-delete-modal" href="javascript:void(0);"
+                           aria-label="Delete this assignment"
+                           class="table-row-action table-row-action-danger js-confirm-delete" data-bs-toggle="modal"
+                           data-bs-target="#confirm-delete-modal" href="javascript:void(0);"
                            delete-target-csrftoken="{{ csrf_token }}"
                            delete-target-url="{% url 'rolodex:ajax_delete_project_assignment' operator.id %}"
-                           delete-target-id="{{ operator.id }}" delete-target-type="assignment"></a>
+                           delete-target-id="{{ operator.id }}" delete-target-type="assignment"><i class="fas fa-trash-alt" aria-hidden="true"></i></a>
                     </div>
                   </td>
                 {% endif %}
               </tr>
             {% endfor %}
-          </table>
+            </table>
+          </div>
         {% else %}
-          <div class="alert alert-warning offset-md-2 col-md-8 mt-3" role="alert">There are no operators assigned to
-            this project yet.
+          <div class="empty-state">
+            <p class="empty-state-title">No assignments yet</p>
+            <p class="empty-state-description">No operators have been assigned to this project.</p>
           </div>
         {% endif %}
 
@@ -209,24 +248,28 @@
 
         {% comment %} Invitations {% endcomment %}
         {% if request.user|is_privileged %}
-          <div id="invitations" class="tab-pane">
-            <h4>Invited Collaborators</h4>
-            <hr/>
-            <a class="icon add-icon btn btn-primary mb-3 col-3"
-               href="{% url 'rolodex:project_update' project.id %}#invites">Add & Edit Invitations</a>
-            <p class="text-center offset-2 col-8">Users listed here have view access to this project without appearing as assigned to do work.</p>
+          <section id="invitations" class="project-detail-section">
+            <header class="content-section-header">
+              <div class="content-section-heading">
+                <h4>Invited Collaborators</h4>
+                <p class="content-section-intro">Invited users can view this project without appearing as assigned operators.</p>
+              </div>
+              <a class="icon add-icon btn btn-primary btn-sm"
+                 href="{% url 'rolodex:project_update' project.id %}#invites">Add & Edit Invitations</a>
+            </header>
             {% if project.projectinvite_set.all %}
-              <table id="projectInviteTable" class="tablesorter table table-striped">
+              <div class="table-responsive data-table-frame">
+                <table id="projectInviteTable" class="tablesorter table table-striped">
                 <thead>
                 <tr>
-                  <th class="align-middle pr-4 text-left">Name</th>
-                  <th class="align-middle pr-4 text-left">Comment</th>
-                  <th class="align-middle sorter-false">Options</th>
+                  <th class="align-middle pe-4 text-start">Name</th>
+                  <th class="align-middle pe-4 text-start">Comment</th>
+                  <th class="align-middle sorter-false text-end">Options</th>
                 </tr>
                 </thead>
                 {% for invite in project.projectinvite_set.all %}
                   <tr>
-                    <td class="align-middle text-left">
+                    <td class="align-middle text-start">
                       <a class="clickable" href="{% url 'users:user_detail' invite.user.username %}">
                         {% if invite.user.name %}
                           {{ invite.user.name }}
@@ -236,102 +279,114 @@
                       </a>
                     </td>
 
-                    <td class="align-middle text-left">
+                    <td class="align-middle text-start">
                       {{ invite.comment|bleach }}
                     </td>
 
-                    <td class="align-middle">
-                      <div class="d-flex justify-content-center">
-                          <a class="icon edit-icon"
+                    <td class="align-middle text-end">
+                      <div class="table-row-actions">
+                          <a class="table-row-action"
                              title="Edit this invitation"
-                             href="{% url 'rolodex:project_update' project.id %}#invites"></a>
-                          <a class="icon trash-icon" id="invite-delete-button-{{ invite.id }}"
+                             aria-label="Edit this invitation"
+                             href="{% url 'rolodex:project_update' project.id %}#invites"><i class="fas fa-pen" aria-hidden="true"></i></a>
+                          <a class="table-row-action table-row-action-danger js-confirm-delete" id="invite-delete-button-{{ invite.id }}"
                              title="Delete this invitation"
-                             class="js-confirm-delete" data-toggle="modal" data-target="#confirm-delete-modal"
+                             aria-label="Delete this invitation"
+                             data-bs-toggle="modal" data-bs-target="#confirm-delete-modal"
                              href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}"
                              delete-target-url="{% url 'rolodex:ajax_delete_project_invite' invite.id %}"
-                             delete-target-id="{{ invite.id }}" delete-target-type="invitation"></a>
+                             delete-target-id="{{ invite.id }}" delete-target-type="invitation"><i class="fas fa-trash-alt" aria-hidden="true"></i></a>
                       </div>
                     </td>
 
                   </tr>
                 {% endfor %}
-              </table>
+                </table>
+              </div>
             {% else %}
-              <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">There is nothing to see here yet.
+              <div class="empty-state">
+                <p class="empty-state-title">No invitations yet</p>
+                <p class="empty-state-description">No additional users have been invited to view this project.</p>
               </div>
             {% endif %}
-          </div>
+          </section>
         {% endif %}
       </div>
 
       {% comment %} White Cards Tab {% endcomment %}
       <div id="whitecards" class="tab-pane">
-        <h4>White Cards</h4>
-        <hr/>
-
-        <a class="icon edit-icon btn btn-primary mb-3 col-3"
-           href="{% url 'rolodex:project_component_update' project.id %}#whitecards">Add & Edit White Cards</a>
+        <header class="content-section-header">
+          <div class="content-section-heading">
+            <h4>White Cards</h4>
+            <p class="content-section-intro">Client-provided access, accounts, and actions that keep the assessment moving.</p>
+          </div>
+          <a class="icon edit-icon btn btn-primary btn-sm"
+             href="{% url 'rolodex:project_component_update' project.id %}#whitecards">Manage White Cards</a>
+        </header>
         {% if project.whitecard_set.all %}
-          {% for card in project.whitecard_set.all %}
-            <div id="whitecard-card-{{ card.id }}" class="card card-project text-center mb-3">
-              <div class="card-header">
-                <h5 class="card-title">{{ card.title }}</h5>
-              </div>
-              <div class="card-body">
-                <div class="row">
-                  <div class="col-sm-12">
-                    <h6 class="card-subtitle mb-2 text-muted"><span class="card-help-text" data-toggle="tooltip"
-                                                                    data-placement="top"
-                                                                    title="Date and time the client approved this white card.">Issued</span>
-                    </h6>
+          <div class="whitecard-ledger" aria-label="Assessment enablement records">
+            {% for card in project.whitecard_set.all %}
+              <article id="whitecard-card-{{ card.id }}" class="whitecard-entry">
+                <div class="whitecard-entry-marker" aria-hidden="true">
+                  <i class="fas fa-handshake"></i>
+                </div>
+                <div class="whitecard-entry-content">
+                  <header class="whitecard-entry-header">
+                    <div>
+                      <span class="detail-eyebrow">Assessment enablement</span>
+                      <h5>{% if card.title %}{{ card.title }}{% else %}Untitled white card{% endif %}</h5>
+                    </div>
+                    <div class="whitecard-issued">
+                      <span>Provided</span>
+                      {% if card.issued %}
+                        <time datetime="{{ card.issued|date:'c' }}">{{ card.issued|date:"d M Y @ H:i e" }}</time>
+                      {% else %}
+                        <strong>Time not recorded</strong>
+                      {% endif %}
+                    </div>
+                  </header>
+                  <div class="whitecard-description">
+                    {% if card.description %}
+                      {{ card.description|bleach }}
+                    {% else %}
+                      <p>No supporting details were recorded.</p>
+                    {% endif %}
                   </div>
                 </div>
-                <div class="row">
-                  <div class="col-sm-12">
-                    <p class="card-text">{{ card.issued|date:"d M Y @ H:i:s e" }}</p>
-                  </div>
-                </div>
-
-                <p class="card-text">
-                  {% if card.description %}
-                    {{ card.description|bleach }}
-                  {% else %}
-                    <p>No one has added a description of this white card.</p>
-                  {% endif %}
-                </p>
-              </div>
-            </div>
-          {% endfor %}
+              </article>
+            {% endfor %}
+          </div>
         {% else %}
-          <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">There are no white cards attached to
-            this project yet.
+          <div class="empty-state">
+            <p class="empty-state-title">No white cards yet</p>
+            <p class="empty-state-description">Record client-provided access or actions that enable the assessment.</p>
           </div>
         {% endif %}
       </div>
 
       {% comment %} Scope Tab {% endcomment %}
       <div id="scopes" class="tab-pane">
-        <h4>Scope Lists</h4>
-        <hr/>
-
-        <a class="icon edit-icon btn btn-primary mb-3 col-3"
-           href="{% url 'rolodex:project_component_update' project.id %}#scopes">Add & Edit Scope Lists</a>
-
-        <p>Create as many scope lists as you desire. Break-up large scopes into categories (e.g., External) or by
-          objectives.</p>
+        <header class="content-section-header">
+          <div class="content-section-heading">
+            <h4>Scope Lists</h4>
+            <p class="content-section-intro">Break large scopes into useful categories, such as external assets or individual objectives.</p>
+          </div>
+          <a class="icon edit-icon btn btn-primary btn-sm"
+             href="{% url 'rolodex:project_component_update' project.id %}#scopes">Add & Edit Scope Lists</a>
+        </header>
 
         {% if project.projectscope_set.all %}
-          <table id="scopeTable" class="tablesorter table">
+          <div class="table-responsive data-table-frame">
+            <table id="scopeTable" class="tablesorter table">
             <thead>
-            <th class="align-middle pr-4 text-left">Name</th>
-            <th class="sorter-false align-middle text-left">Preview</th>
-            <th class="sorter-false align-middle text-left">Description</th>
-            <th class="sorter-false align-middle">Options</th>
+            <th class="align-middle pe-4 text-start">Name</th>
+            <th class="sorter-false align-middle text-start">Preview</th>
+            <th class="sorter-false align-middle text-start">Description</th>
+            <th class="sorter-false align-middle text-end">Options</th>
             </thead>
             {% for list in project.projectscope_set.all %}
               <tr>
-                <td id="delete-target-content-scope-{{ list.id }}" class="text-left align-middle icon
+                <td id="delete-target-content-scope-{{ list.id }}" class="text-start align-middle icon
                                     {% if list.requires_caution %}
                                         scope-warning-icon
                                     {% endif %}
@@ -343,10 +398,10 @@
                 </td>
 
                 {% with scope_limit=5 %}
-                  <td class="align-middle text-left">
+                  <td class="align-middle text-start">
                     <div
-                      data-toggle="tooltip"
-                      data-placement="top"
+                      data-bs-toggle="tooltip"
+                      data-bs-placement="top"
                       {% if list.count_lines > scope_limit %}
                       title="The first {{ scope_limit }} of {{ list.count_lines }} line{{ list.count_lines|pluralize }}"
                       {% else %}
@@ -361,37 +416,42 @@
                   </td>
                 {% endwith %}
 
-                <td class="text-justify align-middle text-left">{{ list.description|bleach }}</td>
+                <td class="text-justify align-middle text-start">{{ list.description|bleach }}</td>
 
-                <td class="align-middle">
-                  <div class="d-flex justify-content-center">
-                      <a class="icon ext-link-icon clickable-link"
+                <td class="align-middle text-end">
+                  <div class="table-row-actions">
+                      <button type="button" class="table-row-action"
                          title="View and copy the {{ list.count_lines }} line{{ list.count_lines|pluralize }} in this scope"
-                         data-toggle="modal"
-                         data-target="#id_scope_{{ list.id }}">
-                      </a>
-                      <a class="icon edit-icon"
+                         aria-label="View and copy this scope list"
+                         data-bs-toggle="modal"
+                         data-bs-target="#id_scope_{{ list.id }}"><i class="fas fa-external-link-alt" aria-hidden="true"></i></button>
+                      <a class="table-row-action"
                          title="Edit this scope list"
-                         href="{% url 'rolodex:project_component_update' project.id %}#scopes"></a>
+                         aria-label="Edit this scope list"
+                         href="{% url 'rolodex:project_component_update' project.id %}#scopes"><i class="fas fa-pen" aria-hidden="true"></i></a>
                       <a id="scope-export-button-{{ list.id }}"
                          title="Export the list as a text file"
-                         class="js-export-project-scope icon export-icon" href="javascript:void(0);"
+                         aria-label="Export this scope list as a text file"
+                         class="table-row-action js-export-project-scope" href="javascript:void(0);"
                          export-scope-url="{% url 'rolodex:ajax_export_project_scope' list.id %}"
-                         export-scope-name="{{ list.name }}"></a>
-                      <a id="scope-delete-button-{{ list.id }}" class="s-confirm-delete icon trash-icon"
+                         export-scope-name="{{ list.name }}"><i class="fas fa-download" aria-hidden="true"></i></a>
+                      <a id="scope-delete-button-{{ list.id }}" class="table-row-action table-row-action-danger s-confirm-delete"
                          title="Delete this scope list"
-                         data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);"
+                         aria-label="Delete this scope list"
+                         data-bs-toggle="modal" data-bs-target="#confirm-delete-modal" href="javascript:void(0);"
                          delete-target-csrftoken="{{ csrf_token }}"
                          delete-target-url="{% url 'rolodex:ajax_delete_project_scope' list.id %}"
-                         delete-target-id="{{ list.id }}" delete-target-type="scope"></a>
+                         delete-target-id="{{ list.id }}" delete-target-type="scope"><i class="fas fa-trash-alt" aria-hidden="true"></i></a>
                   </div>
                 </td>
               </tr>
             {% endfor %}
-          </table>
+            </table>
+          </div>
         {% else %}
-          <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">There are no scope lists attached to
-            this project yet.
+          <div class="empty-state">
+            <p class="empty-state-title">No scope lists yet</p>
+            <p class="empty-state-description">No scope lists have been attached to this project.</p>
           </div>
         {% endif %}
       </div>
@@ -402,32 +462,33 @@
 
       {% comment %} Targets Tab {% endcomment %}
       <div id="targets" class="tab-pane">
-        <h4>Targets</h4>
-        <hr/>
-
-        <a class="icon edit-icon btn btn-primary mb-3 col-3"
-           href="{% url 'rolodex:project_component_update' project.id %}#targets">Add & Edit Targets</a>
-
-        <p>Call-out specific targets to pursue, mark them as compromised, and make notes to remind you why they are
-          interesting.</p>
+        <header class="content-section-header">
+          <div class="content-section-heading">
+            <h4>Targets</h4>
+            <p class="content-section-intro">Call out specific targets, track compromise status, and retain operational context.</p>
+          </div>
+          <a class="icon edit-icon btn btn-primary btn-sm"
+             href="{% url 'rolodex:project_component_update' project.id %}#targets">Add & Edit Targets</a>
+        </header>
 
         {% if project.projecttarget_set.all %}
-          <table id="targetTable" class="tablesorter table table-sm">
+          <div class="table-responsive data-table-frame">
+            <table id="targetTable" class="tablesorter table table-sm">
             <thead>
-            <th class="align-middle pr-4">Owned</th>
-            <th class="align-middle pr-4 text-left">Target</th>
-            <th class="sorter-false align-middle pr-4 text-left">Note</th>
-            <th class="sorter-false test-center align-middle">Options</th>
+            <th class="align-middle pe-4 text-start">Owned</th>
+            <th class="align-middle pe-4 text-start">Target</th>
+            <th class="sorter-false align-middle pe-4 text-start">Note</th>
+            <th class="sorter-false text-end align-middle">Options</th>
             </thead>
             {% for target in project.projecttarget_set.all %}
               <tr>
-                <td id="target-status-{{ target.id }}" class="align-middle icon
+                <td id="target-status-{{ target.id }}" class="align-middle text-start icon
                                     {% if target.compromised %}
                                         skull-icon
                                     {% endif %}
                                 ">
                 </td>
-                <td id="delete-target-content-target-{{ target.id }}" class="align-middle text-left">
+                <td id="delete-target-content-target-{{ target.id }}" class="align-middle text-start">
                   {% if target.ip_address and target.hostname %}
                     {{ target.hostname }} ({{ target.ip_address }})
                   {% elif target.ip_address %}
@@ -436,61 +497,68 @@
                     {{ target.hostname }}
                   {% endif %}
                 </td>
-                <td class="text-justify align-middle text-left">{{ target.description|bleach }}</td>
-                <td class="align-middle">
-                  <div class="d-flex justify-content-center">
-                      <a class="icon burn-icon js-compromise-target clickable-link" href="javascript:void(0);"
+                <td class="text-justify align-middle text-start">{{ target.description|bleach }}</td>
+                <td class="align-middle text-end">
+                  <div class="table-row-actions">
+                      <a class="table-row-action table-row-action-fire js-compromise-target" href="javascript:void(0);"
                          title="Toggle the target's compromised status"
+                         aria-label="Toggle the target's compromised status"
                          compromise-target-csrftoken="{{ csrf_token }}" compromise-target-id="{{ target.id }}"
-                         compromise-target-url="{% url 'rolodex:ajax_toggle_project_target' target.id %}"></a>
-                      <a class="icon edit-icon"
+                         compromise-target-url="{% url 'rolodex:ajax_toggle_project_target' target.id %}"><i class="fas fa-fire" aria-hidden="true"></i></a>
+                      <a class="table-row-action"
                          title="Edit this target"
-                         href="{% url 'rolodex:project_component_update' project.id %}#targets"></a>
+                         aria-label="Edit this target"
+                         href="{% url 'rolodex:project_component_update' project.id %}#targets"><i class="fas fa-pen" aria-hidden="true"></i></a>
                       <a id="target-delete-button-{{ target.id }}"
                          title="Delete this target"
-                         class="js-confirm-delete icon trash-icon" data-toggle="modal"
-                         data-target="#confirm-delete-modal" href="javascript:void(0);"
+                         aria-label="Delete this target"
+                         class="table-row-action table-row-action-danger js-confirm-delete" data-bs-toggle="modal"
+                         data-bs-target="#confirm-delete-modal" href="javascript:void(0);"
                          delete-target-csrftoken="{{ csrf_token }}"
                          delete-target-url="{% url 'rolodex:ajax_delete_project_target' target.id %}"
-                         delete-target-id="{{ target.id }}" delete-target-type="target"></a>
+                         delete-target-id="{{ target.id }}" delete-target-type="target"><i class="fas fa-trash-alt" aria-hidden="true"></i></a>
                   </div>
                 </td>
               </tr>
             {% endfor %}
-          </table>
+            </table>
+          </div>
         {% else %}
-          <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">There are no targets attached to this
-            project yet.
+          <div class="empty-state">
+            <p class="empty-state-title">No targets yet</p>
+            <p class="empty-state-description">No targets have been attached to this project.</p>
           </div>
         {% endif %}
       </div>
 
       {% comment %} Logging Tab {% endcomment %}
       <div id="activity" class="tab-pane">
-        <h4>Operation Logs</h4>
-        <hr/>
-
-        <p>
-          <a class="icon add-icon btn btn-primary col-3" href="{% url 'oplog:oplog_create' project.id %}">Start New
-            Operation Log</a>
-          <span style="padding-right: 20px; padding-left: 20px;">OR</span>
-          <a class="icon upload-icon btn btn-info col-3" href="{% url 'oplog:oplog_import' %}">Import Oplog</a>
-        </p>
+        <header class="content-section-header">
+          <div class="content-section-heading">
+            <h4>Operation Logs</h4>
+            <p class="content-section-intro">Start a new operation log for this project or import an existing log.</p>
+          </div>
+          <div class="content-section-actions">
+            <a class="icon add-icon btn btn-primary btn-sm" href="{% url 'oplog:oplog_create' project.id %}">Start New Log</a>
+            <a class="icon upload-icon btn btn-outline-primary btn-sm" href="{% url 'oplog:oplog_import' %}">Import Log</a>
+          </div>
+        </header>
 
         {% if project.oplog_set.all %}
-          <table id="oplogTable" class="tablesorter table">
+          <div class="table-responsive data-table-frame">
+            <table id="oplogTable" class="tablesorter table">
             <thead>
-            <th class="align-middle">ID</th>
-            <th class="align-middle text-left">Name</th>
-            <th class="align-middle text-left">Last Activity</th>
-            <th class="align-middle">Export CSV</th>
+            <th class="align-middle text-start">ID</th>
+            <th class="align-middle text-start">Name</th>
+            <th class="align-middle text-start">Last Activity</th>
+            <th class="align-middle text-end">Export CSV</th>
             </thead>
             {% for log in project.oplog_set.all %}
               <tr>
-                <td class="oplog-id align-middle">{{ log.id }}</td>
-                <td class="align-middle text-left"><a class="clickable"
+                <td class="oplog-id align-middle text-start">{{ log.id }}</td>
+                <td class="align-middle text-start"><a class="clickable"
                                             href="{% url 'oplog:oplog_entries' log.pk %}">{{ log.name }}</a></td>
-                <td class="align-middle text-left">
+                <td class="align-middle text-start">
                   {% if log.entries.all %}
                     {% with log.entries.all.first as latest %}
                       {{ latest.start_date }}
@@ -500,177 +568,228 @@
                   {% endif %}
                 </td>
 
-                <td class="align-middle js-export-oplog">
-                  <div class="d-flex justify-content-center">
-                      <a href="javascript:void(0);" class="icon download-icon"
-                         data-toggle="tooltip"
-                         data-placement="top"
-                         title="Export a CSV"></a>
+                <td class="align-middle text-end js-export-oplog">
+                  <div class="table-row-actions">
+                      <a href="javascript:void(0);" class="table-row-action"
+                         data-bs-toggle="tooltip"
+                         data-bs-placement="top"
+                         title="Export a CSV"
+                         aria-label="Export a CSV"><i class="fas fa-file-csv" aria-hidden="true"></i></a>
                   </div>
                 </td>
               </tr>
             {% endfor %}
-          </table>
+            </table>
+          </div>
         {% else %}
-          <div class="alert alert-warning offset-md-2 col-md-8 mt-3" role="alert">There are no activity logs started for
-            this project yet.
+          <div class="empty-state">
+            <p class="empty-state-title">No operation logs yet</p>
+            <p class="empty-state-description">No activity logs have been started for this project.</p>
           </div>
         {% endif %}
       </div>
 
       {% comment %} Reporting Section {% endcomment %}
       <div id="documents" class="tab-pane ">
-        <h4>Generate Project Documents</h4>
-        <hr/>
-
-        <p class="text-justify offset-2 col-8">
-          Generate JSON with project data or select a template to generate a project document (e.g., SOW, ROE).
-        </p>
-        <p class="text-justify offset-2 col-8">
-          No report data is available to these templates, so only the Word templates that are marked as project templates will be available.
-        </p>
-
-        <div class="input-group mb-3 offset-2 col-8">
-          <div class="input-group-prepend">
-            <span class="input-group-text" id="projectExportFilename">Options</span>
+        <section class="detail-panel project-document-generator" aria-labelledby="project-documents-heading">
+          <div class="detail-panel-header">
+            <div>
+              <span class="detail-eyebrow">Export</span>
+              <h4 id="project-documents-heading">Generate Project Documents</h4>
+            </div>
           </div>
-          <select class="form-control form-select custom-select" id="projectExportSelector" data-url="{% url 'rolodex:ajax_project_generate_report' project.pk 'replaceme' %}">
-            <option value="json">JSON</option>
-            {% for template in export_templates %}
-              <option value="{{ template.pk }}">{{ template.name }} ({{ template.doc_type.extension }})</option>
-            {% endfor %}
-          </select>
-          <span class="input-group-append">
+          <p class="detail-prose">Generate JSON project data or select a project template for documents such as a statement of work or rules of engagement. Report data is not available in this export.</p>
+          <div class="input-group project-export-control">
+            <span class="input-group-text" id="projectExportFilename">Format</span>
+            <select class="form-select custom-select" id="projectExportSelector" data-url="{% url 'rolodex:ajax_project_generate_report' project.pk 'replaceme' %}">
+              <option value="json">JSON</option>
+              {% for template in export_templates %}
+                <option value="{{ template.pk }}">{{ template.name }} ({{ template.doc_type.extension }})</option>
+              {% endfor %}
+            </select>
             <button id="projectExportButton" class="btn btn-outline-primary">Generate</button>
-          </span>
-        </div>
-        <div class="form-group">
+          </div>
+        </section>
 
-        </div>
-
-        <h4>Project Reports & Findings</h4>
-        <hr/>
+        <header class="content-section-header project-report-section-header">
+          <div class="content-section-heading">
+            <h4>Project Reports & Findings</h4>
+            <p class="content-section-intro">Open a related report to view and edit its findings.</p>
+          </div>
+          {% if not project.complete %}
+            <a class="icon add-icon btn btn-primary btn-sm" href="{% url 'reporting:report_create' project.id %}">Add a Report</a>
+          {% endif %}
+        </header>
 
         {% if project.complete %}
-          <p>The project is marked as complete so no additional reports may be created.</p>
-        {% else %}
-          <a class="icon add-icon btn btn-primary mb-3 col-3" href="{% url 'reporting:report_create' project.id %}">Add
-            a Report</a>
+          <div class="alert alert-info access-note" role="note">This project is complete, so additional reports cannot be created.</div>
         {% endif %}
 
-        <p>View and edit findings by opening the related report (click the link).</p>
-
         {% if project.report_set.all %}
-          <table id="reportTable" class="tablesorter table">
+          <div class="table-responsive data-table-frame">
+            <table id="reportTable" class="tablesorter table">
             <thead>
-            <th class="align-middle pr-4 text-left">Title</th>
-            <th class="align-middle pr-4 text-left">Status</th>
-            <th class="align-middle pr-4 text-left">Last Update</th>
-            <th class="align-middle pr-4 text-left">Created By</th>
-            <th class="sorter-false text-center align-middle">Options</th>
+            <th class="align-middle pe-4 text-start">Title</th>
+            <th class="align-middle pe-4 text-start">Status</th>
+            <th class="align-middle pe-4 text-start">Last Update</th>
+            <th class="align-middle pe-4 text-start">Created By</th>
+            <th class="sorter-false text-end align-middle">Options</th>
             </thead>
             {% for report in project.report_set.all %}
               <tr>
-                <td class="align-middle text-left"><a class="clickable"
+                <td class="align-middle text-start"><a class="clickable"
                                             href="{{ report.get_absolute_url }}">{{ report.title }}</a></td>
                 {% if report.complete %}
                   {% if report.delivered %}
-                    <td class="align-middle text-left">Delivered</td>
+                    <td class="align-middle text-start">Delivered</td>
                   {% else %}
-                    <td class="align-middle text-left">Complete, Awaiting Delivery</td>
+                    <td class="align-middle text-start">Complete, Awaiting Delivery</td>
                   {% endif %}
                 {% else %}
-                  <td class="align-middle text-left">In Progress</td>
+                  <td class="align-middle text-start">In Progress</td>
                 {% endif %}
-                <td class="align-middle text-left">{{ report.last_update|date:"DATE_FORMAT" }}</td>
-                <td class="align-middle text-left">{% if report.created_by %}{{ report.created_by }}{% else %}Unknown{% endif %}</td>
+                <td class="align-middle text-start">{{ report.last_update|date:"DATE_FORMAT" }}</td>
+                <td class="align-middle text-start">{% if report.created_by %}{{ report.created_by }}{% else %}Unknown{% endif %}</td>
 
-                <td class="align-middle js-export-oplog">
-                  <div class="d-flex justify-content-center">
-                      <a href="javascript:void(0)"
-                         data-toggle="tooltip"
-                         data-placement="top"
-                         title="Set this report as your active report"
-                         class="clickable-link js-activate-report icon power-icon"
-                         activate-report-csrftoken="{{ csrf_token }}"
-                         activate-report-url="{% url 'reporting:ajax_activate_report' report.id %}"
-                         activate-report-id="{{ report.id }}"></a>
-                      <a class="icon clone-icon"
-                         data-toggle="tooltip"
-                         data-placement="top"
+                <td class="align-middle text-end js-export-oplog">
+                  <div class="table-row-actions">
+                      <button type="button"
+                              data-bs-toggle="tooltip"
+                              data-bs-placement="top"
+                              title="{% if active_engagement.report.id == report.id %}Current working report{% else %}Use this report for library quick-adds{% endif %}"
+                              class="table-row-action js-activate-report{% if active_engagement.report.id == report.id %} selected-report{% endif %}"
+                              activate-report-csrftoken="{{ csrf_token }}"
+                              activate-report-url="{% url 'reporting:ajax_activate_report' report.id %}"
+                              activate-report-id="{{ report.id }}"
+                              data-report-title="{{ report.title }}"
+                              data-working-report-unselected-label="Use report">
+                        <i class="fas {% if active_engagement.report.id == report.id %}fa-bullseye{% else %}fa-crosshairs{% endif %}" aria-hidden="true"></i>
+                        <span class="visually-hidden" data-working-report-action-label>
+                          {% if active_engagement.report.id == report.id %}Working report{% else %}Use report{% endif %}
+                        </span>
+                      </button>
+                      <a class="table-row-action"
+                         data-bs-toggle="tooltip"
+                         data-bs-placement="top"
                          title="Make a copy of this report on this project"
-                         href="{% url 'reporting:report_clone' report.id %}"></a>
-                      <a class="icon archive-icon"
-                         data-toggle="tooltip"
-                         data-placement="top"
+                         aria-label="Make a copy of this report on this project"
+                         href="{% url 'reporting:report_clone' report.id %}"><i class="fas fa-clone" aria-hidden="true"></i></a>
+                      <a class="table-row-action"
+                         data-bs-toggle="tooltip"
+                         data-bs-placement="top"
                          title="Archive this report"
-                         href="{% url 'reporting:archive' report.id %}"></a>
-                      <a class="icon trash-icon"
-                         data-toggle="tooltip"
-                         data-placement="top"
+                         aria-label="Archive this report"
+                         href="{% url 'reporting:archive' report.id %}"><i class="fas fa-archive" aria-hidden="true"></i></a>
+                      <a class="table-row-action table-row-action-danger"
+                         data-bs-toggle="tooltip"
+                         data-bs-placement="top"
                          title="Delete this report"
-                         href="{% url 'reporting:report_delete' report.id %}"></a>
+                         aria-label="Delete this report"
+                         href="{% url 'reporting:report_delete' report.id %}"><i class="fas fa-trash-alt" aria-hidden="true"></i></a>
                   </div>
                 </td>
               </tr>
             {% endfor %}
-          </table>
+            </table>
+          </div>
 
           {% for report in project.report_set.all %}
             {% if report.reportfindinglink_set.all %}
-              <h4>Findings in {{ report.title }}</h4>
-              <hr/>
-              <table class="table">
-                <thead>
-                <th class="align-middle text-left">Severity</th>
-                <th class="align-middle text-left">Finding</th>
-                <th class="align-middle text-left">Owner</th>
-                <th class="align-middle text-left">Status</th>
-                </thead>
-                {% for finding in report.reportfindinglink_set.all %}
+              <header class="content-section-header project-findings-header">
+                <div class="content-section-heading">
+                  <span class="detail-eyebrow">Report findings</span>
+                  <h5>Findings in {{ report.title }}</h5>
+                </div>
+                <a class="btn btn-outline-primary btn-sm"
+                   href="{{ report.get_absolute_url }}#findings">Open report</a>
+              </header>
+              <div class="table-responsive data-table-frame findings-table-frame project-report-findings-frame">
+                <table class="table table-sm report-items-table report-findings-table project-report-findings-table">
+                  <colgroup>
+                    <col class="project-finding-title-column">
+                    <col class="project-finding-score-column">
+                    <col class="project-finding-owner-column">
+                    <col class="project-finding-status-column">
+                  </colgroup>
+                  <thead>
                   <tr>
-                    {% if finding.severity.weight == 1 %}
-                      <td class="critical align-middle text-left">{{ finding.severity }}</td>
-                    {% elif finding.severity.weight == 2 %}
-                      <td class="high align-middle text-left">{{ finding.severity }}</td>
-                    {% elif finding.severity.weight == 3 %}
-                      <td class="medium align-middle text-left">{{ finding.severity }}</td>
-                    {% elif finding.severity.weight == 4 %}
-                      <td class="low align-middle text-left">{{ finding.severity }}</td>
-                    {% else %}
-                      <td class="info align-middle text-left">{{ finding.severity }}</td>
-                    {% endif %}
-                    <td class="align-middle text-left"><a class="clickable"
-                                                href="{% url 'reporting:local_edit' finding.id %}">{{ finding.title }}</a>
-                    </td>
-                    {% if finding.assigned_to == request.user %}
-                      {% if finding.complete %}
-                        <td class="low align-middle text-left">You</td>
-                      {% else %}
-                        <td class="high align-middle text-left">You</td>
-                      {% endif %}
-                    {% else %}
-                      {% if finding.assigned_to %}
-                        <td class="neutral align-middle text-left">{{ finding.assigned_to }}</td>
-                      {% else %}
-                        <td class="medium align-middle text-left">TBD</td>
-                      {% endif %}
-                    {% endif %}
-                    {% if finding.complete %}
-                      <td class="low align-middle text-left">Ready for Review</td>
-                    {% else %}
-                      <td class="high align-middle text-left">Needs Editing</td>
-                    {% endif %}
+                    <th class="align-middle text-start">Finding</th>
+                    <th class="align-middle text-start">CVSS</th>
+                    <th class="align-middle text-start">Owner</th>
+                    <th class="align-middle text-start">Status</th>
                   </tr>
-                {% endfor %}
-              </table>
+                  </thead>
+                  {% group_by_severity report.reportfindinglink_set.all as severity_groups %}
+                  {% for group, values in severity_groups.items %}
+                    {% if values.findings %}
+                      <tbody class="report-severity-heading-group">
+                      <tr>
+                        <th class="severity-header report-severity-header {{ values.tpl_name }}" colspan="4" scope="colgroup">
+                          <span class="report-severity-label">
+                            <span class="report-severity-dot" aria-hidden="true"></span>
+                            <span>{{ group }}</span>
+                            <span class="report-severity-count">{{ values.findings|length }}</span>
+                          </span>
+                        </th>
+                      </tr>
+                      </tbody>
+                      <tbody>
+                      {% for finding in values.findings %}
+                        <tr class="report-item-row">
+                          <td class="report-item-primary-cell align-middle text-start">
+                            <a class="clickable report-item-title"
+                               href="{% url 'reporting:local_edit' finding.id %}">{{ finding.title }}</a>
+                            {% if finding.added_as_blank %}
+                              <i class="fas fa-flag report-item-source-icon" aria-hidden="true"
+                                 data-bs-toggle="tooltip" data-bs-placement="top"
+                                 title="Started as a blank finding rather than a library template"></i>
+                            {% endif %}
+                          </td>
+                          <td class="align-middle text-start">
+                            {% if finding.cvss_score %}
+                              <span class="report-score-badge
+                                {% if finding.severity.weight == 1 %}cvss-critical
+                                {% elif finding.severity.weight == 2 %}cvss-high
+                                {% elif finding.severity.weight == 3 %}cvss-medium
+                                {% elif finding.severity.weight == 4 %}cvss-low
+                                {% else %}cvss-info{% endif %}"
+                                data-bs-toggle="tooltip" data-bs-placement="top"
+                                title="{{ finding.cvss_vector }}">{{ finding.cvss_score }}</span>
+                            {% else %}<span class="missing-value">Not scored</span>{% endif %}
+                          </td>
+                          <td class="align-middle text-start">
+                            {% if finding.assigned_to == request.user %}
+                              <span class="report-owner-badge is-current">You</span>
+                            {% elif finding.assigned_to %}
+                              <span class="report-owner-badge">{{ finding.assigned_to }}</span>
+                            {% else %}
+                              <span class="report-owner-badge is-unassigned">Unassigned</span>
+                            {% endif %}
+                          </td>
+                          <td class="align-middle text-start">
+                            <span class="report-status-badge {% if finding.complete %}is-ready{% else %}needs-editing{% endif %}">
+                              <i class="fas {% if finding.complete %}fa-check-circle{% else %}fa-pencil-alt{% endif %}" aria-hidden="true"></i>
+                              <span>{% if finding.complete %}Ready{% else %}Needs Editing{% endif %}</span>
+                            </span>
+                          </td>
+                        </tr>
+                      {% endfor %}
+                      </tbody>
+                    {% endif %}
+                  {% endfor %}
+                </table>
+              </div>
             {% else %}
-              <p>There are no findings for this project yet.</p>
+              <div class="empty-state project-report-empty-state">
+                <p class="empty-state-title">No findings in {{ report.title }}</p>
+                <p class="empty-state-description">This report does not contain any findings yet.</p>
+              </div>
             {% endif %}
           {% endfor %}
         {% else %}
-          <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">There are no reports attached to this
-            project yet.
+          <div class="empty-state">
+            <p class="empty-state-title">No reports yet</p>
+            <p class="empty-state-description">No reports have been attached to this project.</p>
           </div>
         {% endif %}
 
@@ -678,17 +797,19 @@
 
       {% comment %} Infrastructure Tab {% endcomment %}
       <div id="infrastructure" class="tab-pane">
-        <h4>Project Infrastructure</h4>
-        <hr/>
-
-        <p class="text-justify offset-2 col-8">Checked-out domains and servers will appear here. Add cloud servers here as they are created for the project.<br/>
-          Associate your domains and subdomains with servers by creating connections.</p>
+        <header class="content-section-header">
+          <div class="content-section-heading">
+            <h4>Project Infrastructure</h4>
+            <p class="content-section-intro">Review checked-out domains and servers, add project cloud servers, and connect domains or subdomains to their infrastructure.</p>
+          </div>
+        </header>
         {% comment %} Domain Section {% endcomment %}
-        <h4>Domains</h4>
-        <hr/>
+        <header class="content-section-header project-subsection-header">
+          <div class="content-section-heading"><h5>Domains</h5></div>
+        </header>
 
         {% comment %} Search Section {% endcomment %}
-        <div class="search inline-search-bar">
+        <div class="search inline-search-bar mb-3">
           <form action="{% url 'shepherd:domains' %}" method="GET">
             <div class="input-group">
               <div class="input-group-prepend">
@@ -703,27 +824,28 @@
         </div>
 
         {% if project.history_set.all %}
-          <table id="domainTable" class="tablesorter table">
+          <div class="table-responsive data-table-frame">
+            <table id="domainTable" class="tablesorter table">
             <thead>
-            <th class="align-middle text-left">Domain Name</th>
-            <th class="align-middle text-left">Purpose</th>
-            <th class="sorter-date-range-dMMMyyyy align-middle text-left">Date Range</th>
-            <th class="align-middle text-left">Checked Out By</th>
-            <th class="sorter-false align-middle">Options</th>
+            <th class="align-middle text-start">Domain Name</th>
+            <th class="align-middle text-start">Purpose</th>
+            <th class="sorter-date-range-dMMMyyyy align-middle text-start">Date Range</th>
+            <th class="align-middle text-start">Checked Out By</th>
+            <th class="sorter-false align-middle text-end">Options</th>
             </thead>
             {% for domain in project.history_set.all %}
               <tr>
-                <td nowrap class="text-left align-middle">
-                                    <span id="domain_{{ domain.domain.id }}" data-toggle="tooltip" data-placement="top"
+                <td nowrap class="text-start align-middle">
+                                    <span id="domain_{{ domain.domain.id }}" data-bs-toggle="tooltip" data-bs-placement="top"
                                           title="Copy {{ domain.domain.name }}"
                                           onclick="copyToClipboard('#domain_{{ domain.domain.id }}')" class="copy-link">
                                         {{ domain.domain.name }}
                                     </span>
                 </td>
-                <td class="align-middle text-left">{{ domain.activity_type }}</td>
-                <td class="align-middle text-left" data-text="{{ domain.start_date|date:"Y-m-d" }}">{{ domain.start_date|date:"DATE_FORMAT" }} – <br/>{{ domain.end_date|date:"DATE_FORMAT" }}
+                <td class="align-middle text-start">{{ domain.activity_type }}</td>
+                <td class="align-middle text-start" data-text="{{ domain.start_date|date:"Y-m-d" }}">{{ domain.start_date|date:"DATE_FORMAT" }} – <br/>{{ domain.end_date|date:"DATE_FORMAT" }}
                 </td>
-                <td class="align-middle text-left">
+                <td class="align-middle text-start">
                   {% if domain.operator %}
                     {% if domain.operator.name %}
                       {{ domain.operator.name }} ({{ domain.operator.username }})
@@ -735,39 +857,47 @@
                   {% endif %}
                 </td>
 
-                <td class="align-middle">
-                  <div class="d-flex justify-content-center">
-                    <span
-                      class="icon preview-icon clickable-link"
+                <td class="align-middle text-end">
+                  <div class="table-row-actions">
+                    <button type="button" class="table-row-action"
                       title="View additional information"
-                      onclick="openModal('#domain_checkout_detail_{{ domain.id }}')"
-                    ></span>
-                    <a class="icon ext-link-icon"
+                      aria-label="View additional information for {{ domain.domain.name }}"
+                      data-bs-toggle="modal"
+                      data-bs-target="#domain_checkout_detail_{{ domain.id }}"><i class="fas fa-eye" aria-hidden="true"></i></button>
+                    <a class="table-row-action"
                        title="View the domain in a new tab"
-                       href="{% url 'shepherd:domain_detail' domain.domain.id %}"></a>
-                    <a class="icon edit-icon"
+                       aria-label="View {{ domain.domain.name }} in a new tab"
+                       href="{% url 'shepherd:domain_detail' domain.domain.id %}"><i class="fas fa-external-link-alt" aria-hidden="true"></i></a>
+                    <a class="table-row-action"
                        title="Edit this domain checkout"
-                       href="{% url 'shepherd:history_update' domain.id %}"></a>
-                    <a class="icon trash-icon"
+                       aria-label="Edit this domain checkout"
+                       href="{% url 'shepherd:history_update' domain.id %}"><i class="fas fa-pen" aria-hidden="true"></i></a>
+                    <a class="table-row-action table-row-action-danger"
                         title="Delete this domain checkout"
-                       href="{% url 'shepherd:history_delete' domain.id %}"></a>
+                       aria-label="Delete this domain checkout"
+                       href="{% url 'shepherd:history_delete' domain.id %}"><i class="fas fa-trash-alt" aria-hidden="true"></i></a>
                   </div>
                 </td>
               </tr>
             {% endfor %}
-          </table>
+            </table>
+          </div>
         {% else %}
-          <div class="alert alert-warning offset-md-2 col-md-8 mt-3" role="alert">There are no domains tied to this
-            project yet.
+          <div class="empty-state">
+            <p class="empty-state-title">No domains yet</p>
+            <p class="empty-state-description">No domains are tied to this project.</p>
           </div>
         {% endif %}
 
         {% comment %} Server Section {% endcomment %}
-        <h4>Servers</h4>
-        <hr/>
+        <header class="content-section-header project-subsection-header">
+          <div class="content-section-heading"><h5>Servers</h5></div>
+          <a class="icon add-icon btn btn-primary btn-sm"
+             href="{% url 'shepherd:vps_create' project.id %}">Add a Cloud Server</a>
+        </header>
 
         {% comment %} Search Section {% endcomment %}
-        <div class="search inline-search-bar">
+        <div class="search inline-search-bar mb-3">
           <form action="{% url 'shepherd:servers' %}" method="GET">
             <div class="input-group">
               <div class="input-group-prepend">
@@ -781,15 +911,14 @@
           </form>
         </div>
 
-        <a class="icon add-icon btn btn-primary col-3 mt-3"
-           href="{% url 'shepherd:vps_create' project.id %}">Add a Cloud Server</a>
         {% if project.serverhistory_set.all or project.transientserver_set.all %}
-          <table id="serverTable" class="tablesorter table">
+          <div class="table-responsive data-table-frame">
+            <table id="serverTable" class="tablesorter table">
             <thead>
               <tr>
-                <th class="align-middle text-left">
+                <th class="align-middle text-start">
                   <div class="dropdown dropleft">
-                    <span id="address-info-btn" class="dropdown-info mr-2" data-toggle="dropdown" aria-haspopup="true"
+                    <span id="address-info-btn" class="dropdown-info me-2" data-bs-toggle="dropdown" aria-haspopup="true"
                           aria-expanded="false">Primary IP</span>
                     <div id="address-info" class="dropdown-menu dropdown-info-content" aria-labelledby="address-info-btn">
                       <p>The primary IP address is set in the database and used only to allow users to determine which IP
@@ -798,42 +927,42 @@
                     </div>
                   </div>
                 </th>
-                <th class="align-middle pr-4 text-left">Other Addresses</th>
-                <th class="align-middle pr-4 text-left">Name</th>
-                <th class="align-middle pr-4 text-left">Purpose</th>
-                <th class="align-middle pr-4 text-left">Role</th>
-                <th class="align-middle pr-4 text-left">Provider</th>
-                <th class="align-middle pr-4 text-left">Checked Out By</th>
-                <th class="sorter-false align-middle">Options</th>
+                <th class="align-middle pe-4 text-start">Other Addresses</th>
+                <th class="align-middle pe-4 text-start">Name</th>
+                <th class="align-middle pe-4 text-start">Purpose</th>
+                <th class="align-middle pe-4 text-start">Role</th>
+                <th class="align-middle pe-4 text-start">Provider</th>
+                <th class="align-middle pe-4 text-start">Checked Out By</th>
+                <th class="sorter-false align-middle text-end">Options</th>
               </tr>
             </thead>
             {% for server in project.serverhistory_set.all %}
               {% get_primary_address server.server as primary_address %}
               <tr>
-                <td nowrap class="text-left align-middle text-left">
-                                    <span id="server_{{ server.server.id }}" data-toggle="tooltip" data-placement="top"
+                <td nowrap class="text-start align-middle text-start">
+                                    <span id="server_{{ server.server.id }}" data-bs-toggle="tooltip" data-bs-placement="top"
                                           title="Copy {{ primary_address }}"
                                           onclick="copyToClipboard('#server_{{ server.server.id }}')" class="copy-link">
                                         {{ primary_address }}
                                     </span>
                 </td>
-                <td nowrap class="text-left align-middle text-left">
+                <td nowrap class="text-start align-middle text-start">
                   {% if server.server.auxserveraddress_set %}
                     {% for addy in server.server.auxserveraddress_set.all %}
-                      <div id="address_{{ addy.id }}" data-toggle="tooltip" data-placement="top" title="Copy {{ addy }}"
+                      <div id="address_{{ addy.id }}" data-bs-toggle="tooltip" data-bs-placement="top" title="Copy {{ addy }}"
                            onclick="copyToClipboard('#address_{{ addy.id }}')" class="copy-link">
                         {{ addy }}
                       </div>
                     {% endfor %}
                   {% else %}
-                    --
+                    <span class="missing-value">Not provided</span>
                   {% endif %}
                 </td>
-                <td class="align-middle text-left">{{ server.server.name }}</td>
-                <td class="align-middle text-left">{{ server.activity_type }}</td>
-                <td class="align-middle text-left">{{ server.server_role }}</td>
-                <td class="align-middle text-left">{{ server.server.server_provider }}</td>
-                <td class="align-middle text-left">
+                <td class="align-middle text-start">{{ server.server.name }}</td>
+                <td class="align-middle text-start">{{ server.activity_type }}</td>
+                <td class="align-middle text-start">{{ server.server_role }}</td>
+                <td class="align-middle text-start">{{ server.server.server_provider }}</td>
+                <td class="align-middle text-start">
                   {% if server.operator %}
                     {% if server.operator.name %}
                       {{ server.operator.name }} ({{ server.operator.username }})
@@ -844,255 +973,288 @@
                     Unknown/Deleted user
                   {% endif %}
                 </td>
-                <td class="align-middle">
-                  <div class="d-flex justify-content-center">
-                    <span
-                      class="icon preview-icon clickable-link"
+                <td class="align-middle text-end">
+                  <div class="table-row-actions">
+                    <button type="button" class="table-row-action"
                       title="View additional information"
-                      onclick="openModal('#server_checkout_detail_{{ server.id }}')"
-                    ></span>
-                    <a class="icon ext-link-icon"
+                      aria-label="View additional information for {{ server.server.name }}"
+                      data-bs-toggle="modal"
+                      data-bs-target="#server_checkout_detail_{{ server.id }}"><i class="fas fa-eye" aria-hidden="true"></i></button>
+                    <a class="table-row-action"
                        title="View the server in a new tab"
-                       href="{% url 'shepherd:server_detail' server.server.id %}"></a>
-                    <a class="icon edit-icon"
+                       aria-label="View {{ server.server.name }} in a new tab"
+                       href="{% url 'shepherd:server_detail' server.server.id %}"><i class="fas fa-external-link-alt" aria-hidden="true"></i></a>
+                    <a class="table-row-action"
                        title="Edit this server checkout"
-                       href="{% url 'shepherd:server_history_update' server.id %}"></a>
-                    <a class="icon trash-icon"
+                       aria-label="Edit this server checkout"
+                       href="{% url 'shepherd:server_history_update' server.id %}"><i class="fas fa-pen" aria-hidden="true"></i></a>
+                    <a class="table-row-action table-row-action-danger"
                        title="Delete this server checkout"
-                       href="{% url 'shepherd:server_history_delete' server.id %}"></a>
+                       aria-label="Delete this server checkout"
+                       href="{% url 'shepherd:server_history_delete' server.id %}"><i class="fas fa-trash-alt" aria-hidden="true"></i></a>
                   </div>
                 </td>
               </tr>
             {% endfor %}
             {% for server in project.transientserver_set.all %}
               <tr>
-                <td nowrap class="text-left align-middle">
-                                    <span id="vps_{{ server.id }}" data-toggle="tooltip" data-placement="top"
+                <td nowrap class="text-start align-middle">
+                                    <span id="vps_{{ server.id }}" data-bs-toggle="tooltip" data-bs-placement="top"
                                           title="Copy {{ server.ip_address }}"
                                           onclick="copyToClipboard('#vps_{{ server.id }}')" class="copy-link">
                                         {{ server.ip_address }}
                                     </span>
                 </td>
-                <td class="align-middle text-left"> {{ server.aux_address|join:"<br />" }} </td>
-                <td id="delete-target-content-server-{{ server.id }}" class="align-middle text-left">{{ server.name }}</td>
-                <td class="align-middle text-left">{{ server.activity_type }}</td>
-                <td class="align-middle text-left">{{ server.server_role }}</td>
-                <td class="align-middle text-left">{{ server.server_provider }}</td>
-
-                <td class="align-middle">
-                  <div class="d-flex justify-content-center">
-                    <span
-                      class="icon preview-icon clickable-link"
+                <td class="align-middle text-start"> {{ server.aux_address|join:"<br />" }} </td>
+                <td id="delete-target-content-server-{{ server.id }}" class="align-middle text-start">{{ server.name }}</td>
+                <td class="align-middle text-start">{{ server.activity_type }}</td>
+                <td class="align-middle text-start">{{ server.server_role }}</td>
+                <td class="align-middle text-start">{{ server.server_provider }}</td>
+                <td class="align-middle text-start"><span class="missing-value">Not applicable</span></td>
+                <td class="align-middle text-end">
+                  <div class="table-row-actions">
+                    <button type="button" class="table-row-action"
                       title="View additional information"
-                      onclick="openModal('#vps_detail_{{ server.id }}')"
-                    ></span>
-                      <a class="icon edit-icon"
+                      aria-label="View additional information for {{ server.name }}"
+                      data-bs-toggle="modal"
+                      data-bs-target="#vps_detail_{{ server.id }}"><i class="fas fa-eye" aria-hidden="true"></i></button>
+                      <a class="table-row-action"
                          title="Edit this server"
-                         href="{% url 'shepherd:vps_update' server.id %}"></a>
-                      <a class="icon trash-icon js-confirm-delete"
+                         aria-label="Edit this server"
+                         href="{% url 'shepherd:vps_update' server.id %}"><i class="fas fa-pen" aria-hidden="true"></i></a>
+                      <a class="table-row-action table-row-action-danger js-confirm-delete"
                          title="Delete this server"
-                         id="server-delete-button-{{ server.id }}" data-toggle="modal"
-                         data-target="#confirm-delete-modal" href="javascript:void(0);"
+                         aria-label="Delete this server"
+                         id="server-delete-button-{{ server.id }}" data-bs-toggle="modal"
+                         data-bs-target="#confirm-delete-modal" href="javascript:void(0);"
                          delete-target-csrftoken="{{ csrf_token }}"
                          delete-target-url="{% url 'shepherd:ajax_delete_vps' server.id %}"
-                         delete-target-id="{{ server.id }}" delete-target-type="server"></a>
+                         delete-target-id="{{ server.id }}" delete-target-type="server"><i class="fas fa-trash-alt" aria-hidden="true"></i></a>
                   </div>
                 </td>
               </tr>
             {% endfor %}
-          </table>
+            </table>
+          </div>
         {% else %}
-          <div class="alert alert-warning offset-md-2 col-md-8 mt-3" role="alert">There are no servers tied to this
-            project yet.
+          <div class="empty-state">
+            <p class="empty-state-title">No servers yet</p>
+            <p class="empty-state-description">No servers are tied to this project.</p>
           </div>
         {% endif %}
 
         {% comment %} DNS Section {% endcomment %}
-        <h4>Domains and Servers</h4>
-        <hr/>
-
         {% comment %} Determine if at least one server and one domain {% endcomment %}
+        <header class="content-section-header project-subsection-header">
+          <div class="content-section-heading">
+            <h5>Domain and Server Connections</h5>
+            <p class="content-section-intro">Associate project domains and subdomains with the servers that handle their traffic.</p>
+          </div>
+          {% if project.transientserver_set.all or project.serverhistory_set.all and project.history_set.all %}
+            <a class="icon add-icon btn btn-primary btn-sm" href="{% url 'shepherd:link_create' project.id %}">Associate Domain + Server</a>
+          {% endif %}
+        </header>
+
         {% if project.transientserver_set.all or project.serverhistory_set.all and project.history_set.all %}
-          <p>
-            <a class="icon add-icon btn btn-primary col-3" href="{% url 'shepherd:link_create' project.id %}">Associate
-              a Domain + Server</a>
-          </p>
           {% if project.domainserverconnection_set.all %}
-            <table class="table">
+            <div class="table-responsive data-table-frame">
+              <table class="table">
               <tr>
-                <th class="align-middle pr-4 text-left">Domain</th>
-                <th class="align-middle pr-4 text-left">Server IP</th>
-                <th class="align-middle pr-4 text-left">Server name</th>
-                <th class="align-middle pr-4 text-left">CDN Endpoint</th>
-                <th class="sorter-false align-middle">Options</th>
+                <th class="align-middle pe-4 text-start">Domain</th>
+                <th class="align-middle pe-4 text-start">Server IP</th>
+                <th class="align-middle pe-4 text-start">Server name</th>
+                <th class="align-middle pe-4 text-start">CDN Endpoint</th>
+                <th class="sorter-false align-middle text-end">Options</th>
               </tr>
               {% for connection in project.domainserverconnection_set.all %}
                 <tr>
                   <td id="delete-target-content-connection-{{ connection.id }}"
-                      class="align-middle text-left">{{ connection.subdomain }}.{{ connection.domain.domain.name }}</td>
+                      class="align-middle text-start">{{ connection.subdomain }}.{{ connection.domain.domain.name }}</td>
                   {% if connection.static_server %}
-                    <td class="align-middle text-left">{{ connection.static_server.server.ip_address }}</td>
-                    <td class="align-middle text-left">{{ connection.static_server.server.name }}</td>
+                    <td class="align-middle text-start">{{ connection.static_server.server.ip_address }}</td>
+                    <td class="align-middle text-start">{{ connection.static_server.server.name }}</td>
                   {% else %}
-                    <td class="align-middle text-left">{{ connection.transient_server.ip_address }}</td>
-                    <td class="align-middle text-left">{{ connection.transient_server.name }}</td>
+                    <td class="align-middle text-start">{{ connection.transient_server.ip_address }}</td>
+                    <td class="align-middle text-start">{{ connection.transient_server.name }}</td>
                   {% endif %}
                   {% if connection.endpoint %}
-                    <td class="align-middle text-left">{{ connection.endpoint }}</td>
+                    <td class="align-middle text-start">{{ connection.endpoint }}</td>
                   {% else %}
-                    <td class="align-middle text-left">No Endpoint</td>
+                    <td class="align-middle text-start"><span class="missing-value">No endpoint</span></td>
                   {% endif %}
 
-                  <td class="align-middle">
-                    <div class="d-flex justify-content-center">
-                        <a class="icon edit-icon"
+                  <td class="align-middle text-end">
+                    <div class="table-row-actions">
+                        <a class="table-row-action"
                            title="Edit this link"
-                           href="{% url 'shepherd:link_update' connection.id %}"></a>
-                        <a class="icon trash-icon js-confirm-delete"
+                           aria-label="Edit this link"
+                           href="{% url 'shepherd:link_update' connection.id %}"><i class="fas fa-pen" aria-hidden="true"></i></a>
+                        <a class="table-row-action table-row-action-danger js-confirm-delete"
                            title="Delete this link"
-                           id="connection-delete-button-{{ connection.id }}" data-toggle="modal"
-                           data-target="#confirm-delete-modal" href="javascript:void(0);"
+                           aria-label="Delete this link"
+                           id="connection-delete-button-{{ connection.id }}" data-bs-toggle="modal"
+                           data-bs-target="#confirm-delete-modal" href="javascript:void(0);"
                            delete-target-csrftoken="{{ csrf_token }}"
                            delete-target-url="{% url 'shepherd:ajax_delete_domain_link' connection.id %}"
-                           delete-target-id="{{ connection.id }}" delete-target-type="connection"></a>
+                           delete-target-id="{{ connection.id }}" delete-target-type="connection"><i class="fas fa-trash-alt" aria-hidden="true"></i></a>
                     </div>
                   </td>
                 </tr>
               {% endfor %}
-            </table>
+              </table>
+            </div>
+          {% else %}
+            <div class="empty-state">
+              <p class="empty-state-title">No connections yet</p>
+              <p class="empty-state-description">Domains and servers are available, but none have been associated.</p>
+            </div>
           {% endif %}
         {% else %}
-          <p>Check-out/add at least one domain and one server to create an association.</p>
+          <div class="empty-state">
+            <p class="empty-state-title">Connections unavailable</p>
+            <p class="empty-state-description">Add or check out at least one domain and one server before creating an association.</p>
+          </div>
         {% endif %}
       </div>
 
       {% comment %} Deconflictions Tab {% endcomment %}
       <div id="deconflictions" class="tab-pane">
-        <h4>Deconfliction Events</h4>
-        <hr/>
-
-        <a class="icon add-icon btn btn-primary mb-3 col-3"
-           href="{% url 'rolodex:project_deconfliction_create' project.id %}">Record a Deconfliction</a>
+        <header class="content-section-header">
+          <div class="content-section-heading">
+            <h4>Deconfliction Events</h4>
+            <p class="content-section-intro">Track client detections from the initial report through team attribution and closeout.</p>
+          </div>
+          <a class="icon add-icon btn btn-primary btn-sm"
+             href="{% url 'rolodex:project_deconfliction_create' project.id %}">Record a Deconfliction</a>
+        </header>
 
         {% if project.deconfliction_set.all %}
-          {% for event in project.deconfliction_set.all %}
-            <div id="decon-card-{{ event.id }}" class="card card-project text-center mb-3">
-              <div class="card-header">
-                <h5 class="card-title"><span
-                  id="delete-target-content-deconfliction-{{ event.id }}">{{ event.title|title }}</span>
-                  ({{ event.status }})</h5>
-              </div>
-              <div class="card-body">
-                <div class="row">
-                  <div class="col-sm-4">
-                    <h6 class="card-subtitle mb-2 text-muted"><span class="card-help-text" data-toggle="tooltip"
-                                                                    data-placement="top"
-                                                                    title="Source of the alert (e.g., EDR).">Alert Source</span>
-                    </h6>
-                  </div>
-                  <div class="col-sm-4">
-                    <h6 class="card-subtitle mb-2 text-muted"><span class="card-help-text" data-toggle="tooltip"
-                                                                    data-placement="top"
-                                                                    title="Date and time of the original alert.">Time Alert Triggered</span>
-                    </h6>
-                  </div>
-                  <div class="col-sm-4">
-                    <h6 class="card-subtitle mb-2 text-muted"><span class="card-help-text" data-toggle="tooltip"
-                                                                    data-placement="top"
-                                                                    title="Log entries from the hour before the alert.">Log Entries</span>
-                    </h6>
-                  </div>
-                </div>
-                <div class="row">
-                  <div class="col-sm-4">
-                    <p class="card-text">{{ event.alert_source }}</p>
-                  </div>
-                  <div class="col-sm-4">
-                    <p class="card-text">
-                      {% if event.alert_timestamp %}{{ event.alert_timestamp|date:"d M Y @ H:i:s e" }}{% else %}
-                        TBD{% endif %}</p>
-                  </div>
-                  <div class="col-sm-4">
-                    <p class="card-text">
-                      {% if event.alert_timestamp %}
-                        {% if event.log_entries %}
-                          <button type="button" class="btn btn-info icon ext-link-icon col-4" data-toggle="modal"
-                                  data-target="#id_deconfliction_{{ event.id }}">
-                            {{ event.log_entries|length }} Entries
-                          </button>
+          <div class="deconfliction-workspace">
+            {% for event in project.deconfliction_set.all %}
+              {% with log_entries=event.log_entries %}
+                <article id="decon-card-{{ event.id }}"
+                         class="deconfliction-record {% if event.response_timestamp %}is-responded{% else %}is-awaiting-response{% endif %}"
+                         aria-labelledby="deconfliction-title-{{ event.id }}">
+                  <header class="deconfliction-record-header">
+                    <div class="deconfliction-record-identity">
+                      <span class="detail-eyebrow">Client detection</span>
+                      <h5 id="deconfliction-title-{{ event.id }}">
+                        <span id="delete-target-content-deconfliction-{{ event.id }}">{{ event.title|title }}</span>
+                      </h5>
+                      <div class="deconfliction-record-state">
+                        <span class="deconfliction-status">
+                          <i class="fas fa-shield-alt" aria-hidden="true"></i>
+                          {% if event.status %}{{ event.status }}{% else %}Status not set{% endif %}
+                        </span>
+                        {% if event.response_timestamp %}
+                          <span class="deconfliction-response-state is-complete">Team response recorded</span>
                         {% else %}
-                          No entries
+                          <span class="deconfliction-response-state is-pending">Awaiting team response</span>
                         {% endif %}
-                      {% else %}
-                        TBD
-                      {% endif %}
-                    </p>
-                  </div>
-                </div>
+                      </div>
+                    </div>
+                    <div class="deconfliction-record-actions">
+                      <a href="{% url 'rolodex:project_deconfliction_update' event.id %}"
+                         class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-pen" aria-hidden="true"></i>
+                        Update record
+                      </a>
+                      <a id="deconfliction-delete-button-{{ event.id }}"
+                         class="btn btn-outline-danger btn-sm js-confirm-delete"
+                         data-bs-toggle="modal" data-bs-target="#confirm-delete-modal" href="javascript:void(0);"
+                         delete-target-csrftoken="{{ csrf_token }}"
+                         delete-target-url="{% url 'rolodex:ajax_delete_project_deconfliction' event.id %}"
+                         delete-target-id="{{ event.id }}" delete-target-type="deconfliction">
+                        <i class="fas fa-trash-alt" aria-hidden="true"></i>
+                        Delete
+                      </a>
+                    </div>
+                  </header>
 
-                <div class="row pt-2">
-                  <div class="col-sm-4">
-                    <h6 class="card-subtitle mb-2 text-muted"><span class="card-help-text" data-toggle="tooltip"
-                                                                    data-placement="top"
-                                                                    title="Date and time of when we were informed of the event.">Report Received</span>
-                    </h6>
-                  </div>
-                  <div class="col-sm-4">
-                    <h6 class="card-subtitle mb-2 text-muted"><span class="card-help-text" data-toggle="tooltip"
-                                                                    data-placement="top"
-                                                                    title="Date and time of our response to the event.">Response Sent</span>
-                    </h6>
-                  </div>
-                  <div class="col-sm-4">
-                    <h6 class="card-subtitle mb-2 text-muted"><span class="card-help-text" data-toggle="tooltip"
-                                                                    data-placement="top"
-                                                                    title="Time delay between report and response.">Response Delay</span>
-                    </h6>
-                  </div>
-                </div>
-                <div class="row pb-2">
-                  <div class="col-sm-4">
-                    <p class="card-text">{{ event.report_timestamp|date:"d M Y @ H:i:s e" }}</p>
-                  </div>
-                  <div class="col-sm-4">
-                    <p class="card-text">
-                      {% if event.response_timestamp %}{{ event.response_timestamp|date:"d M Y @ H:i:s e" }}{% else %}
-                        TBD{% endif %}</p>
-                  </div>
-                  <div class="col-sm-4">
-                    <p class="card-text">
-                      {% if event.response_timestamp %}
-                        {{ event.response_timestamp|timeuntil:event.report_timestamp }}
-                      {% else %}
-                        TBD
-                      {% endif %}
-                    </p>
-                  </div>
-                </div>
+                  <ol class="deconfliction-timeline" aria-label="Deconfliction response timeline">
+                    <li class="deconfliction-phase {% if event.alert_timestamp %}is-complete{% else %}is-pending{% endif %}">
+                      <span class="deconfliction-phase-marker" aria-hidden="true"><i class="fas fa-bell"></i></span>
+                      <div>
+                        <span class="deconfliction-phase-label">1 · Client detection</span>
+                        <strong>
+                          {% if event.alert_timestamp %}
+                            {{ event.alert_timestamp|date:"d M Y @ H:i:s e" }}
+                          {% else %}
+                            Detection time not recorded
+                          {% endif %}
+                        </strong>
+                        <small>{% if event.alert_source %}{{ event.alert_source }}{% else %}Alert source not recorded{% endif %}</small>
+                      </div>
+                    </li>
+                    <li class="deconfliction-phase is-complete">
+                      <span class="deconfliction-phase-marker" aria-hidden="true"><i class="fas fa-inbox"></i></span>
+                      <div>
+                        <span class="deconfliction-phase-label">2 · Report received</span>
+                        <strong>{{ event.report_timestamp|date:"d M Y @ H:i:s e" }}</strong>
+                        <small>Deconfliction opened with the team</small>
+                      </div>
+                    </li>
+                    <li class="deconfliction-phase {% if event.response_timestamp %}is-complete{% else %}is-current{% endif %}">
+                      <span class="deconfliction-phase-marker" aria-hidden="true"><i class="fas fa-user-check"></i></span>
+                      <div>
+                        <span class="deconfliction-phase-label">3 · Team attribution</span>
+                        <strong>
+                          {% if event.response_timestamp %}
+                            {{ event.response_timestamp|date:"d M Y @ H:i:s e" }}
+                          {% else %}
+                            Response pending
+                          {% endif %}
+                        </strong>
+                        <small>
+                          {% if event.response_timestamp %}
+                            Responded in {{ event.response_timestamp|timeuntil:event.report_timestamp }}
+                          {% else %}
+                            Confirm whether the activity belonged to the assessment
+                          {% endif %}
+                        </small>
+                      </div>
+                    </li>
+                  </ol>
 
-                <p class="card-text">
-                  {% if event.description %}
-                    {{ event.description|bleach }}
-                  {% else %}
-                    No one has added a description of this event.
-                    <a class="clickable" href="{% url 'rolodex:project_deconfliction_update' event.id %}">Fix that
-                      here.</a>
-                  {% endif %}
-                </p>
-              </div>
-              <div class="card-footer text-muted">
-                <a href="{% url 'rolodex:project_deconfliction_update' event.id %}" class="btn btn-primary col-md-2">Update</a>
-                <a id="deconfliction-delete-button-{{ event.id }}" class="btn btn-danger col-md-2 js-confirm-delete"
-                   data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);"
-                   delete-target-csrftoken="{{ csrf_token }}"
-                   delete-target-url="{% url 'rolodex:ajax_delete_project_deconfliction' event.id %}"
-                   delete-target-id="{{ event.id }}" delete-target-type="deconfliction">Delete</a>
-              </div>
-            </div>
-          {% endfor %}
+                  <div class="deconfliction-record-body">
+                    <section class="deconfliction-notes" aria-labelledby="deconfliction-notes-{{ event.id }}">
+                      <span class="detail-eyebrow">Living record</span>
+                      <h6 id="deconfliction-notes-{{ event.id }}">Investigation &amp; client closeout</h6>
+                      <div class="deconfliction-notes-content">
+                        {% if event.description %}
+                          {{ event.description|bleach }}
+                        {% else %}
+                          <p>No investigation or closeout notes have been recorded.</p>
+                        {% endif %}
+                      </div>
+                      <p class="deconfliction-notes-help">Use this record for attribution updates and any additional information received from the client.</p>
+                    </section>
+                    <aside class="deconfliction-support" aria-label="Supporting activity">
+                      <span class="detail-eyebrow">Supporting activity</span>
+                      {% if event.alert_timestamp and log_entries %}
+                        <button type="button" class="btn btn-outline-secondary btn-sm"
+                                data-bs-toggle="modal" data-bs-target="#id_deconfliction_{{ event.id }}">
+                          <i class="fas fa-list-alt" aria-hidden="true"></i>
+                          Review {{ log_entries|length }} nearby log entr{{ log_entries|length|pluralize:"y,ies" }}
+                        </button>
+                        <p>Activity recorded during the hour before the detection.</p>
+                      {% elif event.alert_timestamp %}
+                        <strong>No related activity</strong>
+                        <p>No operation-log entries were recorded during the hour before the detection.</p>
+                      {% else %}
+                        <strong>Alert time needed</strong>
+                        <p>Add the detection time to correlate nearby operation-log entries.</p>
+                      {% endif %}
+                    </aside>
+                  </div>
+                </article>
+              {% endwith %}
+            {% endfor %}
+          </div>
         {% else %}
-          <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">There are no deconfliction events for
-            this project.
+          <div class="empty-state">
+            <p class="empty-state-title">No deconfliction events yet</p>
+            <p class="empty-state-description">Record a client detection when the team is asked to confirm whether activity belongs to the assessment.</p>
           </div>
         {% endif %}
       </div>
@@ -1100,52 +1262,85 @@
       {% comment %} BloodHound Tab {% endcomment %}
       {% if bh_api %}
         <div id="bloodhound" class="tab-pane">
-          <h4>BloodHound</h4>
-          <hr/>
-
-          <p>
-            {% if project.has_bloodhound_api %}
-              Using Project-Specific Configuration: <em>{{ project.bloodhound_api_root_url }}</em>
-            {% elif global_bloodhound_config.has_bloodhound_api %}
-              Using Shared Global Configuration: <em>{{ global_bloodhound_config.bloodhound_api_root_url }}</em><br/>
-            {% else %}
-              Unavailable
-            {% endif %}
-          </p>
-          {% if global_bloodhound_config.has_bloodhound_api and not project.has_bloodhound_api%}
-            <div class="alert alert-info offset-md-2 col-md-8 mt-1" role="alert">
-              This project is using the shared global BloodHound configuration and cached results. Refreshing data here updates the shared cache used by other projects that rely on the same fallback.
+          <header class="content-section-header bh-page-header">
+            <div class="content-section-heading">
+              <h4>BloodHound</h4>
+              <p class="content-section-intro">Review directory coverage and Enterprise exposure data for this project.</p>
             </div>
-          {% endif %}
+          </header>
 
-          <div class="btn-group-equal-height justify-content-center mb-3 row" role="group" aria-label="BloodHound buttons">
-            <div class="col-md-4 col-sm-4 px-1 mb-2">
-              <form id="bh-test-form" action="{% url 'rolodex:ajax_bloodhound_test' %}?project={{ project.id }}" method="POST" class="h-100">
+          <section class="bh-connection-panel{% if global_bloodhound_config.has_bloodhound_api and not project.has_bloodhound_api %} is-shared{% endif %}"
+                   aria-label="BloodHound connection">
+            <div class="bh-connection-source">
+              <span class="bh-connection-icon" aria-hidden="true">
+                {% if global_bloodhound_config.has_bloodhound_api and not project.has_bloodhound_api %}
+                  <i class="fas fa-share-alt"></i>
+                {% else %}
+                  <i class="fas fa-database"></i>
+                {% endif %}
+              </span>
+              <div class="bh-connection-copy">
+                {% if project.has_bloodhound_api %}
+                  <span class="bh-connection-eyebrow">Project data source</span>
+                  <strong>Project BloodHound connection</strong>
+                  <code>{{ project.bloodhound_api_root_url }}</code>
+                  <p>Fetched results are stored for this project.</p>
+                {% elif global_bloodhound_config.has_bloodhound_api %}
+                  <span class="bh-connection-eyebrow">Shared data source</span>
+                  <strong>Global BloodHound connection</strong>
+                  <code>{{ global_bloodhound_config.bloodhound_api_root_url }}</code>
+                  <p>Fetching here refreshes the shared cache for every project using this fallback.</p>
+                {% else %}
+                  <span class="bh-connection-eyebrow">Data source</span>
+                  <strong>BloodHound integration unavailable</strong>
+                  <p>Configure a project or global connection to fetch directory data.</p>
+                {% endif %}
+              </div>
+            </div>
+            {% if project.has_bloodhound_api or global_bloodhound_config.has_bloodhound_api %}
+            <div class="bh-connection-actions" role="group" aria-label="BloodHound connection actions">
+              <form id="bh-test-form" action="{% url 'rolodex:ajax_bloodhound_test' %}?project={{ project.id }}" method="POST">
                 {% csrf_token %}
-                <button type="submit" class="btn btn-secondary w-100 btn-text-wrap h-100" data-toggle="tooltip" title="Fetch or refresh the data from BloodHound">Test BloodHound Connectivity</button>
+                <button type="submit"
+                        class="btn btn-outline-secondary btn-sm"
+                        data-bs-toggle="tooltip"
+                        data-bs-placement="top"
+                        title="Verify the active BloodHound connection">
+                  <i class="fas fa-plug" aria-hidden="true"></i>
+                  Test connection
+                </button>
               </form>
-            </div>
-            <div class="col-md-4 col-sm-4 px-1 mb-2">
-              <form id="bh-fetch-form" action="{% url 'rolodex:ajax_bloodhound_fetch' %}?project={{ project.id }}" method="POST" class="h-100">
+              <form id="bh-fetch-form" action="{% url 'rolodex:ajax_bloodhound_fetch' %}?project={{ project.id }}" method="POST">
                 {% csrf_token %}
-                <button type="submit" class="btn btn-primary w-100 btn-text-wrap h-100" data-toggle="tooltip"
+                <button type="submit"
+                        class="btn btn-sm bh-connection-fetch"
+                        data-bs-toggle="tooltip"
+                        data-bs-placement="top"
                   {% if project.has_bloodhound_api %}
-                  title="Fetch data from the project's configured BloodHound API"
+                        title="Fetch the latest data from this project's BloodHound connection"
                   {% else %}
-                  title="Fetch data from the globally configured BloodHound API"
+                        title="Refresh the shared BloodHound cache for every project using it"
                   {% endif %}
-                >Fetch BloodHound Data</button>
+                >
+                  <i class="fas fa-sync-alt" aria-hidden="true"></i>
+                  Fetch latest data
+                </button>
               </form>
             </div>
-          </div>
+            {% endif %}
+          </section>
 
           {% include "snippets/bloodhound_info.html" with res=bh_api.bloodhound_results only %}
         </div>
       {% endif %}
 
       <div id="collab_notes" class="tab-pane">
-        <h4>Collaborative Notes</h4>
-        <hr />
+        <header class="content-section-header">
+          <div class="content-section-heading">
+            <h4>Collaborative Notes</h4>
+            <p class="content-section-intro">Capture shared project notes with live collaboration.</p>
+          </div>
+        </header>
 
         <div id="collab_notes_container">
           <p>Loading...</p>
@@ -1155,44 +1350,60 @@
       {% comment %} Extra Fields Tab {% endcomment %}
       {% if project_extra_fields_spec %}
         <div id="extra-fields" class="tab-pane">
-          <h4>Extra Fields</h4>
-          <hr/>
+          <header class="content-section-header">
+            <div class="content-section-heading">
+              <h4>Extra Fields</h4>
+              <p class="content-section-intro">Project-level values are available to templates using the reference shown on each card. Report-aware expressions are rendered from report detail pages.</p>
+            </div>
+            <a class="icon edit-icon btn btn-primary btn-sm"
+               href="{% url 'rolodex:project_component_update' project.id %}#extra-fields">Edit Extra Fields</a>
+          </header>
 
-          <div class="extra-fields-grid">
+          <div class="extra-fields-grid client-extra-fields-grid project-extra-fields-grid">
             {% for field_spec in project_extra_fields_spec %}
-              <section class="extra-field-card">
-                <h5 class="extra-field-name">{{ field_spec.display_name }}</h5>
-                <div class="extra-field-type">
-                  {% if field_spec.type == "rich_text" %}
-                    Rich Text Field
-                  {% else %}
-                    {{ field_spec.get_type_display }} Field
-                  {% endif %}
+              <section class="extra-field-card" aria-labelledby="project-extra-field-{{ field_spec.internal_name }}">
+                <div class="extra-field-card-header">
+                  <h5 id="project-extra-field-{{ field_spec.internal_name }}" class="extra-field-name">{{ field_spec.display_name }}</h5>
+                  <span class="extra-field-type-badge">
+                    {% if field_spec.type == "rich_text" %}
+                      Rich Text
+                    {% else %}
+                      {{ field_spec.get_type_display }}
+                    {% endif %}
+                  </span>
                 </div>
-                <div class="extra-field-type">Reference as <code>project.extra_fields.{{ field_spec.internal_name }}</code></div>
+
+                <div class="extra-field-reference">
+                  <span>Template reference</span>
+                  <code>project.extra_fields.{{ field_spec.internal_name }}</code>
+                </div>
+
                 <div class="extra-field-value">
-                  {% if field_spec.type == "rich_text" %}
-                    <span class="extra-field-summary">Use Preview to view formatted content.</span>
-                  {% elif field_spec.type == "json" %}
-                    <span class="extra-field-summary">Use View JSON to inspect structured content.</span>
-                  {% else %}
-                    {% include "user_extra_fields/field.html" with extra_fields=project.extra_fields field_spec=field_spec preview_report=False %}
-                  {% endif %}
+                  <span class="extra-field-value-label">Current value</span>
+                  <div class="extra-field-value-content">
+                    {% if field_spec.type == "rich_text" %}
+                      <span class="extra-field-summary">Formatted content is available in Preview.</span>
+                    {% elif field_spec.type == "json" %}
+                      <span class="extra-field-summary">Structured content is available in View JSON.</span>
+                    {% else %}
+                      {% include "user_extra_fields/field.html" with extra_fields=project.extra_fields field_spec=field_spec preview_report=False %}
+                    {% endif %}
+                  </div>
                 </div>
-                <div class="extra-field-actions">
-                  {% if field_spec.type == "rich_text" %}
-                    <button type="button" class="btn btn-primary btn-sm icon view-icon" data-toggle="modal"
-                            data-target="#field_spec_{{ field_spec.internal_name }}">Preview
+
+                {% if field_spec.type == "rich_text" or field_spec.type == "json" %}
+                  <footer class="extra-field-actions">
+                    {% if field_spec.type == "rich_text" %}
+                    <button type="button" class="btn btn-primary btn-sm icon view-icon" data-bs-toggle="modal"
+                            data-bs-target="#field_spec_{{ field_spec.internal_name }}">Preview
                     </button>
-                  {% elif field_spec.type == "json" %}
-                    <button type="button" class="btn btn-primary btn-sm icon code-icon" data-toggle="modal"
-                            data-target="#field_spec_{{ field_spec.internal_name }}">View JSON
-                    </button>
-                  {% endif %}
-                  <a class="btn btn-outline-primary btn-sm icon edit-icon"
-                     href="{% url 'rolodex:project_component_update' project.id %}#extra-fields"
-                     title="Edit {{ field_spec.display_name }}">Edit</a>
-                </div>
+                    {% else %}
+                      <button type="button" class="btn btn-primary btn-sm icon code-icon" data-bs-toggle="modal"
+                              data-bs-target="#field_spec_{{ field_spec.internal_name }}">View JSON
+                      </button>
+                    {% endif %}
+                  </footer>
+                {% endif %}
               </section>
             {% endfor %}
           </div>
@@ -1202,43 +1413,52 @@
       {% comment %} Notes Tab {% endcomment %}
       {% if project.projectnote_set.all %}
       <div id="legacy_comments" class="tab-pane">
-        <h4>Project Legacy Comments</h4>
-        <hr/>
-
-        <a class="icon add-icon btn btn-primary mb-3 col-3" href="{% url 'rolodex:project_note_add' project.id %}">
-          Add a Comment
-        </a>
+        <header class="content-section-header">
+          <div class="content-section-heading">
+            <h4>Project Legacy Comments</h4>
+          </div>
+          <a class="icon add-icon btn btn-primary btn-sm" href="{% url 'rolodex:project_note_add' project.id %}">Add a Comment</a>
+        </header>
 
         {% if project.projectnote_set.all %}
-          {% for note in project.projectnote_set.all reversed %}
-            <div id="note-container-{{ note.id }}">
-              <div class="container note-container {% if forloop.counter|divisibleby:2 %}darker{% endif %}">
-                <div class="float-left col-10 col-md-10 col-sm-8">
+          <div class="note-card-list">
+            {% for note in project.projectnote_set.all reversed %}
+              <article id="note-container-{{ note.id }}" class="note-card">
+                <div class="note-card-body">
                   {{ note.note|bleach }}
                 </div>
 
-                <div class="float-right col-2 col-md-2 col-sm-4">
-                  <div>{% if note.operator %}<a class="note-link"
-                                                href="{% url 'users:user_detail' note.operator.username %}">{{ note.operator.username }}</a>{% else %}
-                    <span class="note-link">Deleted</span>{% endif %}</div>
-                  <div><p class="note-time">{{ note.timestamp }}</p></div>
-                </div>
-              </div>
-            </div>
-
-            {% if request.user == note.operator or request.user|is_privileged %}
-              <div class="pb-3">
-                <a class="note-link" href="{% url 'rolodex:project_note_edit' note.id %}">Edit</a> |
-                <a id="note-delete-button-{{ note.id }}" class="js-confirm-delete note-link" data-toggle="modal"
-                   data-target="#confirm-delete-modal" href="javascript:void(0);"
-                   delete-target-csrftoken="{{ csrf_token }}"
-                   delete-target-url="{% url 'rolodex:ajax_delete_project_note' note.id %}"
-                   delete-target-id="{{ note.id }}" delete-target-type="note">Delete</a>
-              </div>
-            {% endif %}
-          {% endfor %}
+                <footer class="note-card-footer">
+                  {% if request.user == note.operator or request.user|is_privileged %}
+                    <div class="note-card-actions" aria-label="Comment actions">
+                      <a class="btn btn-outline-primary btn-sm icon edit-icon"
+                         href="{% url 'rolodex:project_note_edit' note.id %}">Edit</a>
+                      <a id="note-delete-button-{{ note.id }}"
+                         class="btn btn-outline-danger btn-sm icon trash-icon js-confirm-delete"
+                         data-bs-toggle="modal" data-bs-target="#confirm-delete-modal" href="javascript:void(0);"
+                         delete-target-csrftoken="{{ csrf_token }}"
+                         delete-target-url="{% url 'rolodex:ajax_delete_project_note' note.id %}"
+                         delete-target-id="{{ note.id }}" delete-target-type="note">Delete</a>
+                    </div>
+                  {% endif %}
+                  <div class="note-card-meta">
+                    {% if note.operator %}
+                      <a class="note-card-author"
+                         href="{% url 'users:user_detail' note.operator.username %}">{{ note.operator.username }}</a>
+                    {% else %}
+                      <span class="note-card-author">Deleted user</span>
+                    {% endif %}
+                    <span aria-hidden="true">&middot;</span>
+                    <time class="note-card-time" datetime="{{ note.timestamp|date:'c' }}">{{ note.timestamp }}</time>
+                  </div>
+                </footer>
+              </article>
+            {% endfor %}
+          </div>
         {% else %}
-          <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">There are no notes for this project.
+          <div class="empty-state">
+            <p class="empty-state-title">No legacy comments yet</p>
+            <p class="empty-state-description">No legacy comments have been added for this project.</p>
           </div>
         {% endif %}
       </div>
@@ -1251,10 +1471,6 @@
   {% get_solo "commandcenter.ReportConfiguration" as report_config %}
 
   <script>
-    const $projectDescription = $('#projectDescription')
-    const $projectDescDropdown = $('#projectDescriptionDropdown')
-    const $editTodoInout = $('.edit-todo-input')
-
     $(document).ready(function() {
       const projectExportSelector = $("#projectExportSelector");
       const projectExportButton = $("#projectExportButton");
@@ -1330,31 +1546,47 @@
       $('.tablesorter').trigger('update');
     });
 
-    {% comment %} Show/hide the project description block {% endcomment %}
-    $('div.description-block').each(function () {
-      $(this).css('height', $(this).height() + 'px');
-      $(this).hide();
-    });
-
-    $projectDescDropdown.click(function () {
-      $projectDescription.slideToggle('slow');
-      $projectDescDropdown.toggleClass('add-icon sub-icon')
-    });
-
     {% comment %} Toggle task lists under objectives {% endcomment %}
 
-    function expandObjective(ele) {
-      ele.parent().parent().toggleClass('open');
-      let accordionRow = ele.parent().parent().next('.hiddenAccordion');
-      if (!accordionRow.is(':visible')) {
-        accordionRow.show().find('.accordion-content').slideDown();
-      } else {
-        accordionRow.find('.accordion-content').slideUp(function () {
-          if (!$(this).is(':visible')) {
-            accordionRow.hide();
+    function resizeObjectiveTaskInputs(container = document) {
+      const root = $(container);
+      const fields = root.is('textarea.edit-todo-input') ? root : root.find('textarea.edit-todo-input');
+      fields.each(function () {
+        this.style.height = 'auto';
+        this.style.height = Math.min(this.scrollHeight, 150) + 'px';
+      });
+    }
+
+    function expandObjective(ele, focusTask = false) {
+      const objectiveRow = ele.closest('.objective-row');
+      const accordionRow = objectiveRow.next('.objective-tasks-row');
+      const accordionContent = accordionRow.find('.accordion-content');
+      const isOpen = objectiveRow.hasClass('open');
+
+      if (!isOpen) {
+        objectiveRow.addClass('open');
+        ele.attr('aria-expanded', 'true');
+        accordionRow.css('display', 'block');
+        accordionContent.stop(true, true).slideDown(160, function () {
+          resizeObjectiveTaskInputs(accordionRow);
+          if (focusTask) {
+            accordionRow.find('.add-task').trigger('focus');
           }
         });
+      } else if (focusTask) {
+        accordionRow.find('.add-task').trigger('focus');
+      } else {
+        objectiveRow.removeClass('open');
+        ele.attr('aria-expanded', 'false');
+        accordionContent.stop(true, true).slideUp(160, function () {
+          accordionRow.hide();
+        });
       }
+    }
+
+    function openNewSubtask(ele) {
+      const objectiveRow = ele.closest('.objective-row');
+      expandObjective(objectiveRow.find('.objective-expand-button'), true);
     }
 
     {% comment %} Sortable groups of objectives {% endcomment %}
@@ -1384,17 +1616,7 @@
             {% comment %} Close the tasks view on pick-up {% endcomment %}
             let $eventItem = $('#' + event.item.id)
             if ($eventItem.hasClass('open')) {
-              $eventItem.toggleClass('open');
-              let accordionRow = $eventItem.next('.accordion');
-              if (!accordionRow.is(':visible')) {
-                accordionRow.show().find('.accordion-content').slideDown();
-              } else {
-                accordionRow.find('.accordion-content').slideUp(function () {
-                  if (!$(this).is(':visible')) {
-                    accordionRow.hide();
-                  }
-                });
-              }
+              expandObjective($eventItem.find('.objective-expand-button'));
             }
           },
 
@@ -1582,6 +1804,7 @@
         success: function (data) {
           console.log(data);
           badge.html(data['status']);
+          badge.attr('aria-label', 'Current objective status: ' + data['status'] + '. Select to advance.');
         }
       });
     }
@@ -1661,38 +1884,6 @@
       });
     });
 
-    {% comment %} Activate Report with AJAX {% endcomment %}
-    $('.js-activate-report').click(function () {
-      let url = $(this).attr('activate-report-url');
-      let reportId = $(this).attr('activate-report-id');
-      let csrftoken = $(this).attr('activate-report-csrftoken');
-      let activeReportBar = $('#active-report-id');
-      $.ajaxSetup({
-        beforeSend: function (xhr, settings) {
-          if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-            xhr.setRequestHeader('X-CSRFToken', csrftoken);
-          }
-        }
-      });
-      $.ajax({
-        url: url,
-        type: 'POST',
-        dataType: 'json',
-        data: {
-          'report': reportId
-        },
-        success: function (data) {
-          if (data['result'] === 'success') {
-            activeReportBar.html(data['report']);
-            activeReportBar.attr('href', data['report_url']);
-          }
-          if (data['message']) {
-            displayToastTop({type: data['result'], string: data['message'], title: 'Report Update'});
-          }
-        }
-      });
-    });
-
     {% comment %} Export functions for logs and scopes {% endcomment %}
     $('.js-export-oplog').on('click', function () {
       let id = $(this).parent().find('.oplog-id').html()
@@ -1708,20 +1899,31 @@
     {% comment %} FullCalendar rendering {% endcomment %}
     document.addEventListener('DOMContentLoaded', function () {
       {% comment %} Track the initial calendar view in local storage {% endcomment %}
-      let defaultView = (localStorage.getItem('fcDefaultViewProject') !== null ? localStorage.getItem('fcDefaultViewProject') : 'dayGridWeek');
+      const compactCalendar = window.matchMedia('(max-width: 767.98px)').matches;
+      let defaultView = compactCalendar
+        ? 'listWeek'
+        : (localStorage.getItem('fcDefaultViewProject') !== null ? localStorage.getItem('fcDefaultViewProject') : 'dayGridWeek');
       let calendarEl = document.getElementById('calendar');
       let calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: defaultView,
         height: 'auto',
-        headerToolbar: {
-          left: 'today prev,next',
-          center: 'title',
-          right: 'dayGridDay dayGridWeek dayGridMonth listWeek'
-        },
+        headerToolbar: compactCalendar
+          ? {
+              left: 'prev,next',
+              center: 'title',
+              right: 'listWeek'
+            }
+          : {
+              left: 'today prev,next',
+              center: 'title',
+              right: 'dayGridDay dayGridWeek dayGridMonth listWeek'
+            },
 
         {% comment %} On view change, save the selected view to local storage, so it persists between page loads {% endcomment %}
         viewClassNames: function (info) {
-          localStorage.setItem("fcDefaultViewProject", info.view.type);
+          if (!compactCalendar) {
+            localStorage.setItem("fcDefaultViewProject", info.view.type);
+          }
         }
       });
       calendar.render();
@@ -1732,7 +1934,7 @@
         allDay: true,
         start: '{{ project.start_date|date:"Y-m-d" }}',
         end: '{{ project.end_date|plus_days:1|date:"Y-m-d" }}',
-        color: 'var(--primary-color)',
+        color: 'var(--gw-engagement-violet)',
         className: 'calendar-exec-icon'
       };
       calendar.addEvent(execWindows);
@@ -1742,7 +1944,7 @@
         allDay: true,
         start: '{{ project.end_date|plus_days:1|date:"Y-m-d" }}',
         end: '{{ project.end_date|add_days:report_config.target_delivery_date|plus_days:1|date:"Y-m-d" }}',
-        color: 'var(--secondary-color)',
+        color: 'var(--gw-information-slate)',
         className: 'calendar-report-icon'
       };
       calendar.addEvent(reportingWindows);
@@ -1756,7 +1958,7 @@
           startRecur: '{{ operator.start_date|date:"Y-m-d" }}',
           endRecur: '{{ operator.end_date|plus_days:1|date:"Y-m-d" }}',
           daysOfWeek: [1, 2, 3, 4, 5],
-          color: 'var(--neutral-color)',
+          color: 'var(--gw-context-blue)',
           className: 'calendar-user-icon'
         };
         calendar.addEvent(operator_{{ operator.id }});
@@ -1769,7 +1971,7 @@
           allDay: true,
           start: '{{ objective.deadline|date:"Y-m-d" }}',
           end: '{{ objective.deadline|date:"Y-m-d" }}',
-          color: 'var(--secondary-color-fade)',
+          color: 'var(--gw-context-orchid)',
           className: 'calendar-objective-icon'
         };
         calendar.addEvent(obj_{{  objective.id }});
@@ -1782,7 +1984,7 @@
               allDay: true,
               start: '{{ task.deadline|date:"Y-m-d" }}',
               end: '{{ task.deadline|date:"Y-m-d" }}',
-              color: 'var(--secondary-color-med)',
+              color: 'var(--gw-context-blue)',
               className: 'calendar-task-icon'
             };
             calendar.addEvent(task_{{  task.id }});
@@ -1829,6 +2031,10 @@
       let csrftoken = ele.attr('task-csrftoken');
       let objectiveRowId = '#objective-row-' + ele.attr('objective-id');
       let objectiveRow = $(objectiveRowId);
+      let checkbox = ele.find('input[type="checkbox"]');
+      let wasComplete = checkbox.is(':checked');
+      ele.addClass('is-updating').attr('aria-busy', 'true');
+      checkbox.prop('disabled', true);
       $.ajaxSetup({
         beforeSend: function (xhr, settings) {
           if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
@@ -1847,11 +2053,17 @@
           if (data['result'] === 'success') {
             updateObjectiveRow(objectiveRow);
             updateTodoList(ele);
-            ele.toggleClass('complete');
+          } else {
+            checkbox.prop('checked', !wasComplete).prop('disabled', false);
+            ele.removeClass('is-updating').removeAttr('aria-busy');
           }
           if (data['message']) {
             displayToastTop({type: data['result'], string: data['message'], title: 'Task Update'});
           }
+        },
+        error: function () {
+          checkbox.prop('checked', !wasComplete).prop('disabled', false);
+          ele.removeClass('is-updating').removeAttr('aria-busy');
         }
       });
     }
@@ -1965,14 +2177,14 @@
         open = true;
       }
       if (url != null) {
-        console.log("Updating objective row...");
-        ele.load(url, function (data) {
+        $.get(url, function (data) {
           data = $(data);
           ele.replaceWith(data);
-          checker = data.find('input:checkbox:first');
+          const checker = data.find('input:checkbox:first');
           checker.tooltip('enable');
           if (open) {
-            data.toggleClass('open');
+            data.addClass('open');
+            data.find('.objective-expand-button').attr('aria-expanded', 'true');
           }
         });
       }
@@ -1983,35 +2195,42 @@
       let taskList = $('#task-list-' + objectiveId);
       let url = ele.attr('refresh-task-url');
       if (url != null) {
-        taskList.html('').load(url, function () {
+        taskList.attr('aria-busy', 'true');
+        $.get(url, function (data) {
+          taskList.html(data);
           prepareTodoList();
+        }).always(function () {
+          taskList.removeAttr('aria-busy');
         });
       }
     }
 
     let todo = function () {
-      $('.todo-nav .all-task').click(function () {
-        let $todoList = $('.todo-list')
-        $todoList.removeClass('only-active');
-        $todoList.removeClass('only-complete');
-        $('.todo-nav li.active').removeClass('active');
-        $(this).addClass('active');
-      });
+      $('.todo-nav').each(function () {
+        const nav = $(this);
+        const todoList = nav.closest('.objective-task-workspace').find('.todo-list');
 
-      $('.todo-nav .active-task').click(function () {
-        let $todoList = $('.todo-list')
-        $todoList.removeClass('only-complete');
-        $todoList.addClass('only-active');
-        $('.todo-nav li.active').removeClass('active');
-        $(this).addClass('active');
-      });
+        nav.find('a').off('click.objectiveTodo').on('click.objectiveTodo', function (event) {
+          event.preventDefault();
+        });
 
-      $('.todo-nav .completed-task').click(function () {
-        let $todoList = $('.todo-list')
-        $todoList.removeClass('only-active');
-        $todoList.addClass('only-complete');
-        $('.todo-nav li.active').removeClass('active');
-        $(this).addClass('active');
+        nav.find('.all-task').off('click.objectiveFilter').on('click.objectiveFilter', function () {
+          todoList.removeClass('only-active only-complete');
+          nav.find('li.active').removeClass('active');
+          $(this).addClass('active');
+        });
+
+        nav.find('.active-task').off('click.objectiveFilter').on('click.objectiveFilter', function () {
+          todoList.removeClass('only-complete').addClass('only-active');
+          nav.find('li.active').removeClass('active');
+          $(this).addClass('active');
+        });
+
+        nav.find('.completed-task').off('click.objectiveFilter').on('click.objectiveFilter', function () {
+          todoList.removeClass('only-active').addClass('only-complete');
+          nav.find('li.active').removeClass('active');
+          $(this).addClass('active');
+        });
       });
 
       $('#uniform-all-complete input').click(function () {
@@ -2024,7 +2243,8 @@
     };
 
     function prepareTodoList() {
-      $editTodoInout.textareaAutoSize();
+      const editTodoInput = $('.edit-todo-input');
+      resizeObjectiveTaskInputs(document);
 
       todo();
 
@@ -2040,23 +2260,30 @@
       rows.forEach(function (row) {
         let parentDeadline = row.getAttribute('deadline-date');
         let taskList = $('#task-list-' + row.getAttribute('objective-id'))[0];
-        let deadlineField = taskList.querySelectorAll('.add-deadline')[0];
-        deadlineField.value = parentDeadline;
+        let deadlineField = taskList?.querySelector('.add-deadline');
+        if (deadlineField && !deadlineField.value) {
+          deadlineField.value = parentDeadline;
+        }
       });
 
       // Toggle ``readonly`` attribute on fields and save
-      $editTodoInout.click(function () {
+      editTodoInput.off('click.objectiveTodo').on('click.objectiveTodo', function () {
         $(this).attr('readonly', false);
       });
 
-      $editTodoInout.blur(function () {
+      editTodoInput.filter('textarea').off('input.objectiveTodo').on('input.objectiveTodo', function () {
+        resizeObjectiveTaskInputs(this);
+      });
+
+      editTodoInput.off('blur.objectiveTodo').on('blur.objectiveTodo', function () {
         $(this).attr('readonly', true);
         let currentValue = $(this).val();
         let previousValue = $(this).attr('value');
         $(this).attr('readonly', true);
         if (currentValue != previousValue) {
-          updateTodo($(this).parent().parent());
-          updateTodoList($(this).parent().parent());
+          const todoItem = $(this).closest('.todo-item');
+          updateTodo(todoItem);
+          updateTodoList(todoItem);
         }
       });
     }
@@ -2118,7 +2345,7 @@
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title" id="scopeModal_{{ list.id }}">{{ list.name }} – {{ list.count_lines_str }}</h5>
-            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
               <span aria-hidden="true">&times;</span>
             </button>
           </div>
@@ -2129,7 +2356,7 @@
             <button type="button" class="btn btn-primary js-copy-scope"
                     data-clipboard-target="#modal_scope_{{ list.id }}">Copy to Clipboard
             </button>
-            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
           </div>
         </div>
       </div>
@@ -2144,7 +2371,7 @@
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title" id="deconflictionModal_{{ event.id }}">Related Log Entries</h5>
-            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
               <span aria-hidden="true">&times;</span>
             </button>
           </div>
@@ -2154,34 +2381,34 @@
             <table id="projectTable" class="tablesorter table table-sm table-hover">
               <thead>
               <tr>
-                <th class="align-middle">Start Date</th>
-                <th class="align-middle">Destination</th>
-                <th class="align-middle">Tool</th>
-                <th class="align-middle">User</th>
-                <th class="align-middle">Command</th>
-                <th class="align-middle">Description</th>
-                <th class="align-middle">Comments</th>
-                <th class="align-middle">Operator</th>
+                <th class="align-middle text-start">Start Date</th>
+                <th class="align-middle text-start">Destination</th>
+                <th class="align-middle text-start">Tool</th>
+                <th class="align-middle text-start">User</th>
+                <th class="align-middle text-start">Command</th>
+                <th class="align-middle text-start">Description</th>
+                <th class="align-middle text-start">Comments</th>
+                <th class="align-middle text-start">Operator</th>
               </tr>
               </thead>
               {% for entry in event.log_entries %}
                 <tr>
-                  <td class="align-middle">
+                  <td class="align-middle text-start">
                     {% if entry.start_date %}{{ entry.start_date|date:"d M Y @ H:i:s e" }}{% endif %}</td>
-                  <td class="align-middle">{% if entry.dest_ip %}{{ entry.dest_ip }}{% endif %}</td>
-                  <td class="align-middle">{% if entry.tool %}{{ entry.tool }}{% endif %}</td>
-                  <td class="align-middle">{% if entry.user_context %}{{ entry.user_context }}{% endif %}</td>
-                  <td class="align-middle">{% if entry.command %}{{ entry.command }}{% endif %}</td>
-                  <td class="align-middle">{% if entry.description %}{{ entry.description }}{% endif %}</td>
-                  <td class="align-middle">{% if entry.comments %}{{ entry.comments }}{% endif %}</td>
-                  <td class="align-middle">{% if entry.operator_name %}{{ entry.operator_name }}{% endif %}</td>
+                  <td class="align-middle text-start">{% if entry.dest_ip %}{{ entry.dest_ip }}{% endif %}</td>
+                  <td class="align-middle text-start">{% if entry.tool %}{{ entry.tool }}{% endif %}</td>
+                  <td class="align-middle text-start">{% if entry.user_context %}{{ entry.user_context }}{% endif %}</td>
+                  <td class="align-middle text-start">{% if entry.command %}{{ entry.command }}{% endif %}</td>
+                  <td class="align-middle text-start">{% if entry.description %}{{ entry.description }}{% endif %}</td>
+                  <td class="align-middle text-start">{% if entry.comments %}{{ entry.comments }}{% endif %}</td>
+                  <td class="align-middle text-start">{% if entry.operator_name %}{{ entry.operator_name }}{% endif %}</td>
                 </tr>
               {% endfor %}
             </table>
           </div>
 
           <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
           </div>
         </div>
       </div>

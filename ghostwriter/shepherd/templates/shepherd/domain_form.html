@@ -14,8 +14,16 @@
 {% endblock %}
 
 {% block content %}
-    <!-- Instruction -->
-    <p>Fill-out this form as completely as possible with information related to this domain:</p>
+    <header class="resource-form-page-heading mb-4">
+        <span class="detail-eyebrow">Domain</span>
+        {% if object.pk %}
+            <h1>Edit {{ object.name }}</h1>
+            <p>Maintain lifecycle, health, and operator context for this reusable domain.</p>
+        {% else %}
+            <h1>Add domain</h1>
+            <p>Add a reusable domain to the asset library and establish its initial health state.</p>
+        {% endif %}
+    </header>
 
     <!-- Form Error Section -->
     {% if form.errors %}
@@ -31,6 +39,7 @@
         </script>
     {% endif %}
 
-    <!-- Form Section -->
-    {% crispy form form.helper %}
+    <div class="resource-form-shell tabbed-form-shell">
+        {% crispy form form.helper %}
+    </div>
 {% endblock %}

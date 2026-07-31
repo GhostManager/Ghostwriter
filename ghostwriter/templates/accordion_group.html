@@ -1,14 +1,15 @@
 <div class="card mb-2">
-  <div class="card-header library-filter" data-toggle="collapse" data-target="#{{ div.css_id }}" role="tab">
+  <div class="card-header library-filter" data-bs-toggle="collapse" data-bs-target="#{{ div.css_id }}" role="tab">
     <h5 class="mb-0">
-      <a data-toggle="collapse" href="#{{ div.css_id }}" aria-expanded="false"
+      <a data-bs-toggle="collapse" href="#{{ div.css_id }}"
+         aria-expanded="{% if div.active or request.session.filter.sticky %}true{% else %}false{% endif %}"
          aria-controls="{{ div.css_id }}">
         {{ div.name }}
       </a>
     </h5>
   </div>
   <div id="{{ div.css_id }}" class="collapse{% if div.active or request.session.filter.sticky %} show{% endif %}" role="tabpanel"
-       aria-labelledby="{{ div.css_id }}" data-parent="#{{ div.data_parent }}">
+       aria-labelledby="{{ div.css_id }}" data-bs-parent="#{{ div.data_parent }}">
     <div class="card-body">
       {{ fields|safe }}
     </div>

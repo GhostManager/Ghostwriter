@@ -1,102 +1,95 @@
 {% load bleach_tags %}
 
 {% comment %} Contacts Section {% endcomment %}
-<h4>Project Points of Contacts</h4>
-<hr/>
-
-<a class="icon edit-icon btn btn-primary mb-3 col-3"
-   href="{% url 'rolodex:project_component_update' project.id %}#contacts">Add & Edit Contacts</a>
-
-<p class="text-justify offset-2 col-8">These are points of contact for this project. You can create project-specific contacts here or add contacts from the
-  client. If a point of contact might be part of more projects, consider adding them to the client for future use.
-</p>
+<header class="content-section-header">
+  <div class="content-section-heading">
+    <h4>Project Points of Contact</h4>
+    <p class="content-section-intro">Create project-specific contacts here or assign an existing contact from the client. Add reusable contacts to the client record first.</p>
+  </div>
+  <a class="icon edit-icon btn btn-primary btn-sm"
+     href="{% url 'rolodex:project_component_update' project.id %}#contacts">Add & Edit Contacts</a>
+</header>
 
 {% if project.projectcontact_set.all %}
-  <table id="contactTable" class="tablesorter table">
+  <div class="table-responsive data-table-frame">
+    <table id="contactTable" class="tablesorter table">
     <thead>
-    <th class="align-middle pr-4 text-left">Primary</th>
-    <th class="align-middle pr-4 text-left">Name</th>
-    <th class="align-middle pr-4 text-left">Title/Role</th>
-    <th class="sorter-false align-middle pr-4 text-left">Email</th>
-    <th class="sorter-false align-middle text-left">Phone</th>
-    <th class="sorter-false align-middle">Note</th>
+    <th class="align-middle pe-4 text-start">Primary</th>
+    <th class="align-middle pe-4 text-start">Name</th>
+    <th class="align-middle pe-4 text-start">Title/Role</th>
+    <th class="sorter-false align-middle pe-4 text-start">Email</th>
+    <th class="sorter-false align-middle text-start">Phone</th>
+    <th class="sorter-false align-middle text-start">Note</th>
     </thead>
     {% for contact in project.projectcontact_set.all %}
       <tr>
-        <td class="align-middle text-left">{% if contact.primary %}<i class="fas fa-check healthy"><span class="sr-only">Primary</span></i>{% else %}<span class="sr-only">Not Primary</span>{% endif %}</td>
-        <td class="align-middle text-left">{{ contact.name }}</td>
-        <td class="align-middle text-left">{% if contact.job_title %}{{ contact.job_title }}{% else %}--{% endif %}</td>
-        <td class="align-middle text-left">{% if contact.email %}{{ contact.email }}{% else %}--{% endif %}</td>
-        <td class="align-middle text-left">
+        <td class="align-middle text-start">{% if contact.primary %}<i class="fas fa-check healthy"><span class="visually-hidden">Primary</span></i>{% else %}<span class="visually-hidden">Not Primary</span>{% endif %}</td>
+        <td class="align-middle text-start">{{ contact.name }}</td>
+        <td class="align-middle text-start">{% if contact.job_title %}{{ contact.job_title }}{% else %}<span class="missing-value">Not provided</span>{% endif %}</td>
+        <td class="align-middle text-start">{% if contact.email %}{{ contact.email }}{% else %}<span class="missing-value">Not provided</span>{% endif %}</td>
+        <td class="align-middle text-start">
           {% if contact.phone %}
             {{ contact.phone }}
           {% else %}
-            --
+            <span class="missing-value">Not provided</span>
           {% endif %}
         </td>
-        <td>
+        <td class="align-middle text-start">
           <button
-            class="expandme btn btn-transparent"
-            onclick="showHideRow($(this), 'hidden-contact-data-{{ contact.id }}');"
-            title="Expand to view additional information"
-          ></button>
-        </td>
-      </tr>
-      <tr class="hidden-row">
-        <td colspan=5>
-          <div id="hidden-contact-data-{{ contact.id }}" class="hidden-div">
-            {% if contact.note %}
-              {{ contact.note|bleach }}
-            {% else %}
-              <p>There are no notes for this contact.</p>
-            {% endif %}
-          </div>
+            type="button"
+            class="table-row-action"
+            data-bs-toggle="modal"
+            data-bs-target="#client_contact_detail_{{ contact.id }}"
+            title="View contact details"
+            aria-label="View contact details for {{ contact.name }}"
+          ><i class="fas fa-eye" aria-hidden="true"></i></button>
         </td>
       </tr>
     {% endfor %}
-  </table>
+    </table>
+  </div>
+  {% for contact in project.projectcontact_set.all %}
+    {% include "snippets/client_contact_detail_modal.html" with poc=contact %}
+  {% endfor %}
 {% else %}
-  <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">There are no points of contacts assigned to
-    this client yet.
+  <div class="empty-state">
+    <p class="empty-state-title">No project contacts yet</p>
+    <p class="empty-state-description">No points of contact have been assigned specifically to this project.</p>
   </div>
 {% endif %}
 
-<hr/>
-
-<p>Add points of contact from {{ project.client }}:</p>
-
-<div>
+<section class="detail-panel project-contact-assigner" aria-labelledby="assign-client-contact-heading">
+  <div class="detail-panel-header">
+    <div>
+      <span class="detail-eyebrow">Client Directory</span>
+      <h5 id="assign-client-contact-heading">Assign an Existing Contact</h5>
+    </div>
+  </div>
   <form id="assign-project-contact-form" action="{% url 'rolodex:ajax_assign_project_contact' project.id %}"
         method="POST">
     <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
-    <div class="form-row">
-      <div class="col col-6 offset-3">
-        <select id="id_client_contact" class="form-select custom-select" aria-label="Assign project contact">
-          {% if client_contacts %}
-            <option value="-1" selected>-- Choose a Client Contact --</option>
-            {% for contact in client_contacts %}
-              <option value="{{ contact.id }}"> {{ contact.name }} </option>
-            {% endfor %}
-          {% else %}
-            <option value="-1" selected>-- No Other Contacts Available --</option>
-          {% endif %}
-        </select>
-      </div>
-    </div>
-    <div class="form-row mt-3">
-      <div class="col col-4 offset-4">
-        <button id="assign-btn" type="submit" class="btn btn-primary col-4" disabled="disabled">Assign</button>
-      </div>
+    <div class="project-contact-assign-form">
+      <select id="id_client_contact" class="form-select custom-select" aria-label="Assign project contact">
+        {% if client_contacts %}
+          <option value="-1" selected>Choose a client contact</option>
+          {% for contact in client_contacts %}
+            <option value="{{ contact.id }}">{{ contact.name }}</option>
+          {% endfor %}
+        {% else %}
+          <option value="-1" selected>No other contacts available</option>
+        {% endif %}
+      </select>
+      <button id="assign-btn" type="submit" class="btn btn-primary" disabled="disabled">Assign</button>
     </div>
   </form>
-</div>
+</section>
 
 <script>
   {% comment %} Create a new project point of contact from a client contact {% endcomment %}
   $(document).ready(function () {
     $('#id_client_contact').change(function () {
       let option = $(this).val();
-      if (option === -1) {
+      if (option === '-1') {
         $('#assign-btn').prop('disabled', true);
       } else {
         $('#assign-btn').prop('disabled', false);

@@ -18,13 +18,13 @@
   {% get_solo "commandcenter.VirusTotalConfiguration" as vt_config %}
 
   <div class="dropdown">
-    <div class="dropdown-menu-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
+    <div class="dropdown-menu-btn" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
          onclick="hamburger(this)">
       <div class="bar1"></div>
       <div class="bar2"></div>
       <div class="bar3"></div>
     </div>
-    <div class="dropdown-menu dropdown-menu-right" aria-labelledby="domain-dropdown-btn">
+    <div class="dropdown-menu dropdown-menu-end" aria-labelledby="domain-dropdown-btn">
       {% if domain.is_expired is False %}
         <a class="dropdown-item icon edit-icon" href="{% url 'shepherd:domain_update' domain.id %}">Edit</a>
         {% if domain.domain_status.domain_status == "Available" or domain.domain_status.domain_status == "Burned" %}
@@ -88,25 +88,25 @@
 
         <table class="table">
           <tr>
-            <th class="align-middle text-left">Status</th>
-            <th class="align-middle text-left">Registrar</th>
-            <th class="align-middle text-left">Purchase Date</th>
-            <th class="align-middle text-left">Expiration Date</th>
+            <th class="align-middle text-start">Status</th>
+            <th class="align-middle text-start">Registrar</th>
+            <th class="align-middle text-start">Purchase Date</th>
+            <th class="align-middle text-start">Expiration Date</th>
             <th class="align-middle">Auto Renew Status</th>
             <th class="align-middle">Domain Age (Days)</th>
           </tr>
           <tr>
             {% if domain.domain_status.domain_status == "Available" %}
-              <td class="healthy align-middle text-left">{{ domain.domain_status }}</td>
+              <td class="healthy align-middle text-start">{{ domain.domain_status }}</td>
             {% else %}
-              <td class="burned align-middle text-left">{{ domain.domain_status }}</td>
+              <td class="burned align-middle text-start">{{ domain.domain_status }}</td>
             {% endif %}
-            <td class="align-middle text-left">{% if domain.registrar %}{{ domain.registrar }}{% else %}Unavailable{% endif %}</td>
-            <td class="align-middle text-left">{{ domain.creation }}</td>
+            <td class="align-middle text-start">{% if domain.registrar %}{{ domain.registrar }}{% else %}Unavailable{% endif %}</td>
+            <td class="align-middle text-start">{{ domain.creation }}</td>
             {% if domain.is_expired %}
-              <td class="high align-middle text-left">{{ domain.expiration }}</td>
+              <td class="high align-middle text-start">{{ domain.expiration }}</td>
             {% else %}
-              <td class="align-middle text-left">{{ domain.expiration }}</td>
+              <td class="align-middle text-start">{{ domain.expiration }}</td>
             {% endif %}
             {% if domain.auto_renew %}
               <td class="icon check-icon healthy"></td>
@@ -145,13 +145,13 @@
         {% if domain.dns %}
           <table class="table">
             <tr>
-              <th class="align-middle text-left">Record</th>
-              <th class="align-middle text-left">Value</th>
+              <th class="align-middle text-start">Record</th>
+              <th class="align-middle text-start">Value</th>
             </tr>
             {% if domain.dns.items %}
               {% for record, value in domain.dns.items %}
                 <tr>
-                  <td class="align-middle text-left">{{ record|upper }}</td>
+                  <td class="align-middle text-start">{{ record|upper }}</td>
                   <td class="align-middle text-justify table-note">
                     {% if value != "NoAnswer" and value != "NXDOMAIN" %}
                       {{ value }}
@@ -163,7 +163,7 @@
               {% endfor %}
             {% else %}
               <tr>
-                <td class="align-middle text-left">Record Dictionary</td>
+                <td class="align-middle text-start">Record Dictionary</td>
                 <td class="align-middle text-justify table-note">{{ domain.dns }}</td>
               </tr>
             {% endif %}
@@ -209,31 +209,31 @@
 
         <table class="table">
           <tr>
-            <th class="align-middle text-left">Status</th>
-            <th class="align-middle text-left">Health</th>
-            <th class="align-middle text-left">Whois Privacy</th>
-            <th class="align-middle text-left">Last Update</th>
+            <th class="align-middle text-start">Status</th>
+            <th class="align-middle text-start">Health</th>
+            <th class="align-middle text-start">Whois Privacy</th>
+            <th class="align-middle text-start">Last Update</th>
           </tr>
           <tr>
             {% if domain.domain_status.domain_status == "Available" %}
-              <td class="healthy align-middle text-left">{{ domain.domain_status }}</td>
+              <td class="healthy align-middle text-start">{{ domain.domain_status }}</td>
             {% else %}
-              <td class="burned align-middle text-left">{{ domain.domain_status }}</td>
+              <td class="burned align-middle text-start">{{ domain.domain_status }}</td>
             {% endif %}
 
             {% if domain.health_status.health_status == "Healthy" %}
-              <td class="healthy align-middle text-left">{{ domain.health_status }}</td>
+              <td class="healthy align-middle text-start">{{ domain.health_status }}</td>
             {% else %}
-              <td class="burned align-middle text-left">{{ domain.health_status }}</td>
+              <td class="burned align-middle text-start">{{ domain.health_status }}</td>
             {% endif %}
 
             {% if domain.whois_status.whois_status == "Enabled" %}
-              <td class="healthy align-middle text-left">{{ domain.whois_status }}</td>
+              <td class="healthy align-middle text-start">{{ domain.whois_status }}</td>
             {% else %}
-              <td class="burned align-middle text-left">{{ domain.whois_status }}</td>
+              <td class="burned align-middle text-start">{{ domain.whois_status }}</td>
             {% endif %}
 
-            <td class="align-middle text-left">
+            <td class="align-middle text-start">
               {% if domain.last_health_check %}
                 {{ domain.last_health_check|naturalday:"DATE_FORMAT" }}
               {% else %}
@@ -247,20 +247,20 @@
         <p>The following third-parties have categorized this domain:</p>
         <table class="table">
           <tr>
-            <th class="align-middle text-left">Categorizer</th>
-            <th class="align-middle text-left">Category</th>
+            <th class="align-middle text-start">Categorizer</th>
+            <th class="align-middle text-start">Category</th>
           </tr>
           <tr>
             {% if domain.categorization.items %}
               {% for source, cat in domain.categorization.items %}
                 <tr>
-                  <td class="align-middle text-left">{{ source }}</td>
-                  <td class="align-middle text-left">{{ cat|category_value|bleach|title }}</td>
+                  <td class="align-middle text-start">{{ source }}</td>
+                  <td class="align-middle text-start">{{ cat|category_value|bleach|title }}</td>
                 </tr>
               {% endfor %}
             {% else %}
-              <td class="align-middle text-left">No Results</td>
-              <td class="align-middle text-left">Refresh categories to poll VirusTotal</td>
+              <td class="align-middle text-start">No Results</td>
+              <td class="align-middle text-start">Refresh categories to poll VirusTotal</td>
             {% endif %}
           </tr>
         </table>
@@ -277,16 +277,16 @@
           <table id="project-table" class="tablesorter table table-striped">
             <thead>
             <tr>
-              <th class="align-middle pr-4 text-left">Project</th>
-              <th class="align-middle pr-4 text-left">Activity Type</th>
-              <th class="align-middle sorter-date-range-dMMMyyyy pr-4 text-left">Execution Window</th>
-              <th class="align-middle pr-4 text-left">Checked Out By</th>
-              <th class="align-middle sorter-false pr-4">Options</th>
+              <th class="align-middle pe-4 text-start">Project</th>
+              <th class="align-middle pe-4 text-start">Activity Type</th>
+              <th class="align-middle sorter-date-range-dMMMyyyy pe-4 text-start">Execution Window</th>
+              <th class="align-middle pe-4 text-start">Checked Out By</th>
+              <th class="align-middle sorter-false pe-4">Options</th>
             </tr>
             </thead>
             {% for checkout in domain.history_set.all %}
               <tr>
-                <td class="align-middle text-left">
+                <td class="align-middle text-start">
                   {% if checkout.project|has_access:request.user %}
                     <a class="clickable"
                        href="{% url 'rolodex:project_detail' checkout.project.id %}">{{ checkout.project }}</i></a>
@@ -294,10 +294,10 @@
                     <span class="blurry">REDACTED</span>
                   {% endif %}
                 </td>
-                <td class="align-middle text-left">{{ checkout.activity_type }}</td>
-                <td class="align-middle text-left" data-text="{{ checkout.start_date|date:"Y-m-d" }}">{{ checkout.start_date|date:"DATE_FORMAT" }}
+                <td class="align-middle text-start">{{ checkout.activity_type }}</td>
+                <td class="align-middle text-start" data-text="{{ checkout.start_date|date:"Y-m-d" }}">{{ checkout.start_date|date:"DATE_FORMAT" }}
                   – {{ checkout.end_date|date:"DATE_FORMAT" }}</td>
-                <td class="align-middle text-left">
+                <td class="align-middle text-start">
                   {% if checkout.operator %}
                     {% if checkout.operator.name %}
                       {{ checkout.operator.name }} ({{ checkout.operator.username }})
@@ -308,7 +308,7 @@
                     Unknown/Deleted user
                   {% endif %}
                 </td>
-                <td class="align-middle text-left">
+                <td class="align-middle text-start">
                   {% if checkout.project|has_access:request.user %}
                     <div class="d-flex justify-content-center">
                       <span
@@ -360,12 +360,12 @@
                 </div>
                 <div class="extra-field-actions">
                   {% if field_spec.type == "rich_text" %}
-                    <button type="button" class="btn btn-primary btn-sm icon view-icon" data-toggle="modal"
-                            data-target="#field_spec_{{ field_spec.internal_name }}">Preview
+                    <button type="button" class="btn btn-primary btn-sm icon view-icon" data-bs-toggle="modal"
+                            data-bs-target="#field_spec_{{ field_spec.internal_name }}">Preview
                     </button>
                   {% elif field_spec.type == "json" %}
-                    <button type="button" class="btn btn-primary btn-sm icon code-icon" data-toggle="modal"
-                            data-target="#field_spec_{{ field_spec.internal_name }}">View JSON
+                    <button type="button" class="btn btn-primary btn-sm icon code-icon" data-bs-toggle="modal"
+                            data-bs-target="#field_spec_{{ field_spec.internal_name }}">View JSON
                     </button>
                   {% endif %}
                   <a class="btn btn-outline-primary btn-sm icon edit-icon"
@@ -391,11 +391,11 @@
           {% for note in domain.domainnote_set.all reversed %}
             <div id="note-container-{{ note.id }}">
               <div class="container note-container {% if forloop.counter|divisibleby:2 %}darker{% endif %}">
-                <div class="float-left col-10 col-md-10 col-sm-8">
+                <div class="float-start col-10 col-md-10 col-sm-8">
                   {{ note.note|bleach }}
                 </div>
 
-                <div class="float-right col-2 col-md-2 col-sm-4">
+                <div class="float-end col-2 col-md-2 col-sm-4">
                   <div>{% if note.operator %}<a class="note-link"
                                                 href="{% url 'users:user_detail' note.operator.username %}">{{ note.operator.username }}</a>{% else %}
                     <span class="note-link">Deleted</span>{% endif %}</div>
@@ -407,8 +407,8 @@
             {% if request.user == note.operator or request.user|is_privileged %}
               <div class="pb-3">
                 <a class="note-link" href="{% url 'shepherd:domain_note_edit' note.id %}">Edit</a> |
-                <a id="note-delete-button-{{ note.id }}" class="js-confirm-delete note-link" data-toggle="modal"
-                   data-target="#confirm-delete-modal" href="javascript:void(0);"
+                <a id="note-delete-button-{{ note.id }}" class="js-confirm-delete note-link" data-bs-toggle="modal"
+                   data-bs-target="#confirm-delete-modal" href="javascript:void(0);"
                    delete-target-csrftoken="{{ csrf_token }}"
                    delete-target-url="{% url 'shepherd:ajax_delete_domain_note' note.id %}"
                    delete-target-id="{{ note.id }}" delete-target-type="note">Delete</a>

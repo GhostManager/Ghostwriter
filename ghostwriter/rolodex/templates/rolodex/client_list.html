@@ -2,98 +2,137 @@
 
 {% load crispy_forms_tags custom_tags %}
 
-{% load bleach_tags %}
-
-{% block pagetitle %}Client List{% endblock %}
+{% block pagetitle %}Client Library{% endblock %}
 
 {% block breadcrumbs %}
-    <nav aria-label="breadcrumb">
-        <ul class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Clients</li>
-        </ul>
-    </nav>
+  <nav aria-label="breadcrumb">
+    <ul class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Clients</li>
+    </ul>
+  </nav>
 {% endblock %}
 
 {% block content %}
-    <!-- Filter Section -->
-    <div class="filter-form">
-        {% crispy filter.form filter.helper %}
+  <div class="library-page client-library-page d-grid gap-4">
+    <header class="library-page-heading">
+      <div class="library-page-heading-main">
+        <div class="library-page-title-row">
+          <h2>Client Library</h2>
+          <span class="library-result-count">
+            {{ filter.qs|length }} client{{ filter.qs|length|pluralize }}
+          </span>
+        </div>
+        <p>Find client records, review project history, or create a new workspace.</p>
+      </div>
+      <div class="library-page-actions">
+        <a class="btn btn-primary icon add-icon"
+           role="button" href="{% url 'rolodex:client_create' %}">Create Client</a>
+        {% if filter.qs|length > 0 %}
+          <button id="resetSortBtn" class="btn btn-outline-secondary icon sync-icon"
+                  type="button">Reset Sort</button>
+        {% endif %}
+      </div>
+    </header>
+
+    <div class="filter-form library-filters client-library-filters">
+      {% crispy filter.form filter.helper %}
     </div>
 
-    <a class="btn btn-info col-2 icon add-icon mt-2" role="button" href="{%  url 'rolodex:client_create' %}">Create Client</a>
-  <a id="resetSortBtn" class="btn btn-secondary col-2 icon sync-icon mt-2" role="button">Reset Sort</a>
-
-    {% if filter.qs|length == 0 %}
-        <div class="alert alert-warning offset-md-2 col-md-8 mt-3" role="alert">There are no clients to see here yet, or your search returned no results. Create a client above or adjust your filters.</div>
-    {% else %}
-        <table id="clientTable" class="tablesorter table table-sm table-hover">
+    <section class="library-results client-library-results" aria-label="Clients">
+      {% if filter.qs|length == 0 %}
+        <div class="empty-state client-library-empty-state m-3">
+          {% if request.GET.name or request.GET.tags %}
+            <p class="empty-state-title">No matching clients</p>
+            <p class="empty-state-description">Try broadening your filters or reset them to view all available clients.</p>
+            <a class="btn btn-outline-secondary btn-sm mt-3" href="{% url 'rolodex:clients' %}">Reset filters</a>
+          {% else %}
+            <p class="empty-state-title">No clients yet</p>
+            <p class="empty-state-description">Create the first client to begin organizing projects, contacts, and reporting data.</p>
+            <a class="btn btn-primary btn-sm icon add-icon mt-3" href="{% url 'rolodex:client_create' %}">Create Client</a>
+          {% endif %}
+        </div>
+      {% else %}
+        <div class="table-responsive data-table-frame library-table-frame client-library-table-frame">
+          <table id="clientTable" class="tablesorter table table-hover library-table client-library-table">
             <thead>
-                <tr>
-                    <th class="align-middle text-left">Client</th>
-                    <th class="align-middle text-left">Short Name</th>
-                    <th class="align-middle text-left">Codename</th>
-                    <th class="align-middle">Projects to Date</th>
-                </tr>
+              <tr>
+                <th scope="col" class="align-middle text-start">Client</th>
+                <th scope="col" class="align-middle text-start">Short Name</th>
+                <th scope="col" class="align-middle text-start">Codename</th>
+                <th scope="col" class="align-middle text-end">Projects</th>
+              </tr>
             </thead>
-            {% for client in filter.qs %}
+            <tbody>
+              {% for client in filter.qs %}
                 <tr>
-                    <td class="align-middle text-left"><a class="clickable" href="{{ client.get_absolute_url }}">{{ client.name }}</i></a></td>
-                    <td class="align-middle text-left">{{ client.short_name }}</td>
-                    <td class="align-middle text-left">{{ client.codename }}</td>
-                    <td class="align-middle">{{ client.project_set.all.count }}</td>
+                  <td class="align-middle text-start library-primary-cell client-library-primary-cell" data-label="Client">
+                    <a class="library-primary-link client-library-name-link" href="{{ client.get_absolute_url }}">
+                      <span>{{ client.name }}</span>
+                      <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                    </a>
+                  </td>
+                  <td class="align-middle text-start" data-label="Short Name">
+                    {% if client.short_name %}{{ client.short_name }}{% else %}<span class="text-muted">Not set</span>{% endif %}
+                  </td>
+                  <td class="align-middle text-start" data-label="Codename">
+                    {% if client.codename %}{{ client.codename }}{% else %}<span class="text-muted">Not set</span>{% endif %}
+                  </td>
+                  <td class="align-middle text-end" data-label="Projects">
+                    <span class="library-count-badge client-project-count">{{ client.project_set.all.count }}</span>
+                  </td>
                 </tr>
-            {% endfor %}
-        </table>
-    {% endif %}
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+    </section>
+  </div>
 {% endblock %}
 
 {% block morescripts %}
-    <!-- jQuery Tablesorter Script -->
-    <script>
-        $(document).ready(function()  {
-            $('#clientTable').tablesorter(
-                            {
-                                cssAsc: 'down',
-                                cssDesc: 'up',
-                                cssNone: 'none',
-                                widgets: ['saveSort'],
-                                widgetOptions: {
-                                  saveSort: true,
-                                  storage_page: 'clientLibraryTable'
-                                }
-                            }
-                        );
-
-            $('.tablesorter').trigger('update');
-
-            $('#resetSortBtn').click(function() {
-              $('#clientTable')
-                .trigger('saveSortReset')
-                .trigger('sortReset');
-              return false;
-            });
-        });
-    </script>
-
-    {{ autocomplete_data|json_script:"client-autocomplete-data" }}
-    {%  comment %} Enable autocomplete for the filter form {% endcomment %}
-    <script>
-      $(function () {
-        const autocompleteData = JSON.parse(document.getElementById('client-autocomplete-data').textContent);
-        $('#id_name').autocomplete({
-          source: autocompleteData.names
-        });
-        $('#id_tags').autocomplete({
-          source: autocompleteData.tags
-        });
+  {{ autocomplete_data|json_script:"client-autocomplete-data" }}
+  <script>
+    $(document).ready(function() {
+      $('#clientTable').tablesorter({
+        cssAsc: 'down',
+        cssDesc: 'up',
+        cssNone: 'none',
+        widgets: ['saveSort'],
+        widgetOptions: {
+          saveSort: true,
+          storage_page: 'clientLibraryTable'
+        }
       });
-    </script>
 
-    <!-- Submit Filter when Clicking Bootstrap Icon -->
-    <script>
-        $('.input-group-text').on('click', function (event) {
-            $('.input-group-text').closest('form').submit();
-        });
-    </script>
+      $('.tablesorter').trigger('update');
+
+      $('#resetSortBtn').click(function() {
+        $('#clientTable')
+          .trigger('saveSortReset')
+          .trigger('sortReset');
+        return false;
+      });
+    });
+  </script>
+
+  {% comment %} Enable autocomplete for the filter form {% endcomment %}
+  <script>
+    $(function() {
+      const autocompleteData = JSON.parse(document.getElementById('client-autocomplete-data').textContent);
+      $('#id_name').autocomplete({
+        source: autocompleteData.names
+      });
+      $('#id_tags').autocomplete({
+        source: autocompleteData.tags
+      });
+    });
+  </script>
+
+  <script>
+    $('.input-group-text').on('click', function() {
+      $(this).closest('form').submit();
+    });
+  </script>
 {% endblock %}

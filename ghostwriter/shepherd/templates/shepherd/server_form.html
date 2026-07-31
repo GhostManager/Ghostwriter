@@ -14,8 +14,16 @@
 {% endblock %}
 
 {% block content %}
-    <p>Fill-out this form as completely as possible with information related to this server.</p>
-    <p>Servers created/edited through this form should be servers that are <em>reused</em> and tracked (i.e. servers you own). Virtual private servers spun up for a single project are tracked from within the project with the <em>Add a Transient Server</em> button.</p>
+    <header class="resource-form-page-heading mb-4">
+        <span class="detail-eyebrow">Server</span>
+        {% if object.pk %}
+            <h1>Edit {{ object.name|default:object.ip_address }}</h1>
+            <p>Maintain the reusable host, alternate addresses, and operator context kept in the server library.</p>
+        {% else %}
+            <h1>Add reusable server</h1>
+            <p>Add a host the team owns or reuses. Engagement-specific VPS systems stay with their project.</p>
+        {% endif %}
+    </header>
 
     <!-- Form Error Section -->
     {% if form.errors %}
@@ -31,8 +39,9 @@
         </script>
     {% endif %}
 
-    <!-- Form Section -->
-    {% crispy form form.helper %}
+    <div class="resource-form-shell tabbed-form-shell">
+        {% crispy form form.helper %}
+    </div>
 {% endblock %}
 
 {% block tabs %}
@@ -51,7 +60,7 @@
             $('#formset-{{ addresses.prefix }}').append($('#empty-form-{{ addresses.prefix }}').html().replace(/__prefix__/g, form_idx));
             $('#id_{{ addresses.prefix }}-TOTAL_FORMS').val(parseInt(form_idx) + 1);
             var new_form = $('#formset-{{ addresses.prefix }}').find('div.formset-container').last()
-            window.gwInitTinyMceTextareas(new_form[0], {includeInactiveTabs: true, preserveScroll: true});
+            window.gwInitTiptapTextareas(new_form[0], {includeInactiveTabs: true, preserveScroll: true});
             new_form.find('span.counter').html(parseInt(form_idx) + 1);
             window.gwHighlightNewFormset(new_form[0]);
         });

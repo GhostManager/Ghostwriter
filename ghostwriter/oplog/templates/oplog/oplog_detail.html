@@ -7,8 +7,8 @@
     <nav aria-label="breadcrumb">
         <ul class="breadcrumb">
             <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-            <li class="breadcrumb-item"><a data-toggle="tooltip" title="{{ oplog.project.client }}" href="{% url 'rolodex:client_detail' oplog.project.client.id %}">{{ oplog.project.client }}</a></li>
-            <li class="breadcrumb-item"><a data-toggle="tooltip" title="{{ oplog.project }}" href="{% url 'rolodex:project_detail' oplog.project.id %}">{{ oplog.project.start_date|date:"DATE_FORMAT" }} {{ oplog.project.project_type }}</a></li>
+            <li class="breadcrumb-item"><a data-bs-toggle="tooltip" title="{{ oplog.project.client }}" href="{% url 'rolodex:client_detail' oplog.project.client.id %}">{{ oplog.project.client }}</a></li>
+            <li class="breadcrumb-item"><a data-bs-toggle="tooltip" title="{{ oplog.project }}" href="{% url 'rolodex:project_detail' oplog.project.id %}">{{ oplog.project.start_date|date:"DATE_FORMAT" }} {{ oplog.project.project_type }}</a></li>
             <li class=" breadcrumb-item active" aria-current="page">{{ oplog.name }}</li>
         </ul>
     </nav>
@@ -22,9 +22,9 @@
     <div class="container text-center">
         <div class="d-inline-flex align-items-center flex-wrap justify-content-center">
             <span
-                class="badge badge-secondary oplog-header-badge px-3 py-2 mr-2"
-                data-toggle="tooltip"
-                data-placement="top"
+                class="badge badge-secondary oplog-header-badge px-3 py-2 me-2"
+                data-bs-toggle="tooltip"
+                data-bs-placement="top"
                 title="Oplog ID for use with the API and tools like `mythic_sync` and `cobalt_sync`"
                 style="cursor:help;"
             >Oplog ID #{{ oplog.id }}</span>
@@ -33,8 +33,8 @@
                     id="oplog-sanitization-status-button"
                     type="button"
                     class="btn badge oplog-header-badge px-3 py-2 {% if oplog_sanitation_is_stale %}badge-warning{% else %}badge-info{% endif %}"
-                    data-toggle="modal"
-                    data-target="#oplog-sanitization-details-modal"
+                    data-bs-toggle="modal"
+                    data-bs-target="#oplog-sanitization-details-modal"
                     aria-label="View sanitization details"
                 >
                     <i id="oplog-sanitization-status-icon" class="fas {% if oplog_sanitation_is_stale %}fa-exclamation-triangle{% else %}fa-shield-alt{% endif %}"></i>
@@ -43,8 +43,8 @@
                     </span>
                 </button>
             </div>
-            <span id="oplog-notification-status" class="badge oplog-header-badge px-3 py-2 ml-2 icon silenced-notification-icon" {% if not oplog.mute_notifications %}style="display:none;"{% endif %}>Notifications silenced</span>
-            <span id="connectionStatus" class="badge badge-secondary oplog-header-badge px-3 py-2 ml-2 js-connection-status icon network-icon disconnected">Disconnected</span>
+            <span id="oplog-notification-status" class="badge oplog-header-badge px-3 py-2 ms-2 icon silenced-notification-icon" {% if not oplog.mute_notifications %}style="display:none;"{% endif %}>Notifications silenced</span>
+            <span id="connectionStatus" class="badge badge-secondary oplog-header-badge px-3 py-2 ms-2 js-connection-status icon network-icon disconnected">Disconnected</span>
         </div>
     </div>
     <hr>
@@ -55,9 +55,9 @@
             <a id="createNewEntryButton" class="icon add-icon btn btn-primary btn-sm" href="javascript:void(0);" onClick="javascript:createEntry({{ oplog.pk }});">Create Entry</a>
             <a id="columnSelectDropdown" class="icon open-icon btn btn-info btn-sm" href="javascript:void(0);">Show/Hide Columns</a>
             <a id="resetSortBtn" class="btn btn-secondary icon sync-icon btn-sm" role="button">Reset Sort</a>
-            <a class="btn btn-outline-secondary btn-sm" role="button" data-toggle="modal" data-target="#oplog-help-modal" title="Help"><i class="fas fa-question-circle"></i> Help</a>
+            <a class="btn btn-outline-secondary btn-sm" role="button" data-bs-toggle="modal" data-bs-target="#oplog-help-modal" title="Help"><i class="fas fa-question-circle"></i> Help</a>
             <div class="dropdown d-inline-block">
-                <button id="oplog-dropdown-btn" type="button" class="btn btn-sm btn-outline-secondary" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="More oplog actions" title="More actions">
+                <button id="oplog-dropdown-btn" type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="More oplog actions" title="More actions">
                     <i class="fas fa-ellipsis-h"></i>
                 </button>
                 <div class="dropdown-menu" aria-labelledby="oplog-dropdown-btn">
@@ -66,8 +66,8 @@
                     <a href="javascript:void(0)" id="exportEntries" class="dropdown-item icon export-icon">Export Entries</a>
                     <a href="{% url 'rolodex:project_detail' oplog.project.id %}" class="dropdown-item icon project-icon" >Jump to Project</a>
                     {% if request.user.is_staff or request.user.role == "manager" or request.user.role == "admin" %}
-                        <a id="sanitize-button-{{ oplog.id }}" class="dropdown-item icon clean-icon js-confirm-sanitize" data-toggle="modal"
-                           data-target="#confirm-sanitize-modal" href="javascript:void(0);"
+                        <a id="sanitize-button-{{ oplog.id }}" class="dropdown-item icon clean-icon js-confirm-sanitize" data-bs-toggle="modal"
+                           data-bs-target="#confirm-sanitize-modal" href="javascript:void(0);"
                            sanitize-target-csrftoken="{{ csrf_token }}" sanitize-target-url="{% url 'oplog:ajax_oplog_sanitize' oplog.id %}"
                            sanitize-target-id="{{ oplog.id }}">
                           Sanitize Entries
@@ -186,13 +186,13 @@
       <div class="modal-dialog modal-dialog-centered" role="document">
           <div class="modal-content">
               <div class="modal-header">
-                  <h5 class="modal-title" id="oplogSanitizationDetailsLabel"><i class="fas fa-shield-alt mr-2"></i>Sanitization Details</h5>
-                  <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <h5 class="modal-title" id="oplogSanitizationDetailsLabel"><i class="fas fa-shield-alt me-2"></i>Sanitization Details</h5>
+                  <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
                       <span aria-hidden="true">&times;</span>
                   </button>
               </div>
               <div class="modal-body">
-                  <p id="oplog-sanitization-stale-message" class="text-warning {% if not oplog_sanitation_is_stale %}d-none{% endif %}"><i class="fas fa-exclamation-triangle mr-1"></i>Changes were made to entries after this sanitization.</p>
+                  <p id="oplog-sanitization-stale-message" class="text-warning {% if not oplog_sanitation_is_stale %}d-none{% endif %}"><i class="fas fa-exclamation-triangle me-1"></i>Changes were made to entries after this sanitization.</p>
                   <dl class="row mb-0">
                       <dt class="col-sm-4">Last sanitized</dt>
                       <dd id="oplog-sanitization-details-time" class="col-sm-8">{% if oplog_last_sanitization %}{{ oplog_last_sanitization.sanitized_at|date:"DATE_FORMAT" }} at {{ oplog_last_sanitization.sanitized_at|time:"TIME_FORMAT" }}{% endif %}</dd>
@@ -200,7 +200,7 @@
                       <dd id="oplog-sanitization-details-user" class="col-sm-8">{% if oplog_last_sanitization %}{{ oplog_last_sanitization.sanitized_by_name }}{% endif %}</dd>
                       <dt class="col-sm-4">Fields</dt>
                       <dd id="oplog-sanitization-details-fields" class="col-sm-8 mb-0">
-                          {% for field in oplog_last_sanitization_fields %}<span class="badge badge-light border mr-1 mb-1">{{ field }}</span>{% endfor %}
+                          {% for field in oplog_last_sanitization_fields %}<span class="badge badge-light border me-1 mb-1">{{ field }}</span>{% endfor %}
                       </dd>
                   </dl>
               </div>
@@ -208,7 +208,7 @@
       </div>
   </div>
 
-  <div id="edit-modal" class="modal" tabindex="-1" role="dialog" aria-hidden="true" data-tinymce-min-height="260" data-submit-on-mod-enter>
+  <div id="edit-modal" class="modal" tabindex="-1" role="dialog" aria-hidden="true" data-tiptap-min-height="260" data-submit-on-mod-enter>
       <div class="modal-dialog modal-dialog-centered modal-super-sized modal-dialog-scrollable" role="document">
           <div class="modal-content">
               <div class="modal-header">
@@ -224,7 +224,7 @@
           <div class="modal-content">
               <div class="modal-header">
                   <h5 class="modal-title"><i class="fas fa-file-upload"></i> Upload Evidence</h5>
-                  <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
                       <span aria-hidden="true">&times;</span>
                   </button>
               </div>
@@ -238,26 +238,26 @@
       <div class="modal-dialog modal-dialog-centered" role="document">
           <div class="modal-content">
               <div class="modal-header">
-                  <h5 class="modal-title" id="exportModalLabel"><i class="fas fa-file-archive mr-2"></i> Export Entries</h5>
-                  <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <h5 class="modal-title" id="exportModalLabel"><i class="fas fa-file-archive me-2"></i> Export Entries</h5>
+                  <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
                       <span aria-hidden="true">&times;</span>
                   </button>
               </div>
               <div class="modal-body">
                   <p>Select what to include with the export. If no attachments are selected, a plain CSV will be returned.</p>
-                  <div class="form-group">
-                      <div class="custom-control custom-switch">
-                          <input type="checkbox" class="custom-control-input" id="export-recordings">
-                          <label class="custom-control-label form-check-label" for="export-recordings">Include terminal recordings</label>
+                  <div class="mb-3">
+                      <div class="form-check form-switch">
+                          <input type="checkbox" class="form-check-input" id="export-recordings">
+                          <label class="form-check-label" for="export-recordings">Include terminal recordings</label>
                       </div>
-                      <div class="custom-control custom-switch mt-2">
-                          <input type="checkbox" class="custom-control-input" id="export-evidence">
-                          <label class="custom-control-label form-check-label" for="export-evidence">Include linked evidence files</label>
+                      <div class="form-check form-switch mt-2">
+                          <input type="checkbox" class="form-check-input" id="export-evidence">
+                          <label class="form-check-label" for="export-evidence">Include linked evidence files</label>
                       </div>
                   </div>
               </div>
               <div class="modal-footer">
-                  <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                   <button id="exportModalDownload" type="button" class="btn btn-primary">Download</button>
               </div>
           </div>
@@ -271,8 +271,8 @@
       <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable modal-super-sized" role="document">
           <div class="modal-content">
               <div class="modal-header">
-                  <h5 class="modal-title" id="oplogHelpModalLabel"><i class="fas fa-book-open mr-2"></i>Activity Log &mdash; Quick Reference</h5>
-                  <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <h5 class="modal-title" id="oplogHelpModalLabel"><i class="fas fa-book-open me-2"></i>Activity Log &mdash; Quick Reference</h5>
+                  <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
                       <span aria-hidden="true">&times;</span>
                   </button>
               </div>
@@ -282,7 +282,7 @@
                       <div class="col-md-6 mb-3">
                           <div class="card h-100">
                               <div class="card-header py-2">
-                                  <i class="fas fa-wifi mr-1"></i> <strong>Live Updates</strong>
+                                  <i class="fas fa-wifi me-1"></i> <strong>Live Updates</strong>
                               </div>
                               <div class="card-body py-2">
                                   <p class="card-text small mb-1">Entries are kept in sync via <strong>WebSockets</strong>. The <span class="badge badge-success">Connected</span> / <span class="badge badge-danger">Disconnected</span> indicator in the toolbar shows the current connection state.</p>
@@ -294,10 +294,10 @@
                       <div class="col-md-6 mb-3">
                           <div class="card h-100">
                               <div class="card-header py-2">
-                                  <i class="fas fa-mouse-pointer mr-1"></i> <strong>Navigation &amp; Selection</strong>
+                                  <i class="fas fa-mouse-pointer me-1"></i> <strong>Navigation &amp; Selection</strong>
                               </div>
                               <div class="card-body py-2">
-                                  <ul class="small mb-0 pl-3">
+                                  <ul class="small mb-0 ps-3">
                                       <li><strong>Click</strong> a row to open the details pane.</li>
                                       <li><strong>Double-click</strong> a row to edit the entry.</li>
                                       <li><strong>&uarr;&darr; arrow keys</strong> move between entries once one is selected.</li>
@@ -314,7 +314,7 @@
                       <div class="col-md-6 mb-3">
                           <div class="card h-100">
                               <div class="card-header py-2">
-                                  <i class="fas fa-laptop mr-1"></i> <strong>Default Source</strong>
+                                  <i class="fas fa-laptop me-1"></i> <strong>Default Source</strong>
                               </div>
                               <div class="card-body py-2">
                                   <p class="card-text small mb-1">Enter the host you are working from in <strong>Default Source</strong>. Entries created with <strong>Create Entry</strong> or <kbd>Ctrl+N</kbd> will start with that value in Source IP / Hostname.</p>
@@ -326,10 +326,10 @@
                       <div class="col-md-6 mb-3">
                           <div class="card h-100">
                               <div class="card-header py-2">
-                                  <i class="fas fa-sort mr-1"></i> <strong>Sorting</strong>
+                                  <i class="fas fa-sort me-1"></i> <strong>Sorting</strong>
                               </div>
                               <div class="card-body py-2">
-                                  <ul class="small mb-0 pl-3">
+                                  <ul class="small mb-0 ps-3">
                                       <li>The default order is <strong>start date, newest first</strong>.</li>
                                       <li><strong>Click</strong> a column header to sort by that column.</li>
                                       <li><strong>Shift+click</strong> additional headers to add a secondary sort column.</li>
@@ -342,7 +342,7 @@
                       <div class="col-md-6 mb-3">
                           <div class="card h-100">
                               <div class="card-header py-2">
-                                  <i class="fas fa-columns mr-1"></i> <strong>Show / Hide Columns</strong>
+                                  <i class="fas fa-columns me-1"></i> <strong>Show / Hide Columns</strong>
                               </div>
                               <div class="card-body py-2">
                                   <p class="card-text small mb-0">Click <strong>Show/Hide Columns</strong> to toggle individual columns on or off. Your preferences are saved in your browser. Long-form fields (Command, Output, Description, Comments) are truncated in the table &mdash; select an entry to read the full content in the details pane.</p>
@@ -353,7 +353,7 @@
                       <div class="col-md-6 mb-3">
                           <div class="card h-100">
                               <div class="card-header py-2">
-                                  <i class="fas fa-filter mr-1"></i> <strong>Filtering</strong>
+                                  <i class="fas fa-filter me-1"></i> <strong>Filtering</strong>
                               </div>
                               <div class="card-body py-2">
                                   <p class="card-text small mb-0">Type in the <strong>Filter Entries</strong> box to search across all fields, including fields not currently shown as columns. Filtering also includes the raw input and output text of any terminal recordings attached to entries. Results update as you type. Click <i class="fas fa-times"></i> or clear the box to remove the filter.</p>
@@ -364,7 +364,7 @@
                       <div class="col-md-6 mb-3">
                           <div class="card h-100">
                               <div class="card-header py-2">
-                                  <i class="fas fa-link mr-1"></i> <strong>Details Pane &amp; Deep Links</strong>
+                                  <i class="fas fa-link me-1"></i> <strong>Details Pane &amp; Deep Links</strong>
                               </div>
                               <div class="card-body py-2">
                                   <p class="card-text small mb-0">The details pane shows the full entry, evidence attachments, and a terminal recording player. Use the <i class="fas fa-link"></i> <strong>deep link</strong> button in the details pane to copy a URL that opens this log and scrolls directly to that entry &mdash; useful for sharing specific entries with coworkers.</p>
@@ -375,7 +375,7 @@
                   </div>
               </div>
               <div class="modal-footer">
-                  <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
               </div>
           </div>
       </div>

@@ -8,8 +8,8 @@
         <div id="object-preview-content"></div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-danger" data-dismiss="modal" id="confirm-delete-button-modal">Delete
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-danger" data-bs-dismiss="modal" id="confirm-delete-button-modal">Delete
         </button>
       </div>
     </div>
@@ -23,15 +23,17 @@
 {% endcomment %}
 
 <script>
-  $('[data-target="#confirm-delete-modal"]').each(function () {
-    $(this).click(function () {
-      $('#confirm-delete-modal').attr('caller-id', $(this).attr('id'));
-    });
-  });
+  $('#confirm-delete-modal').on('show.bs.modal', function (event) {
+    const $modal = $(this);
+    const $relatedTarget = $(event.relatedTarget);
+    const caller = $relatedTarget.attr('id') || $modal.attr('caller-id');
 
-  $('#confirm-delete-modal').on('show.bs.modal', function () {
-    let caller = $('#confirm-delete-button-modal').closest('.modal').attr('caller-id');
-    let $target = $('#' + caller);
+    if (!caller) {
+      return;
+    }
+
+    $modal.attr('caller-id', caller);
+    let $target = $('#' + $.escapeSelector(caller));
     let targetId = $target.attr('delete-target-id');
     let targetType = $target.attr('delete-target-type');
     let $previewContent = $('#delete-target-content-' + targetType + '-' + targetId);
@@ -40,7 +42,7 @@
       $('#object-type').html(targetType);
     }
 
-    if ($previewContent) {
+    if ($previewContent.length) {
       $('#object-preview-content').html(escapeHtml($previewContent.text()));
     }
   });
@@ -53,8 +55,8 @@
     The delete link must have several attributes:
 
         * A unique ``id`` value
-        * data-toggle="modal"
-        * data-target="#confirm-delete-modal"
+        * data-bs-toggle="modal"
+        * data-bs-target="#confirm-delete-modal"
         * delete-target-csrftoken="{{ csrf_token }}"
         * delete-target-url="<POST URL, e.g., {% url 'rolodex:ajax_delete_project_assignment' operator.id %}>"
         * delete-target-id="<Object's ID, e.g. {{ operator.id }}>"

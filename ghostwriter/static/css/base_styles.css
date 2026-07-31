@@ -1,5 +1,3 @@
-@import 'https://fonts.googleapis.com/css?family=Poppins:300,400,500,600,700';
-
 /* ---------------------------------------------------
     GENERAL STYLES
 ----------------------------------------------------- */
@@ -133,7 +131,7 @@
 
   /* SIDEBAR */
   --sidebar-text-color: #c9c9c9;
-  --sidebar-active-text-color: #5FC587;
+  --sidebar-active-text-color: #947BD3;
   --sidebar-header-text-color: #1a1a1a;
   --sidebar-link-text-color: #9CAAB6;
 

@@ -17,15 +17,15 @@
     <table class="table table-sm table-borderless">
       <thead>
         <tr>
-          <th class="align-middle text-left">Check</th>
-          <th class="align-middle text-left">Configured Value</th>
+          <th class="align-middle text-start">Check</th>
+          <th class="align-middle text-start">Configured Value</th>
         </tr>
       </thead>
       <tbody>
         {% for threshold in health_check_thresholds %}
           <tr>
-            <td class="align-middle text-left">{{ threshold.name }}</td>
-            <td class="align-middle text-left">{{ threshold.value }}</td>
+            <td class="align-middle text-start">{{ threshold.name }}</td>
+            <td class="align-middle text-start">{{ threshold.value }}</td>
           </tr>
         {% endfor %}
       </tbody>
@@ -34,10 +34,10 @@
     <table class="table table-sm table-borderless">
       <thead>
         <tr>
-          <th class="align-middle text-left"></th>
-          <th class="align-middle text-left">Service</th>
-          <th class="align-middle text-left">Status</th>
-          <th class="align-middle text-left">Time Taken</th>
+          <th class="align-middle text-start"></th>
+          <th class="align-middle text-start">Service</th>
+          <th class="align-middle text-start">Status</th>
+          <th class="align-middle text-start">Time Taken</th>
         </tr>
       </thead>
       <tbody>
@@ -52,15 +52,15 @@
                 {% endif %}
               </span>
             </td>
-            <td class="align-middle text-left">{{ status_result.display_name }}</td>
-            <td class="align-middle text-left">
+            <td class="align-middle text-start">{{ status_result.display_name }}</td>
+            <td class="align-middle text-start">
               {% if status_result.result.error %}
                 {{ status_result.result.error | linebreaks }}
               {% else %}
                 {{ status_result.result.check.pretty_status | linebreaks }}
               {% endif %}
             </td>
-            <td class="align-middle text-left">{{ status_result.result.time_taken|floatformat:4 }} seconds</td>
+            <td class="align-middle text-start">{{ status_result.result.time_taken|floatformat:4 }} seconds</td>
           </tr>
         {% endfor %}
       </tbody>

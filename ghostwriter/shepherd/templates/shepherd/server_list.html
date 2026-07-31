@@ -4,7 +4,7 @@
 
 {% load bleach_tags %}
 
-{% block pagetitle %}Static Server Catalog{% endblock %}
+{% block pagetitle %}Server Library{% endblock %}
 
 {% block breadcrumbs %}
   <nav aria-label="breadcrumb">
@@ -16,72 +16,124 @@
 {% endblock %}
 
 {% block content %}
-  <!-- Filter Section -->
-  <div class="filter-form">
-    {% crispy filter.form filter.helper %}
+  <div class="library-page server-library-page d-grid gap-4">
+    <header class="library-page-heading">
+      <div class="library-page-heading-main">
+        <div class="library-page-title-row">
+          <h2>Server Library</h2>
+          <span class="library-result-count">{{ filter.qs|length }} server{{ filter.qs|length|pluralize }}</span>
+        </div>
+        <p>Search reusable infrastructure, review availability, and check servers out for project use.</p>
+      </div>
+      <div class="library-page-actions">
+        <a class="btn btn-primary icon add-icon" role="button"
+           href="{% url 'shepherd:server_create' %}">Create Server</a>
+        {% if filter.qs|length > 0 %}
+          <button id="resetSortBtn" class="btn btn-outline-secondary icon sync-icon"
+                  type="button">Reset Sort</button>
+        {% endif %}
+      </div>
+    </header>
+
+    <div class="filter-form library-filters server-library-filters">
+      {% crispy filter.form filter.helper %}
+    </div>
+
+    <section class="library-results server-library-results" aria-label="Servers">
+      {% if filter.qs|length == 0 %}
+        <div class="empty-state m-3">
+          {% if request.GET %}
+            <p class="empty-state-title">No matching servers</p>
+            <p class="empty-state-description">Try broadening your filters or reset them to view the server catalog.</p>
+            <a class="btn btn-outline-secondary btn-sm mt-3" href="{% url 'shepherd:servers' %}">Reset filters</a>
+          {% else %}
+            <p class="empty-state-title">No servers yet</p>
+            <p class="empty-state-description">Create the first server to make infrastructure available for projects.</p>
+            <a class="btn btn-primary btn-sm icon add-icon mt-3"
+               href="{% url 'shepherd:server_create' %}">Create Server</a>
+          {% endif %}
+        </div>
+      {% else %}
+        <div id="servers_table" class="table-responsive data-table-frame library-table-frame">
+          <table id="serverTable" class="tablesorter table table-hover library-table library-table-wide">
+            <thead>
+              <tr>
+                <th id="server" class="align-middle text-start">IP Address</th>
+                <th class="align-middle text-start">Name</th>
+                <th class="align-middle text-start">Status</th>
+                <th class="align-middle text-start">Provider</th>
+                <th class="align-middle text-start sorter-false">Tags</th>
+                <th class="align-middle text-end sorter-false">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for server in filter.qs %}
+                <tr>
+                  <td class="align-middle text-start library-primary-cell" data-label="IP Address">
+                    <a class="library-primary-link" href="{{ server.get_absolute_url }}">
+                      <span>{{ server.ip_address }}</span>
+                      <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                    </a>
+                  </td>
+                  <td class="align-middle text-start" data-label="Name">
+                    {% if server.name %}{{ server.name|bleach }}{% else %}<span class="text-muted">Not set</span>{% endif %}
+                  </td>
+                  {% if server.server_status.server_status == "Available" %}
+                    <td class="align-middle text-start" data-label="Status">
+                      <span class="library-tag library-tag-success">
+                        <i class="fas fa-check-circle" aria-hidden="true"></i>{{ server.server_status }}
+                      </span>
+                    </td>
+                  {% elif server.server_status.server_status == "Unavailable" %}
+                    <td class="align-middle text-start" data-label="Status">
+                      <span class="library-tag library-tag-info">
+                        <i class="fas fa-pause-circle" aria-hidden="true"></i>Checked Out
+                      </span>
+                    </td>
+                  {% else %}
+                    <td class="align-middle text-start" data-label="Status">
+                      <span class="library-tag library-tag-warning">
+                        <i class="fas fa-bookmark" aria-hidden="true"></i>{{ server.server_status }}
+                      </span>
+                    </td>
+                  {% endif %}
+                  <td class="align-middle text-start" data-label="Provider">
+                    <span class="library-tag library-tag-neutral" title="{{ server.server_provider }}">
+                      <i class="fas fa-cloud" aria-hidden="true"></i>
+                      <span class="library-tag-value">{{ server.server_provider }}</span>
+                    </span>
+                  </td>
+                  <td class="align-middle text-start" data-label="Tags">
+                    {% for tag in server.tags.all %}<span class="badge badge-secondary mb-1">{{ tag.name }}</span>{% empty %}<span class="text-muted">None</span>{% endfor %}
+                  </td>
+                  <td class="align-middle text-end" data-label="Actions">
+                    <div class="library-row-actions">
+                      <button type="button" class="report-row-action"
+                              title="Preview server" aria-label="Preview {{ server.ip_address }}"
+                              onclick="openModal('#server_detail_{{ server.id }}')">
+                        <i class="fas fa-eye" aria-hidden="true"></i>
+                      </button>
+                      {% if server.server_status.server_status == "Available" %}
+                        <a class="report-row-action" href="{% url 'shepherd:server_checkout' server.id %}"
+                           title="Check out server" aria-label="Check out {{ server.ip_address }}">
+                          <i class="fas fa-sign-out-alt" aria-hidden="true"></i>
+                        </a>
+                      {% else %}
+                        <span class="report-row-action" title="Server unavailable"
+                              aria-label="{{ server.ip_address }} is unavailable">
+                          <i class="fas fa-ban" aria-hidden="true"></i>
+                        </span>
+                      {% endif %}
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+    </section>
   </div>
-
-  <a class="btn btn-info col-2 icon add-icon mt-2" role="button" href="{%  url 'shepherd:server_create' %}">Create Server</a>
-  <a id="resetSortBtn" class="btn btn-secondary col-2 icon sync-icon mt-2" role="button">Reset Sort</a>
-
-  {% if filter.qs|length == 0 %}
-    <div class="alert alert-warning offset-md-2 col-md-8 mt-3" role="alert">There are no servers to see here yet, or
-      your search returned no results. Create a server above or adjust your filters.
-    </div>
-  {% else %}
-    <!-- Server Table Section -->
-    <div id="servers_table">
-      <table id="serverTable" class="tablesorter table table-sm table-hover">
-        <thead>
-        <tr>
-          <th id="server" class="align-middle pr-4 text-left">IP Address</th>
-          <th class="align-middle pr-4 text-left">Name</th>
-          <th class="align-middle pr-4 text-left">Status</th>
-          <th class="align-middle pr-4 text-left">Provider</th>
-          <th class="align-middle pr-4 text-left sorter-false">Tags</th>
-          <th class="align-middle sorter-false">Options</th>
-        </tr>
-        </thead>
-        <tbody>
-        {% for server in filter.qs %}
-          <tr>
-            <td class="align-middle text-left"><a href="{{ server.get_absolute_url }}"
-                                        class="clickable">{{ server.ip_address }}</a></td>
-
-            <td class="align-middle text-left">{% if server.name %}{{ server.name|bleach }}{% else %}No Hostname{% endif %}</td>
-
-            {% if server.server_status.server_status == "Available" %}
-              <td class="align-middle healthy text-left">{{ server.server_status }}</td>
-            {% else %}
-              <td class="align-middle burned text-left">{{ server.server_status }}</td>
-            {% endif %}
-
-            <td class="align-middle text-left">{{ server.server_provider }}</td>
-
-            <td class="align-middle text-left">
-              {%  for tag in server.tags.all %}<span class="badge badge-secondary mb-3">{{ tag.name }}</span>{% endfor %}
-            </td>
-
-            <td class="align-middle">
-              <div class="d-flex justify-content-center">
-                <span
-                  class="icon preview-icon clickable-link"
-                  title="View additional information"
-                  onclick="openModal('#server_detail_{{ server.id }}')"
-                ></span>
-                {% if server.server_status.server_status == "Available" %}
-                  <a class="icon checkout-icon" href="{% url 'shepherd:server_checkout' server.id %}"></a>
-                {% else %}
-                  <a class="icon block-icon" href="#"></a>
-                {% endif %}
-              </div>
-            </td>
-          </tr>
-        {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  {% endif %}
 {% endblock %}
 
 {% block morescripts %}

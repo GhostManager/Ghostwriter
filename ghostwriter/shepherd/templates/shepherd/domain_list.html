@@ -2,7 +2,7 @@
 
 {% load crispy_forms_tags humanize bleach_tags static %}
 
-{% block pagetitle %}Domain Catalog{% endblock %}
+{% block pagetitle %}Domain Library{% endblock %}
 
 {% block breadcrumbs %}
   <nav aria-label="breadcrumb">
@@ -14,112 +14,170 @@
 {% endblock %}
 
 {% block content %}
-  <!-- Filter Section -->
-  <div class="filter-form">
-    {% crispy filter.form filter.helper %}
-  </div>
+  <div class="library-page domain-library-page d-grid gap-4">
+    <header class="library-page-heading">
+      <div class="library-page-heading-main">
+        <div class="library-page-title-row">
+          <h2>Domain Library</h2>
+          <span class="library-result-count">{{ filter.qs|length }} domain{{ filter.qs|length|pluralize }}</span>
+        </div>
+        <p>Search domain inventory, monitor expiration and health, and check available domains out for projects.</p>
+      </div>
+      <div class="library-page-actions">
+        <a class="btn btn-primary icon add-icon" role="button"
+           href="{% url 'shepherd:domain_create' %}">Create Domain</a>
+        {% if filter.qs|length > 0 %}
+          <button id="resetSortBtn" class="btn btn-outline-secondary icon sync-icon"
+                  type="button">Reset Sort</button>
+        {% endif %}
+      </div>
+    </header>
 
-  {% if filter.qs|length > 0 %}
-    {% include "snippets/table-column-show-hide-ui.html" with column_show_hide_id="column-show-hide-ui" only %}
-  {% endif %}
-
-  <a class="btn btn-info col-2 icon add-icon mt-2" role="button" href="{%  url 'shepherd:domain_create' %}">Create Entry</a>
-  <a id="resetSortBtn" class="btn btn-secondary col-2 icon sync-icon mt-2" role="button">Reset Sort</a>
-
-  {% if filter.qs|length == 0 %}
-    <div class="alert alert-warning offset-md-2 col-md-8 mt-3" role="alert">There are no domains to see here yet, or
-      your search returned no results. Create a domain above or adjust your filters.
+    <div class="filter-form library-filters domain-library-filters">
+      {% crispy filter.form filter.helper %}
     </div>
-  {% else %}
-    <!-- Domain Table Section -->
-    <div id="domains_table">
-      <table
-        id="domainTable"
-        class="tablesorter table table-sm table-hover column-show-hide-table"
-        data-table-name="domains"
-        data-controls-el="column-show-hide-ui"
-      >
-        <thead>
-        <tr>
-          <th id="domain" class="align-middle pr-4 text-left" data-no-hide>Domain</th>
-          <th class="align-middle pr-4 text-left" data-internal-name="status">Status</th>
-          <th class="align-middle pr-4 text-left" data-internal-name="creation" data-hide-default>Purchase Date</th>
-          <th class="align-middle pr-4 text-left" data-internal-name="expiration" data-hide-default>Expiration Date</th>
-          <th class="align-middle pr-4 text-left" data-internal-name="age">Age (Days)</th>
-          <th class="align-middle pr-4 sorter-sugar text-left" data-internal-name="expiry">Expiry</th>
-          <th class="align-middle pr-4 text-left" data-internal-name="registrar" data-hide-default>Registrar</th>
-          <th class="align-middle pr-4 text-left" data-internal-name="note" data-hide-default>Details</th>
-          <th class="align-middle text-left sorter-false" data-hide-default data-internal-name="tags">Tags</th>
-          <th class="align-middle sorter-false" data-no-hide>Options</th>
-        </tr>
-        </thead>
-        <tbody>
-        {% for domain in filter.qs %}
-          <tr>
-            <td class="align-middle text-left"><a href="{{ domain.get_absolute_url }}" class="clickable">{{ domain.name }}</a></td>
 
-            {% if domain.domain_status.domain_status == "Available" %}
-              <td class="align-middle healthy text-left">{{ domain.domain_status }}</td>
-            {% elif domain.domain_status.domain_status == "Unavailable" %}
-              <td class="align-middle burned text-left">Checked Out</td>
-            {% else %}
-              <td class="align-middle burned text-left">{{ domain.domain_status }}</td>
-            {% endif %}
-
-            <td class="align-middle text-left">
-              {{ domain.creation }}
-            </td>
-
-            <td class="align-middle text-left">
-              {{ domain.expiration }}
-            </td>
-
-            <td class="align-middle text-left">{{ domain.get_domain_age|intcomma }}</td>
-
-            <td class="align-middle text-left">
-              {% if domain.is_expired %}
-                <span class="align-middle burned">{{ domain.expiration|date:"d M Y" }}</span>
-              {% elif domain.may_expire_soon %}
-                <span class="align-middle warning">{{ domain.expiration|date:"d M Y" }}</span>
-              {% else %}
-                <span class="align-middle healthy">{{ domain.expiration|date:"d M Y" }}</span>
-              {% endif %}
-            </td>
-
-            <td class="align-middle text-left">
-              {{ domain.registrar }}
-            </td>
-
-            <td class="align-middle text-left">
-              {{ domain.note|bleach }}
-            </td>
-
-            <td class="align-middle text-left">
-              {% for tag in domain.tags.all %}
-                <span class="badge badge-secondary mb-3">{{ tag.name }}</span>
+    <section class="library-results domain-library-results" aria-label="Domains">
+      {% if filter.qs|length == 0 %}
+        <div class="empty-state m-3">
+          {% if request.GET %}
+            <p class="empty-state-title">No matching domains</p>
+            <p class="empty-state-description">Try broadening your filters or reset them to view the domain catalog.</p>
+            <a class="btn btn-outline-secondary btn-sm mt-3" href="{% url 'shepherd:domains' %}">Reset filters</a>
+          {% else %}
+            <p class="empty-state-title">No domains yet</p>
+            <p class="empty-state-description">Create the first domain to make it available for project use.</p>
+            <a class="btn btn-primary btn-sm icon add-icon mt-3"
+               href="{% url 'shepherd:domain_create' %}">Create Domain</a>
+          {% endif %}
+        </div>
+      {% else %}
+        <div class="library-column-controls library-filters">
+          {% include "snippets/table-column-show-hide-ui.html" with column_show_hide_id="column-show-hide-ui" only %}
+        </div>
+        <div id="domains_table" class="table-responsive data-table-frame library-table-frame">
+          <table id="domainTable"
+                 class="tablesorter table table-hover column-show-hide-table library-table library-table-wide"
+                 data-table-name="domains" data-controls-el="column-show-hide-ui">
+            <thead>
+              <tr>
+                <th id="domain" class="align-middle text-start" data-no-hide>Domain</th>
+                <th class="align-middle text-start" data-internal-name="status">Status</th>
+                <th class="align-middle text-start" data-internal-name="health">Health</th>
+                <th class="align-middle text-start" data-internal-name="creation" data-hide-default>Purchase Date</th>
+                <th class="align-middle text-start" data-internal-name="expiration" data-hide-default>Expiration Date</th>
+                <th class="align-middle text-start" data-internal-name="age">Age (Days)</th>
+                <th class="align-middle sorter-sugar text-start" data-internal-name="expiry">Expiry</th>
+                <th class="align-middle text-start" data-internal-name="registrar" data-hide-default>Registrar</th>
+                <th class="align-middle text-start" data-internal-name="note" data-hide-default>Details</th>
+                <th class="align-middle text-start sorter-false" data-hide-default data-internal-name="tags">Tags</th>
+                <th class="align-middle text-end sorter-false" data-no-hide>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for domain in filter.qs %}
+                <tr>
+                  <td class="align-middle text-start library-primary-cell" data-label="Domain">
+                    <a class="library-primary-link" href="{{ domain.get_absolute_url }}">
+                      <span>{{ domain.name }}</span>
+                      <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                    </a>
+                  </td>
+                  {% if domain.domain_status.domain_status == "Available" %}
+                    <td class="align-middle text-start" data-label="Status">
+                      <span class="library-tag library-tag-success">
+                        <i class="fas fa-check-circle" aria-hidden="true"></i>{{ domain.domain_status }}
+                      </span>
+                    </td>
+                  {% elif domain.domain_status.domain_status == "Unavailable" %}
+                    <td class="align-middle text-start" data-label="Status">
+                      <span class="library-tag library-tag-info">
+                        <i class="fas fa-pause-circle" aria-hidden="true"></i>Checked Out
+                      </span>
+                    </td>
+                  {% elif domain.domain_status.domain_status == "Burned" or domain.domain_status.domain_status == "Expired" %}
+                    <td class="align-middle text-start" data-label="Status">
+                      <span class="library-tag library-tag-danger">
+                        <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>{{ domain.domain_status }}
+                      </span>
+                    </td>
+                  {% else %}
+                    <td class="align-middle text-start" data-label="Status">
+                      <span class="library-tag library-tag-warning">
+                        <i class="fas fa-bookmark" aria-hidden="true"></i>{{ domain.domain_status }}
+                      </span>
+                    </td>
+                  {% endif %}
+                  <td class="align-middle text-start" data-label="Health">
+                    {% if domain.health_status.health_status == "Healthy" %}
+                      <span class="library-tag library-tag-success">
+                        <i class="fas fa-heartbeat" aria-hidden="true"></i>{{ domain.health_status }}
+                      </span>
+                    {% elif domain.health_status.health_status == "Burned" %}
+                      <span class="library-tag library-tag-danger">
+                        <i class="fas fa-fire" aria-hidden="true"></i>{{ domain.health_status }}
+                      </span>
+                    {% else %}
+                      <span class="library-tag library-tag-warning">
+                        <i class="fas fa-question-circle" aria-hidden="true"></i>{{ domain.health_status }}
+                      </span>
+                    {% endif %}
+                  </td>
+                  <td class="align-middle text-start" data-label="Purchase Date">{{ domain.creation }}</td>
+                  <td class="align-middle text-start" data-label="Expiration Date">{{ domain.expiration }}</td>
+                  <td class="align-middle text-start" data-label="Age (Days)">
+                    <span class="library-tag library-tag-neutral library-tag-date">
+                      <i class="fas fa-hourglass-start" aria-hidden="true"></i>{{ domain.get_domain_age|intcomma }} days
+                    </span>
+                  </td>
+                  <td class="align-middle text-start" data-label="Expiry">
+                    {% if domain.is_expired %}
+                      <span class="library-tag library-tag-danger library-tag-date">
+                        <i class="fas fa-calendar-times" aria-hidden="true"></i>{{ domain.expiration|date:"d M Y" }}
+                      </span>
+                    {% elif domain.may_expire_soon %}
+                      <span class="library-tag library-tag-warning library-tag-date">
+                        <i class="fas fa-hourglass-half" aria-hidden="true"></i>{{ domain.expiration|date:"d M Y" }}
+                      </span>
+                    {% else %}
+                      <span class="library-tag library-tag-success library-tag-date">
+                        <i class="far fa-calendar-check" aria-hidden="true"></i>{{ domain.expiration|date:"d M Y" }}
+                      </span>
+                    {% endif %}
+                  </td>
+                  <td class="align-middle text-start" data-label="Registrar">{{ domain.registrar }}</td>
+                  <td class="align-middle text-start" data-label="Details">{{ domain.note|bleach }}</td>
+                  <td class="align-middle text-start" data-label="Tags">
+                    {% for tag in domain.tags.all %}<span class="badge badge-secondary mb-1">{{ tag.name }}</span>{% empty %}<span class="text-muted">None</span>{% endfor %}
+                  </td>
+                  <td class="align-middle text-end" data-label="Actions">
+                    <div class="library-row-actions">
+                      <button type="button" class="report-row-action"
+                              title="Preview domain" aria-label="Preview {{ domain.name }}"
+                              onclick="openModal('#domain_detail_{{ domain.id }}')">
+                        <i class="fas fa-eye" aria-hidden="true"></i>
+                      </button>
+                      {% if domain.domain_status.domain_status == "Available" or domain.domain_status.domain_status == "Burned" %}
+                        <a class="report-row-action" href="{% url 'shepherd:checkout' domain.id %}"
+                           title="Check out domain" aria-label="Check out {{ domain.name }}">
+                          <i class="fas fa-sign-out-alt" aria-hidden="true"></i>
+                        </a>
+                      {% else %}
+                        <span class="report-row-action" title="Domain unavailable"
+                              aria-label="{{ domain.name }} is unavailable">
+                          <i class="fas fa-ban" aria-hidden="true"></i>
+                        </span>
+                      {% endif %}
+                    </div>
+                  </td>
+                </tr>
               {% endfor %}
-            </td>
-
-            <td class="align-middle">
-              <div class="d-flex justify-content-center">
-                <span
-                  class="icon preview-icon clickable-link"
-                  title="View additional information"
-                  onclick="openModal('#domain_detail_{{ domain.id }}')"
-                ></span>
-                {% if domain.domain_status.domain_status == "Available" or domain.domain_status.domain_status == "Burned" %}
-                  <a class="icon checkout-icon" href="{% url 'shepherd:checkout' domain.id %}"></a>
-                {% else %}
-                  <a class="icon block-icon" href="#"></a>
-                {% endif %}
-              </div>
-            </td>
-          </tr>
-        {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  {% endif %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+    </section>
+  </div>
 {% endblock %}
 
 {% block morescripts %}

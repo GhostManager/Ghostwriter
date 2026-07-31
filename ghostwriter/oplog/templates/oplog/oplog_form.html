@@ -9,8 +9,8 @@
             <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
             {% comment %} Check if `project` is in the context to determine if this is a new lgo for a specific project and adjust breadcrumbs accordingly {% endcomment %}
             {% if project %}
-                <li class="breadcrumb-item"><a data-toggle="tooltip" title="{{ project.client }}" href="{% url 'rolodex:client_detail' project.client.id %}">{{ project.client }}</a></li>
-                <li class="breadcrumb-item"><a data-toggle="tooltip" title="{{ project }}" href="{% url 'rolodex:project_detail' project.id %}">{{ project.start_date|date:"DATE_FORMAT" }} {{ project.project_type }}</a></li>
+                <li class="breadcrumb-item"><a data-bs-toggle="tooltip" title="{{ project.client }}" href="{% url 'rolodex:client_detail' project.client.id %}">{{ project.client }}</a></li>
+                <li class="breadcrumb-item"><a data-bs-toggle="tooltip" title="{{ project }}" href="{% url 'rolodex:project_detail' project.id %}">{{ project.start_date|date:"DATE_FORMAT" }} {{ project.project_type }}</a></li>
             {% else %}
                 <li class="breadcrumb-item"><a href="{% url 'oplog:index' %}">Operation Logs</a></li>
             {% endif %}
@@ -20,8 +20,16 @@
 {% endblock %}
 
 {% block content %}
-    <!-- Instructions Section -->
-    <p>Provide a meaningful name for your log and select the project to which it should associated:</p>
+    <header class="resource-form-page-heading mb-4">
+        <span class="detail-eyebrow">Operation Log</span>
+        {% if object.pk %}
+            <h1>Edit {{ object.name }}</h1>
+            <p>Keep the log name and engagement association clear for operators.</p>
+        {% else %}
+            <h1>Create operation log</h1>
+            <p>Open a shared timeline for an active engagement.</p>
+        {% endif %}
+    </header>
 
     <!-- Form Error Section -->
     {% if form.errors %}
@@ -37,6 +45,7 @@
         </script>
     {% endif %}
 
-    <!-- Form Section -->
-    {% crispy form form.helper %}
+    <div class="resource-form-shell">
+        {% crispy form form.helper %}
+    </div>
 {% endblock %}

@@ -363,6 +363,13 @@ function update_project_contacts() {
     console.log("Updating contacts...");
     // Refresh the HTML from the update URL
     $contactsSection.html('').load(update_url, function () {
+      $contactsSection[0].querySelectorAll('.table-row-action[title]').forEach(function (tooltip) {
+        bootstrap.Tooltip.getOrCreateInstance(tooltip, {
+          boundary: document.body,
+          placement: 'top',
+          fallbackPlacements: ['bottom'],
+        });
+      });
     });
   }
 }

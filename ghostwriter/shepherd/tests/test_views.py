@@ -97,6 +97,16 @@ class UpdateViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "shepherd/update.html")
 
+    def test_view_uses_operational_task_cards(self):
+        response = self.client_auth.get(self.uri)
+
+        self.assertContains(response, 'class="operations-task-card"', count=4)
+        self.assertContains(response, "Start DNS Update")
+        self.assertContains(response, "Pull Domains")
+        self.assertContains(response, "Start Health Update")
+        self.assertContains(response, "Start Cloud Review")
+        self.assertNotContains(response, 'class="container pb-2"')
+
     def test_custom_context_exists(self):
         response = self.client_auth.get(self.uri)
         self.assertIn("total_domains", response.context)
@@ -241,6 +251,24 @@ class DomainListViewTests(TestCase):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "shepherd/domain_list.html")
+
+    def test_domain_library_uses_shared_library_layout(self):
+        response = self.client_auth.get(self.uri)
+
+        self.assertContains(response, 'class="library-page domain-library-page d-grid gap-4"')
+        self.assertContains(response, '<h2>Domain Library</h2>')
+        self.assertContains(response, 'class="filter-form library-filters domain-library-filters"')
+        self.assertContains(response, 'class="library-results domain-library-results"')
+        self.assertContains(response, "library-table library-table-wide")
+        self.assertContains(response, 'data-internal-name="health">Health</th>')
+        self.assertContains(response, "library-tag library-tag-success")
+        self.assertContains(response, "library-tag library-tag-neutral library-tag-date")
+        self.assertContains(response, 'class="fas fa-hourglass-start"')
+        self.assertContains(response, 'class="column-picker-toggle collapsed"')
+        self.assertContains(response, "library-filter-boolean")
+        self.assertContains(response, 'data-1p-ignore="true"', count=2)
+        self.assertNotContains(response, "btn btn-info col-2")
+        self.assertNotContains(response, 'id="domain-library-results-title"')
 
     def test_custom_context_exists(self):
         response = self.client_auth.get(self.uri)
@@ -843,6 +871,20 @@ class ServerListViewTests(TestCase):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "shepherd/server_list.html")
+
+    def test_server_library_uses_shared_library_layout(self):
+        response = self.client_auth.get(self.uri)
+
+        self.assertContains(response, 'class="library-page server-library-page d-grid gap-4"')
+        self.assertContains(response, '<h2>Server Library</h2>')
+        self.assertContains(response, 'class="filter-form library-filters server-library-filters"')
+        self.assertContains(response, 'class="library-results server-library-results"')
+        self.assertContains(response, "library-table library-table-wide")
+        self.assertContains(response, "library-tag library-tag-success")
+        self.assertContains(response, 'class="fas fa-cloud"')
+        self.assertContains(response, 'data-1p-ignore="true"', count=2)
+        self.assertNotContains(response, "btn btn-info col-2")
+        self.assertNotContains(response, 'id="server-library-results-title"')
 
     def test_custom_context_exists(self):
         response = self.client_auth.get(self.uri)

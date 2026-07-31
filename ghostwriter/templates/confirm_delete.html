@@ -15,6 +15,6 @@
     <form action="" method="POST">
         {% csrf_token %}
         <input type="submit" class="btn btn-danger col-md-2" value="Delete">
-        <button onclick="window.location.href = '{{ cancel_link }}';" class="btn btn-outline-secondary col-md-2" type="button">Cancel</button>
+        <button onclick="window.location.href = '{{ cancel_link|escapejs }}';" class="btn btn-outline-secondary col-md-2" type="button">Cancel</button>
     </form>
 {% endblock %}

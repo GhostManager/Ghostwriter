@@ -1,39 +1,39 @@
 {% load custom_tags %}
 <li class="nav-item">
-    <a id="id_general" class="nav-link active tab-icon company-icon" data-toggle="tab" href="#general">
+    <a id="id_general" class="nav-link active tab-icon company-icon" data-bs-toggle="tab" role="tab" aria-controls="general" href="#general">
         General Info
     </a>
 </li>
 {% if request.user|is_privileged %}
 <li class="nav-item">
-    <a id="id_invitations" class="nav-link tab-icon users-icon" data-toggle="tab" href="#invitations">
-        Invitations <span class="badge badge-pill badge-light">{{ client.clientinvite_set.all.count }}</span>
+    <a id="id_invitations" class="nav-link tab-icon users-icon" data-bs-toggle="tab" role="tab" aria-controls="invitations" href="#invitations">
+        Invitations <span class="badge rounded-pill badge-light">{{ client.clientinvite_set.all.count }}</span>
     </a>
 </li>
 {% endif %}
 <li class="nav-item">
-    <a id="id_contacts" class="nav-link tab-icon poc-icon" data-toggle="tab" href="#contacts">
-        Points of Contact <span class="badge badge-pill badge-light">{{ client.clientcontact_set.all.count }}</span>
+    <a id="id_contacts" class="nav-link tab-icon poc-icon" data-bs-toggle="tab" role="tab" aria-controls="contacts" href="#contacts">
+        Points of Contact <span class="badge rounded-pill badge-light">{{ client.clientcontact_set.all.count }}</span>
     </a>
 </li>
 <li class="nav-item">
-    <a id="id_projects" class="nav-link tab-icon history-icon" data-toggle="tab" href="#project-history">
-        Project History <span class="badge badge-pill badge-light">{{ client.project_set.all.count }}</span>
+    <a id="id_projects" class="nav-link tab-icon history-icon" data-bs-toggle="tab" role="tab" aria-controls="project-history" href="#project-history">
+        Project History <span class="badge rounded-pill badge-light">{{ client.project_set.all.count }}</span>
     </a>
 </li>
 <li class="nav-item">
-    <a id="id_infrastructure" class="nav-link tab-icon history-icon" data-toggle="tab" href="#infrastructure-history">
-        Infrastructure History <span class="badge badge-pill badge-light">{{ client.project_set.history_set.all.count }}</span>
+    <a id="id_infrastructure" class="nav-link tab-icon history-icon" data-bs-toggle="tab" role="tab" aria-controls="infrastructure-history" href="#infrastructure-history">
+        Infrastructure History <span class="badge rounded-pill badge-light">{{ client.project_set.history_set.all.count }}</span>
     </a>
 </li>
 <li class="nav-item">
-    <a id="id_notes" class="nav-link tab-icon comment-icon" data-toggle="tab" href="#notes">
-        Notes <span class="badge badge-pill badge-light">{{ client.clientnote_set.all.count }}</span>
+    <a id="id_notes" class="nav-link tab-icon comment-icon" data-bs-toggle="tab" role="tab" aria-controls="notes" href="#notes">
+        Notes <span class="badge rounded-pill badge-light">{{ client.clientnote_set.all.count }}</span>
     </a>
 </li>
 {% if client_extra_fields_spec %}
     <li class="nav-item">
-        <a id="id_extra_fields" class="nav-link tab-icon custom-field-icon" data-toggle="tab" href="#extra-fields">
+        <a id="id_extra_fields" class="nav-link tab-icon custom-field-icon" data-bs-toggle="tab" role="tab" aria-controls="extra-fields" href="#extra-fields">
             Extra Fields
         </a>
     </li>

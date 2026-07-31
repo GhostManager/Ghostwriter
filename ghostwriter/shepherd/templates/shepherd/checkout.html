@@ -16,7 +16,11 @@
 {% endblock %}
 
 {% block content %}
-  <p>Complete this form and then click Save to checkout {{ domain_name }}:</p>
+  <header class="resource-form-page-heading mb-4">
+    <span class="detail-eyebrow">Domain Assignment</span>
+    <h1>{% if object.pk %}Edit checkout{% else %}Check out {{ domain_name }}{% endif %}</h1>
+    <p>Connect this domain to an engagement, activity, and working window.</p>
+  </header>
 
   <!-- Form Error Section -->
   {% if form.errors %}
@@ -32,8 +36,9 @@
     </script>
   {% endif %}
 
-  <!-- Form Section -->
-  {% crispy form form.helper %}
+  <div class="resource-form-shell">
+    {% crispy form form.helper %}
+  </div>
 {% endblock %}
 
 {% block morescripts %}

@@ -234,7 +234,10 @@ class ServerForm(forms.ModelForm):
                     "Server Information",
                     HTML(
                         """
-                        <p class="form-spacer"></p>
+                        <div class="form-section-heading mb-3">
+                            <h2>Server identity</h2>
+                            <p>Record how operators recognize, access, and categorize this reusable host.</p>
+                        </div>
                         """
                     ),
                     Row(
@@ -248,51 +251,75 @@ class ServerForm(forms.ModelForm):
                         css_class="form-row",
                     ),
                     "tags",
-                    "description",
                     HTML(
                         """
-                        <h4 class="icon custom-field-icon">Extra Fields</h4>
-                        <hr />
+                        <div class="form-section-heading mt-2 mb-3">
+                            <h2>Operator context</h2>
+                            <p>Capture capabilities, installed tooling, and handling details for this server.</p>
+                        </div>
                         """
-                    )
-                    if has_extra_fields
-                    else None,
-                    "extra_fields" if has_extra_fields else None,
+                    ),
+                    "description",
                     link_css_class="icon server-icon",
                     css_id="server",
                 ),
                 CustomTab(
                     "Additional Addresses",
-                    HTML(
-                        """
-                        <p class="form-spacer"></p>
-                        """
+                    Div(
+                        Div(
+                            HTML(
+                                """
+                                <h2>Additional addresses</h2>
+                                <p>Associate alternate IP addresses and identify the primary route to this server.</p>
+                                """
+                            ),
+                            css_class="collection-toolbar-copy",
+                        ),
+                        Button(
+                            "add-address",
+                            "Add Address",
+                            css_class="btn-outline-secondary formset-add-address",
+                        ),
+                        css_class="collection-toolbar mb-3",
                     ),
                     Formset("addresses", object_context_name="Address"),
-                    Button(
-                        "add-address",
-                        "Add Address",
-                        css_class="btn-block btn-secondary formset-add-address",
-                    ),
-                    HTML(
-                        """
-                        <p class="form-spacer"></p>
-                        """
-                    ),
                     link_css_class="icon route-icon",
                     css_id="addresses",
                 ),
+                *(
+                    [
+                        CustomTab(
+                            "Extra Fields",
+                            "extra_fields",
+                            link_css_class="icon custom-field-icon",
+                            css_id="extra-fields",
+                        )
+                    ]
+                    if has_extra_fields
+                    else []
+                ),
                 template="tab.html",
                 css_class="nav-justified",
+                css_id="tab-bar",
             ),
-            ButtonHolder(
-                Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
+            Div(
                 HTML(
                     """
-                    <button onclick="window.location.href='{{ cancel_link }}'"
-                    class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    <span class="resource-form-actions-context">
+                        {% if object.pk %}Editing {{ object.name|default:object.ip_address }}{% else %}Adding a server{% endif %}
+                    </span>
                     """
                 ),
+                Div(
+                    HTML("""<a href="{{ cancel_link }}" class="btn btn-outline-secondary">Cancel</a>"""),
+                    Submit(
+                        "submit",
+                        "Save Changes" if self.instance.pk else "Add Server",
+                        css_class="btn btn-primary",
+                    ),
+                    css_class="resource-form-actions-buttons",
+                ),
+                css_class="resource-form-actions",
             ),
         )
 
@@ -334,45 +361,64 @@ class TransientServerForm(forms.ModelForm):
         self.fields["aux_address"].required = False
         self.helper = FormHelper()
         self.helper.form_method = "post"
+        self.helper.form_class = "resource-edit-form"
         self.helper.layout = Layout(
-            HTML(
-                """
-                <h4 class="icon server-icon">Server Information</h4>
-                <hr>
-                """
-            ),
-            Row(
-                Column("name", css_class="form-group col-md-6 mb-0"),
-                Column("ip_address", css_class="form-group col-md-6 mb-0"),
-                css_class="form-row",
-            ),
-            Row(
-                Column("activity_type", css_class="form-group col-md-4 mb-0"),
-                Column("server_role", css_class="form-group col-md-4 mb-0"),
-                Column("server_provider", css_class="form-group col-md-4 mb-0"),
-                css_class="form-row",
-            ),
-            HTML(
-                """
-                <p>Include up to three additional IP addresses below:</p>
-                """
-            ),
-            "aux_address",
-            HTML(
-                """
-                <h4 class="icon comment-icon">Additional Information</h4>
-                <hr>
-                """
-            ),
-            "description",
-            ButtonHolder(
-                Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
-                HTML(
-                    """
-                    <button onclick="window.location.href='{{ cancel_link }}'"
-                    class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
-                    """
+            Div(
+                Div(
+                    HTML(
+                        """
+                        <div class="resource-form-section-heading">
+                          <span class="resource-form-section-icon"><i class="fas fa-server" aria-hidden="true"></i></span>
+                          <div>
+                            <h4>Host and role</h4>
+                            <p>Identify this project-specific server and how operators intend to use it.</p>
+                          </div>
+                        </div>
+                        """
+                    ),
+                    Row(
+                        Column("name", css_class="form-group col-md-6"),
+                        Column("ip_address", css_class="form-group col-md-6"),
+                        css_class="form-row",
+                    ),
+                    Row(
+                        Column("activity_type", css_class="form-group col-md-4"),
+                        Column("server_role", css_class="form-group col-md-4"),
+                        Column("server_provider", css_class="form-group col-md-4"),
+                        css_class="form-row",
+                    ),
+                    "aux_address",
+                    css_class="resource-form-card",
                 ),
+                Div(
+                    HTML(
+                        """
+                        <div class="resource-form-section-heading">
+                          <span class="resource-form-section-icon"><i class="fas fa-align-left" aria-hidden="true"></i></span>
+                          <div>
+                            <h4>Operator context</h4>
+                            <p>Record configuration, purpose, and handling details for this engagement.</p>
+                          </div>
+                        </div>
+                        """
+                    ),
+                    "description",
+                    css_class="resource-form-card",
+                ),
+                css_class="resource-form-grid",
+            ),
+            Div(
+                HTML("""<span class="resource-form-actions-context">{% if object.pk %}Editing project server{% else %}Adding a project server{% endif %}</span>"""),
+                Div(
+                    HTML("""<a href="{{ cancel_link }}" class="btn btn-outline-secondary">Cancel</a>"""),
+                    Submit(
+                        "submit",
+                        "Save Changes" if self.instance.pk else "Add Server",
+                        css_class="btn btn-primary",
+                    ),
+                    css_class="resource-form-actions-buttons",
+                ),
+                css_class="resource-form-actions",
             ),
         )
 
@@ -398,13 +444,17 @@ class ServerNoteForm(forms.ModelForm):
         self.helper.layout = Layout(
             Div("note"),
             ButtonHolder(
-                Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
+                Submit(
+                    "submit",
+                    "Save Note",
+                    css_class="btn btn-primary",
+                ),
                 HTML(
                     """
-                    <button onclick="window.location.href='{{ cancel_link }}'"
-                    class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    <a href="{{ cancel_link }}" class="btn btn-outline-secondary">Cancel</a>
                     """
                 ),
+                css_class="resource-form-actions resource-form-actions-compact",
             ),
         )
 
@@ -492,13 +542,17 @@ class ServerCheckoutForm(forms.ModelForm):
             "description",
             "server",
             ButtonHolder(
-                Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
+                Submit(
+                    "submit",
+                    "Save Changes" if self.instance.pk else "Check Out Server",
+                    css_class="btn btn-primary",
+                ),
                 HTML(
                     """
-                    <button onclick="window.location.href='{{ cancel_link }}'"
-                    class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    <a href="{{ cancel_link }}" class="btn btn-outline-secondary">Cancel</a>
                     """
                 ),
+                css_class="resource-form-actions resource-form-actions-compact",
             ),
         )
 

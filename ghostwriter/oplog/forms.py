@@ -8,7 +8,7 @@ from django.utils import timezone
 # 3rd Party Libraries
 from crispy_forms.bootstrap import FieldWithButtons, StrictButton
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import HTML, ButtonHolder, Column, Field, Layout, Row, Submit
+from crispy_forms.layout import Div, HTML, ButtonHolder, Column, Field, Layout, Row, Submit
 
 # Ghostwriter Libraries
 from ghostwriter.api.utils import get_project_list
@@ -57,16 +57,36 @@ class OplogForm(forms.ModelForm):
         self.helper = FormHelper()
         self.helper.form_show_errors = False
         self.helper.form_method = "post"
+        self.helper.form_class = "resource-edit-form"
         self.helper.layout = Layout(
-            "name",
-            "project",
-            ButtonHolder(
-                Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
+            Div(
                 HTML(
                     """
-                    <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    <div class="resource-form-section-heading">
+                      <span class="resource-form-section-icon"><i class="fas fa-stream" aria-hidden="true"></i></span>
+                      <div>
+                        <h4>Log identity</h4>
+                        <p>Name this timeline for quick recognition and connect it to the engagement it supports.</p>
+                      </div>
+                    </div>
                     """
                 ),
+                "name",
+                "project",
+                css_class="resource-form-card",
+            ),
+            Div(
+                HTML("""<span class="resource-form-actions-context">{% if object.pk %}Editing {{ object.name }}{% else %}Creating an operation log{% endif %}</span>"""),
+                Div(
+                    HTML("""<a href="{{ cancel_link }}" class="btn btn-outline-secondary">Cancel</a>"""),
+                    Submit(
+                        "submit_btn",
+                        "Save Changes" if self.instance.pk else "Create Log",
+                        css_class="btn btn-primary",
+                    ),
+                    css_class="resource-form-actions-buttons",
+                ),
+                css_class="resource-form-actions",
             ),
         )
 
@@ -119,8 +139,8 @@ class OplogEntryForm(forms.ModelForm):
         self.fields["comments"].widget.attrs["rows"] = 2
         for field_name in ("command", "output"):
             existing_classes = self.fields[field_name].widget.attrs.get("class", "").split()
-            if "no-auto-tinymce" not in existing_classes:
-                existing_classes.append("no-auto-tinymce")
+            if "no-auto-rich-text" not in existing_classes:
+                existing_classes.append("no-auto-rich-text")
             self.fields[field_name].widget.attrs["class"] = " ".join(existing_classes)
 
         self.helper = FormHelper()
@@ -194,7 +214,7 @@ class OplogEntryForm(forms.ModelForm):
                 Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
                     """
-                    <button data-dismiss="modal" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    <button data-bs-dismiss="modal" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
                     """
                 ),
             ),
@@ -277,7 +297,7 @@ class OplogEvidenceForm(forms.ModelForm):
                 Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
                     """
-                    <button data-dismiss="modal" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    <button data-bs-dismiss="modal" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
                     """
                 ),
                 css_class="mt-3",

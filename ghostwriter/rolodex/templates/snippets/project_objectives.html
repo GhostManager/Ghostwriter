@@ -3,34 +3,35 @@
 {% load determine_primary %}
 
 <!-- Objectives Section -->
-<h4>Project Objectives</h4>
-<hr />
-
-<p><a class="icon edit-icon btn btn-primary col-3" href="{% url 'rolodex:project_component_update' project.id %}#objectives">Add & Edit Objectives</a></p>
-
-<p>Create specific objectives to pursue, track their status, and view deadlines in the calendar.</p>
-
-<p>Click the status badges to cycle and set status.</p>
+<header class="content-section-header">
+    <div class="content-section-heading">
+        <h4>Project Objectives</h4>
+        <p class="content-section-intro">Create specific objectives, track their progress, and view deadlines in the calendar. Select a status badge to advance its state.</p>
+    </div>
+    <a class="icon edit-icon btn btn-primary btn-sm" href="{% url 'rolodex:project_component_update' project.id %}#objectives">Add & Edit Objectives</a>
+</header>
 
 {% if project.projectobjective_set.all %}
-    <table id="objectives-table" class="table" objectives-update-url="{% url 'rolodex:ajax_update_objective_order' %}" objectives-update-csrftoken="{{ csrf_token }}" project-id="{{ project.id }}">
-        <thead>
+  <div class="objectives-workspace">
+    <table id="objectives-table" class="objectives-table" objectives-update-url="{% url 'rolodex:ajax_update_objective_order' %}" objectives-update-csrftoken="{{ csrf_token }}" project-id="{{ project.id }}">
+        <thead class="visually-hidden">
             <tr>
-                <th class="align-middle icon check-icon"></th>
-                <th class="align-middle icon ol-list-icon"></th>
-                <th class="align-middle icon expand-icon"></th>
-                <th class="align-middle">High-Level Objective</th>
+                <th>Complete</th>
+                <th>Reorder</th>
+                <th>Objective</th>
                 <th class="align-middle">Status</th>
                 <th class="align-middle">Progress</th>
                 <th class="align-middle">Deadline</th>
+                <th>Actions</th>
             </tr>
         </thead>
 
-
         {% group_by_priority project.projectobjective_set.all as priority_groups %}
         {% for group in priority_groups %}
-            <tbody>
-                <th id="{{ group|lower }}-header" class="priority-header {{ group|lower }} icon" colspan="7" scope="colgroup">{{ group }}</th>
+            <tbody class="objective-priority-heading">
+              <tr>
+                <th id="{{ group|lower }}-header" class="priority-header" colspan="7" scope="colgroup">{{ group }} objectives</th>
+              </tr>
             </tbody>
             <tbody id="{{ group|lower }}_priority" class="sortable_list connected_sortable">
                 {% if priority_groups|get_item:group %}
@@ -39,7 +40,7 @@
                         {% include "snippets/project_objective_row.html" %}
 
                         <!-- Collapsible Task Container -->
-                        <tr id="tasks-objective-row-{{ objective.id }}" data-id="ignore-{{ objective.id }}" class="accordion hiddenAccordion">
+                        <tr id="tasks-objective-row-{{ objective.id }}" data-id="ignore-{{ objective.id }}" class="accordion objective-tasks-row hiddenAccordion">
                             <td colspan="7">
                                 <div class="accordion-content">
                                     <div id="task-list-{{ objective.id }}">
@@ -54,9 +55,13 @@
                         <td colspan="7" scope="colgroup">Create a {{ group }} objective or drag-and-drop an objective here to update its priority.</td>
                     </tr>
                 {% endif %}
-            {% endfor %}
-        </tbody>
+            </tbody>
+        {% endfor %}
     </table>
+  </div>
 {% else %}
-   <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">No objectives have been set for this project yet.</div>
+   <div class="empty-state">
+       <p class="empty-state-title">No objectives yet</p>
+       <p class="empty-state-description">No objectives have been set for this project.</p>
+   </div>
 {% endif %}

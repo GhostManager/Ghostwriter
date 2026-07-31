@@ -14,59 +14,107 @@
 {% endblock %}
 
 {% block content %}
+  <div class="library-page oplog-library-page d-grid gap-4">
+    <header class="library-page-heading">
+      <div class="library-page-heading-main">
+        <div class="library-page-title-row">
+          <h2>Operation Logs</h2>
+          <span class="library-result-count">{{ oplog_list|length }} log{{ oplog_list|length|pluralize }}</span>
+        </div>
+        <p>Open an operation log, create a workspace for a project, or import an existing log.</p>
+      </div>
+      <div class="library-page-actions">
+        <a class="btn btn-primary icon add-icon" href="{% url 'oplog:oplog_create_no_project' %}">Create Log</a>
+        <a class="btn btn-outline-primary icon upload-icon" href="{% url 'oplog:oplog_import' %}">Import Log</a>
+        {% if oplog_list %}
+          <button id="resetSortBtn" class="btn btn-outline-secondary icon sync-icon"
+                  type="button">Reset Sort</button>
+        {% endif %}
+      </div>
+    </header>
+
     {% comment %} Conditional display of API key for newly created oplogs {% endcomment %}
     {% for message in messages %}
-        {% if "api-key" in message.tags %}
-            <div class="alert alert-success" role="alert">
-                <h4 style="margin-top: 0;" class="alert-heading">Hey You!</h4>
-                {{ message|linebreaks }}
-            </div>
-        {% endif %}
+      {% if "api-key" in message.tags %}
+        <div class="alert alert-success mb-0" role="alert">
+          <h4 class="alert-heading mt-0">Operation Log API Key</h4>
+          {{ message|linebreaks }}
+        </div>
+      {% endif %}
     {% endfor %}
 
-    <!-- Oplog Table Section -->
-    <div class="buttonHolder">
-      <a class="btn btn-primary icon add-icon col-2" href="{% url 'oplog:oplog_create_no_project' %}">Create Log</a>
-      <a class="btn btn-info icon upload-icon col-2" href="{% url 'oplog:oplog_import' %}">Import Log</a>
-      <a id="resetSortBtn" class="btn btn-secondary col-2 icon sync-icon" role="button">Reset Sort</a>
-    </div>
-    {% if oplog_list %}
-        <table id="oplogTable" class="tablesorter table table-hover table-striped table-sm">
+    <section class="library-results oplog-library-results" aria-label="Operation Logs">
+      {% if oplog_list %}
+        <div class="library-guidance" role="note">
+          <i class="fas fa-bell" aria-hidden="true"></i>
+          <p><strong>Notifications:</strong> active logs are included when Ghostwriter runs the “Review Active Logs” task.</p>
+        </div>
+        <div class="table-responsive data-table-frame library-table-frame">
+          <table id="oplogTable" class="tablesorter table table-hover library-table library-table-wide">
             <thead>
-                <tr>
-                    <th class="align-middle">ID</th>
-                    <th class="align-middle text-left">Name</th>
-                    <th class="align-middle text-left">Project</th>
-                    <th class="align-middle text-left sorter-false">
-                        <div class="dropdown dropleft">
-                            <span id="notification-info-btn" class="dropdown-info mr-2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Notifications</span>
-                                <div id="notification-info" class="dropdown-menu dropdown-info-content" aria-labelledby="notification-info-btn">
-                                <p>Notification status determines if Ghostwriter will send notifications for the log when the "Review Active Logs" task is run.</p>
-                            </div>
-                        </div>
-                    </th>
-                    <th class="sorter-false align-middle text-left">Export</th>
-                </tr>
+              <tr>
+                <th class="align-middle text-start">ID</th>
+                <th class="align-middle text-start">Name</th>
+                <th class="align-middle text-start">Project</th>
+                <th class="align-middle text-start sorter-false">Notifications</th>
+                <th class="sorter-false align-middle text-end">Export</th>
+              </tr>
             </thead>
-            {% for log in oplog_list %}
+            <tbody>
+              {% for log in oplog_list %}
                 <tr>
-                    <td class="align-middle">{{ log.id }}</td>
-                    <td class="align-middle text-left"><a class="clickable" href="{% url 'oplog:oplog_entries' log.pk %}">{{ log.name }}</a></td>
-                    <td class="align-middle text-left">{{ log.project.client.short_name }} {{ log.project.project_type }} ({{ log.project.start_date }})</td>
-                    <td class="align-middle pr-3 text-left">
-                        {% if log.mute_notifications %}
-                            <span class="icon silenced-notification-icon">Silenced</span>
-                        {% else %}
-                            <span class="icon notification-bell-icon">Active</span>
-                        {% endif %}
-                    </td>
-                    <td class="align-middle js-export-oplog" oplog-id="{{ log.pk }}" oplog-name="{{ log.name }}" export_url="{% url 'oplog:oplog_export' log.id %}"><a href="javascript:void(0);" class="icon export-icon"></a></td>
+                  <td class="align-middle text-start" data-label="ID">
+                    <span class="library-count-badge">{{ log.id }}</span>
+                  </td>
+                  <td class="align-middle text-start library-primary-cell" data-label="Name">
+                    <a class="library-primary-link" href="{% url 'oplog:oplog_entries' log.pk %}">
+                      <span>{{ log.name }}</span>
+                      <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                    </a>
+                  </td>
+                  <td class="align-middle text-start" data-label="Project">
+                    {{ log.project.client.short_name }} {{ log.project.project_type }} ({{ log.project.start_date }})
+                  </td>
+                  <td class="align-middle text-start" data-label="Notifications">
+                    {% if log.mute_notifications %}
+                      <span class="library-tag library-tag-neutral">
+                        <i class="fas fa-bell-slash" aria-hidden="true"></i>
+                        Silenced
+                      </span>
+                    {% else %}
+                      <span class="library-tag library-tag-success">
+                        <i class="fas fa-bell" aria-hidden="true"></i>
+                        Active
+                      </span>
+                    {% endif %}
+                  </td>
+                  <td class="align-middle text-end js-export-oplog" data-label="Export"
+                      oplog-id="{{ log.pk }}" oplog-name="{{ log.name }}"
+                      export_url="{% url 'oplog:oplog_export' log.id %}">
+                    <div class="library-row-actions">
+                      <button type="button" class="report-row-action"
+                              title="Export {{ log.name }}" aria-label="Export {{ log.name }}">
+                        <i class="fas fa-file-export" aria-hidden="true"></i>
+                      </button>
+                    </div>
+                  </td>
                 </tr>
-            {% endfor %}
-        </table>
-    {% else %}
-        <p class="mt-3">There are no logs to see here yet. Start or import a log up above.</p>
-    {% endif %}
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state m-3">
+          <p class="empty-state-title">No operation logs yet</p>
+          <p class="empty-state-description">Create a log for a project or import an existing operation log.</p>
+          <div class="d-flex flex-wrap gap-2 mt-3">
+            <a class="btn btn-primary btn-sm icon add-icon" href="{% url 'oplog:oplog_create_no_project' %}">Create Log</a>
+            <a class="btn btn-outline-primary btn-sm icon upload-icon" href="{% url 'oplog:oplog_import' %}">Import Log</a>
+          </div>
+        </div>
+      {% endif %}
+    </section>
+  </div>
 {% endblock %}
 
 {% block morescripts %}

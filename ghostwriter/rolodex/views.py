@@ -1362,9 +1362,7 @@ class ClientCreate(RoleBasedAccessControlMixin, CreateView):
     def get(self, request, *args, **kwargs):
         self.object = None
         self.contacts = ClientContactFormSet(prefix="poc")
-        self.contacts.extra = 1
         self.invites = ClientInviteFormSet(prefix="invite")
-        self.invites.extra = 1
         return super().get(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
@@ -1462,12 +1460,8 @@ class ClientUpdate(RoleBasedAccessControlMixin, UpdateView):
             ctx["invites"] = ClientInviteFormSet(self.request.POST, prefix="invite", instance=self.object)
         else:
             contacts = ClientContactFormSet(prefix="poc", instance=self.object)
-            if self.object.clientcontact_set.all().count() < 1:
-                contacts.extra = 1
             ctx["contacts"] = contacts
             invites = ClientInviteFormSet(prefix="invite", instance=self.object)
-            if self.object.clientinvite_set.all().count() < 1:
-                invites.extra = 1
             ctx["invites"] = invites
         return ctx
 

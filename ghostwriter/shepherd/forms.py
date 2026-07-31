@@ -10,13 +10,14 @@ from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 # 3rd Party Libraries
+from crispy_forms.bootstrap import TabHolder
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import HTML, ButtonHolder, Column, Div, Layout, Row, Submit
 
 # Ghostwriter Libraries
 from ghostwriter.api.utils import get_client_list
 from ghostwriter.commandcenter.forms import ExtraFieldsField
-from ghostwriter.modules.custom_layout_object import SwitchToggle
+from ghostwriter.modules.custom_layout_object import CustomTab, SwitchToggle
 from ghostwriter.modules.reportwriter.forms import JinjaRichTextField
 from ghostwriter.rolodex.models import Project
 from ghostwriter.shepherd.models import (
@@ -106,12 +107,17 @@ class CheckoutForm(forms.ModelForm):
             "description",
             "domain",
             ButtonHolder(
-                Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
+                Submit(
+                    "submit",
+                    "Save Changes" if self.instance.pk else "Check Out Domain",
+                    css_class="btn btn-primary",
+                ),
                 HTML(
                     """
-                    <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    <a href="{{ cancel_link }}" class="btn btn-outline-secondary">Cancel</a>
                     """
                 ),
+                css_class="resource-form-actions resource-form-actions-compact",
             ),
         )
 
@@ -204,65 +210,101 @@ class DomainForm(forms.ModelForm):
         self.helper.form_show_errors = False
         self.helper.form_id = "checkout-form"
         self.helper.layout = Layout(
-            HTML(
-                """
-                <h4 class="icon domain-icon">Domain Information</h4>
-                <hr>
-                """
+            TabHolder(
+                CustomTab(
+                    "Domain Information",
+                    HTML(
+                        """
+                        <div class="form-section-heading mb-3">
+                            <h2>Domain identity</h2>
+                            <p>Record ownership, lifecycle, and library metadata for this reusable asset.</p>
+                        </div>
+                        """
+                    ),
+                    Row(
+                        Column("name", css_class="form-group col-md-6 mb-0"),
+                        Column("registrar", css_class="form-group col-md-6 mb-0"),
+                        css_class="form-row",
+                    ),
+                    Row(
+                        Column("domain_status", css_class="form-group col-md-6 mb-0"),
+                        Column("tags", css_class="form-group col-md-6 mb-0"),
+                        css_class="form-row",
+                    ),
+                    Row(
+                        Column("creation", css_class="form-group col-md-6 mb-0"),
+                        Column("expiration", css_class="form-group col-md-6 mb-0"),
+                        css_class="form-row",
+                    ),
+                    Div(
+                        Div(SwitchToggle("auto_renew"), css_class="resource-toggle-item"),
+                        Div(SwitchToggle("reset_dns"), css_class="resource-toggle-item"),
+                        css_class="resource-toggle-grid resource-toggle-grid-two mb-3",
+                    ),
+                    HTML(
+                        """
+                        <div class="form-section-heading mt-2 mb-3">
+                            <h2>Operator context</h2>
+                            <p>Capture why the domain exists and any handling details the team should know.</p>
+                        </div>
+                        """
+                    ),
+                    "description",
+                    link_css_class="icon domain-icon",
+                    css_id="domain",
+                ),
+                CustomTab(
+                    "Health",
+                    HTML(
+                        """
+                        <div class="form-section-heading mb-3">
+                            <h2>Health and categorization</h2>
+                            <p>Track external reputation signals that determine whether this domain is safe to use.</p>
+                        </div>
+                        """
+                    ),
+                    Row(
+                        Column("whois_status", css_class="form-group col-md-6 mb-0"),
+                        Column("health_status", css_class="form-group col-md-6 mb-0"),
+                        css_class="form-row",
+                    ),
+                    link_css_class="icon heartbeat-icon",
+                    css_id="health",
+                ),
+                *(
+                    [
+                        CustomTab(
+                            "Extra Fields",
+                            "extra_fields",
+                            link_css_class="icon custom-field-icon",
+                            css_id="extra-fields",
+                        )
+                    ]
+                    if has_extra_fields
+                    else []
+                ),
+                template="tab.html",
+                css_class="nav-justified",
+                css_id="tab-bar",
             ),
-            Row(
-                Column("name", css_class="form-group col-md-6 mb-0"),
-                Column("registrar", css_class="form-group col-md-6 mb-0"),
-                css_class="form-row",
-            ),
-            Row(
-                Column("domain_status", css_class="form-group col-md-6 mb-0"),
-                Column("tags", css_class="form-group col-md-6 mb-0"),
-                css_class="form-row",
-            ),
-            Row(
-                Column("creation", css_class="form-group col-md-6 mb-0"),
-                Column("expiration", css_class="form-group col-md-6 mb-0"),
-                css_class="form-row",
-            ),
-            Row(
-                Column(SwitchToggle("auto_renew"), css_class="form-group col-md-6 mb-0"),
-                Column(SwitchToggle("reset_dns"), css_class="form-group col-md-6 mb-0"),
-                css_class="form-row",
-            ),
-            HTML(
-                """
-                <h4 class="icon heartbeat-icon">Health & Category Information</h4>
-                <hr>
-                """
-            ),
-            Row(
-                Column("whois_status", css_class="form-group col-md-6 mb-0"),
-                Column("health_status", css_class="form-group col-md-6 mb-0"),
-                css_class="form-row",
-            ),
-            HTML(
-                """
-                <h4 class="icon comment-icon">Additional Information</h4>
-                <hr>
-                """
-            ),
-            "description",
-            HTML(
-                """
-                <h4 class="icon custom-field-icon">Extra Fields</h4>
-                <hr />
-                """
-            ) if has_extra_fields else None,
-            "extra_fields" if has_extra_fields else None,
-            ButtonHolder(
-                Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
+            Div(
                 HTML(
                     """
-                    <button onclick="window.location.href='{{ cancel_link }}'"
-                    class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    <span class="resource-form-actions-context">
+                        {% if object.pk %}Editing {{ object.name }}{% else %}Adding a domain{% endif %}
+                    </span>
                     """
                 ),
+                Div(
+                    HTML("""<a href="{{ cancel_link }}" class="btn btn-outline-secondary">Cancel</a>"""),
+                    Submit(
+                        "submit",
+                        "Save Changes" if self.instance.pk else "Add Domain",
+                        css_class="btn btn-primary",
+                    ),
+                    css_class="resource-form-actions-buttons",
+                ),
+                css_class="resource-form-actions",
             ),
         )
 
@@ -359,13 +401,17 @@ class DomainLinkForm(forms.ModelForm):
             ),
             "project",
             ButtonHolder(
-                Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
+                Submit(
+                    "submit",
+                    "Save Connection" if self.instance.pk else "Create Connection",
+                    css_class="btn btn-primary",
+                ),
                 HTML(
                     """
-                    <button onclick="window.location.href='{{ cancel_link }}'"
-                    class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    <a href="{{ cancel_link }}" class="btn btn-outline-secondary">Cancel</a>
                     """
                 ),
+                css_class="resource-form-actions resource-form-actions-compact",
             ),
         )
 
@@ -435,12 +481,12 @@ class BurnForm(forms.ModelForm):
         self.helper.layout = Layout(
             "burned_explanation",
             ButtonHolder(
-                Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
                     """
-                    <button onclick="window.location.href='{{ cancel_link }}'"
-                    class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    <a href="{{ cancel_link }}" class="btn btn-outline-secondary">Cancel</a>
                     """
                 ),
+                Submit("submit", "Mark as Burned", css_class="btn btn-primary"),
+                css_class="resource-form-actions resource-form-actions-compact",
             ),
         )

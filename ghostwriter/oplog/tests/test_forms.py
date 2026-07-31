@@ -124,10 +124,10 @@ class OplogEntryFormTests(TestCase):
     def test_command_and_output_are_plaintext_fields(self):
         form = OplogEntryForm(oplog=self.oplog)
 
-        self.assertIn("no-auto-tinymce", form.fields["command"].widget.attrs["class"])
-        self.assertIn("no-auto-tinymce", form.fields["output"].widget.attrs["class"])
-        self.assertNotIn("no-auto-tinymce", form.fields["description"].widget.attrs.get("class", ""))
-        self.assertNotIn("no-auto-tinymce", form.fields["comments"].widget.attrs.get("class", ""))
+        self.assertIn("no-auto-rich-text", form.fields["command"].widget.attrs["class"])
+        self.assertIn("no-auto-rich-text", form.fields["output"].widget.attrs["class"])
+        self.assertNotIn("no-auto-rich-text", form.fields["description"].widget.attrs.get("class", ""))
+        self.assertNotIn("no-auto-rich-text", form.fields["comments"].widget.attrs.get("class", ""))
 
     @patch("ghostwriter.oplog.forms.timezone.now")
     def test_datetime_initials_use_active_timezone(self, mock_now):

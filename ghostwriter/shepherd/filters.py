@@ -50,7 +50,13 @@ class DomainFilter(django_filters.FilterSet):
     domain = django_filters.CharFilter(
         method="search_name_and_category",
         label="Domain Name or Category Contains",
-        widget=TextInput(attrs={"placeholder": "Partial Domain Name or Category", "autocomplete": "off"}),
+        widget=TextInput(
+            attrs={
+                "placeholder": "Partial Domain Name or Category",
+                "autocomplete": "off",
+                "data-1p-ignore": "true",
+            }
+        ),
     )
     tags = django_filters.CharFilter(
         method="search_tags",
@@ -59,6 +65,7 @@ class DomainFilter(django_filters.FilterSet):
             attrs={
                 "placeholder": "Domain Tag",
                 "autocomplete": "off",
+                "data-1p-ignore": "true",
             }
         ),
     )
@@ -126,6 +133,7 @@ class DomainFilter(django_filters.FilterSet):
                         Row(
                           Column(
                               SwitchToggle("exclude_expired"),
+                              css_class="col-md-12 mb-3 library-filter-boolean",
                           ),
                             css_class="form-row",
                         ),
@@ -141,13 +149,13 @@ class DomainFilter(django_filters.FilterSet):
                             css_class="form-row",
                         ),
                         ButtonHolder(
-                            Submit("submit_btn", "Filter", css_class="btn btn-primary col-1"),
+                            Submit("submit_btn", "Filter", css_class="btn btn-primary"),
                             HTML(
                                 """
-                                <a class="btn btn-outline-secondary col-1" role="button" href="{%  url 'shepherd:domains' %}">Reset</a>
+                                <a class="btn btn-outline-secondary" role="button" href="{%  url 'shepherd:domains' %}">Reset</a>
                                 """
                             ),
-                            css_class="mt-3",
+                            css_class="library-filter-actions mt-1",
                         ),
                     ),
                     active=is_active,
@@ -194,7 +202,13 @@ class ServerFilter(django_filters.FilterSet):
     server = django_filters.CharFilter(
         method="search_name_and_address",
         label="IP Address or Hostname Contains",
-        widget=TextInput(attrs={"placeholder": "Partial IP Address or Hostname", "autocomplete": "off"}),
+        widget=TextInput(
+            attrs={
+                "placeholder": "Partial IP Address or Hostname",
+                "autocomplete": "off",
+                "data-1p-ignore": "true",
+            }
+        ),
     )
     tags = django_filters.CharFilter(
         method="search_tags",
@@ -203,6 +217,7 @@ class ServerFilter(django_filters.FilterSet):
             attrs={
                 "placeholder": "Server Tag",
                 "autocomplete": "off",
+                "data-1p-ignore": "true",
             }
         ),
     )
@@ -257,13 +272,13 @@ class ServerFilter(django_filters.FilterSet):
                             css_class="form-row",
                         ),
                         ButtonHolder(
-                            Submit("submit_btn", "Filter", css_class="btn btn-primary col-1"),
+                            Submit("submit_btn", "Filter", css_class="btn btn-primary"),
                             HTML(
                                 """
-                                <a class="btn btn-outline-secondary col-1" role="button" href="{%  url 'shepherd:servers' %}">Reset</a>
+                                <a class="btn btn-outline-secondary" role="button" href="{%  url 'shepherd:servers' %}">Reset</a>
                                 """
                             ),
-                            css_class="mt-3",
+                            css_class="library-filter-actions mt-1",
                         ),
                     ),
                     active=is_active,

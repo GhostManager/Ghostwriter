@@ -4,7 +4,7 @@
 
 {% load bleach_tags custom_tags %}
 
-{% block pagetitle %}Project List{% endblock %}
+{% block pagetitle %}Project Library{% endblock %}
 
 {% block breadcrumbs %}
   <nav aria-label="breadcrumb">
@@ -16,56 +16,113 @@
 {% endblock %}
 
 {% block content %}
-  <!-- Filter Section -->
-  <div class="filter-form">
-    {% crispy filter.form filter.helper %}
+  <div class="library-page project-library-page d-grid gap-4">
+    <header class="library-page-heading">
+      <div class="library-page-heading-main">
+        <div class="library-page-title-row">
+          <h2>Project Library</h2>
+          <span class="library-result-count">{{ filter.qs|length }} project{{ filter.qs|length|pluralize }}</span>
+        </div>
+        <p>Find active and completed projects, review their execution windows, or create a new engagement.</p>
+      </div>
+      <div class="library-page-actions">
+        <a class="btn btn-primary icon add-icon" role="button"
+           href="{% url 'rolodex:project_create_no_client' %}">Create Project</a>
+        {% if filter.qs|length > 0 %}
+          <button id="resetSortBtn" class="btn btn-outline-secondary icon sync-icon"
+                  type="button">Reset Sort</button>
+        {% endif %}
+      </div>
+    </header>
+
+    <div class="filter-form library-filters project-library-filters">
+      {% crispy filter.form filter.helper %}
+    </div>
+
+    {% if not request.user|is_privileged %}
+      <div class="alert alert-info d-flex gap-3 align-items-start mb-0" role="status">
+        <i class="fas fa-user-shield mt-1" aria-hidden="true"></i>
+        <div>
+          <strong>Showing projects you can access</strong>
+          <div>Access comes from a project assignment, project invitation, or invitation to the related client.</div>
+        </div>
+      </div>
+    {% endif %}
+
+    <section class="library-results project-library-results" aria-label="Projects">
+      {% if filter.qs|length == 0 %}
+        <div class="empty-state m-3">
+          {% if request.GET %}
+            <p class="empty-state-title">No matching projects</p>
+            <p class="empty-state-description">Try broadening your filters or reset them to view all accessible projects.</p>
+            <a class="btn btn-outline-secondary btn-sm mt-3" href="{% url 'rolodex:projects' %}">Reset filters</a>
+          {% elif not request.user|is_privileged %}
+            <p class="empty-state-title">No accessible projects</p>
+            <p class="empty-state-description">You will see a project here after you are assigned or invited to it.</p>
+          {% else %}
+            <p class="empty-state-title">No projects yet</p>
+            <p class="empty-state-description">Create the first project to begin planning an engagement.</p>
+            <a class="btn btn-primary btn-sm icon add-icon mt-3"
+               href="{% url 'rolodex:project_create_no_client' %}">Create Project</a>
+          {% endif %}
+        </div>
+      {% else %}
+        <div class="table-responsive data-table-frame library-table-frame">
+          <table id="projectTable" class="tablesorter table table-hover library-table library-table-wide">
+            <thead>
+              <tr>
+                <th class="align-middle text-start">Client</th>
+                <th class="align-middle text-start">Project</th>
+                <th class="align-middle text-start">Project Type</th>
+                <th class="sorter-date-range-dMMMyyyy align-middle text-start">Execution Window</th>
+                <th class="sorter-false align-middle text-end">Details</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for project in filter.qs %}
+                <tr>
+                  <td class="align-middle text-start" data-label="Client">
+                    <a class="clickable" href="{{ project.client.get_absolute_url }}">
+                      {{ project.client.name }}{% if project.client.short_name %} ({{ project.client.short_name }}){% endif %}
+                    </a>
+                  </td>
+                  <td class="align-middle text-start library-primary-cell" data-label="Project">
+                    <a class="library-primary-link" href="{{ project.get_absolute_url }}">
+                      <span>{{ project.codename }}</span>
+                      <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                    </a>
+                  </td>
+                  <td class="align-middle text-start" data-label="Project Type">
+                    <span class="library-tag library-tag-info" title="{{ project.project_type }}">
+                      <i class="fas fa-project-diagram" aria-hidden="true"></i>
+                      <span class="library-tag-value">{{ project.project_type }}</span>
+                    </span>
+                  </td>
+                  <td class="align-middle text-start" data-label="Execution Window"
+                      data-text="{{ project.start_date|date:"Y-m-d" }}">
+                    {{ project.start_date|date:"DATE_FORMAT" }} – {{ project.end_date|date:"DATE_FORMAT" }}
+                  </td>
+                  <td class="align-middle text-end" data-label="Details">
+                    <div class="library-row-actions">
+                      <button type="button" class="report-row-action"
+                              title="Preview project" aria-label="Preview {{ project.codename }}"
+                              onclick="openModal('#project_detail_{{ project.id }}')">
+                        <i class="fas fa-eye" aria-hidden="true"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+    </section>
   </div>
-
-  <a class="btn btn-info col-2 icon add-icon mt-2" role="button" href="{%  url 'rolodex:project_create_no_client' %}">Create Project</a>
-  <a id="resetSortBtn" class="btn btn-secondary col-2 icon sync-icon mt-2" role="button">Reset Sort</a>
-
-  {% if not request.user|is_privileged %}
-    <div class="alert alert-success offset-md-3 col-md-6 mt-3" role="alert">Projects shown here are projects to which you have access. You gain access to a project by being assigned to it or invited to have full access to the related client's history.</div>
-  {% endif %}
-
-  {% if filter.qs|length == 0 %}
-    <div class="alert alert-warning offset-md-2 col-md-8 mt-3" role="alert">There are no projects to see here yet, you lack access to the project(s), or your search returned no results. Create a project above or adjust your filters.</div>
-  {% else %}
-    <table id="projectTable" class="tablesorter table table-sm table-hover">
-      <thead>
-      <tr>
-        <th class="align-middle text-left">Client</th>
-        <th class="align-middle text-left">Project</th>
-        <th class="align-middle text-left">Project Type</th>
-        <th class="sorter-date-range-dMMMyyyy align-middle text-left">Execution Window</th>
-        <th class="sorter-false align-middle text-left">Details</th>
-      </tr>
-      </thead>
-      {% for project in filter.qs %}
-        <tr>
-          <td class="align-middle text-left"><a class="clickable" href="{{ project.client.get_absolute_url }}">
-            {{ project.client.name }}{% if project.client.short_name %} ({{ project.client.short_name }}){% endif %}
-          </a></td>
-          <td class="align-middle text-left"><a class="clickable" href="{{ project.get_absolute_url }}">{{ project.codename }}</a>
-          </td>
-          <td class="align-middle text-left">{{ project.project_type }}</td>
-          <td class="align-middle text-left" data-text="{{ project.start_date|date:"Y-m-d" }}">{{ project.start_date|date:"DATE_FORMAT" }} – {{ project.end_date|date:"DATE_FORMAT" }}</td>
-          <td class="align-middle">
-            <div class="d-flex justify-content-center">
-              <span
-                class="icon preview-icon clickable-link"
-                title="View additional information"
-                onclick="openModal('#project_detail_{{ project.id }}')"
-              ></span>
-            </div>
-          </td>
-        </tr>
-      {% endfor %}
-    </table>
-  {% endif %}
 {% endblock %}
 
 {% block morescripts %}
+  {{ autocomplete_data|json_script:"project-autocomplete-data" }}
   <!-- jQuery Tablesorter Script -->
   <script>
     $(document).ready(function () {

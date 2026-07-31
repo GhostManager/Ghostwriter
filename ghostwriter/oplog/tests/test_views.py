@@ -92,6 +92,19 @@ class OplogListViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "oplog/oplog_list.html")
 
+    def test_oplog_library_uses_shared_library_layout(self):
+        OplogFactory.create_batch(2)
+        response = self.client_mgr.get(self.uri)
+
+        self.assertContains(response, 'class="library-page oplog-library-page d-grid gap-4"')
+        self.assertContains(response, '<h2>Operation Logs</h2>')
+        self.assertContains(response, 'class="library-results oplog-library-results"')
+        self.assertContains(response, "library-table library-table-wide")
+        self.assertContains(response, "library-tag library-tag-success")
+        self.assertContains(response, 'class="library-primary-link"', count=2)
+        self.assertNotContains(response, "buttonHolder")
+        self.assertNotContains(response, 'id="oplog-library-results-title"')
+
     def test_oplog_list_values(self):
         OplogFactory.create_batch(5)
         test_log = self.Oplog.objects.all()[0]

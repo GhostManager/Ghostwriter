@@ -1,77 +1,86 @@
-{% load custom_tags %}
+{% load bleach_tags custom_tags %}
 
 {% if res.findings or res.finding_assets or res.domains %}
     {% if res.domains %}
-        <h5>BloodHound Domain Information</h5>
-        <hr />
-        <p>Expand the sections below to view detailed information about each domain.</p>
-        <div id="bh_domains_accordion" class="finding-accordion">
+        <header class="content-section-header project-subsection-header bh-section-header">
+            <div class="content-section-heading">
+                <h5>Domain overview</h5>
+                <p class="content-section-intro">Compare directory inventory and collection quality across environments, then expand a domain for operating system and trust details.</p>
+            </div>
+        </header>
+        <div id="bh_domains_accordion" class="finding-accordion bh-domain-accordion">
             {% for domain in res.domains %}
-            <div class="card">
-                <div class="card-header d-flex align-items-center" data-toggle="collapse" data-target="#bh_domain_{{ forloop.counter }}">
-                    <div>
-                        <strong>{{ domain.name }}</strong>
+            <article class="card bh-domain-card">
+                <button type="button"
+                        class="card-header bh-domain-summary"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#bh_domain_{{ forloop.counter }}"
+                        aria-expanded="false"
+                        aria-controls="bh_domain_{{ forloop.counter }}">
+                    <span class="bh-domain-identity">
+                        <strong class="bh-domain-name">{{ domain.name }}</strong>
                         <span
-                            class="badge badge-secondary functional-lvl-badge ml-2"
-                            data-toggle="tooltip"
-                            data-placement="top"
+                            class="badge badge-secondary functional-lvl-badge"
+                            data-bs-toggle="tooltip"
+                            data-bs-placement="top"
                             title="Domain's functional level as reported by BloodHound."
                         >
                             {{ domain.functional_level|default:"Unknown" }}
                         </span>
-                    </div>
-                    <div class="ml-auto mr-2 domain-stats">
+                        {% if not domain.functional_level and not domain.users.count and not domain.computers.count and not domain.data_quality.groups %}
+                        <span class="bh-domain-data-badge">No collected objects</span>
+                        {% endif %}
+                    </span>
+                    <span class="domain-stats" aria-label="Domain statistics">
                         <span
                             class="stat-item"
-                            data-toggle="tooltip"
-                            data-placement="top"
+                            data-bs-toggle="tooltip"
+                            data-bs-placement="top"
                             title="Number of users in the domain."
                         >
                             <i class="fas fa-users" aria-hidden="true"></i>
-                            <span class="sr-only">Users:</span>
-                            <span class="stat-value">{{ domain.users.count }}</span>
+                            <span class="stat-content"><span class="stat-label">Users</span><strong class="stat-value">{{ domain.users.count }}</strong></span>
                         </span>
                         <span
                             class="stat-item"
-                            data-toggle="tooltip"
-                            data-placement="top"
+                            data-bs-toggle="tooltip"
+                            data-bs-placement="top"
                             title="Number of computers in the domain."
                         >
                             <i class="fas fa-desktop" aria-hidden="true"></i>
-                            <span class="sr-only">Computers:</span>
-                            <span class="stat-value">{{ domain.computers.count }}</span>
+                            <span class="stat-content"><span class="stat-label">Computers</span><strong class="stat-value">{{ domain.computers.count }}</strong></span>
                         </span>
                         <span
                             class="stat-item"
-                            data-toggle="tooltip"
-                            data-placement="top"
+                            data-bs-toggle="tooltip"
+                            data-bs-placement="top"
                             title="Number of groups in the domain."
                         >
                             <i class="fas fa-users-cog" aria-hidden="true"></i>
-                            <span class="sr-only">Groups:</span>
-                            <span class="stat-value">{{ domain.data_quality.groups|default:0 }}</span>
+                            <span class="stat-content"><span class="stat-label">Groups</span><strong class="stat-value">{{ domain.data_quality.groups|default:0 }}</strong></span>
                         </span>
-                    </div>
-                </div>
-                <div id="bh_domain_{{ forloop.counter }}" class="collapse" data-parent="#bh_domains_accordion">
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-7">
-                                <h6 class="text-muted text-left">Domain Information</h6>
+                    </span>
+                    <span class="bh-collapse-indicator" aria-hidden="true"><span class="bh-collapse-glyph"></span></span>
+                </button>
+                <div id="bh_domain_{{ forloop.counter }}" class="collapse bh-domain-collapse" data-bs-parent="#bh_domains_accordion">
+                    <div class="card-body bh-domain-body">
+                        <div class="row g-3">
+                            <section class="col-md-7 bh-detail-panel">
+                                <h6 class="bh-detail-heading">Domain information</h6>
                                 <dl class="row mb-0">
-                                    <dt class="col-sm-6 text-left">Distinguished Name:</dt>
-                                    <dd class="col-sm-6 text-left">{{ domain.distinguished_name|default:"N/A" }}</dd>
+                                    <dt class="col-sm-6 text-start">Distinguished Name:</dt>
+                                    <dd class="col-sm-6 text-start">{{ domain.distinguished_name|default:"N/A" }}</dd>
 
-                                    <dt class="col-sm-6 text-left">Domain SID:</dt>
-                                    <dd class="col-sm-6 text-left"><code class="small">{{ domain.domain_sid|default:"N/A" }}</code></dd>
+                                    <dt class="col-sm-6 text-start">Domain SID:</dt>
+                                    <dd class="col-sm-6 text-start"><code class="small">{{ domain.domain_sid|default:"N/A" }}</code></dd>
 
-                                    <dt class="col-sm-6 text-left">Functional Level:</dt>
-                                    <dd class="col-sm-6 text-left">{{ domain.functional_level|default:"Unknown" }}</dd>
+                                    <dt class="col-sm-6 text-start">Functional Level:</dt>
+                                    <dd class="col-sm-6 text-start">{{ domain.functional_level|default:"Unknown" }}</dd>
                                 </dl>
 
                                 {% if domain.computers.operating_systems %}
-                                <h6 class="text-muted mt-3 text-left">Operating Systems</h6>
-                                <ul class="list-unstyled mb-0 text-left">
+                                <h6 class="text-muted mt-3 text-start">Operating Systems</h6>
+                                <ul class="list-unstyled mb-0 text-start">
                                     {% for os, count in domain.computers.operating_systems.items %}
                                     {% if os != "null" %}
                                     <li><span class="badge badge-secondary">{{ os|title }}</span> <span class="text-muted">({{ count }})</span></li>
@@ -81,11 +90,11 @@
                                 {% endif %}
 
                                 {% if domain.inbound_trusts or domain.outbound_trusts %}
-                                <h6 class="text-muted mt-3 text-left">Trust Relationships</h6>
+                                <h6 class="text-muted mt-3 text-start">Trust Relationships</h6>
                                 <dl class="row mb-0">
                                     {% if domain.inbound_trusts %}
-                                    <dt class="col-sm-6 text-left">Inbound Trusts:</dt>
-                                    <dd class="col-sm-6 text-left">
+                                    <dt class="col-sm-6 text-start">Inbound Trusts:</dt>
+                                    <dd class="col-sm-6 text-start">
                                         {% for trust in domain.inbound_trusts %}
                                         <span class="badge badge-primary">{{ trust.name }}</span>{% if not forloop.last %} {% endif %}
                                         {% endfor %}
@@ -93,8 +102,8 @@
                                     {% endif %}
 
                                     {% if domain.outbound_trusts %}
-                                    <dt class="col-sm-6 text-left">Outbound Trusts:</dt>
-                                    <dd class="col-sm-6 text-left">
+                                    <dt class="col-sm-6 text-start">Outbound Trusts:</dt>
+                                    <dd class="col-sm-6 text-start">
                                         {% for trust in domain.outbound_trusts %}
                                         <span class="badge badge-warning">{{ trust.name }}</span>{% if not forloop.last %} {% endif %}
                                         {% endfor %}
@@ -102,16 +111,16 @@
                                     {% endif %}
                                 </dl>
                                 {% endif %}
-                            </div>
+                            </section>
 
-                            <div class="col-md-5">
-                                <h6 class="text-muted text-left">Statistics</h6>
+                            <section class="col-md-5 bh-detail-panel">
+                                <h6 class="bh-detail-heading">Collection statistics</h6>
                                 <dl class="row mb-0">
-                                    <dt class="col-sm-6 text-left">Total Users:</dt>
-                                    <dd class="col-sm-6 text-left">{{ domain.users.count }}</dd>
+                                    <dt class="col-sm-6 text-start">Total Users:</dt>
+                                    <dd class="col-sm-6 text-start">{{ domain.users.count }}</dd>
 
-                                    <dt class="col-sm-6 text-left">Users with Old Passwords:</dt>
-                                    <dd class="col-sm-6 text-left">
+                                    <dt class="col-sm-6 text-start">Users with Old Passwords:</dt>
+                                    <dd class="col-sm-6 text-start">
                                         {{ domain.users.with_old_pw }}
                                         {% if domain.users.count > 0 %}
                                         {% widthratio domain.users.with_old_pw domain.users.count 100 as percentage %}
@@ -119,135 +128,457 @@
                                         {% endif %}
                                     </dd>
 
-                                    <dt class="col-sm-6 text-left">Total Computers:</dt>
-                                    <dd class="col-sm-6 text-left">{{ domain.computers.count }}</dd>
+                                    <dt class="col-sm-6 text-start">Total Computers:</dt>
+                                    <dd class="col-sm-6 text-start">{{ domain.computers.count }}</dd>
 
-                                    <dt class="col-sm-6 text-left">Total Groups:</dt>
-                                    <dd class="col-sm-6 text-left">{{ domain.data_quality.groups|default:0 }}</dd>
+                                    <dt class="col-sm-6 text-start">Total Groups:</dt>
+                                    <dd class="col-sm-6 text-start">{{ domain.data_quality.groups|default:0 }}</dd>
 
-                                    <dt class="col-sm-6 text-left">Sessions:</dt>
-                                    <dd class="col-sm-6 text-left">{{ domain.data_quality.sessions|default:0 }}</dd>
+                                    <dt class="col-sm-6 text-start">Sessions:</dt>
+                                    <dd class="col-sm-6 text-start">{{ domain.data_quality.sessions|default:0 }}</dd>
 
-                                    <dt class="col-sm-6 text-left">GPOs:</dt>
-                                    <dd class="col-sm-6 text-left">{{ domain.data_quality.gpos|default:0 }}</dd>
+                                    <dt class="col-sm-6 text-start">GPOs:</dt>
+                                    <dd class="col-sm-6 text-start">{{ domain.data_quality.gpos|default:0 }}</dd>
 
-                                    <dt class="col-sm-6 text-left">ACLs:</dt>
-                                    <dd class="col-sm-6 text-left">{{ domain.data_quality.acls|default:0 }}</dd>
+                                    <dt class="col-sm-6 text-start">ACLs:</dt>
+                                    <dd class="col-sm-6 text-start">{{ domain.data_quality.acls|default:0 }}</dd>
 
-                                    <dt class="col-sm-6 text-left">Relationships:</dt>
-                                    <dd class="col-sm-6 text-left">{{ domain.data_quality.relationships|default:0 }}</dd>
+                                    <dt class="col-sm-6 text-start">Relationships:</dt>
+                                    <dd class="col-sm-6 text-start">{{ domain.data_quality.relationships|default:0 }}</dd>
                                 </dl>
-                            </div>
+
+                                {% if "session_completeness" in domain.data_quality or "local_group_completeness" in domain.data_quality %}
+                                <div class="bh-coverage-metrics" aria-label="Collection completeness">
+                                    {% if "session_completeness" in domain.data_quality %}
+                                    <div class="bh-coverage-metric">
+                                        <span>Session completeness</span>
+                                        <strong>{{ domain.data_quality.session_completeness|floatformat:0 }}%</strong>
+                                    </div>
+                                    {% endif %}
+                                    {% if "local_group_completeness" in domain.data_quality %}
+                                    <div class="bh-coverage-metric">
+                                        <span>Local group completeness</span>
+                                        <strong>{{ domain.data_quality.local_group_completeness|floatformat:0 }}%</strong>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                            </section>
                         </div>
                     </div>
                 </div>
-            </div>
+            </article>
             {% endfor %}
         </div>
     {% endif %}
 
     {% if res.findings %}
-        <h5 class="mt-3">BloodHound Enterprise Findings</h5>
-        <hr />
-        <p>Expand the section below to view detailed findings from BloodHound Enterprise.</p>
-        <a id="resetSortBtn" class="btn btn-secondary col-2 icon sync-icon" role="button">Reset Sort</a>
-        <table id="bheFindingsTable" class="table table-striped table-sm">
-            <thead>
-                <tr>
-                    <th class="sortable align-middle text-left">Severity</th>
-                    <th class="sortable align-middle text-left">Environment</th>
-                    <th class="sortable align-middle text-left">Name</th>
-                    <th class="sortable align-middle text-left">Type</th>
-                    <th class="sortable align-middle text-left">Targets</th>
-                </tr>
-            </thead>
-            <tbody>
-            {% for finding in res.findings %}
-                <tr>
-                    <td class="align-middle text-left">
+        {% prepare_bhe_findings res.findings res.domains as bhe %}
+        <section id="bheFindingsWorkspace" class="bhe-findings-workspace" aria-labelledby="bhe-findings-heading">
+            <header class="content-section-header project-subsection-header bhe-findings-header">
+                <div class="content-section-heading">
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <h5 id="bhe-findings-heading">Enterprise findings</h5>
+                        <span class="bhe-enterprise-badge">BHE</span>
+                    </div>
+                    <p class="content-section-intro">Triage exposure findings returned by BloodHound Enterprise and preview the affected principals, context, and remediation.</p>
+                </div>
+                <div class="bhe-findings-summary" aria-label="Enterprise finding summary">
+                    <span><strong>{{ bhe.total }}</strong> finding{{ bhe.total|pluralize }}</span>
+                    <span><strong>{{ bhe.critical }}</strong> critical</span>
+                    <span><strong>{{ bhe.environment_count }}</strong> affected environment{{ bhe.environment_count|pluralize }}</span>
+                    <span><strong>{{ bhe.principal_count }}</strong> principal record{{ bhe.principal_count|pluralize }}</span>
+                </div>
+            </header>
 
-                        {% comment %}
-                            Use data-text attribute for proper sorting with a severity weight + impact percentage
-                            This method properly sorts Critical @ 100% above Critical @ 99.99% and so on
-                        {% endcomment %}
-                        <span class="
-                            {% if finding.severity == 'Critical' %}critical" data-text="1"
-                            {% elif finding.severity == 'High' %}high" data-text="2"
-                            {% elif finding.severity == 'Moderate' %}medium" data-text="3"
-                            {% else %}low" data-text="4"
-                            {% endif %}>
-                        {{ finding.severity }}
-                        </span>
+            <div class="bhe-severity-filters" aria-label="Filter Enterprise findings by severity">
+                <button type="button" class="bhe-filter-chip is-active" data-bhe-severity-filter="" aria-pressed="true">
+                    All <span>{{ bhe.total }}</span>
+                </button>
+                {% for group in bhe.groups %}
+                <button type="button"
+                        class="bhe-filter-chip severity-{{ group.key }}"
+                        data-bhe-severity-filter="{{ group.key }}"
+                        aria-pressed="false">
+                    <span class="bhe-severity-dot" aria-hidden="true"></span>
+                    {{ group.label }} <span>{{ group.items|length }}</span>
+                </button>
+                {% endfor %}
+            </div>
 
-                    </td>
-                    <td class="align-middle text-left">{{ finding.environment_id|translate_domain_sid:res.domains }}</td>
-                    <td class="align-middle text-left">
-                        {% if finding.assets.title %}
-                            {{ finding.assets.title|striptags }}
-                        {% else %}
-                            {{ finding.finding_name }}
-                        {% endif %}
-                    </td>
-                    <td class="align-middle text-left">
-                        {% if finding.assets.type %}
-                            {{ finding.assets.type|striptags }}
-                        {% else %}
-                            --
-                        {% endif %}</td>
-                    <td class="align-middle text-left">{{ finding.principals|length }}</td>
-                </tr>
+            <div class="bhe-filter-toolbar" role="search" aria-label="Search and filter Enterprise findings">
+                <div class="bhe-search-control">
+                    <label class="visually-hidden" for="bheFindingSearch">Search Enterprise findings</label>
+                    <i class="fas fa-search" aria-hidden="true"></i>
+                    <input id="bheFindingSearch"
+                           type="search"
+                           class="form-control"
+                           placeholder="Search findings, environments, or categories"
+                           autocomplete="off"
+                           data-1p-ignore="true">
+                </div>
+                <div class="bhe-filter-control">
+                    <label class="visually-hidden" for="bheEnvironmentFilter">Filter by environment</label>
+                    <select id="bheEnvironmentFilter" class="form-select" aria-label="Filter by environment">
+                        <option value="">All environments</option>
+                        {% for environment in bhe.environments %}
+                        <option value="{{ environment.key }}">{{ environment.label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="bhe-filter-control">
+                    <label class="visually-hidden" for="bheCategoryFilter">Filter by attack-path category</label>
+                    <select id="bheCategoryFilter" class="form-select" aria-label="Filter by attack-path category">
+                        <option value="">All categories</option>
+                        {% for category in bhe.categories %}
+                        <option value="{{ category.key }}">{{ category.label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <label class="bhe-tier-zero-filter" for="bheTierZeroFilter">
+                    <input id="bheTierZeroFilter" class="form-check-input" type="checkbox">
+                    <span>Tier Zero only</span>
+                </label>
+                <button id="bheClearFilters" type="button" class="btn btn-secondary btn-sm" disabled>Clear filters</button>
+            </div>
+
+            <div class="bhe-results-status" aria-live="polite">
+                Showing <strong id="bheVisibleCount">{{ bhe.total }}</strong> of {{ bhe.total }} findings
+            </div>
+
+            <div class="bhe-severity-groups">
+                {% for group in bhe.groups %}
+                <section class="bhe-severity-group severity-{{ group.key }}" data-bhe-severity-group="{{ group.key }}">
+                    <header class="bhe-severity-heading">
+                        <span class="bhe-severity-dot" aria-hidden="true"></span>
+                        <span>{{ group.label }}</span>
+                        <span class="bhe-severity-count" data-bhe-group-count>{{ group.items|length }}</span>
+                    </header>
+                    <div class="bhe-finding-list">
+                        {% for item in group.items %}
+                        <article class="bhe-finding-row"
+                                 data-bhe-row
+                                 data-bhe-severity="{{ item.severity_key }}"
+                                 data-bhe-environment="{{ item.environment_key }}"
+                                 data-bhe-category="{{ item.category_key }}"
+                                 data-bhe-tier-zero="{{ item.is_tier_zero|yesno:'true,false' }}"
+                                 data-bhe-search="{{ item.search_text }}">
+                            <div class="bhe-finding-identity">
+                                <h6 class="bhe-finding-title">{{ item.title|striptags }}</h6>
+                                <div class="bhe-finding-metadata">
+                                    <span class="bhe-finding-category">{{ item.category|striptags }}</span>
+                                    <span aria-hidden="true">·</span>
+                                    <span class="bhe-finding-environment">
+                                        <i class="fas fa-sitemap" aria-hidden="true"></i>
+                                        {{ item.environment }}
+                                    </span>
+                                    {% if item.is_tier_zero %}
+                                    <span class="bhe-tier-zero-badge">
+                                        <i class="fas fa-gem" aria-hidden="true"></i>
+                                        Tier Zero
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="bhe-finding-principal-count">
+                                <strong>{{ item.principal_count }}</strong>
+                                <span>Affected principal{{ item.principal_count|pluralize }}</span>
+                            </div>
+                            <button type="button"
+                                    class="btn btn-outline-secondary btn-sm table-row-action bhe-preview-button"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#{{ item.modal_id }}"
+                                    title="Preview finding"
+                                    aria-label="Preview {{ item.title|striptags }}">
+                                <i class="fas fa-eye" aria-hidden="true"></i>
+                            </button>
+                        </article>
+                        {% endfor %}
+                    </div>
+                </section>
+                {% endfor %}
+            </div>
+
+            <div id="bheNoResults" class="empty-state d-none">
+                <p class="empty-state-title">No matching Enterprise findings</p>
+                <p class="empty-state-description">Adjust the search or clear filters to show more findings.</p>
+            </div>
+        </section>
+
+        {% for group in bhe.groups %}
+            {% for item in group.items %}
+            <div id="{{ item.modal_id }}"
+                 class="modal fade bhe-finding-modal"
+                 tabindex="-1"
+                 role="dialog"
+                 aria-labelledby="{{ item.modal_id }}-label"
+                 aria-hidden="true">
+                <div class="modal-dialog modal-xl modal-dialog-scrollable modal-dialog-centered" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header bhe-finding-modal-header">
+                            <div>
+                                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                                    <span class="bhe-severity-badge severity-{{ item.severity_key }}">
+                                        <span class="bhe-severity-dot" aria-hidden="true"></span>
+                                        {{ item.severity }}
+                                    </span>
+                                    <span class="bhe-finding-modal-context">{{ item.environment }}</span>
+                                    {% if item.is_tier_zero %}
+                                    <span class="bhe-tier-zero-badge">
+                                        <i class="fas fa-gem" aria-hidden="true"></i>
+                                        Tier Zero
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                <h5 id="{{ item.modal_id }}-label" class="modal-title">{{ item.title|striptags }}</h5>
+                                <p class="bhe-finding-modal-category mb-0">{{ item.category|striptags }}</p>
+                            </div>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body bhe-finding-modal-body">
+                            <div class="bhe-finding-metrics" aria-label="Finding exposure summary">
+                                <div>
+                                    <span>Affected principals</span>
+                                    <strong>{{ item.principal_count }}</strong>
+                                </div>
+                                <div>
+                                    <span>Peak impact</span>
+                                    <strong>
+                                        {% if item.peak_impact != None %}{{ item.peak_impact|bhe_percent }}%{% else %}Not reported{% endif %}
+                                    </strong>
+                                </div>
+                                <div>
+                                    <span>Peak exposure</span>
+                                    <strong>
+                                        {% if item.peak_exposure != None %}{{ item.peak_exposure|bhe_percent }}%{% else %}Not reported{% endif %}
+                                    </strong>
+                                </div>
+                                <div>
+                                    <span>Finding key</span>
+                                    <strong class="bhe-technical-value">{{ item.finding.finding_name|default:"Not reported" }}</strong>
+                                </div>
+                            </div>
+
+                            {% if item.finding.assets.short_description %}
+                            <section class="bhe-finding-detail-section">
+                                <h6>Description</h6>
+                                <div class="detail-prose rich-text-field-preview">{{ item.finding.assets.short_description|bleach }}</div>
+                            </section>
+                            {% endif %}
+
+                            <section class="bhe-finding-detail-section">
+                                <div class="bhe-finding-detail-heading">
+                                    <h6>Affected principals</h6>
+                                    <span>{{ item.principal_count }} record{{ item.principal_count|pluralize }}</span>
+                                </div>
+                                {% if item.finding.principals %}
+                                <div class="bhe-principal-list">
+                                    {% for principal in item.finding.principals %}
+                                    <div class="bhe-principal-row">
+                                        <div class="bhe-principal-object">
+                                            <span class="bhe-principal-label">Source</span>
+                                            {% if principal.source_properties.name or principal.source_id %}
+                                            <strong>{{ principal.source_properties.name|default:principal.source_id }}</strong>
+                                            <span>{{ principal.source_kind|default:"Unknown type" }}</span>
+                                            {% else %}
+                                            <strong>Directly affected</strong>
+                                            <span>No source principal reported</span>
+                                            {% endif %}
+                                        </div>
+                                        <i class="fas fa-long-arrow-alt-right bhe-principal-path" aria-hidden="true"></i>
+                                        <div class="bhe-principal-object">
+                                            <span class="bhe-principal-label">Target</span>
+                                            <strong>{{ principal.target_properties.name|default:principal.target_id|default:"Unknown target" }}</strong>
+                                            <span>{{ principal.target_kind|default:"Unknown type" }}</span>
+                                        </div>
+                                        <div class="bhe-principal-measure">
+                                            <span>Impact</span>
+                                            <strong>
+                                                {% if principal.impact_percentage != None %}{{ principal.impact_percentage|bhe_percent }}%{% else %}Not reported{% endif %}
+                                            </strong>
+                                        </div>
+                                        <div class="bhe-principal-measure">
+                                            <span>Exposure</span>
+                                            <strong>
+                                                {% if principal.exposure_percentage != None %}{{ principal.exposure_percentage|bhe_percent }}%{% else %}Not reported{% endif %}
+                                            </strong>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                {% else %}
+                                <div class="empty-state">
+                                    <p class="empty-state-title">No affected principals reported</p>
+                                    <p class="empty-state-description">BloodHound returned the finding without principal records.</p>
+                                </div>
+                                {% endif %}
+                            </section>
+
+                            {% if item.finding.assets.short_remediation %}
+                            <section class="bhe-finding-detail-section">
+                                <h6>Remediation</h6>
+                                <div class="detail-prose rich-text-field-preview">{{ item.finding.assets.short_remediation|bleach }}</div>
+                            </section>
+                            {% endif %}
+
+                            {% if item.finding.assets.long_description or item.finding.assets.long_remediation %}
+                            <details class="bhe-finding-technical-details">
+                                <summary>Technical details and full remediation</summary>
+                                {% if item.finding.assets.long_description %}
+                                <section class="bhe-finding-detail-section">
+                                    <h6>Technical background</h6>
+                                    <div class="detail-prose rich-text-field-preview">{{ item.finding.assets.long_description|bleach }}</div>
+                                </section>
+                                {% endif %}
+                                {% if item.finding.assets.long_remediation %}
+                                <section class="bhe-finding-detail-section">
+                                    <h6>Detailed remediation</h6>
+                                    <div class="detail-prose rich-text-field-preview">{{ item.finding.assets.long_remediation|bleach }}</div>
+                                </section>
+                                {% endif %}
+                            </details>
+                            {% endif %}
+
+                            {% if item.finding.assets.references %}
+                            <section class="bhe-finding-detail-section bhe-finding-references">
+                                <h6>References</h6>
+                                <div class="detail-prose rich-text-field-preview">{{ item.finding.assets.references|bleach }}</div>
+                            </section>
+                            {% endif %}
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
             {% endfor %}
-            </tbody>
-        </table>
+        {% endfor %}
     {% endif %}
 {% elif res.empty %}
-  <div class="alert alert-info offset-md-2 col-md-8 mt-1" role="alert">
-    <h4 style="margin-top: 0;" class="alert-heading">BloodHound Data Not Ready Yet</h4>
-      <p>The connection is configured and the fetch completed, but this BloodHound instance does not have any domains available yet. The server may still be ingesting or processing data.</p>
+  <div class="empty-state bh-data-empty-state" role="status">
+    <span class="bh-data-empty-icon" aria-hidden="true">
+      <i class="fas fa-hourglass-half"></i>
+    </span>
+    <div>
+      <p class="empty-state-title">No domains available yet</p>
+      <p class="empty-state-description">The fetch completed, but BloodHound has not returned any domains. The server may still be ingesting or processing data.</p>
+    </div>
   </div>
 {% else %}
-  <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">
-    <h4 style="margin-top: 0;" class="alert-heading">BloodHound Info Unavailable</h4>
-      <p>Configure a connection to BloodHound and then fetch data to view information here.</p>
+  <div class="empty-state bh-data-empty-state" role="status">
+    <span class="bh-data-empty-icon" aria-hidden="true">
+      <i class="fas fa-database"></i>
+    </span>
+    <div>
+      <p class="empty-state-title">No BloodHound data yet</p>
+      <p class="empty-state-description">Use <strong>Fetch latest data</strong> above to load directory information for this project.</p>
+    </div>
   </div>
 {% endif %}
 
 <script>
-    $(document).ready(function () {
-      $('#bheFindingsTable').tablesorter(
-        {
-          cssAsc: 'down',
-          cssDesc: 'up',
-          cssNone: 'none',
-          headers: {
-            0: { sorter: 'digit' }
-          },
-          widgets: ['saveSort'],
-          widgetOptions: {
-            saveSort: true,
-            storage_page: 'bheFindingsTable'
-          },
-        textExtraction: function(node) {
-            // Check if the node or its children have a data-text attribute
-            var $node = $(node);
-            var $dataElement = $node.find('[data-text]').first();
-            if ($dataElement.length && $dataElement.attr('data-text')) {
-                // Return the data-text value for sorting
-                return $dataElement.attr('data-text');
-            }
-            // Fallback to default text extraction if no data-text attribute
-            return $node.text();
-        }
-        }
-      );
+    document.addEventListener('DOMContentLoaded', function () {
+      const workspace = document.getElementById('bheFindingsWorkspace');
+      if (!workspace || workspace.dataset.filtersInitialized === 'true') {
+        return;
+      }
+      workspace.dataset.filtersInitialized = 'true';
 
-      $('.tablesorter').trigger('update');
+      const rows = Array.from(workspace.querySelectorAll('[data-bhe-row]'));
+      const groups = Array.from(workspace.querySelectorAll('[data-bhe-severity-group]'));
+      const severityButtons = Array.from(workspace.querySelectorAll('[data-bhe-severity-filter]'));
+      const searchInput = document.getElementById('bheFindingSearch');
+      const environmentFilter = document.getElementById('bheEnvironmentFilter');
+      const categoryFilter = document.getElementById('bheCategoryFilter');
+      const tierZeroFilter = document.getElementById('bheTierZeroFilter');
+      const clearButton = document.getElementById('bheClearFilters');
+      const visibleCount = document.getElementById('bheVisibleCount');
+      const noResults = document.getElementById('bheNoResults');
+      let activeSeverity = '';
 
-      $('#resetSortBtn').click(function() {
-        $('#bheFindingsTable')
-          .trigger('saveSortReset')
-          .trigger('sortReset');
-        return false;
+      const normalize = function (value) {
+        return (value || '').toLocaleLowerCase();
+      };
+
+      const applyFilters = function () {
+        const query = normalize(searchInput.value.trim());
+        const environment = environmentFilter.value;
+        const category = categoryFilter.value;
+        const tierZeroOnly = tierZeroFilter.checked;
+        let visibleRows = 0;
+
+        rows.forEach(function (row) {
+          const matches = (
+            (!activeSeverity || row.dataset.bheSeverity === activeSeverity) &&
+            (!environment || row.dataset.bheEnvironment === environment) &&
+            (!category || row.dataset.bheCategory === category) &&
+            (!tierZeroOnly || row.dataset.bheTierZero === 'true') &&
+            (!query || normalize(row.dataset.bheSearch).includes(query))
+          );
+          row.hidden = !matches;
+          if (matches) {
+            visibleRows += 1;
+          }
+        });
+
+        groups.forEach(function (group) {
+          const shownInGroup = Array.from(group.querySelectorAll('[data-bhe-row]')).filter(function (row) {
+            return !row.hidden;
+          }).length;
+          group.hidden = shownInGroup === 0;
+          const groupCount = group.querySelector('[data-bhe-group-count]');
+          if (groupCount) {
+            groupCount.textContent = shownInGroup;
+          }
+        });
+
+        const filtersActive = Boolean(
+          activeSeverity || query || environment || category || tierZeroOnly
+        );
+        clearButton.disabled = !filtersActive;
+        noResults.classList.toggle('d-none', visibleRows !== 0);
+        visibleCount.textContent = visibleRows;
+      };
+
+      severityButtons.forEach(function (button) {
+        button.addEventListener('click', function () {
+          activeSeverity = button.dataset.bheSeverityFilter || '';
+          severityButtons.forEach(function (candidate) {
+            const selected = candidate === button;
+            candidate.classList.toggle('is-active', selected);
+            candidate.setAttribute('aria-pressed', selected ? 'true' : 'false');
+          });
+          applyFilters();
+        });
       });
+
+      searchInput.addEventListener('input', applyFilters);
+      environmentFilter.addEventListener('change', applyFilters);
+      categoryFilter.addEventListener('change', applyFilters);
+      tierZeroFilter.addEventListener('change', applyFilters);
+      clearButton.addEventListener('click', function () {
+        activeSeverity = '';
+        searchInput.value = '';
+        environmentFilter.value = '';
+        categoryFilter.value = '';
+        tierZeroFilter.checked = false;
+        severityButtons.forEach(function (button) {
+          const selected = button.dataset.bheSeverityFilter === '';
+          button.classList.toggle('is-active', selected);
+          button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+        });
+        applyFilters();
+        searchInput.focus();
+      });
+
+      if (window.bootstrap && window.bootstrap.Tooltip) {
+        workspace.querySelectorAll('.bhe-preview-button[title]').forEach(function (button) {
+          new window.bootstrap.Tooltip(button, {
+            placement: 'top',
+            fallbackPlacements: ['bottom']
+          });
+        });
+      }
     });
 </script>

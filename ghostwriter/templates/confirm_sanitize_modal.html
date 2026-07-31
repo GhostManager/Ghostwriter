@@ -15,8 +15,8 @@
         <p class="mt-3"><span class="bold">Note:</span> Selecting <em>Recordings</em> will <span class="bold">permanently delete</span> the recording files from disk. This cannot be undone.</p>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-danger" data-dismiss="modal" id="confirm-sanitize-button-modal">Sanitize
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-danger" data-bs-dismiss="modal" id="confirm-sanitize-button-modal">Sanitize
         </button>
       </div>
     </div>
@@ -30,7 +30,7 @@
   {% endcomment %}
 
 <script>
-  $('[data-target="#confirm-sanitize-modal"]').each(function (index) {
+  $('[data-bs-target="#confirm-sanitize-modal"]').each(function (index) {
     $(this).click(function () {
       $('#confirm-sanitize-modal').attr('caller-id', $(this).attr('id'));
     });
@@ -70,7 +70,7 @@
     $('#oplog-sanitization-stale-message').addClass('d-none');
     $fieldList.empty();
     fields.forEach(function (field) {
-      $fieldList.append($('<span>', { class: 'badge badge-light border mr-1 mb-1', text: field }));
+      $fieldList.append($('<span>', { class: 'badge badge-light border me-1 mb-1', text: field }));
     });
     $status.show();
   }
