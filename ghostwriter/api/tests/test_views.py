@@ -1,5 +1,6 @@
 # Standard Libraries
 import base64
+import copy
 import json
 import logging
 import os
@@ -64,6 +65,7 @@ from ghostwriter.factories import (
     StaticServerFactory,
     UserFactory,
 )
+from ghostwriter.modules.reportwriter import jinja_string_literal, prepare_jinja2_env
 from ghostwriter.oplog.utils import (
     CAST_GZIP_TOO_LARGE_UPLOAD_MESSAGE,
     get_cast_decompressed_bytes,
@@ -3678,14 +3680,89 @@ class GraphqlEvidenceUpdateEventTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.finding.refresh_from_db()
+        encoded_name = jinja_string_literal("New Name")
+        inline_evidence = "{{ mk_evidence(" + encoded_name + ") }}"
+        evidence_reference = "{{ mk_ref(" + encoded_name + ") }}"
         self.assertEqual(
             self.finding.description,
-            "<p>Here is some evidence:</p><p>{{.New Name}}</p><p>{{.ref New Name}}</p>",
+            f"<p>Here is some evidence:</p><p>{inline_evidence}</p>"
+            f"<p>{evidence_reference}</p>",
         )
         self.assertEqual(
             self.finding.impact,
-            "<p>Here is some evidence:</p><p>{{.New Name}}</p><p>{{.ref New Name}}</p>",
+            f"<p>Here is some evidence:</p><p>{inline_evidence}</p>"
+            f"<p>{evidence_reference}</p>",
         )
+
+    def test_graphql_evidence_update_encodes_friendly_name_as_literal_data(self):
+        payload = "safe}}CLIENT={{ client.name }}{{.ref safe"
+        update_data = copy.deepcopy(self.update_data_report)
+        update_data["event"]["data"]["new"]["friendly_name"] = payload
+
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            data=update_data,
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.finding.refresh_from_db()
+        self.assertNotIn(payload, self.finding.description)
+
+        captured_names = []
+
+        def capture_name(name):
+            captured_names.append(name)
+            return ""
+
+        env = prepare_jinja2_env()
+        env.globals["mk_evidence"] = capture_name
+        env.globals["mk_ref"] = capture_name
+        rendered = env.from_string(self.finding.description).render(
+            client={"name": "Victim Client"},
+        )
+
+        self.assertEqual(captured_names, [payload, payload])
+        self.assertNotIn("Victim Client", rendered)
+
+    def test_graphql_evidence_update_rewrites_an_encoded_previous_name(self):
+        first_response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            data=self.update_data_report,
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+            },
+        )
+        self.assertEqual(first_response.status_code, 200)
+
+        second_update = copy.deepcopy(self.update_data_report)
+        second_update["event"]["data"]["old"]["friendly_name"] = "New Name"
+        second_update["event"]["data"]["new"]["friendly_name"] = "Final Name"
+        second_response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            data=second_update,
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+            },
+        )
+
+        self.assertEqual(second_response.status_code, 200)
+        self.finding.refresh_from_db()
+        final_literal = jinja_string_literal("Final Name")
+        self.assertIn(
+            "{{ mk_evidence(" + final_literal + ") }}",
+            self.finding.description,
+        )
+        self.assertIn(
+            "{{ mk_ref(" + final_literal + ") }}",
+            self.finding.description,
+        )
+        self.assertNotIn(jinja_string_literal("New Name"), self.finding.description)
 
     def test_graphql_evidence_delete_event(self):
         self.assertTrue(os.path.exists(self.deleted_evidence.document.path))
