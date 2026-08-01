@@ -1214,7 +1214,7 @@ class GraphqlDeleteReportTemplateAction(JwtRequiredMixin, HasuraActionView):
     def post(self, request, *args, **kwargs):
         template_id = self.input["templateId"]
         try:
-            template = ReportTemplate.objects.get(id=template_id)
+            template = utils.get_templates_list(self.user_obj).get(id=template_id)
         except ReportTemplate.DoesNotExist:
             return JsonResponse(
                 utils.generate_hasura_error_payload(
@@ -1223,23 +1223,13 @@ class GraphqlDeleteReportTemplateAction(JwtRequiredMixin, HasuraActionView):
                 status=400,
             )
 
-        if template.protected:
-            if not utils.verify_user_is_privileged(self.user_obj):
-                return JsonResponse(
-                    utils.generate_hasura_error_payload(
-                        "Unauthorized access", "Unauthorized"
-                    ),
-                    status=401,
-                )
-
-        if template.client:
-            if not template.client.user_can_edit(self.user_obj):
-                return JsonResponse(
-                    utils.generate_hasura_error_payload(
-                        "Unauthorized access", "Unauthorized"
-                    ),
-                    status=401,
-                )
+        if not template.user_can_delete(self.user_obj):
+            return JsonResponse(
+                utils.generate_hasura_error_payload(
+                    "Unauthorized access", "Unauthorized"
+                ),
+                status=401,
+            )
 
         template.delete()
         data = {
@@ -1741,6 +1731,11 @@ class GraphqlUserCreate(JwtRequiredMixin, HasuraActionView):
             if "enableObservationDelete" in self.input:
                 enable_observation_delete = self.input["enableObservationDelete"]
                 user.enable_observation_delete = enable_observation_delete
+
+            if "enableTemplateManagement" in self.input:
+                user.enable_template_management = self.input[
+                    "enableTemplateManagement"
+                ]
 
             if "requiremfa" in self.input:
                 require_mfa = self.input["requiremfa"]
@@ -2788,7 +2783,7 @@ class ServiceTokenTagAccessMixin:
         return cls.objects.none()
 
 
-class GetTags(ServiceTokenTagAccessMixin, HasuraActionView):
+class GetTags(ServiceTokenTagAccessMixin, JwtRequiredMixin, HasuraActionView):
     required_inputs = ["model", "id"]
     available_models = {
         # Models here need to have a `tags` field, and optionally a `user_can_view(user)` method.
@@ -2802,15 +2797,6 @@ class GetTags(ServiceTokenTagAccessMixin, HasuraActionView):
     }
 
     def post(self, request: HttpRequest):
-        is_admin = self.data["session_variables"].get("x-hasura-role") == "admin"
-        if not self.encoded_token and not is_admin:
-            return JsonResponse(
-                utils.generate_hasura_error_payload(
-                    "No ``Authorization`` header found", "AuthenticationMissing"
-                ),
-                status=400,
-            )
-
         model = self.input["model"].lower()
         cls = self.available_models.get(model)
         if cls is None:
@@ -2835,7 +2821,6 @@ class GetTags(ServiceTokenTagAccessMixin, HasuraActionView):
 
         if (
             self.service_token_obj is None
-            and not is_admin
             and hasattr(obj, "user_can_view")
             and not obj.user_can_view(self.user_obj)
         ):
@@ -2849,7 +2834,7 @@ class GetTags(ServiceTokenTagAccessMixin, HasuraActionView):
         return JsonResponse({"tags": list(obj.tags.names())})
 
 
-class SetTags(ServiceTokenTagAccessMixin, HasuraActionView):
+class SetTags(ServiceTokenTagAccessMixin, JwtRequiredMixin, HasuraActionView):
     service_token_tag_action = ServiceTokenPermission.Action.UPDATE
     required_inputs = ["model", "id", "tags"]
     available_models = {
@@ -2864,15 +2849,6 @@ class SetTags(ServiceTokenTagAccessMixin, HasuraActionView):
     }
 
     def post(self, request: HttpRequest):
-        is_admin = self.data["session_variables"].get("x-hasura-role") == "admin"
-        if not self.encoded_token and not is_admin:
-            return JsonResponse(
-                utils.generate_hasura_error_payload(
-                    "No ``Authorization`` header found", "AuthenticationMissing"
-                ),
-                status=400,
-            )
-
         model = self.input["model"].lower()
         cls = self.available_models.get(model)
         if cls is None:
@@ -2897,7 +2873,6 @@ class SetTags(ServiceTokenTagAccessMixin, HasuraActionView):
 
         if (
             self.service_token_obj is None
-            and not is_admin
             and not obj.user_can_edit(self.user_obj)
         ):
             return JsonResponse(
@@ -2911,7 +2886,7 @@ class SetTags(ServiceTokenTagAccessMixin, HasuraActionView):
         return JsonResponse({"tags": self.input["tags"]})
 
 
-class ObjectsByTag(ServiceTokenTagAccessMixin, HasuraActionView):
+class ObjectsByTag(ServiceTokenTagAccessMixin, JwtRequiredMixin, HasuraActionView):
     required_inputs = ["tag"]
     available_models = {
         # Models here need to have a `tags` field and a `user_viewable(user)` class method
@@ -2925,15 +2900,6 @@ class ObjectsByTag(ServiceTokenTagAccessMixin, HasuraActionView):
     }
 
     def post(self, request: HttpRequest, model: str):
-        is_admin = self.data["session_variables"].get("x-hasura-role") == "admin"
-        if not self.encoded_token and not is_admin:
-            return JsonResponse(
-                utils.generate_hasura_error_payload(
-                    "No ``Authorization`` header found", "AuthenticationMissing"
-                ),
-                status=400,
-            )
-
         cls = self.available_models.get(model)
         if cls is None:
             return JsonResponse(
@@ -2946,7 +2912,7 @@ class ObjectsByTag(ServiceTokenTagAccessMixin, HasuraActionView):
         if self.service_token_obj is not None:
             objs = self.get_service_token_tag_queryset(model, cls)
         else:
-            objs = cls.objects.all() if is_admin else cls.user_viewable(self.user_obj)
+            objs = cls.user_viewable(self.user_obj)
         objs = objs.filter(tags__name=self.input["tag"])
         return JsonResponse([{"id": obj.pk} for obj in objs], safe=False)
 

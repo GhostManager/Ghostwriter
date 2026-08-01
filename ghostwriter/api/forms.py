@@ -30,6 +30,7 @@ from ghostwriter.api.models import (
 )
 from ghostwriter.api.utils import get_client_list
 from ghostwriter.commandcenter.models import GeneralConfiguration
+from ghostwriter.modules.reportwriter.filename import validate_filename_template
 from ghostwriter.oplog.models import Oplog
 from ghostwriter.reporting.models import (
     Evidence,
@@ -565,6 +566,9 @@ class ApiReportTemplateForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.user_obj = kwargs.pop("user_obj")
         super().__init__(*args, **kwargs)
+        if not self.user_obj.can_manage_report_templates:
+            self.fields.pop("protected", None)
+            self.fields["client"].required = True
         self.fields["client"].queryset = get_client_list(self.user_obj)
         self.fields["evidence_image_width"].required = False
         self.fields["evidence_image_alignment"].required = False
@@ -578,9 +582,32 @@ class ApiReportTemplateForm(forms.ModelForm):
     def clean(self):
         cleaned_data = super().clean()
 
+        filename_override = cleaned_data.get("filename_override")
+        doc_type = cleaned_data.get("doc_type")
+        if filename_override and doc_type:
+            try:
+                validate_filename_template(filename_override, doc_type)
+            except ValidationError as exc:
+                self.add_error("filename_override", exc)
+
+        client = cleaned_data.get("client")
+        if (
+            "client" not in self.errors
+            and not ReportTemplate.user_can_create(self.user_obj, client)
+        ):
+            self.add_error(
+                "client",
+                ValidationError(
+                    _(
+                        "Report template management permission is required to use global scope."
+                    ),
+                    code="global_template_permission",
+                ),
+            )
+
         # Validate the file extension is allowed for support templates
         filename = cleaned_data.get("filename", "")
-        _, ext = splitext(filename)
+        ext = splitext(filename)[1]
         if (
             not ext.startswith(".")
             or ext[1:].lower() not in TEMPLATE_ALLOWED_EXTENSIONS

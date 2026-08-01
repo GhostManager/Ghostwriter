@@ -50,19 +50,25 @@ class ExportBaseInitializationTests(SimpleTestCase):
 
         serializer.assert_not_called()
         self.assertIsNone(exporter.input_object)
-        self.assertIs(exporter.data, raw_data)
+        self.assertEqual(exporter.data, raw_data)
+        self.assertIsNot(exporter.data, raw_data)
 
     def test_does_not_call_subclass_serialization_method(self):
         class ExportWithOverriddenSerializer(ExportBase):
             def serialize_object(self, input_object):
                 raise AssertionError("subclass method called during initialization")
 
-        input_object = object()
+        input_object = {"safe": True}
 
         exporter = ExportWithOverriddenSerializer(input_object)
 
         self.assertIs(exporter.input_object, input_object)
-        self.assertIs(exporter.data, input_object)
+        self.assertEqual(exporter.data, input_object)
+        self.assertIsNot(exporter.data, input_object)
+
+    def test_rejects_non_serializable_context_objects(self):
+        with self.assertRaisesRegex(TypeError, "JSON-serializable"):
+            ExportBase({"unsafe": object()}, is_raw=True)
 
 
 class ConcreteExporterInitializationTests(TestCase):
@@ -98,6 +104,29 @@ class ConcreteExporterInitializationTests(TestCase):
                     )
         finally:
             exporters[2].workbook.close()
+
+    def test_report_context_contains_only_exact_json_primitives(self):
+        exporter = ExportReportJson(self.report)
+
+        def assert_primitives(value):
+            self.assertIn(type(value), {dict, list, str, int, float, bool, type(None)})
+            if type(value) is dict:
+                for key, child in value.items():
+                    self.assertIs(type(key), str)
+                    assert_primitives(child)
+            elif type(value) is list:
+                for child in value:
+                    assert_primitives(child)
+
+        assert_primitives(exporter.data)
+
+    def test_report_filename_cannot_reach_serializer_queryset(self):
+        exporter = ExportReportJson(self.report)
+        filename_template = (
+            "{% if severities.serializer %}unsafe{% else %}safe{% endif %}"
+        )
+
+        self.assertEqual(exporter.render_filename(filename_template), "safe.json")
 
     def test_project_exporters_initialize_with_project_data(self):
         exporters = [
@@ -142,5 +171,7 @@ class ConcreteExporterInitializationTests(TestCase):
         report_exporter = ExportReportJson(raw_data, is_raw=True)
         project_exporter = ExportProjectJson(raw_data, is_raw=True)
 
-        self.assertIs(report_exporter.data, raw_data)
-        self.assertIs(project_exporter.data, raw_data)
+        self.assertEqual(report_exporter.data, raw_data)
+        self.assertEqual(project_exporter.data, raw_data)
+        self.assertIsNot(report_exporter.data, raw_data)
+        self.assertIsNot(project_exporter.data, raw_data)

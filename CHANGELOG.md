@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [7.2.5] - 31 July 2026
+## [7.2.5] - 1 August 2026
 
 ### Changed
 
@@ -25,6 +25,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+* Restricted report finding reorder operations to findings attached to the authorized report
+  * Reorder requests containing a finding from another report are rejected without modifying any findings
+* Prevented report titles from being interpreted as HTML when activating a report
+* Restricted GraphQL local finding-note updates and deletions to the note owner for non-privileged users
+* Restricted global and protected report template management and template deletion across Django and Hasura
+  * Managers, administrators, and users explicitly granted report template management permission may administer global templates
+  * Report template management permission does not grant access to unrelated clients or projects; client-scoped templates retain their existing client access checks
+  * Regular users may continue creating and editing unprotected templates for clients they can access
+* Required bearer authentication and authenticated-principal authorization for Hasura tag actions
+  * Direct public access to tag action handlers is blocked, and the shared action secret no longer has an insecure default
+* Restricted report filename rendering to detached JSON primitives and applied matching validation to Django and Hasura template uploads
+  * Report-controlled Jinja templates can no longer reach live serializers, querysets, models, or other application objects
 * Hardened Jinja2 report rendering against sandbox escapes while preserving user-authored report templates and previews
   * Operation-log values are treated as literal report data, including values containing captured Jinja2 payloads
   * Lazy rich-text rendering now rejects templates that were not compiled by Ghostwriter's sandboxed environment

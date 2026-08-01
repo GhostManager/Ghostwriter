@@ -28,7 +28,7 @@ from django.contrib import messages
 from django.utils import dateformat, timezone
 from django.utils.html import strip_tags
 from channels.layers import get_channel_layer
-from ghostwriter.api.utils import RoleBasedAccessControlMixin, get_reports_list, get_templates_list, verify_user_is_privileged
+from ghostwriter.api.utils import RoleBasedAccessControlMixin, get_reports_list, get_templates_list
 from ghostwriter.commandcenter.models import BloodHoundConfiguration, ExtraFieldSpec, ReportConfiguration
 from ghostwriter.commandcenter.views import CollabModelUpdate, ExtraFieldJsonView, ExtraFieldRichTextPreviewView
 from ghostwriter.modules.exceptions import MissingTemplate
@@ -801,15 +801,18 @@ class ReportTemplateUpdate(RoleBasedAccessControlMixin, UpdateView):
     template_name = "reporting/report_template_form.html"
 
     def test_func(self):
-        obj = self.get_object()
-        if obj.protected:
-            return verify_user_is_privileged(self.request.user)
-        return obj.user_can_view(self.request.user)
+        return self.get_object().user_can_edit(self.request.user)
 
     def handle_no_permission(self):
         obj = self.get_object()
-        if obj.protected:
-            messages.error(self.request, "That template is protected – only an admin can edit it.")
+        if (
+            (obj.protected or obj.client_id is None)
+            and not self.request.user.can_manage_report_templates
+        ):
+            messages.error(
+                self.request,
+                "Report template management permission is required to edit protected or global templates.",
+            )
         else:
             messages.error(self.request, "You do not have permission to access that.")
         if obj.user_can_view(self.request.user):
@@ -872,12 +875,7 @@ class ReportTemplateDelete(RoleBasedAccessControlMixin, DeleteView):
     template_name = "confirm_delete.html"
 
     def test_func(self):
-        obj: ReportTemplate = self.get_object()
-        if obj.protected:
-            return verify_user_is_privileged(self.request.user)
-        if obj.client:
-            return obj.client.user_can_edit(self.request.user)
-        return self.request.user.is_active
+        return self.get_object().user_can_delete(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")

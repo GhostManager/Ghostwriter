@@ -78,6 +78,7 @@ class UserFactory(factory.django.DjangoModelFactory):
     enable_observation_create = False
     enable_observation_edit = False
     enable_observation_delete = False
+    enable_template_management = False
     require_mfa = False
 
     @factory.post_generation

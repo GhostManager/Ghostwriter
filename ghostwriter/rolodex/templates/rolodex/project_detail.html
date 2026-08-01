@@ -1683,7 +1683,7 @@
         },
         success: function (data) {
           if (data['result'] === 'success') {
-            activeReportBar.html(data['report']);
+            activeReportBar.text(data['report']);
             activeReportBar.attr('href', data['report_url']);
           }
           if (data['message']) {

@@ -2050,7 +2050,12 @@ class GraphqlDeleteReportTemplateAction(TestCase):
         cls.ReportTemplate = ReportTemplateFactory._meta.model
 
         cls.user = UserFactory(password=PASSWORD)
+        cls.template_manager = UserFactory(
+            password=PASSWORD,
+            enable_template_management=True,
+        )
         cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        cls.admin_user = UserFactory(password=PASSWORD, role="admin")
         cls.uri = reverse("api:graphql_delete_template")
 
         cls.template = ReportTemplateFactory()
@@ -2068,8 +2073,8 @@ class GraphqlDeleteReportTemplateAction(TestCase):
             }
         }
 
-    def test_deleting_template(self):
-        _, token = generate_user_jwt(self.user)
+    def test_manager_can_delete_template(self):
+        _, token = generate_user_jwt(self.mgr_user)
         response = self.client.post(
             self.uri,
             data=self.generate_data(self.template.id),
@@ -2084,8 +2089,76 @@ class GraphqlDeleteReportTemplateAction(TestCase):
             self.ReportTemplate.objects.filter(id=self.template.id).exists()
         )
 
-    def test_deleting_template_with_invalid_id(self):
+    def test_admin_can_delete_client_template(self):
+        _, token = generate_user_jwt(self.admin_user)
+        response = self.client.post(
+            self.uri,
+            data=self.generate_data(self.client_template.id),
+            content_type="application/json",
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(
+            self.ReportTemplate.objects.filter(id=self.client_template.id).exists()
+        )
+
+    def test_user_cannot_delete_template(self):
         _, token = generate_user_jwt(self.user)
+        response = self.client.post(
+            self.uri,
+            data=self.generate_data(self.template.id),
+            content_type="application/json",
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
+        )
+        self.assertEqual(response.status_code, 401)
+        self.assertTrue(
+            self.ReportTemplate.objects.filter(id=self.template.id).exists()
+        )
+
+    def test_template_manager_can_delete_global_protected_template(self):
+        _, token = generate_user_jwt(self.template_manager)
+        response = self.client.post(
+            self.uri,
+            data=self.generate_data(self.protected_template.id),
+            content_type="application/json",
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(
+            self.ReportTemplate.objects.filter(
+                id=self.protected_template.id
+            ).exists()
+        )
+
+    def test_template_manager_cannot_delete_inaccessible_client_template(self):
+        _, token = generate_user_jwt(self.template_manager)
+        response = self.client.post(
+            self.uri,
+            data=self.generate_data(self.client_template.id),
+            content_type="application/json",
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertTrue(
+            self.ReportTemplate.objects.filter(id=self.client_template.id).exists()
+        )
+
+    def test_deleting_template_with_invalid_id(self):
+        _, token = generate_user_jwt(self.mgr_user)
         response = self.client.post(
             self.uri,
             data=self.generate_data(999),
@@ -2123,6 +2196,10 @@ class GraphqlDeleteReportTemplateAction(TestCase):
         )
         self.assertEqual(response.status_code, 401)
 
+        self.assertTrue(
+            self.ReportTemplate.objects.filter(id=self.protected_template.id).exists()
+        )
+
         response = self.client.post(
             self.uri,
             data=self.generate_data(self.client_template.id),
@@ -2132,7 +2209,115 @@ class GraphqlDeleteReportTemplateAction(TestCase):
                 "HTTP_AUTHORIZATION": f"Bearer {token}",
             },
         )
+        self.assertEqual(response.status_code, 400)
+        self.assertTrue(
+            self.ReportTemplate.objects.filter(id=self.client_template.id).exists()
+        )
+
+
+class GraphqlUploadReportTemplateViewTests(TestCase):
+    """Collection of tests for :view:`GraphqlUploadReportTemplateView`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.ReportTemplate = ReportTemplateFactory._meta.model
+        cls.user = UserFactory(password=PASSWORD)
+        cls.template_manager = UserFactory(
+            password=PASSWORD,
+            enable_template_management=True,
+        )
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        cls.admin_user = UserFactory(password=PASSWORD, role="admin")
+        cls.source_template = ReportTemplateFactory()
+        cls.template_client = ClientFactory()
+        ProjectAssignmentFactory(
+            project=ProjectFactory(client=cls.template_client),
+            operator=cls.user,
+        )
+        cls.uri = reverse("api:graphql_upload_report_template")
+
+    def setUp(self):
+        self.client = Client()
+
+    def generate_data(self, protected, client=None):
+        with self.source_template.document.open("rb") as template_file:
+            file_base64 = base64.b64encode(template_file.read()).decode("ascii")
+
+        return {
+            "input": {
+                "file_base64": file_base64,
+                "filename": "uploaded-template.docx",
+                "name": "Uploaded Template",
+                "description": "Uploaded through the Hasura action",
+                "protected": protected,
+                "changelog": "",
+                "landscape": False,
+                "filename_override": "",
+                "tags": "",
+                "client": client,
+                "doc_type": self.source_template.doc_type_id,
+                "p_style": "Normal",
+                "evidence_image_width": None,
+                "evidence_image_alignment": "USE_GLOBAL",
+            }
+        }
+
+    def upload(self, user, protected, client=None):
+        _, token = generate_user_jwt(user)
+        return self.client.post(
+            self.uri,
+            data=self.generate_data(protected, client),
+            content_type="application/json",
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
+        )
+
+    def test_user_cannot_mark_uploaded_template_as_protected(self):
+        response = self.upload(
+            self.user,
+            protected=True,
+            client=self.template_client.id,
+        )
+
+        self.assertEqual(response.status_code, 201)
+        template = self.ReportTemplate.objects.get(id=response.json()["id"])
+        self.assertFalse(template.protected)
+        self.assertEqual(template.client, self.template_client)
+
+    def test_user_cannot_upload_global_template(self):
+        response = self.upload(self.user, protected=False)
+
         self.assertEqual(response.status_code, 401)
+        self.assertFalse(
+            self.ReportTemplate.objects.filter(
+                name="Uploaded Template",
+                uploaded_by=self.user,
+            ).exists()
+        )
+
+    def test_manager_can_mark_uploaded_template_as_protected(self):
+        response = self.upload(self.mgr_user, protected=True)
+
+        self.assertEqual(response.status_code, 201)
+        template = self.ReportTemplate.objects.get(id=response.json()["id"])
+        self.assertTrue(template.protected)
+
+    def test_template_manager_can_upload_protected_global_template(self):
+        response = self.upload(self.template_manager, protected=True)
+
+        self.assertEqual(response.status_code, 201)
+        template = self.ReportTemplate.objects.get(id=response.json()["id"])
+        self.assertTrue(template.protected)
+        self.assertIsNone(template.client)
+
+    def test_admin_can_mark_uploaded_template_as_protected(self):
+        response = self.upload(self.admin_user, protected=True)
+
+        self.assertEqual(response.status_code, 201)
+        template = self.ReportTemplate.objects.get(id=response.json()["id"])
+        self.assertTrue(template.protected)
 
 
 class GraphqlAttachFindingAction(TestCase):
@@ -2662,6 +2847,7 @@ class HasuraCreateUserTests(TestCase):
                 enableObservationCreate=False,
                 enableObservationEdit=False,
                 enableObservationDelete=False,
+                enableTemplateManagement=True,
                 phone="123-456-7890",
             ),
             **{
@@ -2674,6 +2860,7 @@ class HasuraCreateUserTests(TestCase):
         created_user = User.objects.get(username="validuser")
         self.assertEqual(created_user.email, "validuser@specterops.io")
         self.assertEqual(created_user.require_mfa, True)
+        self.assertTrue(created_user.enable_template_management)
 
         response = self.client.post(
             self.uri,
@@ -5287,6 +5474,7 @@ class GetTagsTest(TestCase):
         cls.report_finding = ReportFindingLinkFactory(tags=list(cls.tags))
         cls.user = UserFactory(password=PASSWORD)
         cls.manager = UserFactory(password=PASSWORD, role="manager")
+        cls.admin = UserFactory(password=PASSWORD, role="admin")
         cls.uri = reverse("api:graphql_get_tags")
 
     def setUp(self):
@@ -5333,16 +5521,38 @@ class GetTagsTest(TestCase):
         body = response.json()
         self.assertFalse("tags" in body, body)
 
-    def test_get_report_finding_tags_allowed_admin(self):
+    def test_get_report_finding_tags_allowed_authenticated_admin(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(self.admin),
+            data=self.data(),
+        )
+        self.assertEquals(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(set(body["tags"]), self.tags)
+
+    def test_get_report_finding_tags_rejects_forged_admin_without_token(self):
         response = self.client.post(
             self.uri,
             content_type="application/json",
             headers=self.headers(None),
             data=self.data("admin"),
         )
-        self.assertEquals(response.status_code, 200)
-        body = response.json()
-        self.assertEqual(set(body["tags"]), self.tags)
+
+        self.assertEquals(response.status_code, 400)
+        self.assertNotIn("tags", response.json())
+
+    def test_get_report_finding_tags_ignores_forged_admin_role(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(self.user),
+            data=self.data("admin"),
+        )
+
+        self.assertEquals(response.status_code, 403)
+        self.assertNotIn("tags", response.json())
 
     def test_get_report_finding_tags_allowed_project_service_token(self):
         token = create_project_read_service_token(
@@ -5443,6 +5653,7 @@ class SetTagsTest(TestCase):
         cls.report_finding = ReportFindingLinkFactory()
         cls.user = UserFactory(password=PASSWORD)
         cls.manager = UserFactory(password=PASSWORD, role="manager")
+        cls.admin = UserFactory(password=PASSWORD, role="admin")
         cls.uri = reverse("api:graphql_set_tags")
 
     def setUp(self):
@@ -5492,16 +5703,40 @@ class SetTagsTest(TestCase):
         self.report_finding.refresh_from_db()
         self.assertEqual(set(self.report_finding.tags.names()), set())
 
-    def test_set_report_finding_tags_allowed_admin(self):
+    def test_set_report_finding_tags_allowed_authenticated_admin(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(self.admin),
+            data=self.data(self.tags),
+        )
+        self.assertEquals(response.status_code, 200)
+        self.report_finding.refresh_from_db()
+        self.assertEqual(set(self.report_finding.tags.names()), self.tags)
+
+    def test_set_report_finding_tags_rejects_forged_admin_without_token(self):
         response = self.client.post(
             self.uri,
             content_type="application/json",
             headers=self.headers(None),
             data=self.data(self.tags, "admin"),
         )
-        self.assertEquals(response.status_code, 200)
+
+        self.assertEquals(response.status_code, 400)
         self.report_finding.refresh_from_db()
-        self.assertEqual(set(self.report_finding.tags.names()), self.tags)
+        self.assertEqual(set(self.report_finding.tags.names()), set())
+
+    def test_set_report_finding_tags_ignores_forged_admin_role(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(self.user),
+            data=self.data(self.tags, "admin"),
+        )
+
+        self.assertEquals(response.status_code, 403)
+        self.report_finding.refresh_from_db()
+        self.assertEqual(set(self.report_finding.tags.names()), set())
 
     def test_set_oplog_entry_tags_allowed_oplog_service_token(self):
         entry = OplogEntryFactory()
@@ -5602,6 +5837,7 @@ class ObjectsByTagTests(TestCase):
             operator=cls.user_with_access,
         )
         cls.manager = UserFactory(password=PASSWORD, role="manager")
+        cls.admin = UserFactory(password=PASSWORD, role="admin")
         cls.uri = reverse("api:graphql_objects_by_tag", args=["report_finding_link"])
 
     def setUp(self):
@@ -5636,6 +5872,17 @@ class ObjectsByTagTests(TestCase):
             headers=self.headers(self.user),
             data=self.data("severity:high"),
         )
+        self.assertEquals(response.status_code, 200)
+        self.assertJSONEqual(response.content, [])
+
+    def test_get_user_ignores_forged_admin_role(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(self.user),
+            data=self.data("severity:high", hasura_role="admin"),
+        )
+
         self.assertEquals(response.status_code, 200)
         self.assertJSONEqual(response.content, [])
 
@@ -5741,15 +5988,25 @@ class ObjectsByTagTests(TestCase):
         self.assertEquals(response.status_code, 200)
         self.assertJSONEqual(response.content, [])
 
-    def test_get_admin_results(self):
+    def test_get_authenticated_admin_results(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(self.admin),
+            data=self.data("severity:high"),
+        )
+        self.assertEquals(response.status_code, 200)
+        self.assertJSONEqual(response.content, [{"id": self.report_finding.pk}])
+
+    def test_get_rejects_forged_admin_without_token(self):
         response = self.client.post(
             self.uri,
             content_type="application/json",
             headers=self.headers(None),
             data=self.data("severity:high", hasura_role="admin"),
         )
-        self.assertEquals(response.status_code, 200)
-        self.assertJSONEqual(response.content, [{"id": self.report_finding.pk}])
+
+        self.assertEquals(response.status_code, 400)
 
 
 class GraphqlDownloadEvidenceViewTests(TestCase):

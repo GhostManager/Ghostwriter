@@ -1,22 +1,43 @@
-
-from datetime import datetime
+# Standard Libraries
 import io
-from typing import Any, Callable, Iterable
+import json
+import logging
 import re
-from venv import logger
+from datetime import datetime
+from typing import Any, Callable, Iterable
 
-from django.forms import ValidationError
-import jinja2
+# Django Imports
+from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models import Model
+from django.forms import ValidationError
 
+# 3rd Party Libraries
+import jinja2
+
+# Ghostwriter Libraries
 from ghostwriter.commandcenter.models import CompanyInformation, ExtraFieldSpec
 from ghostwriter.modules.reportwriter import prepare_jinja2_env
-from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
+from ghostwriter.modules.reportwriter.base import (
+    ReportExportError,
+    ReportExportTemplateError,
+)
 from ghostwriter.modules.reportwriter.base.html_rich_text import (
     HtmlRichText,
     LazilyRenderedTemplate,
     rich_text_template,
 )
+
+logger = logging.getLogger(__name__)
+
+
+def materialize_jinja_context(value: Any) -> Any:
+    """Return a detached context containing only exact JSON primitive types."""
+    try:
+        return json.loads(json.dumps(value, cls=DjangoJSONEncoder))
+    except (TypeError, ValueError) as exc:
+        raise TypeError(
+            "Jinja export contexts must contain only JSON-serializable values"
+        ) from exc
 
 
 class ExportBase:
@@ -59,14 +80,15 @@ class ExportBase:
             self.jinja_undefined_variables = None
         if is_raw:
             self.input_object = None
-            self.data = input_object
+            serialized_data = input_object
         else:
             self.input_object = input_object
-            self.data = (
+            serialized_data = (
                 object_serializer(input_object)
                 if object_serializer is not None
                 else input_object
             )
+        self.data = materialize_jinja_context(serialized_data)
 
     def extra_field_specs_for(self, model: Model) -> Iterable[ExtraFieldSpec]:
         """
@@ -191,7 +213,7 @@ class ExportBase:
         )
         try:
             exporter.render_filename(filename_template, ext="test")
-        except jinja2.TemplateError as e:
+        except (jinja2.TemplateError, ReportExportError) as e:
             raise ValidationError(str(e)) from e
         except TypeError as e:
             logger.exception("TypeError while validating report filename. May be a syntax error or an actual error.")
@@ -209,7 +231,7 @@ class ExportBase:
 
         report_name = ReportExportTemplateError.map_errors(
             lambda: self.jinja_env.from_string(filename_template).render(data),
-            "the template filename"
+            "the template filename",
         )
 
         report_name = _replace_filename_chars(report_name)
@@ -222,6 +244,7 @@ class ExportBase:
         Number of levels to offset headers in the descriptions from BloodHound data. Default is zero.
         """
         return 0
+
 
 def _replace_filename_chars(name):
     """Remove illegal characters from the report name."""
