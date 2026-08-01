@@ -12149,7 +12149,6 @@ export type Mutation_RootCreateUserArgs = {
   enableObservationCreate?: InputMaybe<Scalars['Boolean']['input']>;
   enableObservationDelete?: InputMaybe<Scalars['Boolean']['input']>;
   enableObservationEdit?: InputMaybe<Scalars['Boolean']['input']>;
-  enableTemplateManagement?: InputMaybe<Scalars['Boolean']['input']>;
   name: Scalars['String']['input'];
   password: Scalars['String']['input'];
   phone?: InputMaybe<Scalars['String']['input']>;
@@ -36694,7 +36693,6 @@ export type User = {
   enable_observation_create: Scalars['Boolean']['output'];
   enable_observation_delete: Scalars['Boolean']['output'];
   enable_observation_edit: Scalars['Boolean']['output'];
-  enable_template_management: Scalars['Boolean']['output'];
   /** An array relationship */
   evidences: Array<Evidence>;
   /** An aggregate relationship */
@@ -38190,7 +38188,6 @@ export type User_Bool_Exp = {
   enable_observation_create?: InputMaybe<Boolean_Comparison_Exp>;
   enable_observation_delete?: InputMaybe<Boolean_Comparison_Exp>;
   enable_observation_edit?: InputMaybe<Boolean_Comparison_Exp>;
-  enable_template_management?: InputMaybe<Boolean_Comparison_Exp>;
   evidences?: InputMaybe<Evidence_Bool_Exp>;
   evidences_aggregate?: InputMaybe<Evidence_Aggregate_Bool_Exp>;
   findingNotes?: InputMaybe<FindingNote_Bool_Exp>;
@@ -38266,7 +38263,6 @@ export type User_Insert_Input = {
   enable_observation_create?: InputMaybe<Scalars['Boolean']['input']>;
   enable_observation_delete?: InputMaybe<Scalars['Boolean']['input']>;
   enable_observation_edit?: InputMaybe<Scalars['Boolean']['input']>;
-  enable_template_management?: InputMaybe<Scalars['Boolean']['input']>;
   evidences?: InputMaybe<Evidence_Arr_Rel_Insert_Input>;
   findingNotes?: InputMaybe<FindingNote_Arr_Rel_Insert_Input>;
   groups?: InputMaybe<UserGroup_Arr_Rel_Insert_Input>;
@@ -38367,7 +38363,6 @@ export type User_Order_By = {
   enable_observation_create?: InputMaybe<Order_By>;
   enable_observation_delete?: InputMaybe<Order_By>;
   enable_observation_edit?: InputMaybe<Order_By>;
-  enable_template_management?: InputMaybe<Order_By>;
   evidences_aggregate?: InputMaybe<Evidence_Aggregate_Order_By>;
   findingNotes_aggregate?: InputMaybe<FindingNote_Aggregate_Order_By>;
   groups_aggregate?: InputMaybe<UserGroup_Aggregate_Order_By>;
@@ -38422,8 +38417,6 @@ export enum User_Select_Column {
   /** column name */
   EnableObservationEdit = 'enable_observation_edit',
   /** column name */
-  EnableTemplateManagement = 'enable_template_management',
-  /** column name */
   Id = 'id',
   /** column name */
   IsActive = 'isActive',
@@ -38459,7 +38452,6 @@ export type User_Set_Input = {
   enable_observation_create?: InputMaybe<Scalars['Boolean']['input']>;
   enable_observation_delete?: InputMaybe<Scalars['Boolean']['input']>;
   enable_observation_edit?: InputMaybe<Scalars['Boolean']['input']>;
-  enable_template_management?: InputMaybe<Scalars['Boolean']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
   isActive?: InputMaybe<Scalars['Boolean']['input']>;
   isStaff?: InputMaybe<Scalars['Boolean']['input']>;
@@ -38510,7 +38502,6 @@ export type User_Stream_Cursor_Value_Input = {
   enable_observation_create?: InputMaybe<Scalars['Boolean']['input']>;
   enable_observation_delete?: InputMaybe<Scalars['Boolean']['input']>;
   enable_observation_edit?: InputMaybe<Scalars['Boolean']['input']>;
-  enable_template_management?: InputMaybe<Scalars['Boolean']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
   isActive?: InputMaybe<Scalars['Boolean']['input']>;
   isStaff?: InputMaybe<Scalars['Boolean']['input']>;
@@ -38549,8 +38540,6 @@ export enum User_Update_Column {
   EnableObservationDelete = 'enable_observation_delete',
   /** column name */
   EnableObservationEdit = 'enable_observation_edit',
-  /** column name */
-  EnableTemplateManagement = 'enable_template_management',
   /** column name */
   Id = 'id',
   /** column name */
