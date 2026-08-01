@@ -26,7 +26,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * Reorder requests containing a finding from another report are rejected without modifying any findings
 * Prevented report titles from being interpreted as HTML when activating a report
 * Restricted GraphQL local finding-note updates and deletions to the note owner for non-privileged users
-* Restricted report template protection, protected-template editing, and template deletion to managers and administrators across Django and Hasura
+* Restricted global and protected report template management and template deletion across Django and Hasura
+  * Managers, administrators, and users explicitly granted report template management permission may administer global templates
+  * Report template management permission does not grant access to unrelated clients or projects; client-scoped templates retain their existing client access checks
+  * Regular users may continue creating and editing unprotected templates for clients they can access
 * Required bearer authentication and authenticated-principal authorization for Hasura tag actions
   * Direct public access to tag action handlers is blocked, and the shared action secret no longer has an insecure default
 * Restricted report filename rendering to detached JSON primitives and applied matching validation to Django and Hasura template uploads

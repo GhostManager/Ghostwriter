@@ -1211,23 +1211,23 @@ class GraphqlDeleteReportTemplateAction(JwtRequiredMixin, HasuraActionView):
     ]
 
     def post(self, request, *args, **kwargs):
-        if not utils.verify_user_is_privileged(self.user_obj):
-            return JsonResponse(
-                utils.generate_hasura_error_payload(
-                    "Unauthorized access", "Unauthorized"
-                ),
-                status=401,
-            )
-
         template_id = self.input["templateId"]
         try:
-            template = ReportTemplate.objects.get(id=template_id)
+            template = utils.get_templates_list(self.user_obj).get(id=template_id)
         except ReportTemplate.DoesNotExist:
             return JsonResponse(
                 utils.generate_hasura_error_payload(
                     "Template does not exist", "ReportTemplateDoesNotExist"
                 ),
                 status=400,
+            )
+
+        if not template.user_can_delete(self.user_obj):
+            return JsonResponse(
+                utils.generate_hasura_error_payload(
+                    "Unauthorized access", "Unauthorized"
+                ),
+                status=401,
             )
 
         template.delete()
@@ -1730,6 +1730,11 @@ class GraphqlUserCreate(JwtRequiredMixin, HasuraActionView):
             if "enableObservationDelete" in self.input:
                 enable_observation_delete = self.input["enableObservationDelete"]
                 user.enable_observation_delete = enable_observation_delete
+
+            if "enableTemplateManagement" in self.input:
+                user.enable_template_management = self.input[
+                    "enableTemplateManagement"
+                ]
 
             if "requiremfa" in self.input:
                 require_mfa = self.input["requiremfa"]

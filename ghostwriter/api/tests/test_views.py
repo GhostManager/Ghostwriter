@@ -2048,6 +2048,10 @@ class GraphqlDeleteReportTemplateAction(TestCase):
         cls.ReportTemplate = ReportTemplateFactory._meta.model
 
         cls.user = UserFactory(password=PASSWORD)
+        cls.template_manager = UserFactory(
+            password=PASSWORD,
+            enable_template_management=True,
+        )
         cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
         cls.admin_user = UserFactory(password=PASSWORD, role="admin")
         cls.uri = reverse("api:graphql_delete_template")
@@ -2115,6 +2119,42 @@ class GraphqlDeleteReportTemplateAction(TestCase):
             self.ReportTemplate.objects.filter(id=self.template.id).exists()
         )
 
+    def test_template_manager_can_delete_global_protected_template(self):
+        _, token = generate_user_jwt(self.template_manager)
+        response = self.client.post(
+            self.uri,
+            data=self.generate_data(self.protected_template.id),
+            content_type="application/json",
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(
+            self.ReportTemplate.objects.filter(
+                id=self.protected_template.id
+            ).exists()
+        )
+
+    def test_template_manager_cannot_delete_inaccessible_client_template(self):
+        _, token = generate_user_jwt(self.template_manager)
+        response = self.client.post(
+            self.uri,
+            data=self.generate_data(self.client_template.id),
+            content_type="application/json",
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertTrue(
+            self.ReportTemplate.objects.filter(id=self.client_template.id).exists()
+        )
+
     def test_deleting_template_with_invalid_id(self):
         _, token = generate_user_jwt(self.mgr_user)
         response = self.client.post(
@@ -2167,7 +2207,7 @@ class GraphqlDeleteReportTemplateAction(TestCase):
                 "HTTP_AUTHORIZATION": f"Bearer {token}",
             },
         )
-        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.status_code, 400)
         self.assertTrue(
             self.ReportTemplate.objects.filter(id=self.client_template.id).exists()
         )
@@ -2180,15 +2220,24 @@ class GraphqlUploadReportTemplateViewTests(TestCase):
     def setUpTestData(cls):
         cls.ReportTemplate = ReportTemplateFactory._meta.model
         cls.user = UserFactory(password=PASSWORD)
+        cls.template_manager = UserFactory(
+            password=PASSWORD,
+            enable_template_management=True,
+        )
         cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
         cls.admin_user = UserFactory(password=PASSWORD, role="admin")
         cls.source_template = ReportTemplateFactory()
+        cls.template_client = ClientFactory()
+        ProjectAssignmentFactory(
+            project=ProjectFactory(client=cls.template_client),
+            operator=cls.user,
+        )
         cls.uri = reverse("api:graphql_upload_report_template")
 
     def setUp(self):
         self.client = Client()
 
-    def generate_data(self, protected):
+    def generate_data(self, protected, client=None):
         with self.source_template.document.open("rb") as template_file:
             file_base64 = base64.b64encode(template_file.read()).decode("ascii")
 
@@ -2203,7 +2252,7 @@ class GraphqlUploadReportTemplateViewTests(TestCase):
                 "landscape": False,
                 "filename_override": "",
                 "tags": "",
-                "client": None,
+                "client": client,
                 "doc_type": self.source_template.doc_type_id,
                 "p_style": "Normal",
                 "evidence_image_width": None,
@@ -2211,11 +2260,11 @@ class GraphqlUploadReportTemplateViewTests(TestCase):
             }
         }
 
-    def upload(self, user, protected):
+    def upload(self, user, protected, client=None):
         _, token = generate_user_jwt(user)
         return self.client.post(
             self.uri,
-            data=self.generate_data(protected),
+            data=self.generate_data(protected, client),
             content_type="application/json",
             **{
                 "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
@@ -2224,11 +2273,27 @@ class GraphqlUploadReportTemplateViewTests(TestCase):
         )
 
     def test_user_cannot_mark_uploaded_template_as_protected(self):
-        response = self.upload(self.user, protected=True)
+        response = self.upload(
+            self.user,
+            protected=True,
+            client=self.template_client.id,
+        )
 
         self.assertEqual(response.status_code, 201)
         template = self.ReportTemplate.objects.get(id=response.json()["id"])
         self.assertFalse(template.protected)
+        self.assertEqual(template.client, self.template_client)
+
+    def test_user_cannot_upload_global_template(self):
+        response = self.upload(self.user, protected=False)
+
+        self.assertEqual(response.status_code, 401)
+        self.assertFalse(
+            self.ReportTemplate.objects.filter(
+                name="Uploaded Template",
+                uploaded_by=self.user,
+            ).exists()
+        )
 
     def test_manager_can_mark_uploaded_template_as_protected(self):
         response = self.upload(self.mgr_user, protected=True)
@@ -2236,6 +2301,14 @@ class GraphqlUploadReportTemplateViewTests(TestCase):
         self.assertEqual(response.status_code, 201)
         template = self.ReportTemplate.objects.get(id=response.json()["id"])
         self.assertTrue(template.protected)
+
+    def test_template_manager_can_upload_protected_global_template(self):
+        response = self.upload(self.template_manager, protected=True)
+
+        self.assertEqual(response.status_code, 201)
+        template = self.ReportTemplate.objects.get(id=response.json()["id"])
+        self.assertTrue(template.protected)
+        self.assertIsNone(template.client)
 
     def test_admin_can_mark_uploaded_template_as_protected(self):
         response = self.upload(self.admin_user, protected=True)
@@ -2772,6 +2845,7 @@ class HasuraCreateUserTests(TestCase):
                 enableObservationCreate=False,
                 enableObservationEdit=False,
                 enableObservationDelete=False,
+                enableTemplateManagement=True,
                 phone="123-456-7890",
             ),
             **{
@@ -2784,6 +2858,7 @@ class HasuraCreateUserTests(TestCase):
         created_user = User.objects.get(username="validuser")
         self.assertEqual(created_user.email, "validuser@specterops.io")
         self.assertEqual(created_user.require_mfa, True)
+        self.assertTrue(created_user.enable_template_management)
 
         response = self.client.post(
             self.uri,

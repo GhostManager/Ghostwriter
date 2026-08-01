@@ -998,7 +998,7 @@ class HasuraMetadataUserRoleTests(SimpleTestCase):
                     f"{role} {permission_type}",
                 )
 
-    def test_user_cannot_protect_or_delete_report_templates_via_graphql(self):
+    def test_user_template_mutations_require_server_authorization(self):
         table = load_yaml(HASURA_TABLE_DIR / "public_reporting_reporttemplate.yaml")
         actions_metadata = load_yaml(HASURA_METADATA_DIR / "actions.yaml")
         delete_action = next(
@@ -1008,13 +1008,14 @@ class HasuraMetadataUserRoleTests(SimpleTestCase):
         )
 
         self.assertIsNone(get_role_permission(table, "user", "delete_permissions"))
+        # The user role reaches the Action for per-user capability checks in Django.
         # Hasura's built-in admin role has implicit access to every action.
         self.assertSetEqual(
             {
                 permission["role"]
                 for permission in delete_action.get("permissions", [])
             },
-            {"manager"},
+            {"manager", "user"},
         )
         for permission_type in ("insert_permissions", "update_permissions"):
             permission = get_role_permission(table, "user", permission_type)
