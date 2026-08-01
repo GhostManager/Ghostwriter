@@ -192,11 +192,10 @@ class ExportProjectBase(ExportBase):
         # Logs
         for log in base_context["logs"]:
             for entry in log["entries"]:
-                ex.process_extra_fields(
+                ex.process_literal_extra_fields(
                     f"log entry {entry['description']} of log {log['name']}",
                     entry["extra_fields"],
                     OplogEntry,
-                    rich_text_context,
                 )
 
         # BloodHound findings
