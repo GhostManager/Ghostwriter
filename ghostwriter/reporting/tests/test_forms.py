@@ -578,6 +578,20 @@ class ReportTemplateFormTests(TestCase):
         self.assertFalse(form.is_valid())
         self.assertIn("filename_override", form.errors)
 
+    def test_rejects_filename_override_for_unsupported_document_type(self):
+        template = self.template_dict.copy()
+        template["document"] = self.template.document.file
+        template["filename_override"] = "report"
+        template["doc_type_id"] = DocTypeFactory(
+            doc_type="odt", extension="odt", name="OpenDocument Text"
+        ).pk
+
+        form = self.form_data(**template, user=self.user)
+
+        self.assertFalse(form.is_valid())
+        errors = form.errors.as_data()["filename_override"]
+        self.assertEqual(errors[0].code, "unsupported_doc_type")
+
     def test_blank_template(self):
         template = self.template_dict.copy()
         template["document"] = None

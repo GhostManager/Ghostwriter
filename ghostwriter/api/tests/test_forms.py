@@ -475,6 +475,30 @@ class ApiReportTemplateFormTests(TestCase):
         self.assertFalse(form.is_valid())
         self.assertIn("filename_override", form.errors)
 
+    def test_rejects_filename_override_for_unsupported_document_type(self):
+        unsupported_doc_type = DocTypeFactory(
+            doc_type="odt", extension="odt", name="OpenDocument Text"
+        )
+        form = self.form_data(
+            name="Test Template",
+            description="Test Description",
+            protected=False,
+            changelog="Test Changelog",
+            landscape=False,
+            filename_override="report",
+            tags="Test, Tag",
+            doc_type=unsupported_doc_type,
+            client=self.report_client,
+            p_style=None,
+            filename="test.docx",
+            file_base64=self.valid_docx,
+            user_obj=self.user,
+        )
+
+        self.assertFalse(form.is_valid())
+        errors = form.errors.as_data()["filename_override"]
+        self.assertEqual(errors[0].code, "unsupported_doc_type")
+
     def test_unauthorized_or_invalid_client(self):
         form = self.form_data(
             name="Test Template",
