@@ -5322,6 +5322,7 @@ class GetTagsTest(TestCase):
         cls.report_finding = ReportFindingLinkFactory(tags=list(cls.tags))
         cls.user = UserFactory(password=PASSWORD)
         cls.manager = UserFactory(password=PASSWORD, role="manager")
+        cls.admin = UserFactory(password=PASSWORD, role="admin")
         cls.uri = reverse("api:graphql_get_tags")
 
     def setUp(self):
@@ -5368,16 +5369,38 @@ class GetTagsTest(TestCase):
         body = response.json()
         self.assertFalse("tags" in body, body)
 
-    def test_get_report_finding_tags_allowed_admin(self):
+    def test_get_report_finding_tags_allowed_authenticated_admin(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(self.admin),
+            data=self.data(),
+        )
+        self.assertEquals(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(set(body["tags"]), self.tags)
+
+    def test_get_report_finding_tags_rejects_forged_admin_without_token(self):
         response = self.client.post(
             self.uri,
             content_type="application/json",
             headers=self.headers(None),
             data=self.data("admin"),
         )
-        self.assertEquals(response.status_code, 200)
-        body = response.json()
-        self.assertEqual(set(body["tags"]), self.tags)
+
+        self.assertEquals(response.status_code, 400)
+        self.assertNotIn("tags", response.json())
+
+    def test_get_report_finding_tags_ignores_forged_admin_role(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(self.user),
+            data=self.data("admin"),
+        )
+
+        self.assertEquals(response.status_code, 403)
+        self.assertNotIn("tags", response.json())
 
     def test_get_report_finding_tags_allowed_project_service_token(self):
         token = create_project_read_service_token(
@@ -5478,6 +5501,7 @@ class SetTagsTest(TestCase):
         cls.report_finding = ReportFindingLinkFactory()
         cls.user = UserFactory(password=PASSWORD)
         cls.manager = UserFactory(password=PASSWORD, role="manager")
+        cls.admin = UserFactory(password=PASSWORD, role="admin")
         cls.uri = reverse("api:graphql_set_tags")
 
     def setUp(self):
@@ -5527,16 +5551,40 @@ class SetTagsTest(TestCase):
         self.report_finding.refresh_from_db()
         self.assertEqual(set(self.report_finding.tags.names()), set())
 
-    def test_set_report_finding_tags_allowed_admin(self):
+    def test_set_report_finding_tags_allowed_authenticated_admin(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(self.admin),
+            data=self.data(self.tags),
+        )
+        self.assertEquals(response.status_code, 200)
+        self.report_finding.refresh_from_db()
+        self.assertEqual(set(self.report_finding.tags.names()), self.tags)
+
+    def test_set_report_finding_tags_rejects_forged_admin_without_token(self):
         response = self.client.post(
             self.uri,
             content_type="application/json",
             headers=self.headers(None),
             data=self.data(self.tags, "admin"),
         )
-        self.assertEquals(response.status_code, 200)
+
+        self.assertEquals(response.status_code, 400)
         self.report_finding.refresh_from_db()
-        self.assertEqual(set(self.report_finding.tags.names()), self.tags)
+        self.assertEqual(set(self.report_finding.tags.names()), set())
+
+    def test_set_report_finding_tags_ignores_forged_admin_role(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(self.user),
+            data=self.data(self.tags, "admin"),
+        )
+
+        self.assertEquals(response.status_code, 403)
+        self.report_finding.refresh_from_db()
+        self.assertEqual(set(self.report_finding.tags.names()), set())
 
     def test_set_oplog_entry_tags_allowed_oplog_service_token(self):
         entry = OplogEntryFactory()
@@ -5637,6 +5685,7 @@ class ObjectsByTagTests(TestCase):
             operator=cls.user_with_access,
         )
         cls.manager = UserFactory(password=PASSWORD, role="manager")
+        cls.admin = UserFactory(password=PASSWORD, role="admin")
         cls.uri = reverse("api:graphql_objects_by_tag", args=["report_finding_link"])
 
     def setUp(self):
@@ -5671,6 +5720,17 @@ class ObjectsByTagTests(TestCase):
             headers=self.headers(self.user),
             data=self.data("severity:high"),
         )
+        self.assertEquals(response.status_code, 200)
+        self.assertJSONEqual(response.content, [])
+
+    def test_get_user_ignores_forged_admin_role(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(self.user),
+            data=self.data("severity:high", hasura_role="admin"),
+        )
+
         self.assertEquals(response.status_code, 200)
         self.assertJSONEqual(response.content, [])
 
@@ -5776,15 +5836,25 @@ class ObjectsByTagTests(TestCase):
         self.assertEquals(response.status_code, 200)
         self.assertJSONEqual(response.content, [])
 
-    def test_get_admin_results(self):
+    def test_get_authenticated_admin_results(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(self.admin),
+            data=self.data("severity:high"),
+        )
+        self.assertEquals(response.status_code, 200)
+        self.assertJSONEqual(response.content, [{"id": self.report_finding.pk}])
+
+    def test_get_rejects_forged_admin_without_token(self):
         response = self.client.post(
             self.uri,
             content_type="application/json",
             headers=self.headers(None),
             data=self.data("severity:high", hasura_role="admin"),
         )
-        self.assertEquals(response.status_code, 200)
-        self.assertJSONEqual(response.content, [{"id": self.report_finding.pk}])
+
+        self.assertEquals(response.status_code, 400)
 
 
 class GraphqlDownloadEvidenceViewTests(TestCase):
