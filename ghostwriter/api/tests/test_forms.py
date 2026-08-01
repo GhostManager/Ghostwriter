@@ -389,6 +389,26 @@ class ApiReportTemplateFormTests(TestCase):
         self.assertEqual(form.cleaned_data["evidence_image_width"], 4.25)
         self.assertEqual(form.cleaned_data["evidence_image_alignment"], EvidenceImageAlignmentOverride.RIGHT)
 
+    def test_rejects_invalid_filename_override(self):
+        form = self.form_data(
+            name="Test Template",
+            description="Test Description",
+            protected=False,
+            changelog="Test Changelog",
+            landscape=False,
+            filename_override="{{",
+            tags="Test, Tag",
+            doc_type=self.docx_type,
+            client=self.report_client,
+            p_style=None,
+            filename="test.docx",
+            file_base64=self.valid_docx,
+            user_obj=self.user,
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertIn("filename_override", form.errors)
+
     def test_unauthorized_or_invalid_client(self):
         form = self.form_data(
             name="Test Template",

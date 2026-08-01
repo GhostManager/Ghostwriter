@@ -29,9 +29,8 @@ from ghostwriter.api.utils import get_client_list, get_project_list, verify_user
 from ghostwriter.commandcenter.forms import ExtraFieldsField
 from ghostwriter.commandcenter.models import ReportConfiguration
 from ghostwriter.modules.custom_layout_object import SwitchToggle
+from ghostwriter.modules.reportwriter.filename import validate_filename_template
 from ghostwriter.modules.reportwriter.forms import JinjaRichTextField
-from ghostwriter.modules.reportwriter.project.base import ExportProjectBase
-from ghostwriter.modules.reportwriter.report.base import ExportReportBase
 from ghostwriter.reporting.models import (
     Evidence,
     FindingNote,
@@ -432,10 +431,7 @@ class ReportTemplateForm(forms.ModelForm):
             return self.cleaned_data
 
         try:
-            if doc_typ.doc_type == "docx":
-                ExportReportBase.check_filename_template(filename_override)
-            elif doc_typ.doc_type == "pptx" or doc_typ.doc_type == "project_docx":
-                ExportProjectBase.check_filename_template(filename_override)
+            validate_filename_template(filename_override, doc_typ)
         except ValidationError as e:
             self.add_error("filename_override", e)
 

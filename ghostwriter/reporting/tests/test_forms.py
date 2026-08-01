@@ -466,6 +466,7 @@ class ReportTemplateFormTests(TestCase):
         protected=False,
         lint_result=None,
         changelog=None,
+        filename_override=None,
         client_id=None,
         doc_type_id=None,
         p_type=None,
@@ -483,6 +484,7 @@ class ReportTemplateFormTests(TestCase):
                 "protected": protected,
                 "lint_result": lint_result,
                 "changelog": changelog,
+                "filename_override": filename_override,
                 "client": client_id,
                 "doc_type": doc_type_id,
                 "p_type": p_type,
@@ -521,6 +523,16 @@ class ReportTemplateFormTests(TestCase):
         self.assertTrue(form.is_valid())
         self.assertNotIn("protected", form.cleaned_data)
         self.assertFalse(form.save(commit=False).protected)
+
+    def test_rejects_invalid_filename_override(self):
+        template = self.template_dict.copy()
+        template["document"] = self.template.document.file
+        template["filename_override"] = "{{"
+
+        form = self.form_data(**template, user=self.user)
+
+        self.assertFalse(form.is_valid())
+        self.assertIn("filename_override", form.errors)
 
     def test_blank_template(self):
         template = self.template_dict.copy()

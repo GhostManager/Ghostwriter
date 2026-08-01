@@ -30,6 +30,7 @@ from ghostwriter.api.models import (
 )
 from ghostwriter.api.utils import get_client_list
 from ghostwriter.commandcenter.models import GeneralConfiguration
+from ghostwriter.modules.reportwriter.filename import validate_filename_template
 from ghostwriter.oplog.models import Oplog
 from ghostwriter.reporting.models import (
     Evidence,
@@ -579,6 +580,14 @@ class ApiReportTemplateForm(forms.ModelForm):
 
     def clean(self):
         cleaned_data = super().clean()
+
+        filename_override = cleaned_data.get("filename_override")
+        doc_type = cleaned_data.get("doc_type")
+        if filename_override and doc_type:
+            try:
+                validate_filename_template(filename_override, doc_type)
+            except ValidationError as exc:
+                self.add_error("filename_override", exc)
 
         # Validate the file extension is allowed for support templates
         filename = cleaned_data.get("filename", "")
