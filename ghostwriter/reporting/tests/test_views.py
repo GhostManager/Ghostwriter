@@ -4338,8 +4338,26 @@ class ReportTemplateUpdateViewTests(TestCase):
         response = self.client_assigned.get(self.protected_scoped_uri)
         self.assertEqual(response.status_code, 302)
 
+        response = self.client_assigned.get(self.protected_scoped_uri, follow=True)
+        self.assertContains(
+            response,
+            "Report template management permission is required to edit protected or global templates.",
+        )
+
         response = self.client_mgr.get(self.protected_scoped_uri)
         self.assertEqual(response.status_code, 200)
+
+    def test_template_manager_without_client_access_gets_generic_permission_error(self):
+        response = self.client_template_manager.get(
+            self.protected_scoped_uri, follow=True
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "You do not have permission to access that.")
+        self.assertNotContains(
+            response,
+            "Report template management permission is required to edit protected or global templates.",
+        )
 
 
 class ReportTemplateDeleteViewTests(TestCase):

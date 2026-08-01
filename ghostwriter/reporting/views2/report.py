@@ -805,7 +805,10 @@ class ReportTemplateUpdate(RoleBasedAccessControlMixin, UpdateView):
 
     def handle_no_permission(self):
         obj = self.get_object()
-        if obj.protected or obj.client_id is None:
+        if (
+            (obj.protected or obj.client_id is None)
+            and not self.request.user.can_manage_report_templates
+        ):
             messages.error(
                 self.request,
                 "Report template management permission is required to edit protected or global templates.",
