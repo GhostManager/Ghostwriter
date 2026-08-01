@@ -5,7 +5,6 @@ import json
 import os
 import logging
 import mimetypes
-import re
 import zipfile
 from socket import gaierror
 from asgiref.sync import async_to_sync
@@ -29,7 +28,7 @@ from django.contrib import messages
 from django.utils import dateformat, timezone
 from django.utils.html import strip_tags
 from channels.layers import get_channel_layer
-from ghostwriter.api.utils import RoleBasedAccessControlMixin, get_reports_list, get_templates_list, verify_user_is_privileged
+from ghostwriter.api.utils import RoleBasedAccessControlMixin, get_reports_list, get_templates_list
 from ghostwriter.commandcenter.models import BloodHoundConfiguration, ExtraFieldSpec, ReportConfiguration
 from ghostwriter.commandcenter.views import CollabModelUpdate, ExtraFieldJsonView, ExtraFieldRichTextPreviewView
 from ghostwriter.modules.exceptions import MissingTemplate
@@ -50,7 +49,6 @@ from ghostwriter.rolodex.models import Project
 
 logger = logging.getLogger(__name__)
 channel_layer = get_channel_layer()
-JINJA_ENDRAW_RE = re.compile(r"{%[-+]?\s*endraw\s*[-+]?%}")
 
 
 def _outline_value(value):
@@ -74,21 +72,6 @@ def _outline_rich_html(value):
 def _outline_command_value(command):
     command_text = _outline_value(command)
     return command_text if command_text != "N/A" else ""
-
-
-def _outline_jinja_raw_text(value):
-    """
-    Return text wrapped so later rich-text Jinja rendering treats it as literal output.
-    """
-    text = value or ""
-    return (
-        "{% raw %}"
-        + JINJA_ENDRAW_RE.sub(
-            lambda match: "{% endraw %}{{ " + repr(match.group(0)) + " }}{% raw %}",
-            text,
-        )
-        + "{% endraw %}"
-    )
 
 
 def _unavailable_template_response(request, report):
@@ -204,10 +187,10 @@ def generate_oplog_outline_blocks(report: Report, oplog: Oplog) -> list[dict[str
 
         if has_output:
             blocks.append({"type": "paragraph", "text": "Output:"})
-            blocks.append({"type": "code", "text": _outline_jinja_raw_text(output)})
+            blocks.append({"type": "code", "text": output})
 
         for friendly_name, evidence_id in _report_evidence_refs_for_entry(report, entry):
-            blocks.append({"type": "paragraph", "text": "{{.ref " + friendly_name + "}}"})
+            blocks.append({"type": "reference", "ref": friendly_name})
             blocks.append({"type": "evidence", "evidence_id": evidence_id})
 
     return blocks
@@ -818,15 +801,18 @@ class ReportTemplateUpdate(RoleBasedAccessControlMixin, UpdateView):
     template_name = "reporting/report_template_form.html"
 
     def test_func(self):
-        obj = self.get_object()
-        if obj.protected:
-            return verify_user_is_privileged(self.request.user)
-        return obj.user_can_view(self.request.user)
+        return self.get_object().user_can_edit(self.request.user)
 
     def handle_no_permission(self):
         obj = self.get_object()
-        if obj.protected:
-            messages.error(self.request, "That template is protected – only an admin can edit it.")
+        if (
+            (obj.protected or obj.client_id is None)
+            and not self.request.user.can_manage_report_templates
+        ):
+            messages.error(
+                self.request,
+                "Report template management permission is required to edit protected or global templates.",
+            )
         else:
             messages.error(self.request, "You do not have permission to access that.")
         if obj.user_can_view(self.request.user):
@@ -889,12 +875,7 @@ class ReportTemplateDelete(RoleBasedAccessControlMixin, DeleteView):
     template_name = "confirm_delete.html"
 
     def test_func(self):
-        obj: ReportTemplate = self.get_object()
-        if obj.protected:
-            return verify_user_is_privileged(self.request.user)
-        if obj.client:
-            return obj.client.user_can_edit(self.request.user)
-        return self.request.user.is_active
+        return self.get_object().user_can_delete(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")

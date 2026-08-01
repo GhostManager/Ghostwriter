@@ -13,7 +13,7 @@ import environ
 
 __version__ = "7.2.5"
 VERSION = __version__
-RELEASE_DATE = "27 July 2026"
+RELEASE_DATE = "1 August 2026"
 
 ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
 APPS_DIR = ROOT_DIR / "ghostwriter"
@@ -656,10 +656,7 @@ GRAPHQL_JWT = {
     "JWT_ALGORITHM": "HS256",
 }
 
-HASURA_ACTION_SECRET = env(
-    "HASURA_ACTION_SECRET",
-    default="changeme",
-)
+HASURA_ACTION_SECRET = env("HASURA_ACTION_SECRET")
 
 GRAPHQL_HOST = env("HASURA_GRAPHQL_SERVER_HOSTNAME", default="graphql_engine")
 
