@@ -152,7 +152,7 @@ async function authenticateConnection(
 
     if (res.status !== 200) {
         const body = await res.text();
-        if (res.status === 401 || res.status === 403) {
+        if (res.status === 400 || res.status === 401 || res.status === 403) {
             throw new AuthError("User failed authentication: " + body);
         }
         throw new Error("Auth endpoint failed: " + body);
