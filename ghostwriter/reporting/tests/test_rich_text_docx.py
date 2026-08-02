@@ -144,6 +144,30 @@ class RichTextToDocxTests(SimpleTestCase):
         )
         self.assertEqual([paragraph.text for paragraph in doc.paragraphs], [])
 
+    def test_tables_inside_body_blocks_use_the_document_container(self):
+        cases = {
+            "blockquote": (
+                "<blockquote><table><tr><td><p>NESTED</p></td></tr></table></blockquote>"
+            ),
+            "bullet list": (
+                "<ul><li><table><tr><td><p>NESTED</p></td></tr></table></li></ul>"
+            ),
+        }
+
+        for name, html in cases.items():
+            with self.subTest(name=name):
+                doc = docx.Document()
+                HtmlToDocx.run(html, doc, None)
+
+                self.assertEqual(len(doc.tables), 1)
+                self.assertEqual(
+                    [
+                        paragraph.text
+                        for paragraph in doc.tables[0].cell(0, 0).paragraphs
+                    ],
+                    ["NESTED"],
+                )
+
     def test_table_cell_block_elements_remain_in_the_cell(self):
         cases = {
             "blockquote": (
