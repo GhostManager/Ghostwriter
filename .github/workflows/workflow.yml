@@ -2,6 +2,15 @@ name: Run Unit Tests
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - "**.md"
+      - "**.mdx"
+      - "**.html"
+      - "**.css"
+      - "DOCS/**"
   pull_request:
     branches:
       - master
@@ -71,6 +80,22 @@ jobs:
           name: coverage-report
           path: coverage/reports/coverage.xml
 
+  upload-coverage-report:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
+    needs: run-unit-tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source code
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Download coverage report artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: coverage-report
+          path: coverage/reports
+
       - name: Check Codecov token availability
         id: codecov
         env:
@@ -87,6 +112,8 @@ jobs:
         uses: codecov/codecov-action@v6
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage/reports/coverage.xml
+          disable_search: true
           name: codecov-ghostwriter
           fail_ci_if_error: true
           verbose: true
