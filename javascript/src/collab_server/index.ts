@@ -281,13 +281,17 @@ const server = new Server({
             Object.assign(data.connection.context, refreshedContext);
             currentContext.log.info("Collaboration token refreshed");
 
-            await data.document.saveMutex.runExclusive(async () => {
-                const serverInfo = data.document.get("serverInfo", Y.Map);
+            // Hocuspocus v3.4 declares `data.document` for this hook but
+            // does not populate it at runtime. The connection always owns the
+            // document receiving the token-sync message.
+            const document = data.connection.document;
+            await document.saveMutex.runExclusive(async () => {
+                const serverInfo = document.get("serverInfo", Y.Map);
                 if (serverInfo.get("saveError")) {
                     await storeDocument(
                         currentContext,
                         data.documentName,
-                        data.document
+                        document
                     );
                 }
             });
