@@ -9,12 +9,13 @@ from django.conf import settings
 
 # 3rd Party Libraries
 import docx
+from docx.document import Document as DocumentObject
 from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_BREAK, WD_COLOR_INDEX
 from docx.image.exceptions import UnrecognizedImageError
 from docx.oxml.shared import OxmlElement, qn
 from docx.shared import Inches, Pt
 from docx.shared import RGBColor as DocxRgbColor
-from docx.document import Document as DocumentObject
+from docx.table import _Cell
 from lxml import etree
 
 # Ghostwriter Libraries
@@ -402,7 +403,9 @@ class HtmlToDocx(BaseHtmlToOOXML):
     def create_table(self, rows, cols, **kwargs):
         par = kwargs.get("par")
         table_parent = getattr(par, "_parent", None)
-        if table_parent is None or not hasattr(table_parent, "add_table"):
+        # The document body also exposes an internal add_table method, but it
+        # requires a width argument. Only table cells support this nested API.
+        if not isinstance(table_parent, _Cell):
             table_parent = self.doc
         table = table_parent.add_table(rows=rows, cols=cols)
         table.style = "Table Grid"
