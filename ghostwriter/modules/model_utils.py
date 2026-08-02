@@ -2,9 +2,11 @@
 
 # Standard Libraries
 from itertools import chain
+from typing import Optional, Type
 
 # Django Imports
 import django
+from django.db import transaction
 from django.db.models import ForeignKey, Q
 
 
@@ -38,15 +40,103 @@ def to_dict(instance: django.db.models.Model, include_id: bool = False, resolve_
     return data
 
 
+def _clamp_position(position: int, count: int) -> int:
+    """Return a one-based position that fits inside a group of findings."""
+    if count < 1:
+        return 1
+    return min(max(position, 1), count)
+
+
+def normalize_finding_positions(
+    model: Type[django.db.models.Model],
+    report_id: int,
+    severity_id: int,
+    moving_instance_id: Optional[int] = None,
+    target_position: Optional[int] = None,
+    skip_if_contiguous: bool = False,
+) -> None:
+    """
+    Normalize the positions for one report and severity group.
+
+    The report row lock serializes all ordering work for that report. The
+    deterministic ``position, id`` order makes duplicate positions converge,
+    while only writing rows whose position must change makes follow-up Hasura
+    events no-ops.
+    """
+    report_model = model._meta.get_field("report").related_model
+    with transaction.atomic():
+        report_model.objects.select_for_update().get(id=report_id)
+        _normalize_locked_finding_positions(
+            model,
+            report_id,
+            severity_id,
+            moving_instance_id,
+            target_position,
+            skip_if_contiguous,
+        )
+
+
+def _normalize_locked_finding_positions(
+    model: Type[django.db.models.Model],
+    report_id: int,
+    severity_id: int,
+    moving_instance_id: Optional[int] = None,
+    target_position: Optional[int] = None,
+    skip_if_contiguous: bool = False,
+) -> None:
+    """Normalize one severity group while the caller holds the report lock."""
+    findings = list(
+        model.objects.select_for_update()
+        .filter(Q(report_id=report_id) & Q(severity_id=severity_id))
+        .order_by("position", "id")
+    )
+    if not findings:
+        return
+
+    if skip_if_contiguous and all(
+        finding.position == position
+        for position, finding in enumerate(findings, start=1)
+    ):
+        return
+
+    if moving_instance_id is not None:
+        moving_finding = next(
+            (finding for finding in findings if finding.id == moving_instance_id),
+            None,
+        )
+        if moving_finding is not None:
+            if target_position is None:
+                target_position = len(findings)
+            group_size = len(findings)
+            findings = [
+                finding for finding in findings if finding.id != moving_instance_id
+            ]
+            insert_at = _clamp_position(target_position, group_size) - 1
+            findings.insert(insert_at, moving_finding)
+
+    changed_findings = []
+    for position, finding in enumerate(findings, start=1):
+        if finding.position != position:
+            finding.position = position
+            changed_findings.append(finding)
+    if changed_findings:
+        model.objects.bulk_update(changed_findings, ["position"])
+
+
 def set_finding_positions(
-    instance: django.db.models.Model, old_pos: [int, None], old_sev: [int, None], new_pos: int, new_sev: int
+    instance: django.db.models.Model,
+    old_pos: [int, None],
+    old_sev: [int, None],
+    new_pos: int,
+    new_sev: int,
 ) -> None:
     """
     Updates the ``position`` value for a finding in a report. This is used when a finding is moved to a new position or
     changes severity.
 
-    The following adjustments use the queryset ``update()`` method (direct SQL statement) instead of calling ``save()``
-    on the individual model instance. This avoids forever looping through position changes.
+    Ordering is serialized on the parent report row and only writes values
+    that differ. This makes the Hasura events created by reordering converge
+    instead of repeatedly reordering the same group.
 
     **Parameters**
 
@@ -61,55 +151,58 @@ def set_finding_positions(
     ``new_sev``
         The new severity ID assigned to the finding
     """
-    # We don't import the model at the top of the file because it causes a circular import
+    if (
+        old_pos is not None
+        and old_sev is not None
+        and old_pos == new_pos
+        and old_sev == new_sev
+    ):
+        return None
+
     model = instance._meta.model
+    report_model = model._meta.get_field("report").related_model
+    report_id = instance.report_id
 
-    if old_pos and old_sev:
-        # Only run db queries if ``position`` or ``severity`` changed
-        if old_pos != new_pos or old_sev != new_sev:
-            # Get all findings in report that share the instance's severity rating
-            finding_queryset = model.objects.filter(
-                Q(report__pk=instance.report.pk) & Q(severity=instance.severity)
-            ).order_by("position")
+    with transaction.atomic():
+        report_model.objects.select_for_update().get(id=report_id)
+        # The event view obtains ``instance`` before this report lock. Reload
+        # it after the lock so a queued event makes decisions using the state
+        # committed by the event that ran immediately before it.
+        instance.refresh_from_db()
 
-            # If severity rating changed, adjust positioning in the previous severity group
+        if old_pos is not None and old_sev is not None:
+            # A later event can arrive after another event has already moved
+            # the finding. Normalize the current state rather than replaying
+            # that stale event's requested position.
+            if instance.position != new_pos or instance.severity_id != new_sev:
+                for severity_id in sorted(
+                    {old_sev, new_sev, instance.severity_id}
+                ):
+                    _normalize_locked_finding_positions(
+                        model,
+                        report_id,
+                        severity_id,
+                    )
+                return None
+
             if old_sev != new_sev:
-                # Get a list of findings for the old severity rating
-                old_sev_queryset = model.objects.filter(
-                    Q(report__pk=instance.report.pk) & Q(severity=old_sev)
-                ).order_by("position")
-                if old_sev_queryset:
-                    for finding in old_sev_queryset:
-                        # Adjust position to close gap created by moved finding
-                        if finding.position > old_pos:
-                            new_pos = finding.position - 1
-                            old_sev_queryset.filter(id=finding.id).order_by("position").update(position=new_pos)
+                _normalize_locked_finding_positions(model, report_id, old_sev)
 
-            # The ``modelUpdateForm`` sets minimum number to 0, but check again for funny business
-            instance.position = max(instance.position, 1)
-
-            # The ``position`` value should not be larger than total findings
-            if instance.position > finding_queryset.count():
-                finding_queryset.filter(id=instance.id).update(position=finding_queryset.count())
-
-            counter = 1
-            if finding_queryset:
-                # Loop from top position down and look for a match
-                for finding in finding_queryset:
-                    # Check if finding in loop is the finding being updated
-                    if not instance.pk == finding.pk:
-                        # Increment position counter when counter equals new value
-                        if instance.position == counter:
-                            counter += 1
-                        finding_queryset.filter(id=finding.id).update(position=counter)
-                        counter += 1
-                    else:
-                        pass
-            # No other findings with the chosen severity, so set ``position`` to ``1``
-            else:
-                instance.position = 1
-    # Place newly created findings at the end of the current list
-    else:
-        finding_queryset = model.objects.filter(Q(report__pk=instance.report.pk) & Q(severity=instance.severity))
-        finding_queryset.filter(id=instance.id).update(position=finding_queryset.count())
+            _normalize_locked_finding_positions(
+                model,
+                report_id,
+                new_sev,
+                moving_instance_id=instance.id,
+                target_position=new_pos,
+            )
+        else:
+            # Existing behaviour: report findings added through GraphQL are
+            # appended to their severity group regardless of input position.
+            _normalize_locked_finding_positions(
+                model,
+                report_id,
+                new_sev,
+                moving_instance_id=instance.id,
+                skip_if_contiguous=True,
+            )
     return None

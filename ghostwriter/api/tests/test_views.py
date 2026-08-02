@@ -4,16 +4,26 @@ import copy
 import json
 import logging
 import os
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta
 from http import HTTPStatus
+from threading import Barrier
 
 # Django Imports
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.messages import get_messages
 from django.core.files.base import ContentFile
+from django.db import close_old_connections, connection
 from django.http import JsonResponse
-from django.test import Client, RequestFactory, TestCase, override_settings
+from django.test import (
+    Client,
+    RequestFactory,
+    TestCase,
+    TransactionTestCase,
+    override_settings,
+)
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import force_str
@@ -3190,6 +3200,37 @@ class GraphqlReportFindingEventTests(TestCase):
     def setUp(self):
         self.client = Client()
 
+    def post_change_event(self, operation, old, new):
+        """Deliver a report finding Hasura event to its webhook."""
+        return self.client.post(
+            self.change_uri,
+            content_type="application/json",
+            data={
+                "event": {
+                    "op": operation,
+                    "data": {
+                        "old": old,
+                        "new": new,
+                    },
+                },
+            },
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+            },
+        )
+
+    def assert_contiguous_positions(self, severity):
+        """Assert positions are unique and contiguous for a severity group."""
+        positions = list(
+            self.ReportFindingLink.objects.filter(
+                report=self.report,
+                severity=severity,
+            )
+            .order_by("position", "id")
+            .values_list("position", flat=True)
+        )
+        self.assertEqual(positions, list(range(1, len(positions) + 1)))
+
     def test_model_cleaning_position(self):
         self.ReportFindingLink.objects.all().delete()
         first_finding = ReportFindingLinkFactory(
@@ -3428,6 +3469,234 @@ class GraphqlReportFindingEventTests(TestCase):
         third_finding.refresh_from_db()
         self.assertEqual(first_finding.position, 1)
         self.assertEqual(third_finding.position, 2)
+
+    def test_bulk_insert_events_converge_without_follow_up_writes(self):
+        """Bulk GraphQL inserts must not produce a self-sustaining event storm."""
+        self.ReportFindingLink.objects.all().delete()
+        findings = [
+            ReportFindingLinkFactory(
+                report=self.report,
+                severity=self.critical_severity,
+                position=1,
+            )
+            for _ in range(12)
+        ]
+
+        # Hasura delivers one insert event per row; delivery order is not a
+        # meaningful ordering contract, so deliberately reverse it here.
+        with CaptureQueriesContext(connection) as insert_queries:
+            for finding in reversed(findings):
+                response = self.post_change_event(
+                    "INSERT",
+                    None,
+                    {
+                        "id": finding.id,
+                        "position": 1,
+                        "severity_id": finding.severity_id,
+                    },
+                )
+                self.assertEqual(response.status_code, 200)
+
+        insert_updates = [
+            query
+            for query in insert_queries.captured_queries
+            if 'UPDATE "reporting_reportfindinglink"' in query["sql"]
+        ]
+        self.assertEqual(len(insert_updates), 1)
+
+        self.assert_contiguous_positions(self.critical_severity)
+        positions_before_follow_up = list(
+            self.ReportFindingLink.objects.filter(report=self.report)
+            .order_by("id")
+            .values_list("id", "position")
+        )
+
+        # Every changed position emits an update event. Once normalized, each
+        # follow-up must be a no-op and, critically, must not enqueue another.
+        with CaptureQueriesContext(connection) as queries:
+            for finding in findings:
+                finding.refresh_from_db()
+                response = self.post_change_event(
+                    "UPDATE",
+                    {
+                        "id": finding.id,
+                        "position": 1,
+                        "severity_id": finding.severity_id,
+                    },
+                    {
+                        "id": finding.id,
+                        "position": finding.position,
+                        "severity_id": finding.severity_id,
+                    },
+                )
+                self.assertEqual(response.status_code, 200)
+
+        finding_updates = [
+            query
+            for query in queries.captured_queries
+            if 'UPDATE "reporting_reportfindinglink"' in query["sql"]
+        ]
+        self.assertEqual(finding_updates, [])
+        self.assertEqual(
+            list(
+                self.ReportFindingLink.objects.filter(report=self.report)
+                .order_by("id")
+                .values_list("id", "position")
+            ),
+            positions_before_follow_up,
+        )
+
+    def test_non_ordering_update_event_does_not_touch_database(self):
+        """Content-only updates must not enter the ordering transaction."""
+        finding = ReportFindingLinkFactory(
+            report=self.report,
+            severity=self.critical_severity,
+            position=1,
+        )
+        event_data = {
+            "id": finding.id,
+            "position": finding.position,
+            "severity_id": finding.severity_id,
+        }
+
+        with CaptureQueriesContext(connection) as queries:
+            response = self.post_change_event(
+                "UPDATE",
+                event_data,
+                event_data,
+            )
+
+        self.assertEqual(response.status_code, 200)
+        finding_queries = [
+            query
+            for query in queries.captured_queries
+            if "reporting_reportfindinglink" in query["sql"]
+        ]
+        self.assertEqual(finding_queries, [])
+
+    def test_stale_position_event_preserves_newer_order(self):
+        """Out-of-order Hasura events must not replay an older move."""
+        self.ReportFindingLink.objects.all().delete()
+        first_finding = ReportFindingLinkFactory(
+            report=self.report,
+            severity=self.critical_severity,
+            position=1,
+        )
+        second_finding = ReportFindingLinkFactory(
+            report=self.report,
+            severity=self.critical_severity,
+            position=2,
+        )
+        third_finding = ReportFindingLinkFactory(
+            report=self.report,
+            severity=self.critical_severity,
+            position=3,
+        )
+
+        first_finding.position = 3
+        first_finding.save()
+        older_event = {
+            "id": first_finding.id,
+            "position": 3,
+            "severity_id": first_finding.severity_id,
+        }
+        first_finding.position = 2
+        first_finding.save()
+        newer_event = {
+            "id": first_finding.id,
+            "position": 2,
+            "severity_id": first_finding.severity_id,
+        }
+
+        response = self.post_change_event(
+            "UPDATE",
+            older_event,
+            newer_event,
+        )
+        self.assertEqual(response.status_code, 200)
+
+        response = self.post_change_event(
+            "UPDATE",
+            {
+                "id": first_finding.id,
+                "position": 1,
+                "severity_id": first_finding.severity_id,
+            },
+            older_event,
+        )
+        self.assertEqual(response.status_code, 200)
+
+        first_finding.refresh_from_db()
+        second_finding.refresh_from_db()
+        third_finding.refresh_from_db()
+        self.assertEqual(first_finding.position, 2)
+        self.assertEqual(second_finding.position, 1)
+        self.assertEqual(third_finding.position, 3)
+        self.assert_contiguous_positions(self.critical_severity)
+
+
+class GraphqlReportFindingConcurrentEventTests(TransactionTestCase):
+    """Concurrency regression coverage for report finding Hasura events."""
+
+    def setUp(self):
+        self.ReportFindingLink = ReportFindingLinkFactory._meta.model
+        self.critical_severity = SeverityFactory(severity="Critical", weight=0)
+        self.report = ReportFactory()
+        self.change_uri = reverse("api:graphql_reportfinding_change_event")
+
+    def test_concurrent_bulk_insert_events_converge(self):
+        """Concurrent insert events must serialize and leave one stable order."""
+        findings = [
+            ReportFindingLinkFactory(
+                report=self.report,
+                severity=self.critical_severity,
+                position=1,
+            )
+            for _ in range(8)
+        ]
+        start = Barrier(len(findings))
+
+        def deliver_event(finding):
+            close_old_connections()
+            try:
+                start.wait()
+                response = Client().post(
+                    self.change_uri,
+                    content_type="application/json",
+                    data={
+                        "event": {
+                            "op": "INSERT",
+                            "data": {
+                                "old": None,
+                                "new": {
+                                    "id": finding.id,
+                                    "position": 1,
+                                    "severity_id": finding.severity_id,
+                                },
+                            },
+                        },
+                    },
+                    **{
+                        "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                    },
+                )
+                return response.status_code
+            finally:
+                close_old_connections()
+
+        with ThreadPoolExecutor(max_workers=len(findings)) as executor:
+            statuses = list(executor.map(deliver_event, findings))
+
+        self.assertEqual(statuses, [200] * len(findings))
+        positions = list(
+            self.ReportFindingLink.objects.filter(
+                report=self.report,
+                severity=self.critical_severity,
+            )
+            .order_by("position", "id")
+            .values_list("position", flat=True)
+        )
+        self.assertEqual(positions, list(range(1, len(findings) + 1)))
 
 
 class GraphqlProjectContactUpdateEventTests(TestCase):
@@ -5330,6 +5599,11 @@ class CheckEditPermissionsTests(TestCase):
             data=self.data(),
         )
         self.assertEquals(response.status_code, 200, response.content)
+        self.assertEqual(
+            {key: response.json()[key] for key in ("username", "userId")},
+            {"username": self.manager.username, "userId": self.manager.id},
+        )
+        self.assertGreater(response.json()["expiresAt"], timezone.now().timestamp())
 
     def test_access_project_allowed_with_matching_collab_scope(self):
         response = self.client.post(
@@ -5425,6 +5699,24 @@ class CheckEditPermissionsTests(TestCase):
         )
         self.assertEqual(response.status_code, 401, response.content)
 
+    def test_rejects_api_token(self):
+        _, token = APIKey.objects.create_token(
+            user=self.manager,
+            name="Collab API Token",
+        )
+
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers={
+                "Hasura-Action-Secret": ACTION_SECRET,
+                "Authorization": f"Bearer {token}",
+            },
+            data=self.data(),
+        )
+
+        self.assertEqual(response.status_code, 401, response.content)
+
     def test_rejects_expired_collab_jwt(self):
         response = self.client.post(
             self.uri,
@@ -5467,6 +5759,122 @@ class CheckEditPermissionsTests(TestCase):
         self.assertEquals(response.status_code, 404, response.content)
 
 
+class CollabTokenRefreshTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.finding = FindingFactory()
+        cls.project = ProjectFactory()
+        cls.report_finding = ReportFindingLinkFactory()
+        cls.user = UserFactory(password=PASSWORD)
+        cls.manager = UserFactory(password=PASSWORD, role="manager")
+        cls.uri = reverse("api:collab_token_refresh")
+
+    def setUp(self):
+        self.client = Client()
+
+    def post(self, *, model="finding", object_id=None, client=None, **headers):
+        return (client or self.client).post(
+            self.uri,
+            content_type="application/json",
+            data={
+                "model": model,
+                "id": object_id if object_id is not None else self.finding.id,
+            },
+            **headers,
+        )
+
+    def test_requires_authenticated_session(self):
+        response = self.post()
+
+        self.assertEqual(response.status_code, 401, response.content)
+
+    def test_does_not_accept_collab_jwt_without_session(self):
+        _, token = utils.generate_jwt(
+            self.manager,
+            token_type=utils.COLLAB_JWT_TYPE,
+            extra_claims=utils.collab_jwt_claims("finding", self.finding),
+        )
+
+        response = self.post(HTTP_AUTHORIZATION=f"Bearer {token}")
+
+        self.assertEqual(response.status_code, 401, response.content)
+
+    def test_requires_csrf_token(self):
+        csrf_client = Client(enforce_csrf_checks=True)
+        csrf_client.force_login(self.manager)
+
+        response = self.post(client=csrf_client)
+
+        self.assertEqual(response.status_code, 403, response.content)
+
+    def test_renews_exact_document_scope_for_editable_object(self):
+        self.client.force_login(self.manager)
+
+        response = self.post(
+            model="report_finding_link",
+            object_id=self.report_finding.id,
+        )
+
+        self.assertEqual(response.status_code, 200, response.content)
+        payload = utils.get_jwt_payload(response.json()["token"])
+        self.assertEqual(
+            utils.get_jwt_type(response.json()["token"]), utils.COLLAB_JWT_TYPE
+        )
+        self.assertEqual(payload[utils.COLLAB_MODEL_CLAIM], "report_finding_link")
+        self.assertEqual(
+            payload[utils.COLLAB_OBJECT_ID_CLAIM],
+            self.report_finding.id,
+        )
+        self.assertEqual(
+            payload[utils.COLLAB_REPORT_ID_CLAIM],
+            self.report_finding.report_id,
+        )
+        self.assertEqual(
+            payload[utils.COLLAB_FINDING_ID_CLAIM],
+            self.report_finding.id,
+        )
+        self.assertEqual(response.json()["expiresAt"], payload["exp"])
+        self.assertLessEqual(
+            payload["exp"],
+            int((timezone.now() + utils.COLLAB_JWT_EXPIRATION_DELTA).timestamp()),
+        )
+        self.assertGreater(
+            payload["exp"],
+            int(timezone.now().timestamp()),
+        )
+        self.assertEqual(response.headers["Cache-Control"], "no-store")
+
+    def test_rechecks_permission_on_every_renewal(self):
+        assignment = ProjectAssignmentFactory(
+            project=self.project,
+            operator=self.user,
+        )
+        self.client.force_login(self.user)
+
+        allowed = self.post(model="project", object_id=self.project.id)
+        assignment.delete()
+        denied = self.post(model="project", object_id=self.project.id)
+
+        self.assertEqual(allowed.status_code, 200, allowed.content)
+        self.assertEqual(denied.status_code, 403, denied.content)
+
+    def test_rejects_uneditable_object(self):
+        self.client.force_login(self.user)
+
+        response = self.post()
+
+        self.assertEqual(response.status_code, 403, response.content)
+
+    def test_rejects_unknown_model_and_invalid_id(self):
+        self.client.force_login(self.manager)
+
+        unknown_model = self.post(model="user")
+        invalid_id = self.post(object_id=0)
+
+        self.assertEqual(unknown_model.status_code, 400, unknown_model.content)
+        self.assertEqual(invalid_id.status_code, 400, invalid_id.content)
+
+
 class GetTagsTest(TestCase):
     @classmethod
     def setUpTestData(cls):
@@ -5488,6 +5896,22 @@ class GetTagsTest(TestCase):
             _, token = generate_user_jwt(user)
             headers["Authorization"] = f"Bearer {token}"
         return headers
+
+    def collab_headers(self, model=None, object_id=None):
+        model = model or "report_finding_link"
+        object_id = object_id or self.report_finding.id
+        _, token = utils.generate_jwt(
+            self.manager,
+            token_type=utils.COLLAB_JWT_TYPE,
+            extra_claims={
+                utils.COLLAB_MODEL_CLAIM: model,
+                utils.COLLAB_OBJECT_ID_CLAIM: object_id,
+            },
+        )
+        return {
+            "Hasura-Action-Secret": ACTION_SECRET,
+            "Authorization": f"Bearer {token}",
+        }
 
     def data(self, hasura_role="user", model=None, object_id=None):
         return {
@@ -5531,6 +5955,29 @@ class GetTagsTest(TestCase):
         self.assertEquals(response.status_code, 200)
         body = response.json()
         self.assertEqual(set(body["tags"]), self.tags)
+
+    def test_get_report_finding_tags_allowed_scoped_collab_token(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.collab_headers(),
+            data=self.data(),
+        )
+
+        self.assertEquals(response.status_code, 200, response.content)
+        self.assertEqual(set(response.json()["tags"]), self.tags)
+
+    def test_get_report_finding_tags_rejects_collab_token_for_another_object(self):
+        other_finding = ReportFindingLinkFactory(report=self.report_finding.report)
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.collab_headers(object_id=other_finding.id),
+            data=self.data(),
+        )
+
+        self.assertEquals(response.status_code, 403, response.content)
+        self.assertNotIn("tags", response.json())
 
     def test_get_report_finding_tags_rejects_forged_admin_without_token(self):
         response = self.client.post(
@@ -5668,6 +6115,22 @@ class SetTagsTest(TestCase):
             headers["Authorization"] = f"Bearer {token}"
         return headers
 
+    def collab_headers(self, model=None, object_id=None):
+        model = model or "report_finding_link"
+        object_id = object_id or self.report_finding.id
+        _, token = utils.generate_jwt(
+            self.manager,
+            token_type=utils.COLLAB_JWT_TYPE,
+            extra_claims={
+                utils.COLLAB_MODEL_CLAIM: model,
+                utils.COLLAB_OBJECT_ID_CLAIM: object_id,
+            },
+        )
+        return {
+            "Hasura-Action-Secret": ACTION_SECRET,
+            "Authorization": f"Bearer {token}",
+        }
+
     def data(self, tags, hasura_role="user", model=None, object_id=None):
         v = {
             "input": {
@@ -5691,6 +6154,31 @@ class SetTagsTest(TestCase):
         self.assertEqual(
             set(self.report_finding.tags.names()), self.tags, response.content
         )
+
+    def test_set_report_finding_tags_allowed_scoped_collab_token(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.collab_headers(),
+            data=self.data(self.tags),
+        )
+
+        self.assertEquals(response.status_code, 200, response.content)
+        self.report_finding.refresh_from_db()
+        self.assertEqual(set(self.report_finding.tags.names()), self.tags)
+
+    def test_set_report_finding_tags_rejects_collab_token_for_another_object(self):
+        other_finding = ReportFindingLinkFactory(report=self.report_finding.report)
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.collab_headers(object_id=other_finding.id),
+            data=self.data(self.tags),
+        )
+
+        self.assertEquals(response.status_code, 403, response.content)
+        self.report_finding.refresh_from_db()
+        self.assertEqual(set(self.report_finding.tags.names()), set())
 
     def test_set_report_finding_tags_not_allowed(self):
         response = self.client.post(

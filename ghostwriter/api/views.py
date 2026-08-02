@@ -55,7 +55,11 @@ from ghostwriter.api.models import (
 )
 from ghostwriter.commandcenter.models import ExtraFieldModel, GeneralConfiguration
 from ghostwriter.modules import codenames
-from ghostwriter.modules.model_utils import set_finding_positions, to_dict
+from ghostwriter.modules.model_utils import (
+    normalize_finding_positions,
+    set_finding_positions,
+    to_dict,
+)
 from ghostwriter.modules.passive_voice.detector import get_detector
 from ghostwriter.modules.reportwriter import jinja_string_literal
 from ghostwriter.modules.reportwriter.report.json import ExportReportJson
@@ -98,6 +102,15 @@ SERVICE_TOKEN_ANY_PROJECT_READ_REQUIREMENT = {
     "resource_type": ServiceTokenPermission.ResourceType.PROJECT,
     "action": ServiceTokenPermission.Action.READ,
     "scope": SERVICE_TOKEN_SCOPE_ANY,
+}
+COLLAB_EDIT_MODELS = {
+    # Models here need to have a ``user_can_edit(user)`` method.
+    "observation": Observation,
+    "report_observation_link": ReportObservationLink,
+    "finding": Finding,
+    "report_finding_link": ReportFindingLink,
+    "report": Report,
+    "project": Project,
 }
 
 
@@ -1824,6 +1837,13 @@ class GraphqlReportFindingChangeEvent(HasuraEventView):
     """
 
     def post(self, request, *args, **kwargs):
+        if (
+            self.event["op"] == "UPDATE"
+            and self.old_data["position"] == self.new_data["position"]
+            and self.old_data["severity_id"] == self.new_data["severity_id"]
+        ):
+            return JsonResponse(self.data, status=self.status)
+
         instance = ReportFindingLink.objects.get(id=self.new_data["id"])
 
         if self.event["op"] == "INSERT":
@@ -1855,16 +1875,11 @@ class GraphqlReportFindingDeleteEvent(HasuraEventView):
 
     def post(self, request, *args, **kwargs):
         try:
-            findings_queryset = ReportFindingLink.objects.filter(
-                Q(report=self.old_data["report_id"])
-                & Q(severity=self.old_data["severity_id"])
+            normalize_finding_positions(
+                ReportFindingLink,
+                self.old_data["report_id"],
+                self.old_data["severity_id"],
             )
-            if findings_queryset:
-                counter = 1
-                for finding in findings_queryset:
-                    # Adjust position to close gap created by the removed finding
-                    findings_queryset.filter(id=finding.id).update(position=counter)
-                    counter += 1
         except Report.DoesNotExist:  # pragma: no cover
             # Report was deleted, so no need to adjust positions
             pass
@@ -2628,9 +2643,57 @@ class ServiceTokenCreate(utils.RoleBasedAccessControlMixin, FormView):
         return super().form_valid(form)
 
 
+class CollabTokenRefresh(View):
+    """Renew one document-scoped collaboration JWT using the Django session."""
+
+    http_method_names = ["post"]
+
+    def post(self, request, *args, **kwargs):
+        if not request.user.is_authenticated or not request.user.is_active:
+            return JsonResponse({"error": "Authentication required"}, status=401)
+
+        try:
+            data = json.loads(request.body)
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            return JsonResponse({"error": "Invalid request body"}, status=400)
+
+        if not isinstance(data, dict) or not isinstance(data.get("model"), str):
+            return JsonResponse({"error": "Invalid request body"}, status=400)
+
+        model_name = data["model"].lower()
+        cls = COLLAB_EDIT_MODELS.get(model_name)
+        raw_object_id = data.get("id")
+        if isinstance(raw_object_id, bool):
+            return JsonResponse({"error": "Invalid request body"}, status=400)
+        try:
+            object_id = int(raw_object_id)
+        except (TypeError, ValueError):
+            return JsonResponse({"error": "Invalid request body"}, status=400)
+
+        if cls is None or object_id < 1:
+            return JsonResponse({"error": "Invalid request body"}, status=400)
+
+        try:
+            obj = cls.objects.get(id=object_id)
+        except ObjectDoesNotExist:
+            return JsonResponse({"error": "Not found"}, status=404)
+
+        if not obj.user_can_edit(request.user):
+            return JsonResponse({"error": "Permission denied"}, status=403)
+
+        expires_at, token = utils.generate_collab_jwt(
+            request.user,
+            model_name,
+            obj,
+        )
+        response = JsonResponse({"token": token, "expiresAt": expires_at})
+        response["Cache-Control"] = "no-store"
+        return response
+
+
 class CheckEditPermissions(JwtRequiredMixin, HasuraActionView):
     """
-    Checks if the given API token or JWT authorizes edit accesses to an object.
+    Checks if a document-scoped JWT authorizes edit access to an object.
 
     Used by the collab editing server for authentication. Not used by Hasura.
     """
@@ -2638,15 +2701,15 @@ class CheckEditPermissions(JwtRequiredMixin, HasuraActionView):
     allow_login_jwt = False
     allow_collab_jwt = True
     required_inputs = ["model", "id"]
-    available_models = {
-        # Models here need to have a `user_can_edit(user)` method.
-        "observation": Observation,
-        "report_observation_link": ReportObservationLink,
-        "finding": Finding,
-        "report_finding_link": ReportFindingLink,
-        "report": Report,
-        "project": Project,
-    }
+    available_models = COLLAB_EDIT_MODELS
+
+    def post_authentication(self, request, *args, **kwargs):
+        response = super().post_authentication(request, *args, **kwargs)
+        if response is not None:
+            return response
+        if self.jwt_token_type != utils.COLLAB_JWT_TYPE:
+            return self.invalid_token_response()
+        return None
 
     def get_collab_object_scope_id(self) -> int:
         if not self.jwt_payload:
@@ -2704,7 +2767,18 @@ class CheckEditPermissions(JwtRequiredMixin, HasuraActionView):
                 ),
                 status=403,
             )
-        return JsonResponse(self.user_obj.username, status=200, safe=False)
+        expires_at = self.jwt_payload.get("exp")
+        if not isinstance(expires_at, (int, float)):
+            return self.invalid_token_response()
+
+        return JsonResponse(
+            {
+                "username": self.user_obj.username,
+                "userId": self.user_obj.id,
+                "expiresAt": int(expires_at),
+            },
+            status=200,
+        )
 
 
 class ServiceTokenTagAccessMixin:
@@ -2783,7 +2857,46 @@ class ServiceTokenTagAccessMixin:
         return cls.objects.none()
 
 
-class GetTags(ServiceTokenTagAccessMixin, JwtRequiredMixin, HasuraActionView):
+class CollabTokenScopeMixin:
+    """Restrict collaboration JWTs to the document they were issued for."""
+
+    allow_collab_jwt = True
+
+    def post_authentication(self, request, *args, **kwargs):
+        response = super().post_authentication(request, *args, **kwargs)
+        if response is not None or self.jwt_token_type != utils.COLLAB_JWT_TYPE:
+            return response
+
+        expected_model = self.jwt_payload.get(utils.COLLAB_MODEL_CLAIM)
+        expected_object_id = self.jwt_payload.get(utils.COLLAB_OBJECT_ID_CLAIM)
+        requested_model = str(self.input.get("model", "")).lower()
+        requested_object_id = self.input.get("id")
+        if requested_model == expected_model and str(requested_object_id) == str(
+            expected_object_id
+        ):
+            return None
+
+        logger.warning(
+            "Rejected collab token for %s %s; token is scoped to %s %s",
+            requested_model,
+            requested_object_id,
+            expected_model,
+            expected_object_id,
+        )
+        return JsonResponse(
+            utils.generate_hasura_error_payload(
+                "Collaboration token is not authorized for this object", "Unauthorized"
+            ),
+            status=HTTPStatus.FORBIDDEN,
+        )
+
+
+class GetTags(
+    CollabTokenScopeMixin,
+    ServiceTokenTagAccessMixin,
+    JwtRequiredMixin,
+    HasuraActionView,
+):
     required_inputs = ["model", "id"]
     available_models = {
         # Models here need to have a `tags` field, and optionally a `user_can_view(user)` method.
@@ -2834,7 +2947,12 @@ class GetTags(ServiceTokenTagAccessMixin, JwtRequiredMixin, HasuraActionView):
         return JsonResponse({"tags": list(obj.tags.names())})
 
 
-class SetTags(ServiceTokenTagAccessMixin, JwtRequiredMixin, HasuraActionView):
+class SetTags(
+    CollabTokenScopeMixin,
+    ServiceTokenTagAccessMixin,
+    JwtRequiredMixin,
+    HasuraActionView,
+):
     service_token_tag_action = ServiceTokenPermission.Action.UPDATE
     required_inputs = ["model", "id", "tags"]
     available_models = {
