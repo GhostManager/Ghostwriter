@@ -4,6 +4,7 @@ import {
     HocuspocusProviderWebsocket,
 } from "@hocuspocus/provider";
 import * as Y from "yjs";
+import { getCollabToken, subscribeCollabToken } from "./token";
 
 export type ConnectionStatus =
     | "disconnected"
@@ -50,7 +51,6 @@ export function usePageConnection(settings: {
         const id =
             settings.id ?? document.getElementById("yjs-object-id")!.innerHTML;
         const username = document.getElementById("yjs-username")!.innerHTML;
-        const jwt = document.getElementById("yjs-jwt")!.innerHTML;
 
         provider.current = new HocuspocusProvider({
             websocketProvider: new HocuspocusProviderWebsocket({
@@ -58,8 +58,8 @@ export function usePageConnection(settings: {
                 autoConnect: false,
             }),
             name: settings.model + "/" + id,
-            token() {
-                let tok = jwt;
+            async token() {
+                let tok = await getCollabToken();
 
                 // Send document instance ID so that server will kick us out if it's made a new document with
                 // a divergent history.
@@ -105,9 +105,17 @@ export function usePageConnection(settings: {
     }
 
     useEffect(() => {
+        const unsubscribeToken = subscribeCollabToken((event) => {
+            if (event === "refreshed" && provider.current.isAuthenticated) {
+                void provider.current.sendToken();
+            } else if (event === "expired") {
+                provider.current.configuration.websocketProvider.disconnect();
+            }
+        });
         provider.current!.attach();
         provider.current!.configuration.websocketProvider.connect();
         return () => {
+            unsubscribeToken();
             provider.current?.destroy();
             (window as any).gwDebugYjsProvider = null;
         };
