@@ -125,8 +125,8 @@ def _normalize_locked_finding_positions(
 
 def set_finding_positions(
     instance: django.db.models.Model,
-    old_pos: [int, None],
-    old_sev: [int, None],
+    old_pos: Optional[int],
+    old_sev: Optional[int],
     new_pos: int,
     new_sev: int,
 ) -> None:
