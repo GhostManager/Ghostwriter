@@ -393,6 +393,9 @@ def create_app():
               complete
               delivered
               extraFields
+              evidence {
+                id
+              }
               findings(order_by: {cvssScore: desc}) {
                 id
                 title
@@ -419,9 +422,6 @@ def create_app():
                   id
                   findingType
                 }
-                evidences {
-                  id
-                }
               }
             }
           }
@@ -446,16 +446,15 @@ def create_app():
         project_data = data.get("project_by_pk")
         if project_data:
             for report in project_data.get("reports", []):
-                for finding in report.get("findings", []):
-                    evidence_list = finding.get("evidences", [])
-                    downloaded = []
-                    for ev in evidence_list:
-                        ev_data, ev_err = graphql_request(download_query, {"evidenceId": int(ev["id"])})
-                        if ev_err:
-                            downloaded.append({"evidenceId": ev["id"], "error": ev_err})
-                        else:
-                            downloaded.append(ev_data.get("downloadEvidence", {}))
-                    finding["evidences"] = downloaded
+                evidence_list = report.get("evidence", [])
+                downloaded = []
+                for ev in evidence_list:
+                    ev_data, ev_err = graphql_request(download_query, {"evidenceId": int(ev["id"])})
+                    if ev_err:
+                        downloaded.append({"evidenceId": ev["id"], "error": ev_err})
+                    else:
+                        downloaded.append(ev_data.get("downloadEvidence", {}))
+                report["evidence"] = downloaded
 
         return jsonify(data)
 
@@ -638,7 +637,7 @@ def create_app():
                 if idx < len(original_ids) and original_ids[idx] is not None:
                     old_to_new[int(original_ids[idx])] = row["id"]
 
-        # 6. Upload evidence from comments to the corresponding new findings
+        # 6. Upload evidence from comments onto the new report (evidence is report-scoped)
         evidence_errors = []
         upload_evidence_query = """
         mutation UploadEvidence(
@@ -647,7 +646,7 @@ def create_app():
           $friendly_name: String!,
           $caption: String!,
           $description: String,
-          $finding: Int
+          $report: Int!
         ) {
           uploadEvidence(
             file_base64: $file_base64,
@@ -655,7 +654,7 @@ def create_app():
             friendly_name: $friendly_name,
             caption: $caption,
             description: $description,
-            finding: $finding
+            report: $report
           ) {
             id
           }
@@ -680,7 +679,7 @@ def create_app():
                 "friendly_name": f"Retest Evidence - Finding {original_fid}",
                 "caption": "Retest evidence",
                 "description": comment.get("description", ""),
-                "finding": int(new_fid),
+                "report": int(new_report_id),
             })
             if err:
                 evidence_errors.append({
