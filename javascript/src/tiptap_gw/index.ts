@@ -29,6 +29,7 @@ import Footnote from "./footnote";
 import { PassiveVoiceDecoration } from "./passive_voice_decoration";
 import DateTimeShortcuts from "./now_shortcut";
 import JinjaLiteral, { JinjaReference } from "./jinja_literal";
+import GwComment from "./comment";
 
 const EXTENSIONS: Extensions = [
     StarterKit.configure({
@@ -81,6 +82,7 @@ const EXTENSIONS: Extensions = [
     DateTimeShortcuts,
     JinjaLiteral,
     JinjaReference,
+    GwComment,
 ];
 
 export default EXTENSIONS;

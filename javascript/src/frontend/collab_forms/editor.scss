@@ -484,3 +484,99 @@ ul.collab-focused-users {
 .passive-voice-highlight.passive-voice-hover {
     background-color: #ffe69c;
 }
+
+// Comment mark — active (unresolved) comments get a yellow background
+.gw-comment {
+    background-color: #fff3b0;
+    border-bottom: 2px solid #f0ad00;
+    cursor: pointer;
+}
+
+// Resolved comments lose the highlight but the data stays in the DOM
+.gw-comment.gw-comment-resolved {
+    background-color: transparent;
+    border-bottom: 2px solid #aaa;
+}
+
+// Comment modal card styles
+.gw-comment-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.gw-comment-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    padding: 0.6rem 0.75rem;
+    background-color: #f8f9fa;
+
+    &.gw-comment-card-own {
+        border-color: #0d6efd;
+        background-color: #f0f5ff;
+    }
+}
+
+.gw-comment-card-header {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+.gw-comment-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.gw-comment-meta {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+
+    strong {
+        font-size: 0.9rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    small {
+        font-size: 0.75rem;
+    }
+}
+
+.gw-comment-actions {
+    display: flex;
+    flex-direction: row;
+    gap: 0.25rem;
+    flex-shrink: 0;
+}
+
+.gw-comment-text {
+    margin: 0;
+    font-size: 0.9rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.gw-comment-edit-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.gw-comment-edit-buttons {
+    display: flex;
+    flex-direction: row;
+    gap: 0.25rem;
+}
