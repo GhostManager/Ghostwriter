@@ -1,6 +1,7 @@
 """This contains the custom template tags used by the Home application."""
 
 # Standard Libraries
+import logging
 from datetime import datetime, timedelta
 
 # Django Imports
@@ -22,6 +23,7 @@ from ghostwriter.reporting.models import Finding, Observation, Report, ReportFin
 from ghostwriter.rolodex.models import ProjectAssignment
 
 register = template.Library()
+logger = logging.getLogger(__name__)
 
 
 @register.filter(name="has_group")
@@ -155,6 +157,18 @@ def is_privileged(user):
 
 
 @register.filter
+def can_edit_report_template(user, report_template):
+    """Check if the user has permission to edit a report template."""
+    return report_template.user_can_edit(user)
+
+
+@register.filter
+def can_delete_report_template(user, report_template):
+    """Check if the user has permission to delete a report template."""
+    return report_template.user_can_delete(user)
+
+
+@register.filter
 def has_mfa(user):
     """Check if the user has a valid TOTP method configured."""
     return user_has_valid_totp_device(user)
@@ -194,7 +208,7 @@ def add_days(date, days):
                 days += 1
         new_date = date_obj
     except ParserError:
-        pass
+        logger.debug("Unable to parse date value for business-day calculation.", exc_info=True)
     return new_date
 
 

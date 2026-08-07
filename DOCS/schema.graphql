@@ -67333,7 +67333,7 @@
           },
           {
             "name": "deleteTemplate",
-            "description": "Delete the specified template file and remove the associated file from the filesystem",
+            "description": "Delete an authorized template and remove the associated file from the filesystem",
             "args": [
               {
                 "name": "templateId",

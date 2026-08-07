@@ -91,7 +91,7 @@ urlpatterns += [
         name="ajax_assign_observation",
     ),
     path(
-        "ajax/obseravation/delete/<int:pk>",
+        "ajax/observation/delete/<int:pk>",
         ghostwriter.reporting.views2.report_observation_link.ReportObservationLinkDelete.as_view(),
         name="ajax_delete_local_observation",
     ),

@@ -13,16 +13,22 @@ from ghostwriter.rolodex.models import Client, Project
 from ghostwriter.shepherd.models import Domain, StaticServer
 
 
+def serialize_project(project):
+    """Serialize a project for export without depending on exporter state."""
+    return FullProjectSerializer(project).data
+
+
 class ExportProjectBase(ExportBase):
     """
     Mixin class for exporting projects.
 
-    Provides a `serialize_object` implementation for serializing the `Project` database object,
-    and helper functions for creating Jinja contexts.
+    Configures project serialization and provides helpers for creating Jinja
+    contexts.
     """
 
-    def serialize_object(self, object):
-        return FullProjectSerializer(object).data
+    def __init__(self, *args, **kwargs):
+        kwargs["object_serializer"] = serialize_project
+        super().__init__(*args, **kwargs)
 
     def map_rich_texts(self):
         base_context = copy.deepcopy(self.data)
@@ -186,11 +192,10 @@ class ExportProjectBase(ExportBase):
         # Logs
         for log in base_context["logs"]:
             for entry in log["entries"]:
-                ex.process_extra_fields(
+                ex.process_literal_extra_fields(
                     f"log entry {entry['description']} of log {log['name']}",
                     entry["extra_fields"],
                     OplogEntry,
-                    rich_text_context,
                 )
 
         # BloodHound findings

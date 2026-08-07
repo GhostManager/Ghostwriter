@@ -95,6 +95,73 @@ def mk_test_pptx(name, input, expected_output, add_suffix=True):
 class RichTextToPptxTests(SimpleTestCase):
     maxDiff = None
 
+    def test_blockquote_in_table_cell_is_rendered(self):
+        ppt = pptx.Presentation()
+        slide = ppt.slides.add_slide(ppt.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT])
+        shape = slide.shapes.placeholders[1]
+        shape.text_frame.clear()
+
+        HtmlToPptx.run(
+            """
+            <table>
+                <tbody>
+                    <tr>
+                        <td>
+                            <p>Before quote</p>
+                            <blockquote>Quoted <b>text</b></blockquote>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            """,
+            slide,
+            shape,
+        )
+
+        table = next(
+            slide_shape.table for slide_shape in slide.shapes if slide_shape.has_table
+        )
+        self.assertEqual(
+            [paragraph.text for paragraph in table.cell(0, 0).text_frame.paragraphs],
+            ["Before quote", "Quoted text"],
+        )
+
+    def test_preformatted_text_in_table_cell_is_rendered(self):
+        ppt = pptx.Presentation()
+        slide = ppt.slides.add_slide(ppt.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT])
+        shape = slide.shapes.placeholders[1]
+        shape.text_frame.clear()
+
+        HtmlToPptx.run(
+            """
+            <table>
+                <tbody>
+                    <tr>
+                        <td>
+                            <p>Command output</p>
+                            <pre><code>first line\nsecond line</code></pre>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            """,
+            slide,
+            shape,
+        )
+
+        table = next(
+            slide_shape.table for slide_shape in slide.shapes if slide_shape.has_table
+        )
+        paragraphs = table.cell(0, 0).text_frame.paragraphs
+        self.assertEqual(
+            [paragraph.text for paragraph in paragraphs],
+            ["Command output", "first line\nsecond line"],
+        )
+        self.assertEqual(
+            {run.font.name for run in paragraphs[1].runs},
+            {"Courier New"},
+        )
+
     def test_trailing_empty_paragraph_after_list_is_omitted(self):
         ppt = pptx.Presentation()
         slide = ppt.slides.add_slide(ppt.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT])

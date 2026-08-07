@@ -187,7 +187,7 @@ class DomainModelTests(TestCase):
         domain = DomainFactory()
         try:
             domain.get_absolute_url()
-        except:
+        except Exception:
             self.fail("Domain.get_absolute_url() raised an exception")
 
     def test_method_get_domain_age(self):
@@ -292,7 +292,7 @@ class HistoryModelTests(TestCase):
         checkout = HistoryFactory()
         try:
             checkout.get_absolute_url()
-        except:
+        except Exception:
             self.fail("History.get_absolute_url() raised an exception")
 
     def test_method_will_be_released(self):
@@ -323,12 +323,12 @@ class HistoryModelTests(TestCase):
         # Deleting this older checkout should not impact the domain's status
         history_1.delete()
         domain.refresh_from_db()
-        self.assertTrue(domain.domain_status == self.unavailable_status)
+        self.assertEqual(domain.domain_status, self.unavailable_status)
 
         # Deleting this newer checkout should impact the domain's status
         history_2.delete()
         domain.refresh_from_db()
-        self.assertTrue(domain.domain_status == self.available_status)
+        self.assertEqual(domain.domain_status, self.available_status)
 
 
 class ServerStatusModelTests(TestCase):
@@ -454,7 +454,7 @@ class StaticServerModelTests(TestCase):
         server = StaticServerFactory()
         try:
             server.get_absolute_url()
-        except:
+        except Exception:
             self.fail("StaticServer.get_absolute_url() raised an exception")
 
 
@@ -538,7 +538,7 @@ class ServerHistoryModelTests(TestCase):
         checkout = ServerHistoryFactory()
         try:
             checkout.get_absolute_url()
-        except:
+        except Exception:
             self.fail("ServerHistory.get_absolute_url() raised an exception")
 
     def test_property_ip_address(self):
@@ -591,12 +591,12 @@ class ServerHistoryModelTests(TestCase):
         # Deleting this older checkout should not impact the server's status
         history_1.delete()
         server.refresh_from_db()
-        self.assertTrue(server.server_status == self.unavailable_status)
+        self.assertEqual(server.server_status, self.unavailable_status)
 
         # Deleting this newer checkout should impact the server's status
         history_2.delete()
         server.refresh_from_db()
-        self.assertTrue(server.server_status == self.available_status)
+        self.assertEqual(server.server_status, self.available_status)
 
 
 class DomainServerConnectionModelTests(TestCase):

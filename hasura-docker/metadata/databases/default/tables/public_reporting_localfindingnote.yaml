@@ -109,21 +109,24 @@ update_permissions:
         - finding_id
         - note
       filter:
-        _or:
-          - finding:
-              report:
-                project:
-                  _or:
-                    - client:
-                        invites:
-                          user_id:
-                            _eq: X-Hasura-User-Id
-                    - invites:
-                        user_id:
-                          _eq: X-Hasura-User-Id
-                    - assignments:
-                        operator_id:
-                          _eq: X-Hasura-User-Id
+        _and:
+          - operator_id:
+              _eq: X-Hasura-User-Id
+          - _or:
+              - finding:
+                  report:
+                    project:
+                      _or:
+                        - client:
+                            invites:
+                              user_id:
+                                _eq: X-Hasura-User-Id
+                        - invites:
+                            user_id:
+                              _eq: X-Hasura-User-Id
+                        - assignments:
+                            operator_id:
+                              _eq: X-Hasura-User-Id
       check:
         _or:
           - finding:
@@ -150,18 +153,21 @@ delete_permissions:
   - role: user
     permission:
       filter:
-        _or:
-          - finding:
-              report:
-                project:
-                  _or:
-                    - client:
-                        invites:
-                          user_id:
-                            _eq: X-Hasura-User-Id
-                    - invites:
-                        user_id:
-                          _eq: X-Hasura-User-Id
-                    - assignments:
-                        operator_id:
-                          _eq: X-Hasura-User-Id
+        _and:
+          - operator_id:
+              _eq: X-Hasura-User-Id
+          - _or:
+              - finding:
+                  report:
+                    project:
+                      _or:
+                        - client:
+                            invites:
+                              user_id:
+                                _eq: X-Hasura-User-Id
+                        - invites:
+                            user_id:
+                              _eq: X-Hasura-User-Id
+                        - assignments:
+                            operator_id:
+                              _eq: X-Hasura-User-Id

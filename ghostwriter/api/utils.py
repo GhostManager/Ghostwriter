@@ -1,6 +1,6 @@
 # Standard Libraries
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from urllib.parse import urlparse
 
 # Django Imports
@@ -35,6 +35,40 @@ COLLAB_MODEL_CLAIM = "gw_collab_model"
 COLLAB_OBJECT_ID_CLAIM = "gw_collab_object_id"
 COLLAB_REPORT_ID_CLAIM = "gw_collab_report_id"
 COLLAB_FINDING_ID_CLAIM = "gw_collab_finding_id"
+COLLAB_JWT_EXPIRATION_DELTA = timedelta(hours=24)
+
+
+def collab_jwt_claims(model_name, obj):
+    """Return the document scope embedded in a collaboration JWT."""
+    report_id = COLLAB_NO_ID
+    finding_id = COLLAB_NO_ID
+
+    if model_name == "report":
+        report_id = obj.pk
+    elif model_name == "report_finding_link":
+        report_id = obj.report_id or COLLAB_NO_ID
+        finding_id = obj.pk
+    elif model_name == "report_observation_link":
+        report_id = obj.report_id or COLLAB_NO_ID
+
+    return {
+        COLLAB_MODEL_CLAIM: model_name,
+        COLLAB_OBJECT_ID_CLAIM: obj.pk,
+        COLLAB_REPORT_ID_CLAIM: report_id,
+        COLLAB_FINDING_ID_CLAIM: finding_id,
+    }
+
+
+def generate_collab_jwt(user, model_name, obj):
+    """Generate a short-lived JWT scoped to one collaborative document."""
+    expires_at = datetime.now(timezone.utc) + COLLAB_JWT_EXPIRATION_DELTA
+    _, token = generate_jwt(
+        user,
+        exp=expires_at,
+        token_type=COLLAB_JWT_TYPE,
+        extra_claims=collab_jwt_claims(model_name, obj),
+    )
+    return int(expires_at.timestamp()), token
 
 
 def get_jwt_type(token):

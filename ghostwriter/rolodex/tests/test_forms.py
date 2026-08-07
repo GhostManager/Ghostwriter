@@ -1147,6 +1147,15 @@ class DeconflictionFormTests(TestCase):
         form = self.form_data(**deconfliction.__dict__)
         self.assertTrue(form.is_valid())
 
+    def test_factory_defaults_are_valid(self):
+        deconfliction = DeconflictionFactory.build(
+            project=self.project,
+            status=self.status,
+        )
+
+        form = self.form_data(**deconfliction.__dict__)
+        self.assertTrue(form.is_valid())
+
     def test_existing_timestamp_values_render_for_datetime_local_inputs(self):
         deconfliction = DeconflictionFactory(
             project=self.project,

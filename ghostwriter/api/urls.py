@@ -48,6 +48,7 @@ from ghostwriter.api.views import (
     GraphqlUploadOplogRecording,
     GraphqlDownloadRecording,
     CheckEditPermissions,
+    CollabTokenRefresh,
     GetTags,
     ObjectsByTag,
     SetTags,
@@ -160,6 +161,11 @@ urlpatterns = [
         "check_permissions",
         csrf_exempt(CheckEditPermissions.as_view()),
         name="check_permissions"
+    ),
+    path(
+        "collab/token/refresh",
+        CollabTokenRefresh.as_view(),
+        name="collab_token_refresh",
     ),
     path("tags/get", csrf_exempt(GetTags.as_view()), name="graphql_get_tags"),
     path("tags/set", csrf_exempt(SetTags.as_view()), name="graphql_set_tags"),

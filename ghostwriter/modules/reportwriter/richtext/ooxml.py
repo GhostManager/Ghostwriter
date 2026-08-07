@@ -163,7 +163,7 @@ class BaseHtmlToOOXML:
             try:
                 run.font.size = int(style["font_size"])
             except ValueError:
-                pass
+                logger.debug("Unable to apply rich-text font size.", exc_info=True)
 
     tag_code = set_style_method("code", "inline_code")
     tag_b = set_style_method("b", "bold")
@@ -219,6 +219,8 @@ class BaseHtmlToOOXML:
         self.text_tracking.new_block()
         table_width, table_height = self._table_size(el)
         ooxml_table = self.create_table(rows=table_height, cols=table_width, **kwargs)
+        cell_kwargs = kwargs.copy()
+        cell_kwargs.pop("par", None)
 
         merged_cells = set()
         row_el_iter = self._table_rows(el)
@@ -252,7 +254,7 @@ class BaseHtmlToOOXML:
 
                 self.text_tracking.new_block()
                 par = self.paragraph_for_table_cell(cell, cell_el)
-                self.process_children(cell_el.children, par=par, **kwargs)
+                self.process_children(cell_el.children, par=par, **cell_kwargs)
 
     def tag_div(self, el, **kwargs):
         classes = el.attrs.get("class", [])

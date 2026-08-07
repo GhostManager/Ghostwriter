@@ -3,13 +3,9 @@
 # Django Imports
 from django.apps import AppConfig
 
-
 class ShepherdConfig(AppConfig):
     name = "ghostwriter.shepherd"
     verbose_name = "Infrastructure Management"
 
     def ready(self):
-        try:
-            import ghostwriter.shepherd.signals  # noqa F401 isort:skip
-        except ImportError:
-            pass
+        import ghostwriter.shepherd.signals  # noqa F401 isort:skip

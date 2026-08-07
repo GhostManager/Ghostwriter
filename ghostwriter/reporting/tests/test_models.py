@@ -74,7 +74,7 @@ class FindingModelTests(TestCase):
         finding = FindingFactory()
         try:
             finding.get_absolute_url()
-        except:
+        except Exception:
             self.fail("Finding.get_absolute_url() raised an exception")
 
 
@@ -135,7 +135,7 @@ class SeverityModelTests(TestCase):
 
     def test_adjust_severity_weight_signals(self):
         self.Severity.objects.all().delete()
-        self.assertTrue(self.Severity.objects.all().count() == 0)
+        self.assertEqual(self.Severity.objects.all().count(), 0)
 
         critical = SeverityFactory(severity="Critical", weight=2, color="FFFFFF")
         high = SeverityFactory(severity="High", weight=2, color="FFF000")
@@ -270,8 +270,55 @@ class ReportTemplateModelTests(TestCase):
         template = ReportTemplateFactory()
         try:
             template.get_absolute_url()
-        except:
+        except Exception:
             self.fail("ReportTemplate.get_absolute_url() raised an exception")
+
+    def test_global_template_authorization(self):
+        user = UserFactory()
+        template_manager = UserFactory(enable_template_management=True)
+        manager = UserFactory(role="manager")
+        template = ReportTemplateFactory(client=None, protected=False)
+
+        self.assertTrue(template.user_can_view(user))
+        self.assertFalse(template.user_can_edit(user))
+        self.assertFalse(template.user_can_delete(user))
+        self.assertTrue(template.user_can_edit(template_manager))
+        self.assertTrue(template.user_can_delete(template_manager))
+        self.assertTrue(template.user_can_edit(manager))
+        self.assertFalse(self.ReportTemplate.user_can_create(user, client=None))
+        self.assertTrue(
+            self.ReportTemplate.user_can_create(template_manager, client=None)
+        )
+        self.assertTrue(self.ReportTemplate.user_can_create(manager, client=None))
+
+    def test_client_template_authorization(self):
+        user = UserFactory()
+        template_manager = UserFactory(enable_template_management=True)
+        client = ClientFactory()
+        ClientInviteFactory(client=client, user=user)
+        ClientInviteFactory(client=client, user=template_manager)
+        template = ReportTemplateFactory(client=client, protected=False)
+
+        self.assertTrue(self.ReportTemplate.user_can_create(user, client=client))
+        self.assertTrue(template.user_can_edit(user))
+
+        template.protected = True
+        self.assertFalse(template.user_can_edit(user))
+        self.assertTrue(template.user_can_edit(template_manager))
+        self.assertTrue(template.user_can_delete(template_manager))
+
+    def test_template_manager_does_not_gain_unrelated_client_access(self):
+        template_manager = UserFactory(enable_template_management=True)
+        client = ClientFactory()
+        template = ReportTemplateFactory(client=client, protected=True)
+
+        self.assertFalse(client.user_can_view(template_manager))
+        self.assertFalse(template.user_can_view(template_manager))
+        self.assertFalse(template.user_can_edit(template_manager))
+        self.assertFalse(template.user_can_delete(template_manager))
+        self.assertFalse(
+            self.ReportTemplate.user_can_create(template_manager, client=client)
+        )
 
     def test_prop_filename(self):
         report_template = ReportTemplateFactory()
@@ -428,7 +475,7 @@ class ReportTemplateModelTests(TestCase):
 
         template.save()
 
-        self.assertTrue(template._current_template.path not in template.document.path)
+        self.assertNotIn(template._current_template.path, template.document.path)
         self.assertFalse(os.path.exists(template._current_template.path))
         self.assertTrue(os.path.exists(template.document.path))
 
@@ -469,7 +516,7 @@ class ReportModelTests(TestCase):
         report = ReportFactory()
         try:
             report.get_absolute_url()
-        except:
+        except Exception:
             self.fail("Report.get_absolute_url() raised an exception")
 
     def test_clear_incorrect_template_defaults_unchanged(self):
@@ -732,7 +779,7 @@ class ReportFindingLinkModelTests(TestCase):
         self.assertFalse(blank_finding.exists_in_finding_library)
 
         # Test a finding that's linked to a library finding
-        cloned_finding = FindingFactory(title="Blank Finding Not in the Library")
+        _ = FindingFactory(title="Blank Finding Not in the Library")
         self.assertTrue(blank_finding.exists_in_finding_library)
 
 
@@ -768,7 +815,7 @@ class EvidenceModelTests(TestCase):
         evidence = EvidenceFactory()
         try:
             evidence.get_absolute_url()
-        except:
+        except Exception:
             self.fail("Evidence.get_absolute_url() raised an exception")
         evidence.delete()
 
@@ -795,7 +842,7 @@ class EvidenceModelTests(TestCase):
         self.assertRegexpMatches(evidence.filename, name + r"[_0-9a-zA-Z]*\.txt")
         try:
             evidence.get_absolute_url()
-        except:
+        except Exception:
             self.fail("Evidence.get_absolute_url() raised an exception")
         evidence.delete()
 
@@ -937,7 +984,7 @@ class EmptyFieldFilteringReportExportTests(TestCase):
         )
 
         # Also create truly empty content for comparison
-        truly_empty_finding = ReportFindingLinkFactory(
+        _ = ReportFindingLinkFactory(
             title="Finding with Truly Empty Fields",
             description="",             # Truly empty
             impact="",                  # Truly empty

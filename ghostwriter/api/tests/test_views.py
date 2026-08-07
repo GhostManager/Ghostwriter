@@ -1,18 +1,29 @@
 # Standard Libraries
 import base64
+import copy
 import json
 import logging
 import os
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta
 from http import HTTPStatus
+from threading import Barrier
 
 # Django Imports
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.messages import get_messages
 from django.core.files.base import ContentFile
+from django.db import close_old_connections, connection
 from django.http import JsonResponse
-from django.test import Client, RequestFactory, TestCase, override_settings
+from django.test import (
+    Client,
+    RequestFactory,
+    TestCase,
+    TransactionTestCase,
+    override_settings,
+)
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import force_str
@@ -64,6 +75,7 @@ from ghostwriter.factories import (
     StaticServerFactory,
     UserFactory,
 )
+from ghostwriter.modules.reportwriter import jinja_string_literal, prepare_jinja2_env
 from ghostwriter.oplog.utils import (
     CAST_GZIP_TOO_LARGE_UPLOAD_MESSAGE,
     get_cast_decompressed_bytes,
@@ -2048,7 +2060,12 @@ class GraphqlDeleteReportTemplateAction(TestCase):
         cls.ReportTemplate = ReportTemplateFactory._meta.model
 
         cls.user = UserFactory(password=PASSWORD)
+        cls.template_manager = UserFactory(
+            password=PASSWORD,
+            enable_template_management=True,
+        )
         cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        cls.admin_user = UserFactory(password=PASSWORD, role="admin")
         cls.uri = reverse("api:graphql_delete_template")
 
         cls.template = ReportTemplateFactory()
@@ -2066,8 +2083,8 @@ class GraphqlDeleteReportTemplateAction(TestCase):
             }
         }
 
-    def test_deleting_template(self):
-        _, token = generate_user_jwt(self.user)
+    def test_manager_can_delete_template(self):
+        _, token = generate_user_jwt(self.mgr_user)
         response = self.client.post(
             self.uri,
             data=self.generate_data(self.template.id),
@@ -2082,8 +2099,76 @@ class GraphqlDeleteReportTemplateAction(TestCase):
             self.ReportTemplate.objects.filter(id=self.template.id).exists()
         )
 
-    def test_deleting_template_with_invalid_id(self):
+    def test_admin_can_delete_client_template(self):
+        _, token = generate_user_jwt(self.admin_user)
+        response = self.client.post(
+            self.uri,
+            data=self.generate_data(self.client_template.id),
+            content_type="application/json",
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(
+            self.ReportTemplate.objects.filter(id=self.client_template.id).exists()
+        )
+
+    def test_user_cannot_delete_template(self):
         _, token = generate_user_jwt(self.user)
+        response = self.client.post(
+            self.uri,
+            data=self.generate_data(self.template.id),
+            content_type="application/json",
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
+        )
+        self.assertEqual(response.status_code, 401)
+        self.assertTrue(
+            self.ReportTemplate.objects.filter(id=self.template.id).exists()
+        )
+
+    def test_template_manager_can_delete_global_protected_template(self):
+        _, token = generate_user_jwt(self.template_manager)
+        response = self.client.post(
+            self.uri,
+            data=self.generate_data(self.protected_template.id),
+            content_type="application/json",
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(
+            self.ReportTemplate.objects.filter(
+                id=self.protected_template.id
+            ).exists()
+        )
+
+    def test_template_manager_cannot_delete_inaccessible_client_template(self):
+        _, token = generate_user_jwt(self.template_manager)
+        response = self.client.post(
+            self.uri,
+            data=self.generate_data(self.client_template.id),
+            content_type="application/json",
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertTrue(
+            self.ReportTemplate.objects.filter(id=self.client_template.id).exists()
+        )
+
+    def test_deleting_template_with_invalid_id(self):
+        _, token = generate_user_jwt(self.mgr_user)
         response = self.client.post(
             self.uri,
             data=self.generate_data(999),
@@ -2121,6 +2206,10 @@ class GraphqlDeleteReportTemplateAction(TestCase):
         )
         self.assertEqual(response.status_code, 401)
 
+        self.assertTrue(
+            self.ReportTemplate.objects.filter(id=self.protected_template.id).exists()
+        )
+
         response = self.client.post(
             self.uri,
             data=self.generate_data(self.client_template.id),
@@ -2130,7 +2219,115 @@ class GraphqlDeleteReportTemplateAction(TestCase):
                 "HTTP_AUTHORIZATION": f"Bearer {token}",
             },
         )
+        self.assertEqual(response.status_code, 400)
+        self.assertTrue(
+            self.ReportTemplate.objects.filter(id=self.client_template.id).exists()
+        )
+
+
+class GraphqlUploadReportTemplateViewTests(TestCase):
+    """Collection of tests for :view:`GraphqlUploadReportTemplateView`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.ReportTemplate = ReportTemplateFactory._meta.model
+        cls.user = UserFactory(password=PASSWORD)
+        cls.template_manager = UserFactory(
+            password=PASSWORD,
+            enable_template_management=True,
+        )
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        cls.admin_user = UserFactory(password=PASSWORD, role="admin")
+        cls.source_template = ReportTemplateFactory()
+        cls.template_client = ClientFactory()
+        ProjectAssignmentFactory(
+            project=ProjectFactory(client=cls.template_client),
+            operator=cls.user,
+        )
+        cls.uri = reverse("api:graphql_upload_report_template")
+
+    def setUp(self):
+        self.client = Client()
+
+    def generate_data(self, protected, client=None):
+        with self.source_template.document.open("rb") as template_file:
+            file_base64 = base64.b64encode(template_file.read()).decode("ascii")
+
+        return {
+            "input": {
+                "file_base64": file_base64,
+                "filename": "uploaded-template.docx",
+                "name": "Uploaded Template",
+                "description": "Uploaded through the Hasura action",
+                "protected": protected,
+                "changelog": "",
+                "landscape": False,
+                "filename_override": "",
+                "tags": "",
+                "client": client,
+                "doc_type": self.source_template.doc_type_id,
+                "p_style": "Normal",
+                "evidence_image_width": None,
+                "evidence_image_alignment": "USE_GLOBAL",
+            }
+        }
+
+    def upload(self, user, protected, client=None):
+        _, token = generate_user_jwt(user)
+        return self.client.post(
+            self.uri,
+            data=self.generate_data(protected, client),
+            content_type="application/json",
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
+        )
+
+    def test_user_cannot_mark_uploaded_template_as_protected(self):
+        response = self.upload(
+            self.user,
+            protected=True,
+            client=self.template_client.id,
+        )
+
+        self.assertEqual(response.status_code, 201)
+        template = self.ReportTemplate.objects.get(id=response.json()["id"])
+        self.assertFalse(template.protected)
+        self.assertEqual(template.client, self.template_client)
+
+    def test_user_cannot_upload_global_template(self):
+        response = self.upload(self.user, protected=False)
+
         self.assertEqual(response.status_code, 401)
+        self.assertFalse(
+            self.ReportTemplate.objects.filter(
+                name="Uploaded Template",
+                uploaded_by=self.user,
+            ).exists()
+        )
+
+    def test_manager_can_mark_uploaded_template_as_protected(self):
+        response = self.upload(self.mgr_user, protected=True)
+
+        self.assertEqual(response.status_code, 201)
+        template = self.ReportTemplate.objects.get(id=response.json()["id"])
+        self.assertTrue(template.protected)
+
+    def test_template_manager_can_upload_protected_global_template(self):
+        response = self.upload(self.template_manager, protected=True)
+
+        self.assertEqual(response.status_code, 201)
+        template = self.ReportTemplate.objects.get(id=response.json()["id"])
+        self.assertTrue(template.protected)
+        self.assertIsNone(template.client)
+
+    def test_admin_can_mark_uploaded_template_as_protected(self):
+        response = self.upload(self.admin_user, protected=True)
+
+        self.assertEqual(response.status_code, 201)
+        template = self.ReportTemplate.objects.get(id=response.json()["id"])
+        self.assertTrue(template.protected)
 
 
 class GraphqlAttachFindingAction(TestCase):
@@ -2660,6 +2857,7 @@ class HasuraCreateUserTests(TestCase):
                 enableObservationCreate=False,
                 enableObservationEdit=False,
                 enableObservationDelete=False,
+                enableTemplateManagement=True,
                 phone="123-456-7890",
             ),
             **{
@@ -2672,6 +2870,7 @@ class HasuraCreateUserTests(TestCase):
         created_user = User.objects.get(username="validuser")
         self.assertEqual(created_user.email, "validuser@specterops.io")
         self.assertEqual(created_user.require_mfa, True)
+        self.assertTrue(created_user.enable_template_management)
 
         response = self.client.post(
             self.uri,
@@ -3001,6 +3200,37 @@ class GraphqlReportFindingEventTests(TestCase):
     def setUp(self):
         self.client = Client()
 
+    def post_change_event(self, operation, old, new):
+        """Deliver a report finding Hasura event to its webhook."""
+        return self.client.post(
+            self.change_uri,
+            content_type="application/json",
+            data={
+                "event": {
+                    "op": operation,
+                    "data": {
+                        "old": old,
+                        "new": new,
+                    },
+                },
+            },
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+            },
+        )
+
+    def assert_contiguous_positions(self, severity):
+        """Assert positions are unique and contiguous for a severity group."""
+        positions = list(
+            self.ReportFindingLink.objects.filter(
+                report=self.report,
+                severity=severity,
+            )
+            .order_by("position", "id")
+            .values_list("position", flat=True)
+        )
+        self.assertEqual(positions, list(range(1, len(positions) + 1)))
+
     def test_model_cleaning_position(self):
         self.ReportFindingLink.objects.all().delete()
         first_finding = ReportFindingLinkFactory(
@@ -3239,6 +3469,234 @@ class GraphqlReportFindingEventTests(TestCase):
         third_finding.refresh_from_db()
         self.assertEqual(first_finding.position, 1)
         self.assertEqual(third_finding.position, 2)
+
+    def test_bulk_insert_events_converge_without_follow_up_writes(self):
+        """Bulk GraphQL inserts must not produce a self-sustaining event storm."""
+        self.ReportFindingLink.objects.all().delete()
+        findings = [
+            ReportFindingLinkFactory(
+                report=self.report,
+                severity=self.critical_severity,
+                position=1,
+            )
+            for _ in range(12)
+        ]
+
+        # Hasura delivers one insert event per row; delivery order is not a
+        # meaningful ordering contract, so deliberately reverse it here.
+        with CaptureQueriesContext(connection) as insert_queries:
+            for finding in reversed(findings):
+                response = self.post_change_event(
+                    "INSERT",
+                    None,
+                    {
+                        "id": finding.id,
+                        "position": 1,
+                        "severity_id": finding.severity_id,
+                    },
+                )
+                self.assertEqual(response.status_code, 200)
+
+        insert_updates = [
+            query
+            for query in insert_queries.captured_queries
+            if 'UPDATE "reporting_reportfindinglink"' in query["sql"]
+        ]
+        self.assertEqual(len(insert_updates), 1)
+
+        self.assert_contiguous_positions(self.critical_severity)
+        positions_before_follow_up = list(
+            self.ReportFindingLink.objects.filter(report=self.report)
+            .order_by("id")
+            .values_list("id", "position")
+        )
+
+        # Every changed position emits an update event. Once normalized, each
+        # follow-up must be a no-op and, critically, must not enqueue another.
+        with CaptureQueriesContext(connection) as queries:
+            for finding in findings:
+                finding.refresh_from_db()
+                response = self.post_change_event(
+                    "UPDATE",
+                    {
+                        "id": finding.id,
+                        "position": 1,
+                        "severity_id": finding.severity_id,
+                    },
+                    {
+                        "id": finding.id,
+                        "position": finding.position,
+                        "severity_id": finding.severity_id,
+                    },
+                )
+                self.assertEqual(response.status_code, 200)
+
+        finding_updates = [
+            query
+            for query in queries.captured_queries
+            if 'UPDATE "reporting_reportfindinglink"' in query["sql"]
+        ]
+        self.assertEqual(finding_updates, [])
+        self.assertEqual(
+            list(
+                self.ReportFindingLink.objects.filter(report=self.report)
+                .order_by("id")
+                .values_list("id", "position")
+            ),
+            positions_before_follow_up,
+        )
+
+    def test_non_ordering_update_event_does_not_touch_database(self):
+        """Content-only updates must not enter the ordering transaction."""
+        finding = ReportFindingLinkFactory(
+            report=self.report,
+            severity=self.critical_severity,
+            position=1,
+        )
+        event_data = {
+            "id": finding.id,
+            "position": finding.position,
+            "severity_id": finding.severity_id,
+        }
+
+        with CaptureQueriesContext(connection) as queries:
+            response = self.post_change_event(
+                "UPDATE",
+                event_data,
+                event_data,
+            )
+
+        self.assertEqual(response.status_code, 200)
+        finding_queries = [
+            query
+            for query in queries.captured_queries
+            if "reporting_reportfindinglink" in query["sql"]
+        ]
+        self.assertEqual(finding_queries, [])
+
+    def test_stale_position_event_preserves_newer_order(self):
+        """Out-of-order Hasura events must not replay an older move."""
+        self.ReportFindingLink.objects.all().delete()
+        first_finding = ReportFindingLinkFactory(
+            report=self.report,
+            severity=self.critical_severity,
+            position=1,
+        )
+        second_finding = ReportFindingLinkFactory(
+            report=self.report,
+            severity=self.critical_severity,
+            position=2,
+        )
+        third_finding = ReportFindingLinkFactory(
+            report=self.report,
+            severity=self.critical_severity,
+            position=3,
+        )
+
+        first_finding.position = 3
+        first_finding.save()
+        older_event = {
+            "id": first_finding.id,
+            "position": 3,
+            "severity_id": first_finding.severity_id,
+        }
+        first_finding.position = 2
+        first_finding.save()
+        newer_event = {
+            "id": first_finding.id,
+            "position": 2,
+            "severity_id": first_finding.severity_id,
+        }
+
+        response = self.post_change_event(
+            "UPDATE",
+            older_event,
+            newer_event,
+        )
+        self.assertEqual(response.status_code, 200)
+
+        response = self.post_change_event(
+            "UPDATE",
+            {
+                "id": first_finding.id,
+                "position": 1,
+                "severity_id": first_finding.severity_id,
+            },
+            older_event,
+        )
+        self.assertEqual(response.status_code, 200)
+
+        first_finding.refresh_from_db()
+        second_finding.refresh_from_db()
+        third_finding.refresh_from_db()
+        self.assertEqual(first_finding.position, 2)
+        self.assertEqual(second_finding.position, 1)
+        self.assertEqual(third_finding.position, 3)
+        self.assert_contiguous_positions(self.critical_severity)
+
+
+class GraphqlReportFindingConcurrentEventTests(TransactionTestCase):
+    """Concurrency regression coverage for report finding Hasura events."""
+
+    def setUp(self):
+        self.ReportFindingLink = ReportFindingLinkFactory._meta.model
+        self.critical_severity = SeverityFactory(severity="Critical", weight=0)
+        self.report = ReportFactory()
+        self.change_uri = reverse("api:graphql_reportfinding_change_event")
+
+    def test_concurrent_bulk_insert_events_converge(self):
+        """Concurrent insert events must serialize and leave one stable order."""
+        findings = [
+            ReportFindingLinkFactory(
+                report=self.report,
+                severity=self.critical_severity,
+                position=1,
+            )
+            for _ in range(8)
+        ]
+        start = Barrier(len(findings))
+
+        def deliver_event(finding):
+            close_old_connections()
+            try:
+                start.wait()
+                response = Client().post(
+                    self.change_uri,
+                    content_type="application/json",
+                    data={
+                        "event": {
+                            "op": "INSERT",
+                            "data": {
+                                "old": None,
+                                "new": {
+                                    "id": finding.id,
+                                    "position": 1,
+                                    "severity_id": finding.severity_id,
+                                },
+                            },
+                        },
+                    },
+                    **{
+                        "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+                    },
+                )
+                return response.status_code
+            finally:
+                close_old_connections()
+
+        with ThreadPoolExecutor(max_workers=len(findings)) as executor:
+            statuses = list(executor.map(deliver_event, findings))
+
+        self.assertEqual(statuses, [200] * len(findings))
+        positions = list(
+            self.ReportFindingLink.objects.filter(
+                report=self.report,
+                severity=self.critical_severity,
+            )
+            .order_by("position", "id")
+            .values_list("position", flat=True)
+        )
+        self.assertEqual(positions, list(range(1, len(findings) + 1)))
 
 
 class GraphqlProjectContactUpdateEventTests(TestCase):
@@ -3566,14 +4024,89 @@ class GraphqlEvidenceUpdateEventTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.finding.refresh_from_db()
+        encoded_name = jinja_string_literal("New Name")
+        inline_evidence = "{{ mk_evidence(" + encoded_name + ") }}"
+        evidence_reference = "{{ mk_ref(" + encoded_name + ") }}"
         self.assertEqual(
             self.finding.description,
-            "<p>Here is some evidence:</p><p>{{.New Name}}</p><p>{{.ref New Name}}</p>",
+            f"<p>Here is some evidence:</p><p>{inline_evidence}</p>"
+            f"<p>{evidence_reference}</p>",
         )
         self.assertEqual(
             self.finding.impact,
-            "<p>Here is some evidence:</p><p>{{.New Name}}</p><p>{{.ref New Name}}</p>",
+            f"<p>Here is some evidence:</p><p>{inline_evidence}</p>"
+            f"<p>{evidence_reference}</p>",
         )
+
+    def test_graphql_evidence_update_encodes_friendly_name_as_literal_data(self):
+        payload = "safe}}CLIENT={{ client.name }}{{.ref safe"
+        update_data = copy.deepcopy(self.update_data_report)
+        update_data["event"]["data"]["new"]["friendly_name"] = payload
+
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            data=update_data,
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.finding.refresh_from_db()
+        self.assertNotIn(payload, self.finding.description)
+
+        captured_names = []
+
+        def capture_name(name):
+            captured_names.append(name)
+            return ""
+
+        env = prepare_jinja2_env()
+        env.globals["mk_evidence"] = capture_name
+        env.globals["mk_ref"] = capture_name
+        rendered = env.from_string(self.finding.description).render(
+            client={"name": "Victim Client"},
+        )
+
+        self.assertEqual(captured_names, [payload, payload])
+        self.assertNotIn("Victim Client", rendered)
+
+    def test_graphql_evidence_update_rewrites_an_encoded_previous_name(self):
+        first_response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            data=self.update_data_report,
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+            },
+        )
+        self.assertEqual(first_response.status_code, 200)
+
+        second_update = copy.deepcopy(self.update_data_report)
+        second_update["event"]["data"]["old"]["friendly_name"] = "New Name"
+        second_update["event"]["data"]["new"]["friendly_name"] = "Final Name"
+        second_response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            data=second_update,
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+            },
+        )
+
+        self.assertEqual(second_response.status_code, 200)
+        self.finding.refresh_from_db()
+        final_literal = jinja_string_literal("Final Name")
+        self.assertIn(
+            "{{ mk_evidence(" + final_literal + ") }}",
+            self.finding.description,
+        )
+        self.assertIn(
+            "{{ mk_ref(" + final_literal + ") }}",
+            self.finding.description,
+        )
+        self.assertNotIn(jinja_string_literal("New Name"), self.finding.description)
 
     def test_graphql_evidence_delete_event(self):
         self.assertTrue(os.path.exists(self.deleted_evidence.document.path))
@@ -5066,6 +5599,11 @@ class CheckEditPermissionsTests(TestCase):
             data=self.data(),
         )
         self.assertEquals(response.status_code, 200, response.content)
+        self.assertEqual(
+            {key: response.json()[key] for key in ("username", "userId")},
+            {"username": self.manager.username, "userId": self.manager.id},
+        )
+        self.assertGreater(response.json()["expiresAt"], timezone.now().timestamp())
 
     def test_access_project_allowed_with_matching_collab_scope(self):
         response = self.client.post(
@@ -5161,6 +5699,24 @@ class CheckEditPermissionsTests(TestCase):
         )
         self.assertEqual(response.status_code, 401, response.content)
 
+    def test_rejects_api_token(self):
+        _, token = APIKey.objects.create_token(
+            user=self.manager,
+            name="Collab API Token",
+        )
+
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers={
+                "Hasura-Action-Secret": ACTION_SECRET,
+                "Authorization": f"Bearer {token}",
+            },
+            data=self.data(),
+        )
+
+        self.assertEqual(response.status_code, 401, response.content)
+
     def test_rejects_expired_collab_jwt(self):
         response = self.client.post(
             self.uri,
@@ -5203,6 +5759,122 @@ class CheckEditPermissionsTests(TestCase):
         self.assertEquals(response.status_code, 404, response.content)
 
 
+class CollabTokenRefreshTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.finding = FindingFactory()
+        cls.project = ProjectFactory()
+        cls.report_finding = ReportFindingLinkFactory()
+        cls.user = UserFactory(password=PASSWORD)
+        cls.manager = UserFactory(password=PASSWORD, role="manager")
+        cls.uri = reverse("api:collab_token_refresh")
+
+    def setUp(self):
+        self.client = Client()
+
+    def post(self, *, model="finding", object_id=None, client=None, **headers):
+        return (client or self.client).post(
+            self.uri,
+            content_type="application/json",
+            data={
+                "model": model,
+                "id": object_id if object_id is not None else self.finding.id,
+            },
+            **headers,
+        )
+
+    def test_requires_authenticated_session(self):
+        response = self.post()
+
+        self.assertEqual(response.status_code, 401, response.content)
+
+    def test_does_not_accept_collab_jwt_without_session(self):
+        _, token = utils.generate_jwt(
+            self.manager,
+            token_type=utils.COLLAB_JWT_TYPE,
+            extra_claims=utils.collab_jwt_claims("finding", self.finding),
+        )
+
+        response = self.post(HTTP_AUTHORIZATION=f"Bearer {token}")
+
+        self.assertEqual(response.status_code, 401, response.content)
+
+    def test_requires_csrf_token(self):
+        csrf_client = Client(enforce_csrf_checks=True)
+        csrf_client.force_login(self.manager)
+
+        response = self.post(client=csrf_client)
+
+        self.assertEqual(response.status_code, 403, response.content)
+
+    def test_renews_exact_document_scope_for_editable_object(self):
+        self.client.force_login(self.manager)
+
+        response = self.post(
+            model="report_finding_link",
+            object_id=self.report_finding.id,
+        )
+
+        self.assertEqual(response.status_code, 200, response.content)
+        payload = utils.get_jwt_payload(response.json()["token"])
+        self.assertEqual(
+            utils.get_jwt_type(response.json()["token"]), utils.COLLAB_JWT_TYPE
+        )
+        self.assertEqual(payload[utils.COLLAB_MODEL_CLAIM], "report_finding_link")
+        self.assertEqual(
+            payload[utils.COLLAB_OBJECT_ID_CLAIM],
+            self.report_finding.id,
+        )
+        self.assertEqual(
+            payload[utils.COLLAB_REPORT_ID_CLAIM],
+            self.report_finding.report_id,
+        )
+        self.assertEqual(
+            payload[utils.COLLAB_FINDING_ID_CLAIM],
+            self.report_finding.id,
+        )
+        self.assertEqual(response.json()["expiresAt"], payload["exp"])
+        self.assertLessEqual(
+            payload["exp"],
+            int((timezone.now() + utils.COLLAB_JWT_EXPIRATION_DELTA).timestamp()),
+        )
+        self.assertGreater(
+            payload["exp"],
+            int(timezone.now().timestamp()),
+        )
+        self.assertEqual(response.headers["Cache-Control"], "no-store")
+
+    def test_rechecks_permission_on_every_renewal(self):
+        assignment = ProjectAssignmentFactory(
+            project=self.project,
+            operator=self.user,
+        )
+        self.client.force_login(self.user)
+
+        allowed = self.post(model="project", object_id=self.project.id)
+        assignment.delete()
+        denied = self.post(model="project", object_id=self.project.id)
+
+        self.assertEqual(allowed.status_code, 200, allowed.content)
+        self.assertEqual(denied.status_code, 403, denied.content)
+
+    def test_rejects_uneditable_object(self):
+        self.client.force_login(self.user)
+
+        response = self.post()
+
+        self.assertEqual(response.status_code, 403, response.content)
+
+    def test_rejects_unknown_model_and_invalid_id(self):
+        self.client.force_login(self.manager)
+
+        unknown_model = self.post(model="user")
+        invalid_id = self.post(object_id=0)
+
+        self.assertEqual(unknown_model.status_code, 400, unknown_model.content)
+        self.assertEqual(invalid_id.status_code, 400, invalid_id.content)
+
+
 class GetTagsTest(TestCase):
     @classmethod
     def setUpTestData(cls):
@@ -5210,6 +5882,7 @@ class GetTagsTest(TestCase):
         cls.report_finding = ReportFindingLinkFactory(tags=list(cls.tags))
         cls.user = UserFactory(password=PASSWORD)
         cls.manager = UserFactory(password=PASSWORD, role="manager")
+        cls.admin = UserFactory(password=PASSWORD, role="admin")
         cls.uri = reverse("api:graphql_get_tags")
 
     def setUp(self):
@@ -5223,6 +5896,22 @@ class GetTagsTest(TestCase):
             _, token = generate_user_jwt(user)
             headers["Authorization"] = f"Bearer {token}"
         return headers
+
+    def collab_headers(self, model=None, object_id=None):
+        model = model or "report_finding_link"
+        object_id = object_id or self.report_finding.id
+        _, token = utils.generate_jwt(
+            self.manager,
+            token_type=utils.COLLAB_JWT_TYPE,
+            extra_claims={
+                utils.COLLAB_MODEL_CLAIM: model,
+                utils.COLLAB_OBJECT_ID_CLAIM: object_id,
+            },
+        )
+        return {
+            "Hasura-Action-Secret": ACTION_SECRET,
+            "Authorization": f"Bearer {token}",
+        }
 
     def data(self, hasura_role="user", model=None, object_id=None):
         return {
@@ -5256,16 +5945,61 @@ class GetTagsTest(TestCase):
         body = response.json()
         self.assertFalse("tags" in body, body)
 
-    def test_get_report_finding_tags_allowed_admin(self):
+    def test_get_report_finding_tags_allowed_authenticated_admin(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(self.admin),
+            data=self.data(),
+        )
+        self.assertEquals(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(set(body["tags"]), self.tags)
+
+    def test_get_report_finding_tags_allowed_scoped_collab_token(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.collab_headers(),
+            data=self.data(),
+        )
+
+        self.assertEquals(response.status_code, 200, response.content)
+        self.assertEqual(set(response.json()["tags"]), self.tags)
+
+    def test_get_report_finding_tags_rejects_collab_token_for_another_object(self):
+        other_finding = ReportFindingLinkFactory(report=self.report_finding.report)
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.collab_headers(object_id=other_finding.id),
+            data=self.data(),
+        )
+
+        self.assertEquals(response.status_code, 403, response.content)
+        self.assertNotIn("tags", response.json())
+
+    def test_get_report_finding_tags_rejects_forged_admin_without_token(self):
         response = self.client.post(
             self.uri,
             content_type="application/json",
             headers=self.headers(None),
             data=self.data("admin"),
         )
-        self.assertEquals(response.status_code, 200)
-        body = response.json()
-        self.assertEqual(set(body["tags"]), self.tags)
+
+        self.assertEquals(response.status_code, 400)
+        self.assertNotIn("tags", response.json())
+
+    def test_get_report_finding_tags_ignores_forged_admin_role(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(self.user),
+            data=self.data("admin"),
+        )
+
+        self.assertEquals(response.status_code, 403)
+        self.assertNotIn("tags", response.json())
 
     def test_get_report_finding_tags_allowed_project_service_token(self):
         token = create_project_read_service_token(
@@ -5366,6 +6100,7 @@ class SetTagsTest(TestCase):
         cls.report_finding = ReportFindingLinkFactory()
         cls.user = UserFactory(password=PASSWORD)
         cls.manager = UserFactory(password=PASSWORD, role="manager")
+        cls.admin = UserFactory(password=PASSWORD, role="admin")
         cls.uri = reverse("api:graphql_set_tags")
 
     def setUp(self):
@@ -5379,6 +6114,22 @@ class SetTagsTest(TestCase):
             _, token = generate_user_jwt(user)
             headers["Authorization"] = f"Bearer {token}"
         return headers
+
+    def collab_headers(self, model=None, object_id=None):
+        model = model or "report_finding_link"
+        object_id = object_id or self.report_finding.id
+        _, token = utils.generate_jwt(
+            self.manager,
+            token_type=utils.COLLAB_JWT_TYPE,
+            extra_claims={
+                utils.COLLAB_MODEL_CLAIM: model,
+                utils.COLLAB_OBJECT_ID_CLAIM: object_id,
+            },
+        )
+        return {
+            "Hasura-Action-Secret": ACTION_SECRET,
+            "Authorization": f"Bearer {token}",
+        }
 
     def data(self, tags, hasura_role="user", model=None, object_id=None):
         v = {
@@ -5404,6 +6155,31 @@ class SetTagsTest(TestCase):
             set(self.report_finding.tags.names()), self.tags, response.content
         )
 
+    def test_set_report_finding_tags_allowed_scoped_collab_token(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.collab_headers(),
+            data=self.data(self.tags),
+        )
+
+        self.assertEquals(response.status_code, 200, response.content)
+        self.report_finding.refresh_from_db()
+        self.assertEqual(set(self.report_finding.tags.names()), self.tags)
+
+    def test_set_report_finding_tags_rejects_collab_token_for_another_object(self):
+        other_finding = ReportFindingLinkFactory(report=self.report_finding.report)
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.collab_headers(object_id=other_finding.id),
+            data=self.data(self.tags),
+        )
+
+        self.assertEquals(response.status_code, 403, response.content)
+        self.report_finding.refresh_from_db()
+        self.assertEqual(set(self.report_finding.tags.names()), set())
+
     def test_set_report_finding_tags_not_allowed(self):
         response = self.client.post(
             self.uri,
@@ -5415,16 +6191,40 @@ class SetTagsTest(TestCase):
         self.report_finding.refresh_from_db()
         self.assertEqual(set(self.report_finding.tags.names()), set())
 
-    def test_set_report_finding_tags_allowed_admin(self):
+    def test_set_report_finding_tags_allowed_authenticated_admin(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(self.admin),
+            data=self.data(self.tags),
+        )
+        self.assertEquals(response.status_code, 200)
+        self.report_finding.refresh_from_db()
+        self.assertEqual(set(self.report_finding.tags.names()), self.tags)
+
+    def test_set_report_finding_tags_rejects_forged_admin_without_token(self):
         response = self.client.post(
             self.uri,
             content_type="application/json",
             headers=self.headers(None),
             data=self.data(self.tags, "admin"),
         )
-        self.assertEquals(response.status_code, 200)
+
+        self.assertEquals(response.status_code, 400)
         self.report_finding.refresh_from_db()
-        self.assertEqual(set(self.report_finding.tags.names()), self.tags)
+        self.assertEqual(set(self.report_finding.tags.names()), set())
+
+    def test_set_report_finding_tags_ignores_forged_admin_role(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(self.user),
+            data=self.data(self.tags, "admin"),
+        )
+
+        self.assertEquals(response.status_code, 403)
+        self.report_finding.refresh_from_db()
+        self.assertEqual(set(self.report_finding.tags.names()), set())
 
     def test_set_oplog_entry_tags_allowed_oplog_service_token(self):
         entry = OplogEntryFactory()
@@ -5525,6 +6325,7 @@ class ObjectsByTagTests(TestCase):
             operator=cls.user_with_access,
         )
         cls.manager = UserFactory(password=PASSWORD, role="manager")
+        cls.admin = UserFactory(password=PASSWORD, role="admin")
         cls.uri = reverse("api:graphql_objects_by_tag", args=["report_finding_link"])
 
     def setUp(self):
@@ -5559,6 +6360,17 @@ class ObjectsByTagTests(TestCase):
             headers=self.headers(self.user),
             data=self.data("severity:high"),
         )
+        self.assertEquals(response.status_code, 200)
+        self.assertJSONEqual(response.content, [])
+
+    def test_get_user_ignores_forged_admin_role(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(self.user),
+            data=self.data("severity:high", hasura_role="admin"),
+        )
+
         self.assertEquals(response.status_code, 200)
         self.assertJSONEqual(response.content, [])
 
@@ -5664,15 +6476,25 @@ class ObjectsByTagTests(TestCase):
         self.assertEquals(response.status_code, 200)
         self.assertJSONEqual(response.content, [])
 
-    def test_get_admin_results(self):
+    def test_get_authenticated_admin_results(self):
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            headers=self.headers(self.admin),
+            data=self.data("severity:high"),
+        )
+        self.assertEquals(response.status_code, 200)
+        self.assertJSONEqual(response.content, [{"id": self.report_finding.pk}])
+
+    def test_get_rejects_forged_admin_without_token(self):
         response = self.client.post(
             self.uri,
             content_type="application/json",
             headers=self.headers(None),
             data=self.data("severity:high", hasura_role="admin"),
         )
-        self.assertEquals(response.status_code, 200)
-        self.assertJSONEqual(response.content, [{"id": self.report_finding.pk}])
+
+        self.assertEquals(response.status_code, 400)
 
 
 class GraphqlDownloadEvidenceViewTests(TestCase):

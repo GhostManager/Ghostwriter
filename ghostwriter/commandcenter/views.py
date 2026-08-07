@@ -1,7 +1,7 @@
 
 import logging
 from typing import Any
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 
 from django.views import View
 from django.views.generic.detail import DetailView, SingleObjectMixin
@@ -17,11 +17,13 @@ from django.views.decorators.csrf import requires_csrf_token
 from ghostwriter.api.utils import (
     COLLAB_FINDING_ID_CLAIM,
     COLLAB_JWT_TYPE,
+    COLLAB_JWT_EXPIRATION_DELTA,
     COLLAB_MODEL_CLAIM,
     COLLAB_NO_ID,
     COLLAB_OBJECT_ID_CLAIM,
     COLLAB_REPORT_ID_CLAIM,
     RoleBasedAccessControlMixin,
+    collab_jwt_claims,
     generate_jwt,
 )
 from ghostwriter.commandcenter.models import ExtraFieldSpec, ReportConfiguration
@@ -78,23 +80,7 @@ class CollabModelUpdate(RoleBasedAccessControlMixin, DetailView):
 
     @staticmethod
     def collab_jwt_claims(model_name, obj):
-        report_id = COLLAB_NO_ID
-        finding_id = COLLAB_NO_ID
-
-        if model_name == "report":
-            report_id = obj.pk
-        elif model_name == "report_finding_link":
-            report_id = obj.report_id or COLLAB_NO_ID
-            finding_id = obj.pk
-        elif model_name == "report_observation_link":
-            report_id = obj.report_id or COLLAB_NO_ID
-
-        return {
-            COLLAB_MODEL_CLAIM: model_name,
-            COLLAB_OBJECT_ID_CLAIM: obj.pk,
-            COLLAB_REPORT_ID_CLAIM: report_id,
-            COLLAB_FINDING_ID_CLAIM: finding_id,
-        }
+        return collab_jwt_claims(model_name, obj)
 
     @staticmethod
     def context_data(user, obj_id, extra_fields=None, collab_claims=None):
@@ -112,10 +98,11 @@ class CollabModelUpdate(RoleBasedAccessControlMixin, DetailView):
             "collab_user": user,
             "collab_jwt": generate_jwt(
                 user,
-                exp=datetime.now(timezone.utc) + timedelta(hours=24),
+                exp=datetime.now(timezone.utc) + COLLAB_JWT_EXPIRATION_DELTA,
                 token_type=COLLAB_JWT_TYPE,
                 extra_claims=collab_claims,
             )[1],
+            "collab_model_name": collab_claims[COLLAB_MODEL_CLAIM],
             "collab_model_id": obj_id,
             "collab_media_url": settings.MEDIA_URL,
             "collab_extra_fields_spec_ser":

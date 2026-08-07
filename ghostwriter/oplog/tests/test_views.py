@@ -302,7 +302,7 @@ class OplogEntriesImportTests(TestCase):
 
         cls.oplog = OplogFactory()
         cls.num_of_entries = 5
-        for x in range(cls.num_of_entries):
+        for _ in range(cls.num_of_entries):
             OplogEntryFactory(oplog_id=cls.oplog)
 
         cls.user = UserFactory(password=PASSWORD)

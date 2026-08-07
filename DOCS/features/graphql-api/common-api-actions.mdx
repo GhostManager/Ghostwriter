@@ -79,6 +79,16 @@ Likewise, there are matching `deleteDomainCheckout` and `deleteServerCheckout` m
 
 If deleting evidence uploads or report template files via the API, you will want to use the `deleteEvidence` and `deleteTemplate` mutations. These actions delete the database records and the files stored on the server's filesystem.
 
+Use the `uploadReportTemplate` mutation when uploading a report template. The Action applies the same authorization rules as the Django interface:
+
+* A regular user must select a client they can access and cannot mark the template as protected.
+
+* Managers, administrators, and users granted **Allow Report Template Management** may upload global or protected templates.
+
+* Report template management permission does not grant access to unrelated clients. A client-scoped template remains limited by the authenticated user's existing client access.
+
+The `deleteTemplate` Action also verifies the authenticated user's report template management authority and access to the template's client scope. Although Hasura permits the `user` role to invoke the Action, an ordinary user without report template management permission cannot delete a template.
+
 #### Generating Reports
 
 You can use the `generateReport` mutation to get report data for a given report ID. The results offer the download URLs for docx, xlsx, and pptx. You can also request `reportData`, which is the raw JSON report data encoded as base64.

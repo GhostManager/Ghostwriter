@@ -29,6 +29,7 @@ class BearerAuth(requests.auth.AuthBase):
     token = None
 
     def __init__(self, token):
+        super().__init__()
         self.token = token
 
     def __call__(self, r):
@@ -312,8 +313,6 @@ def fetch_aws_s3(aws_key, aws_secret, ignore_tags=None):
     """
     message = ""
     buckets = []
-    if ignore_tags is None:
-        ignore_tags = []
     try:
         logger.info("Collecting bucket resources from AWS S3")
         # Create an S3 client

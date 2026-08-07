@@ -103,7 +103,7 @@ class TemplateTagTests(TestCase):
     def setUpTestData(cls):
         cls.ProjectObjective = ProjectObjectiveFactory._meta.model
         cls.project = ProjectFactory()
-        for x in range(3):
+        for _ in range(3):
             ProjectObjectiveFactory(project=cls.project)
 
         cls.server = StaticServerFactory()
@@ -1161,6 +1161,13 @@ class ProjectDetailViewTests(TestCase):
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
+
+    def test_report_activation_treats_report_title_as_text(self):
+        response = self.client_mgr.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "activeReportBar.text(data['report']);")
+        self.assertNotContains(response, "activeReportBar.html(data['report']);")
 
     def test_calendar_escapes_user_controlled_titles_for_javascript(self):
         payload = "'+(function(){window.calendarXss=true})()+'</script>"

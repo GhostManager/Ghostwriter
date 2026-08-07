@@ -141,7 +141,7 @@ class CheckoutFormTests(TestCase):
         checkout = HistoryFactory(client=self.project.client, project=self.project, domain=self.domain)
         form = self.form_data(**checkout.__dict__, user=self.other_user)
         self.assertFalse(form.is_valid())
-        self.assertTrue(form.errors.as_data()["client"][0].code == "invalid_choice")
+        self.assertEqual(form.errors.as_data()["client"][0].code, "invalid_choice")
 
         form = self.form_data(**checkout.__dict__, user=self.user)
         self.assertTrue(form.is_valid())
@@ -638,7 +638,7 @@ class ServerCheckoutFormTests(TestCase):
         checkout = ServerHistoryFactory(client=self.project.client, project=self.project, server=self.server)
         form = self.form_data(**checkout.__dict__, user=self.other_user)
         self.assertFalse(form.is_valid())
-        self.assertTrue(form.errors.as_data()["client"][0].code == "invalid_choice")
+        self.assertEqual(form.errors.as_data()["client"][0].code, "invalid_choice")
 
         form = self.form_data(**checkout.__dict__, user=self.user)
         self.assertTrue(form.is_valid())

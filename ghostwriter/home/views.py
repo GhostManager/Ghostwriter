@@ -205,6 +205,7 @@ class Dashboard(RoleBasedAccessControlMixin, View):
             if not db_status["default"] or not cache_status["default"]:
                 system_health = "WARNING"
         except Exception:  # pragma: no cover
+            logger.exception("Unable to retrieve dashboard system health.")
             system_health = "ERROR"
 
         # Assemble the context dictionary to pass to the dashboard
@@ -274,6 +275,7 @@ class TestAWSConnection(RoleBasedAccessControlMixin, View):
             )
             message = "AWS access key test has been successfully queued."
         except Exception:  # pragma: no cover
+            logger.exception("Unable to queue AWS access key test.")
             result = "error"
             message = "AWS access key test could not be queued"
 
@@ -309,6 +311,7 @@ class TestDOConnection(RoleBasedAccessControlMixin, View):
             )
             message = "Digital Ocean API key test has been successfully queued."
         except Exception:  # pragma: no cover
+            logger.exception("Unable to queue Digital Ocean API key test.")
             result = "error"
             message = "Digital Ocean API key test could not be queued."
 
@@ -344,6 +347,7 @@ class TestNamecheapConnection(RoleBasedAccessControlMixin, View):
             )
             message = "Namecheap API test has been successfully queued."
         except Exception:  # pragma: no cover
+            logger.exception("Unable to queue Namecheap API key test.")
             result = "error"
             message = "Namecheap API test could not be queued."
 
@@ -379,6 +383,7 @@ class TestSlackConnection(RoleBasedAccessControlMixin, View):
             )
             message = "Slack Webhook test has been successfully queued."
         except Exception:  # pragma: no cover
+            logger.exception("Unable to queue Slack webhook test.")
             result = "error"
             message = "Slack Webhook test could not be queued."
 
@@ -414,6 +419,7 @@ class TestVirusTotalConnection(RoleBasedAccessControlMixin, View):
             )
             message = "VirusTotal API test has been successfully queued."
         except Exception:  # pragma: no cover
+            logger.exception("Unable to queue VirusTotal API key test.")
             result = "error"
             message = "VirusTotal API test could not be queued."
 

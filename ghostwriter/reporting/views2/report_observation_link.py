@@ -458,7 +458,7 @@ class ReportObservationLinkAssign(RoleBasedAccessControlMixin, UpdateView):
                 },
             )
         except gaierror:
-            pass
+            logger.debug("Unable to send observation assignment update over WebSocket.", exc_info=True)
         if self.object.assigned_to:
             messages.success(self.request, "Observation reassigned successfully.")
         else:

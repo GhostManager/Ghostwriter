@@ -29,9 +29,8 @@ from ghostwriter.api.utils import get_client_list, get_project_list, verify_user
 from ghostwriter.commandcenter.forms import ExtraFieldsField
 from ghostwriter.commandcenter.models import ReportConfiguration
 from ghostwriter.modules.custom_layout_object import SwitchToggle
+from ghostwriter.modules.reportwriter.filename import validate_filename_template
 from ghostwriter.modules.reportwriter.forms import JinjaRichTextField
-from ghostwriter.modules.reportwriter.project.base import ExportProjectBase
-from ghostwriter.modules.reportwriter.report.base import ExportReportBase
 from ghostwriter.reporting.models import (
     Evidence,
     FindingNote,
@@ -423,23 +422,32 @@ class ReportTemplateForm(forms.ModelForm):
     """Save an individual :model:`reporting.ReportTemplate`."""
 
     def clean(self):
+        cleaned_data = super().clean()
         filename_override = self.cleaned_data.get("filename_override")
-        if not filename_override:
-            return self.cleaned_data
-
         doc_typ = self.cleaned_data.get("doc_type")
-        if not doc_typ:
-            return self.cleaned_data
+        if filename_override and doc_typ:
+            try:
+                validate_filename_template(filename_override, doc_typ)
+            except ValidationError as e:
+                self.add_error("filename_override", e)
 
-        try:
-            if doc_typ.doc_type == "docx":
-                ExportReportBase.check_filename_template(filename_override)
-            elif doc_typ.doc_type == "pptx" or doc_typ.doc_type == "project_docx":
-                ExportProjectBase.check_filename_template(filename_override)
-        except ValidationError as e:
-            self.add_error("filename_override", e)
+        client = cleaned_data.get("client")
+        if (
+            self.user
+            and "client" not in self.errors
+            and not ReportTemplate.user_can_create(self.user, client)
+        ):
+            self.add_error(
+                "client",
+                ValidationError(
+                    _(
+                        "Report template management permission is required to use global scope."
+                    ),
+                    code="global_template_permission",
+                ),
+            )
 
-        return self.cleaned_data
+        return cleaned_data
 
     class Meta:
         model = ReportTemplate
@@ -449,7 +457,15 @@ class ReportTemplateForm(forms.ModelForm):
         }
 
     def __init__(self, user=None, *args, **kwargs):
+        self.user = user
         super().__init__(*args, **kwargs)
+        user_can_manage_templates = bool(
+            user and user.can_manage_report_templates
+        )
+        if not user_can_manage_templates:
+            self.fields.pop("protected", None)
+            self.fields["client"].required = True
+
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
 
@@ -467,7 +483,11 @@ class ReportTemplateForm(forms.ModelForm):
         self.fields["description"].widget.attrs["placeholder"] = "Use this template for any red team work unless ..."
         self.fields["changelog"].widget.attrs["placeholder"] = "Track Template Modifications"
         self.fields["doc_type"].empty_label = "-- Select a Matching Template Type --"
-        self.fields["client"].empty_label = "-- Attach to a Client (Optional) --"
+        self.fields["client"].empty_label = (
+            "-- Attach to a Client (Optional) --"
+            if user_can_manage_templates
+            else "-- Select a Client --"
+        )
         self.fields["tags"].widget.attrs["placeholder"] = "language:en_US, cvss, ..."
         self.fields["p_style"].widget.attrs["placeholder"] = "Normal"
         self.fields["p_style"].initial = "Normal"
@@ -477,6 +497,32 @@ class ReportTemplateForm(forms.ModelForm):
         self.fields["evidence_image_width"].required = False
         self.fields["evidence_image_width"].help_text = (
             "Leave blank to use the global default evidence image width. If the global default is blank, 6.5 inches is used."
+        )
+
+        flag_column_class = (
+            "form-group col-md-4 mb-0"
+            if user_can_manage_templates
+            else "form-group col-md-6 mb-0"
+        )
+        flag_columns = []
+        if user_can_manage_templates:
+            flag_columns.append(
+                Column(
+                    SwitchToggle("protected"),
+                    css_class=flag_column_class,
+                )
+            )
+        flag_columns.extend(
+            [
+                Column(
+                    SwitchToggle("landscape"),
+                    css_class=flag_column_class,
+                ),
+                Column(
+                    SwitchToggle("contains_bloodhound_data"),
+                    css_class=flag_column_class,
+                ),
+            ]
         )
 
         clients = get_client_list(user)
@@ -527,24 +573,7 @@ class ReportTemplateForm(forms.ModelForm):
                 css_class="form-row pb-2",
             ),
             Row(
-                Column(
-                    SwitchToggle(
-                        "protected",
-                    ),
-                    css_class="form-group col-md-4 mb-0",
-                ),
-                Column(
-                    SwitchToggle(
-                        "landscape",
-                    ),
-                    css_class="form-group col-md-4 mb-0",
-                ),
-                Column(
-                    SwitchToggle(
-                        "contains_bloodhound_data",
-                    ),
-                    css_class="form-group col-md-4 mb-0",
-                ),
+                *flag_columns,
                 css_class="form-row pb-2",
             ),
             "description",

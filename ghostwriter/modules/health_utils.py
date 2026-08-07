@@ -126,7 +126,7 @@ class DjangoHealthChecks:
                 cache = django_caches[alias]
                 cache.set("django_status_test_cache", value)
                 status[alias] = True
-            except:  # pragma: no cover
+            except Exception:  # pragma: no cover
                 status[alias] = False
 
         return status

@@ -62,6 +62,7 @@ class BearerAuth(requests.auth.AuthBase):
     token = None
 
     def __init__(self, token):
+        super().__init__()
         self.token = token
 
     def __call__(self, r):
@@ -441,7 +442,7 @@ def check_domains(domain_id=None):
                                     err,
                                 )
                     except History.DoesNotExist:
-                        pass
+                        logger.debug("No checkout history exists for burned domain %s.", v["domain"], exc_info=True)
             # If the domain isn't marked as burned, check for any informational warnings
             else:
                 if lab_results[k]["warnings"]["total"] > 0:
@@ -1238,7 +1239,7 @@ def test_digital_ocean(user):
                 if "message" in error_message:
                     api_response = error_message["message"]
             except ValueError:
-                pass
+                logger.debug("DigitalOcean returned a non-JSON authentication error response.", exc_info=True)
             message = f"Digital Ocean denied access with HTTP code {active_droplets.status_code} and this message: {api_response}"
     except ClientError:
         logger.error("Digital Ocean could not validate the provided API key")

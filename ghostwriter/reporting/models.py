@@ -60,14 +60,16 @@ class EvidenceImageAlignmentOverride(models.TextChoices):
     RIGHT = EvidenceImageAlignment.RIGHT, EvidenceImageAlignment.RIGHT.label
 
 
+def get_default_severity_weight():
+    """Return the default weight for a new :class:`Severity` instance."""
+    return Severity.objects.count() + 1
+
+
 class Severity(models.Model):
     """Stores an individual severity rating."""
 
-    def get_default_weight():
-        """
-        Return the default weight for a new :model:`reporting.Severity` instance.
-        """
-        return Severity.objects.count() + 1
+    # Retained for the historical migration that references this path.
+    get_default_weight = staticmethod(get_default_severity_weight)
 
     severity = models.CharField(
         "Severity",
@@ -77,7 +79,7 @@ class Severity(models.Model):
     )
     weight = models.IntegerField(
         "Severity Weight",
-        default=get_default_weight,
+        default=get_default_severity_weight,
         validators=[MinValueValidator(1)],
         help_text="Weight for sorting severity categories in reports (lower numbers are more severe)",
     )
@@ -119,7 +121,7 @@ class Severity(models.Model):
             try:
                 old_entry = self.__class__.objects.get(pk=self.pk)
             except self.__class__.DoesNotExist:
-                pass
+                logger.debug("Severity %s has no previous database entry.", self.pk, exc_info=True)
 
         # A ``pre_save`` Signal is connected to this model and runs this ``clean()`` method
         # whenever ``save()`` is called
@@ -450,6 +452,39 @@ class ReportTemplate(models.Model):
         if user.is_privileged or self.client is None:
             return True
         return self.client.user_can_view(user)
+
+    @classmethod
+    def user_can_create(cls, user, client=None) -> bool:
+        """Return whether a user may create a template for the requested scope."""
+        if not user.is_active:
+            return False
+        if user.can_manage_report_templates:
+            if client is None:
+                return True
+            if user.is_privileged:
+                return True
+            return client.user_can_edit(user)
+        return client is not None and client.user_can_edit(user)
+
+    def user_can_edit(self, user) -> bool:
+        """Return whether a user may modify this template."""
+        if not user.is_active:
+            return False
+        if user.is_privileged:
+            return True
+        if user.enable_template_management:
+            return self.client_id is None or self.client.user_can_edit(user)
+        if self.protected or self.client_id is None:
+            return False
+        return self.client.user_can_edit(user)
+
+    def user_can_delete(self, user) -> bool:
+        """Return whether a user may delete this template."""
+        if not user.is_active or not user.can_manage_report_templates:
+            return False
+        if user.is_privileged or self.client_id is None:
+            return True
+        return self.client.user_can_edit(user)
 
     def can_apply_to_project(self, project) -> bool:
         """Return whether this template is global or scoped to the project's client."""

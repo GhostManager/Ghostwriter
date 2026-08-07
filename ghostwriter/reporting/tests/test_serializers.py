@@ -13,13 +13,22 @@ from rest_framework.renderers import JSONRenderer
 
 # Ghostwriter Libraries
 from ghostwriter.factories import (
-    GenerateMockProject,
+    ClientFactory,
+    ObjectivePriorityFactory,
+    ObjectiveStatusFactory,
     OplogEntryFactory,
     OplogFactory,
     ProjectAssignmentFactory,
     ProjectFactory,
+    ProjectObjectiveFactory,
     ProjectRoleFactory,
+    ProjectScopeFactory,
+    ProjectTargetFactory,
+    ReportDocxTemplateFactory,
     ReportFactory,
+    ReportFindingLinkFactory,
+    ReportPptxTemplateFactory,
+    SeverityFactory,
     UserFactory,
 )
 from ghostwriter.modules.custom_serializers import ReportDataSerializer
@@ -32,29 +41,72 @@ class ReportDataSerializerTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.num_of_contacts = 3
         cls.num_of_assignments = 3
         cls.num_of_findings = 10
         cls.num_of_scopes = 3
         cls.num_of_targets = 10
         cls.num_of_objectives = 3
-        cls.num_of_subtasks = 5
-        cls.num_of_domains = 6
-        cls.num_of_servers = 3
-        cls.num_of_deconflictions = 3
 
-        cls.client, cls.project, cls.report = GenerateMockProject(
-            cls.num_of_contacts,
-            cls.num_of_assignments,
-            cls.num_of_findings,
-            cls.num_of_scopes,
-            cls.num_of_targets,
-            cls.num_of_objectives,
-            cls.num_of_subtasks,
-            cls.num_of_domains,
-            cls.num_of_servers,
-            cls.num_of_deconflictions,
+        cls.client = ClientFactory()
+        cls.project = ProjectFactory(client=cls.client)
+        cls.report = ReportFactory(
+            project=cls.project,
+            docx_template=ReportDocxTemplateFactory(),
+            pptx_template=ReportPptxTemplateFactory(),
         )
+        assignments = ProjectAssignmentFactory.create_batch(
+            cls.num_of_assignments,
+            project=cls.project,
+        )
+        severities = [
+            SeverityFactory(severity="Critical", weight=0),
+            SeverityFactory(severity="High", weight=1),
+            SeverityFactory(severity="Medium", weight=2),
+            SeverityFactory(severity="Low", weight=3),
+        ]
+        for index in range(cls.num_of_findings):
+            ReportFindingLinkFactory(
+                report=cls.report,
+                severity=severities[index % len(severities)],
+                assigned_to=assignments[index % len(assignments)].operator,
+            )
+
+        scope_states = (
+            (False, False),
+            (False, True),
+            (True, False),
+        )
+        for index, (disallowed, requires_caution) in enumerate(scope_states):
+            ProjectScopeFactory(
+                project=cls.project,
+                scope=f"192.0.2.{index + 1}",
+                disallowed=disallowed,
+                requires_caution=requires_caution,
+            )
+
+        for index in range(cls.num_of_targets):
+            ProjectTargetFactory(
+                project=cls.project,
+                compromised=index % 2 == 0,
+            )
+
+        priorities = [
+            ObjectivePriorityFactory(priority="Primary", weight=0),
+            ObjectivePriorityFactory(priority="Secondary", weight=1),
+            ObjectivePriorityFactory(priority="Tertiary", weight=2),
+        ]
+        statuses = [
+            ObjectiveStatusFactory(objective_status="Done"),
+            ObjectiveStatusFactory(objective_status="Missed"),
+            ObjectiveStatusFactory(objective_status="In Progress"),
+        ]
+        for index in range(cls.num_of_objectives):
+            ProjectObjectiveFactory(
+                project=cls.project,
+                priority=priorities[index],
+                status=statuses[index],
+                complete=index % 2 == 0,
+            )
 
         # Create an object with a null value for later testing
         oplog = OplogFactory.create(project=cls.project)
@@ -82,20 +134,20 @@ class ReportDataSerializerTests(TestCase):
         report_json = json.loads(report_json)
 
         # Check expected keys are present
-        self.assertTrue("report_date" in report_json)
-        self.assertTrue("project" in report_json)
-        self.assertTrue("client" in report_json)
-        self.assertTrue("team" in report_json)
-        self.assertTrue("objectives" in report_json)
-        self.assertTrue("targets" in report_json)
-        self.assertTrue("scope" in report_json)
-        self.assertTrue("deconflictions" in report_json)
-        self.assertTrue("infrastructure" in report_json)
-        self.assertTrue("findings" in report_json)
-        self.assertTrue("docx_template" in report_json)
-        self.assertTrue("pptx_template" in report_json)
-        self.assertTrue("company" in report_json)
-        self.assertTrue("totals" in report_json)
+        self.assertIn("report_date", report_json)
+        self.assertIn("project", report_json)
+        self.assertIn("client", report_json)
+        self.assertIn("team", report_json)
+        self.assertIn("objectives", report_json)
+        self.assertIn("targets", report_json)
+        self.assertIn("scope", report_json)
+        self.assertIn("deconflictions", report_json)
+        self.assertIn("infrastructure", report_json)
+        self.assertIn("findings", report_json)
+        self.assertIn("docx_template", report_json)
+        self.assertIn("pptx_template", report_json)
+        self.assertIn("company", report_json)
+        self.assertIn("totals", report_json)
 
     def test_extra_values(self):
         report_json = JSONRenderer().render(self.serializer.data)
@@ -126,18 +178,55 @@ class ReportDataSerializerTests(TestCase):
         self.assertEqual(totals["objectives_completed"], completed_objectives)
 
         for f in report_json["findings"]:
-            self.assertTrue("ordering" in f)
+            self.assertIn("ordering", f)
+
+    def test_report_fixture_has_deliberate_variants(self):
+        finding_severities = set(
+            self.report.reportfindinglink_set.values_list("severity_id", flat=True)
+        )
+        finding_assignees = set(
+            self.report.reportfindinglink_set.values_list("assigned_to_id", flat=True)
+        )
+        objective_states = set(
+            self.project.projectobjective_set.values_list("complete", flat=True)
+        )
+        objective_statuses = set(
+            self.project.projectobjective_set.values_list("status_id", flat=True)
+        )
+        target_states = set(
+            self.project.projecttarget_set.values_list("compromised", flat=True)
+        )
+        scope_states = set(
+            self.project.projectscope_set.values_list(
+                "disallowed",
+                "requires_caution",
+            )
+        )
+
+        self.assertEqual(len(finding_severities), 4)
+        self.assertEqual(len(finding_assignees), self.num_of_assignments)
+        self.assertEqual(objective_states, {False, True})
+        self.assertEqual(len(objective_statuses), self.num_of_objectives)
+        self.assertEqual(target_states, {False, True})
+        self.assertEqual(
+            scope_states,
+            {
+                (False, False),
+                (False, True),
+                (True, False),
+            },
+        )
 
     def test_values_are_not_empty(self):
         report_json = JSONRenderer().render(self.serializer.data)
         report_json = json.loads(report_json)
 
         for key in report_json:
-            self.assertTrue(report_json[key] is not None)
+            self.assertIsNotNone(report_json[key])
 
         for log in report_json["logs"]:
             for entry in log["entries"]:
-                self.assertTrue(entry["tool"] is not None)
+                self.assertIsNotNone(entry["tool"])
 
     def test_team_entries_are_ordered_by_role_position_then_operator_name(self):
         project = ProjectFactory()

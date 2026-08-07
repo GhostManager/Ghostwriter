@@ -1,4 +1,5 @@
 # Standard Libraries
+import ast
 import re
 from pathlib import Path
 
@@ -10,7 +11,7 @@ import yaml
 
 # Ghostwriter Libraries
 from ghostwriter.api.urls import urlpatterns
-from ghostwriter.api.views import HasuraActionView
+from ghostwriter.api.views import HasuraActionView, JwtRequiredMixin
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 HASURA_METADATA_DIR = REPO_ROOT / "hasura-docker" / "metadata"
@@ -419,6 +420,60 @@ class HasuraMetadataActionSchemaTests(SimpleTestCase):
         self.assertNotIn("finding", arguments)
         self.assertNotIn("findingId", arguments)
 
+    def test_tag_actions_require_bearer_authentication(self):
+        actions_metadata = load_yaml(HASURA_METADATA_DIR / "actions.yaml")
+        tag_action_views = {
+            action["name"]: view_class_for_action_path(action_path(action))
+            for action in actions_metadata["actions"]
+            if action_path(action).startswith("tags/")
+        }
+
+        self.assertTrue(tag_action_views)
+        for action_name, view_class in tag_action_views.items():
+            self.assertIsNotNone(view_class, action_name)
+            self.assertTrue(
+                issubclass(view_class, JwtRequiredMixin),
+                action_name,
+            )
+
+    def test_hasura_action_secret_has_no_default(self):
+        settings_path = REPO_ROOT / "config" / "settings" / "base.py"
+        settings_tree = ast.parse(settings_path.read_text())
+        assignment = next(
+            node
+            for node in settings_tree.body
+            if isinstance(node, ast.Assign)
+            and any(
+                isinstance(target, ast.Name)
+                and target.id == "HASURA_ACTION_SECRET"
+                for target in node.targets
+            )
+        )
+
+        self.assertIsInstance(assignment.value, ast.Call)
+        self.assertEqual(assignment.value.args[0].value, "HASURA_ACTION_SECRET")
+        self.assertNotIn("default", {keyword.arg for keyword in assignment.value.keywords})
+
+    def test_nginx_blocks_direct_access_to_tag_action_handlers(self):
+        config_path = (
+            REPO_ROOT / "compose" / "production" / "nginx" / "nginx_common.conf"
+        )
+        config = config_path.read_text()
+        location = re.search(
+            r"location ~ (?P<pattern>\^/api/tags/\S+) \{\s*return 404;\s*\}",
+            config,
+        )
+
+        self.assertIsNotNone(location)
+        pattern = re.compile(location.group("pattern"))
+        for action_path_value in (
+            "/api/tags/get",
+            "/api/tags/set",
+            "/api/tags/get_by/report_finding_link",
+        ):
+            self.assertIsNotNone(pattern.fullmatch(action_path_value))
+        self.assertIsNone(pattern.fullmatch("/api/token/create"))
+
 
 class HasuraMetadataServiceRoleTests(SimpleTestCase):
     """Validate service-token Hasura metadata stays explicitly scoped."""
@@ -816,6 +871,48 @@ class HasuraMetadataCollabRoleTests(SimpleTestCase):
 class HasuraMetadataUserRoleTests(SimpleTestCase):
     """Validate user-role Hasura metadata for app-level RBAC contracts."""
 
+    def test_local_finding_note_mutations_require_ownership_and_project_access(self):
+        table = load_yaml(HASURA_TABLE_DIR / "public_reporting_localfindingnote.yaml")
+        update_permission = get_role_permission(table, "user", "update_permissions")[
+            "permission"
+        ]
+        delete_permission = get_role_permission(table, "user", "delete_permissions")[
+            "permission"
+        ]
+        owner_filter = {"operator_id": {"_eq": USER_ID_HEADER}}
+        project_access_filter = {
+            "_or": [
+                {
+                    "finding": {
+                        "report": {
+                            "project": {
+                                "_or": [
+                                    {
+                                        "client": {
+                                            "invites": {
+                                                "user_id": {"_eq": USER_ID_HEADER}
+                                            }
+                                        }
+                                    },
+                                    {"invites": {"user_id": {"_eq": USER_ID_HEADER}}},
+                                    {
+                                        "assignments": {
+                                            "operator_id": {"_eq": USER_ID_HEADER}
+                                        }
+                                    },
+                                ]
+                            }
+                        }
+                    }
+                }
+            ]
+        }
+        expected_mutation_filter = {"_and": [owner_filter, project_access_filter]}
+
+        self.assertEqual(update_permission["filter"], expected_mutation_filter)
+        self.assertEqual(update_permission["check"], project_access_filter)
+        self.assertEqual(delete_permission["filter"], expected_mutation_filter)
+
     def test_inventory_mutations_validate_user_controlled_names(self):
         expected_checks = {
             "public_shepherd_domain.yaml": {
@@ -899,6 +996,34 @@ class HasuraMetadataUserRoleTests(SimpleTestCase):
                 self.assertFalse(
                     template_columns & writable_columns,
                     f"{role} {permission_type}",
+                )
+
+    def test_user_template_mutations_require_server_authorization(self):
+        table = load_yaml(HASURA_TABLE_DIR / "public_reporting_reporttemplate.yaml")
+        actions_metadata = load_yaml(HASURA_METADATA_DIR / "actions.yaml")
+        delete_action = next(
+            action
+            for action in actions_metadata["actions"]
+            if action["name"] == "deleteTemplate"
+        )
+
+        self.assertIsNone(get_role_permission(table, "user", "delete_permissions"))
+        # The user role reaches the Action for per-user capability checks in Django.
+        # Hasura's built-in admin role has implicit access to every action.
+        self.assertSetEqual(
+            {
+                permission["role"]
+                for permission in delete_action.get("permissions", [])
+            },
+            {"manager", "user"},
+        )
+        for permission_type in ("insert_permissions", "update_permissions"):
+            permission = get_role_permission(table, "user", permission_type)
+            if permission:
+                self.assertNotIn(
+                    "protected",
+                    permission["permission"].get("columns", []),
+                    permission_type,
                 )
 
     def test_report_project_is_not_graphql_updateable(self):

@@ -68,6 +68,7 @@ class UserAdmin(auth_admin.UserAdmin):
                     "enable_observation_create",
                     "enable_observation_edit",
                     "enable_observation_delete",
+                    "enable_template_management",
                 ),
             },
         ),

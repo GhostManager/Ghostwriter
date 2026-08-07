@@ -66,7 +66,7 @@ def create_oplog_entry(oplog_id, user):
             "Failed to create log entry for log ID %s because that log ID does not exist.",
             oplog_id,
         )
-        return
+        return None
 
     if oplog.project.user_can_edit(user):
         entry = OplogEntry.objects.create(

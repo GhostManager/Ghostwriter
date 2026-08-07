@@ -79,7 +79,7 @@ actions:
     permissions:
       - role: user
       - role: manager
-    comment: Delete the specified template file and remove the associated file from the filesystem
+    comment: Delete an authorized template and remove the associated file from the filesystem
   - name: downloadEvidence
     definition:
       kind: ""

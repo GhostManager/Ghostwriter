@@ -31,6 +31,7 @@ class Formset(LayoutObject):
         helper_context_name=None,
         object_context_name=None,
     ):
+        super().__init__()
         self.formset_context_name = formset_context_name
         self.helper_context_name = helper_context_name
         if object_context_name:
@@ -70,9 +71,6 @@ class CustomTab(Container):
     link_template = "tab-link.html"
     # Default CSS class for the tab pane
     css_class = "tab-pane"
-
-    # Custom CSS for the ``nav-link`` element
-    # link_css_class = ""
 
     def __init__(self, name, *fields, **kwargs):
         link_css_class = kwargs.pop("link_css_class", None)

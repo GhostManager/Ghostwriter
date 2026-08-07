@@ -797,7 +797,7 @@ class OplogExport(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                 zf.write(path, arcname)
                 return True
         except self.path_lookup_errors:
-            pass
+            logger.debug("Unable to access attachment path; falling back to streamed ZIP output.", exc_info=True)
 
         try:
             field_file.open("rb")
@@ -920,7 +920,7 @@ class OplogExport(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                                     arcname
                                 )
                         except OplogEntryRecording.DoesNotExist:
-                            pass
+                            logger.debug("Oplog entry %s has no recording to export.", entry.id, exc_info=True)
 
                     # Evidence files
                     if "evidence" in include_set or "all" in include_set:

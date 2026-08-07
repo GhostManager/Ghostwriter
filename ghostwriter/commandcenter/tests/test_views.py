@@ -28,6 +28,7 @@ class CollabModelUpdateTests(TestCase):
         self.assertEqual(
             utils.get_jwt_type(context["collab_jwt"]), utils.COLLAB_JWT_TYPE
         )
+        self.assertEqual(context["collab_model_name"], "")
 
     def test_context_data_includes_collab_scope_claims(self):
         user = UserFactory()
@@ -43,6 +44,7 @@ class CollabModelUpdateTests(TestCase):
         )
         payload = utils.get_jwt_payload(context["collab_jwt"])
 
+        self.assertEqual(context["collab_model_name"], "report_finding_link")
         self.assertEqual(payload[utils.COLLAB_MODEL_CLAIM], "report_finding_link")
         self.assertEqual(payload[utils.COLLAB_OBJECT_ID_CLAIM], report_finding.id)
         self.assertEqual(

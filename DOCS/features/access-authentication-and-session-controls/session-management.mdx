@@ -39,7 +39,7 @@ Ghostwriter also tracks JWT sessions created by the GraphQL `login` mutation. Th
 
 It is recommended you clear expired sessions on a regular basis to keep the session tables tidy. Use the `clear_expired_sessions` management command for this cleanup. The command wraps Django's built-in `clearsessions` command and also deletes expired GraphQL login sessions from Ghostwriter's `UserSession` table.
 
-For a scheduled task, call `django.core.management.call_command` and pass `"clear_expired_sessions"` as its only argument. Set up a task like this one that runs daily with the cron scheduler. For example, `0 5 * * *` will run it every day at 5:00 AM.
+For a scheduled task, select the allowlisted `ghostwriter.home.django_q_tasks.clear_expired_sessions` function. The wrapper accepts no arguments and runs only the `clear_expired_sessions` management command. Set up a task like this one with the cron scheduler. For example, `0 5 * * *` will run it every day at 5:00 AM.
 
 <Frame>
   <img src="/images/features/clear_sessions.png" alt=""/>

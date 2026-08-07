@@ -100,7 +100,7 @@ class CustomModelSerializer(serializers.ModelSerializer):
                 elif isinstance(value, str) and value.strip() in ("<p></p>", "<p> </p>"):
                     data[key] = ""
             except KeyError:
-                pass
+                logger.debug("Serializer field disappeared while normalizing its value.", exc_info=True)
         return data
 
 
@@ -283,6 +283,9 @@ class FindingLinkSerializer(TaggitSerializer, CustomModelSerializer):
 class ObservationLinkSerializer(TaggitSerializer, CustomModelSerializer):
     """Serialize :model:`reporting:ObservationLinkSerializer` entries."""
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
     tags = TagListSerializerField()
 
     extra_fields = ExtraFieldsSerField(Observation._meta.label)
@@ -302,6 +305,9 @@ class ReportTemplateSerializer(CustomModelSerializer):
 
 class ReportSerializer(TaggitSerializer, CustomModelSerializer):
     """Serialize :model:`reporting:Report` entries."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
     created_by = StringRelatedField()
 
@@ -340,6 +346,9 @@ class ClientContactSerializer(CustomModelSerializer):
 
 class ClientSerializer(TaggitSerializer, CustomModelSerializer):
     """Serialize :model:`rolodex:Client` entries."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
     short_name = SerializerMethodField("get_short_name")
     address = SerializerMethodField("get_address")
@@ -565,6 +574,9 @@ class DomainHistorySerializer(CustomModelSerializer):
 class StaticServerSerializer(TaggitSerializer, CustomModelSerializer):
     """Serialize :model:`shepherd.StaticServer` entries."""
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
     provider = serializers.CharField(source="server_provider")
     status = serializers.CharField(source="server_status")
     last_used_by = StringRelatedField()
@@ -654,6 +666,9 @@ class ProjectContactSerializer(CustomModelSerializer):
 
 class ProjectSerializer(TaggitSerializer, CustomModelSerializer):
     """Serialize :model:`rolodex:Project` entries."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
     name = SerializerMethodField("get_name")
     type = serializers.CharField(source="project_type")
@@ -761,6 +776,9 @@ class WhiteCardSerializer(CustomModelSerializer):
 class OplogEntrySerializer(TaggitSerializer, CustomModelSerializer):
     """Serialize :model:`oplog.OplogEntry` entries."""
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
     tags = TagListSerializerField()
     extra_fields = ExtraFieldsSerField(OplogEntry._meta.label)
     recording_url = serializers.SerializerMethodField()
@@ -772,7 +790,7 @@ class OplogEntrySerializer(TaggitSerializer, CustomModelSerializer):
                 from django.urls import reverse
                 return reverse("oplog:oplog_entry_recording_download", kwargs={"pk": rec.pk})
         except ObjectDoesNotExist:
-            pass
+            logger.debug("Oplog entry %s has no recording to serialize.", obj.pk, exc_info=True)
         return None
 
     class Meta:
@@ -782,6 +800,9 @@ class OplogEntrySerializer(TaggitSerializer, CustomModelSerializer):
 
 class OplogSerializer(TaggitSerializer, CustomModelSerializer):
     """Serialize :model:`oplog.Oplog` entries."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
     entries = OplogEntrySerializer(
         many=True,
