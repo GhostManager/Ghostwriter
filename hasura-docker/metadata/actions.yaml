@@ -149,6 +149,7 @@ actions:
       kind: synchronous
       handler: '{{ACTIONS_URL_BASE}}/generateDocReport'
       forward_client_headers: true
+      timeout: 120
       headers:
         - name: Hasura-Action-Secret
           value_from_env: HASURA_ACTION_SECRET
