@@ -239,3 +239,24 @@ services:
       - HASURA_ACTION_SECRET=${HASURA_GRAPHQL_ACTION_SECRET}
       - HASURA_GRAPHQL_ADMIN_SECRET=${HASURA_GRAPHQL_ADMIN_SECRET}
       - HASURA_GRAPHQL_SERVER_HOSTNAME=${HASURA_GRAPHQL_SERVER_HOSTNAME}
+
+  middleware-api:
+    build:
+      context: .
+      dockerfile: ./compose/production/middleware-api/Dockerfile
+    image: ghostwriter_production_middleware_api
+    restart: unless-stopped
+    depends_on:
+      - nginx
+      - django
+    labels:
+      name: ghostwriter_middleware_api
+    ports:
+      - "0.0.0.0:8443:8443"
+    environment:
+      - FLASK_API_KEY=${FLASK_API_KEY}
+      - GHOSTWRITER_API_TOKEN=${GHOSTWRITER_API_TOKEN}
+      - GHOSTWRITER_GRAPHQL_URL=https://nginx/v1/graphql
+      - DJANGO_BASE_URL=${DJANGO_BASE_URL:-https://nginx}
+      - DJANGO_USERNAME=${DJANGO_USERNAME:-${DJANGO_SUPERUSER_USERNAME}}
+      - DJANGO_PASSWORD=${DJANGO_PASSWORD:-${DJANGO_SUPERUSER_PASSWORD}}

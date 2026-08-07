@@ -144,6 +144,18 @@ actions:
       - role: user
       - role: manager
     comment: Generate a JSON report for the given report ID
+  - name: generateDocReport
+    definition:
+      kind: synchronous
+      handler: '{{ACTIONS_URL_BASE}}/generateDocReport'
+      forward_client_headers: true
+      headers:
+        - name: Hasura-Action-Secret
+          value_from_env: HASURA_ACTION_SECRET
+    permissions:
+      - role: user
+      - role: manager
+    comment: Generate a DOCX report as base64 for the given report and template IDs
   - name: getExtraFieldSpec
     definition:
       kind: ""
@@ -315,6 +327,17 @@ actions:
     permissions:
       - role: user
       - role: manager
+  - name: uploadClientLogo
+    definition:
+      kind: synchronous
+      handler: '{{ACTIONS_URL_BASE}}/uploadClientLogo'
+      forward_client_headers: true
+      headers:
+        - name: Hasura-Action-Secret
+          value_from_env: HASURA_ACTION_SECRET
+    permissions:
+      - role: user
+      - role: manager
   - name: whoami
     definition:
       kind: ""
@@ -335,6 +358,7 @@ custom_types:
     - name: LoginResponse
     - name: WhoamiOutput
     - name: ReportResponse
+    - name: DocReportResponse
     - name: checkoutResponse
     - name: deleteResponse
     - name: attachFindingResponse
@@ -342,6 +366,7 @@ custom_types:
     - name: ExtraFieldSpecOutput
     - name: UploadEvidenceResult
     - name: UploadReportTemplateResult
+    - name: UploadClientLogoResult
     - name: TagsResult
     - name: createUserResponse
       relationships:

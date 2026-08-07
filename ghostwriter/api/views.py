@@ -7,10 +7,11 @@ import logging
 import os
 import uuid
 from asgiref.sync import async_to_sync
-from base64 import b64encode
+from base64 import b64decode, b64encode
 from datetime import date, datetime
 from http import HTTPStatus
 from socket import gaierror
+from binascii import Error as BinAsciiError
 
 # Django Imports
 from django.conf import settings
@@ -28,6 +29,7 @@ from django.utils.formats import date_format
 from django.views.generic import View
 from django.views.generic.detail import SingleObjectMixin
 from django.views.generic.edit import FormView
+from django.core.files.base import ContentFile
 
 # 3rd Party Libraries
 import pytz
@@ -37,6 +39,9 @@ from dateutil.parser._parser import ParserError
 
 # Ghostwriter Libraries
 from ghostwriter.api import utils
+from ghostwriter.api.forms import ApiEvidenceForm, ApiKeyForm, ApiOplogRecordingForm, ApiReportTemplateForm
+from ghostwriter.api.models import APIKey
+from ghostwriter.commandcenter.models import ExtraFieldModel, GeneralConfiguration, ReportConfiguration
 from ghostwriter.api.forms import (
     ApiEvidenceForm,
     ApiKeyForm,
@@ -53,13 +58,15 @@ from ghostwriter.api.models import (
     ServiceTokenProjectScope,
     UserSession,
 )
-from ghostwriter.commandcenter.models import ExtraFieldModel, GeneralConfiguration
+from ghostwriter.commandcenter.models import ExtraFieldModel, GeneralConfiguration, ReportConfiguration
 from ghostwriter.modules import codenames
 from ghostwriter.modules.model_utils import (
     normalize_finding_positions,
     set_finding_positions,
     to_dict,
 )
+from ghostwriter.modules.model_utils import set_finding_positions, to_dict
+from ghostwriter.modules.reportwriter.report.docx import ExportReportDocx
 from ghostwriter.modules.passive_voice.detector import get_detector
 from ghostwriter.modules.reportwriter import jinja_string_literal
 from ghostwriter.modules.reportwriter.report.json import ExportReportJson
@@ -76,6 +83,7 @@ from ghostwriter.reporting.models import (
 )
 from ghostwriter.reporting.views2.report_finding_link import get_position
 from ghostwriter.rolodex.models import (
+    Client,
     Project,
     ProjectContact,
     ProjectObjective,
@@ -974,6 +982,64 @@ class GraphqlGenerateReport(JwtRequiredMixin, HasuraActionView):
             status=401,
         )
 
+class GraphqlGenerateDocReport(JwtRequiredMixin, HasuraActionView):
+    """Endpoint for generating a DOCX report as base64 with the ``generateDocReport`` action."""
+
+    required_inputs = [
+        "id",
+        "templateId",
+    ]
+
+    def post(self, request, *args, **kwargs):
+        report_id = self.input["id"]
+        template_id = self.input["templateId"]
+        try:
+            report = Report.objects.get(id=report_id)
+        except Report.DoesNotExist:
+            return JsonResponse(utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401)
+        try:
+            report_template = ReportTemplate.objects.get(id=template_id)
+        except ReportTemplate.DoesNotExist:
+            return JsonResponse(utils.generate_hasura_error_payload("Template not found", "NotFound"), status=404)
+
+        if not report.user_can_view(self.user_obj):
+            return JsonResponse(utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401)
+
+        if report_template.doc_type is None or report_template.doc_type.doc_type != "docx":
+            return JsonResponse(
+                utils.generate_hasura_error_payload("Template is not a DOCX template", "BadRequest"), status=400
+            )
+
+        report_config = ReportConfiguration.get_solo()
+        template_status = report_template.get_status()
+        if template_status in ("error", "failed"):
+            return JsonResponse(
+                utils.generate_hasura_error_payload(
+                    "The selected report template has linting errors and cannot be used", "BadRequest"
+                ),
+                status=400,
+            )
+
+        try:
+            exporter = ExportReportDocx(report, report_template=report_template)
+            report_name = exporter.render_filename(
+                report_template.filename_override or report_config.report_filename
+            )
+            docx = exporter.run()
+        except Exception as error:
+            logger.exception("DOCX generation failed for report %s: %s", report_id, error)
+            return JsonResponse(
+                utils.generate_hasura_error_payload(str(error), "ReportExportError"), status=500
+            )
+
+        docx_bytes = docx.getvalue()
+        base64_bytes = b64encode(docx_bytes)
+        base64_string = base64_bytes.decode("utf-8")
+        data = {
+            "docBase64": base64_string,
+            "fileName": report_name,
+        }
+        return JsonResponse(data, status=self.status)
 
 class GraphqlDownloadEvidence(JwtRequiredMixin, HasuraActionView):
     """
@@ -1361,6 +1427,58 @@ class GraphqlUploadReportTemplateView(JwtRequiredMixin, HasuraActionView):
             utils.generate_hasura_error_payload(message, "Invalid"), status=401
         )
 
+LOGO_ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "gif", "webp"}
+
+class GraphqlUploadClientLogo(JwtRequiredMixin, HasuraActionView):
+    """Endpoint for uploading a client logo with the ``uploadClientLogo`` action."""
+
+    allow_large_input = True
+    required_inputs = ["clientId", "file_base64", "filename"]
+
+    def post(self, request, *args, **kwargs):
+        if self.user_obj is None or not self.user_obj.is_active:
+            return JsonResponse(utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401)
+
+        client_id = self.input["clientId"]
+        try:
+            client = Client.objects.get(id=client_id)
+        except Client.DoesNotExist:
+            return JsonResponse(
+                utils.generate_hasura_error_payload("Client not found", "NotFound"), status=404
+            )
+
+        if not client.user_can_view(self.user_obj):
+            return JsonResponse(
+                utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401
+            )
+
+        filename = self.input["filename"].strip()
+        if not filename:
+            return JsonResponse(
+                utils.generate_hasura_error_payload("filename is required", "Invalid"), status=400
+            )
+        ext = os.path.splitext(filename)[1].lstrip(".").lower()
+        if ext not in LOGO_ALLOWED_EXTENSIONS:
+            return JsonResponse(
+                utils.generate_hasura_error_payload(
+                    f"Logo file extension not allowed. Allowed: {', '.join(sorted(LOGO_ALLOWED_EXTENSIONS))}",
+                    "Invalid",
+                ),
+                status=400,
+            )
+
+        try:
+            file_bytes = b64decode(self.input["file_base64"], validate=True)
+        except (BinAsciiError, ValueError):
+            return JsonResponse(
+                utils.generate_hasura_error_payload("Invalid base64 data", "Invalid"), status=400
+            )
+
+        if client.logo:
+            client.logo.delete(save=False)
+
+        client.logo.save(filename, ContentFile(file_bytes), save=True)
+        return JsonResponse({"id": client.id}, status=200)
 
 class GraphqlLinkOplogEvidence(JwtRequiredMixin, HasuraActionView):
     """

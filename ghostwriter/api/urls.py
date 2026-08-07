@@ -53,6 +53,8 @@ from ghostwriter.api.views import (
     ObjectsByTag,
     SetTags,
     detect_passive_voice,
+    GraphqlGenerateDocReport,
+    GraphqlUploadClientLogo,
 )
 
 app_name = "api"
@@ -170,4 +172,14 @@ urlpatterns = [
     path("tags/get_by/<str:model>", csrf_exempt(ObjectsByTag.as_view()), name="graphql_objects_by_tag"),
     # Passive Voice Detection
     path("v1/passive-voice/detect", detect_passive_voice, name="passive_voice_detect"),
+    path(
+        "generateDocReport",
+        csrf_exempt(GraphqlGenerateDocReport.as_view()),
+        name="graphql_generate_doc_report",
+    ),
+    path(
+        "uploadClientLogo",
+        csrf_exempt(GraphqlUploadClientLogo.as_view()),
+        name="graphql_upload_client_logo",
+    ),
 ]
