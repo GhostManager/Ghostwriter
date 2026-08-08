@@ -71,16 +71,18 @@
     </header>
 
     {% if reporttemplate.protected %}
-      <div class="alert {% if request.user|can_edit_report_template:reporttemplate %}alert-secondary icon unlock-icon{% else %}alert-danger icon lock-icon{% endif %} mt-3"
-           role="alert">
-        {% if request.user|can_edit_report_template:reporttemplate %}
-          You may edit this protected template.
-        {% else %}
+      {% if request.user|can_edit_report_template:reporttemplate %}
+        <div class="context-note detail-access-notice mt-3" role="note">
+          <i class="fas fa-unlock" aria-hidden="true"></i>
+          <div><strong>Protected template.</strong> You have permission to edit it.</div>
+        </div>
+      {% else %}
+        <div class="alert detail-access-notice alert-danger icon lock-icon mt-3" role="alert">
           This template is protected – report template management permission is required to edit it.
-        {% endif %}
-      </div>
+        </div>
+      {% endif %}
     {% elif not reporttemplate.client and not request.user|can_edit_report_template:reporttemplate %}
-      <div class="alert alert-danger icon lock-icon mt-3" role="alert">
+      <div class="alert detail-access-notice alert-danger icon lock-icon mt-3" role="alert">
         This is a global template – report template management permission is required to edit it.
       </div>
     {% endif %}

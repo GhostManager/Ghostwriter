@@ -2505,6 +2505,7 @@ class ReportActivateViewTests(TestCase):
                 "project_url": self.report.project.get_absolute_url(),
                 "client": self.report.project.client.name,
                 "client_url": self.report.project.client.get_absolute_url(),
+                "activity_logs": [],
                 "message": (
                     "Working report updated. Findings and observations added "
                     f"from the libraries will go to {self.report.title}."
@@ -2515,6 +2516,27 @@ class ReportActivateViewTests(TestCase):
         self.assertEqual(
             self.mgr_user.workspace_preferences["recent_reports"],
             [self.report.id],
+        )
+
+    def test_view_returns_project_activity_logs(self):
+        second_log = OplogFactory(
+            name="Second project log",
+            project=self.report.project,
+        )
+        first_log = OplogFactory(
+            name="First project log",
+            project=self.report.project,
+        )
+        OplogFactory(name="Other project log")
+
+        response = self.client_mgr.post(self.uri)
+
+        self.assertEqual(
+            response.json()["activity_logs"],
+            [
+                {"name": first_log.name, "url": first_log.get_absolute_url()},
+                {"name": second_log.name, "url": second_log.get_absolute_url()},
+            ],
         )
 
     def test_view_requires_login_and_permissions(self):
@@ -4293,7 +4315,7 @@ class ReportTemplateDetailViewTests(TestCase):
         response = self.client_auth.get(self.uri)
         self.assertContains(
             response,
-            'class="alert alert-danger icon lock-icon mt-3"',
+            'class="alert detail-access-notice alert-danger icon lock-icon mt-3"',
         )
         self.assertContains(
             response,
@@ -4304,9 +4326,10 @@ class ReportTemplateDetailViewTests(TestCase):
             response = client.get(self.uri)
             self.assertContains(
                 response,
-                'class="alert alert-secondary icon unlock-icon mt-3"',
+                'class="context-note detail-access-notice mt-3"',
             )
-            self.assertContains(response, "You may edit this protected template.")
+            self.assertContains(response, "You have permission to edit it.")
+            self.assertNotContains(response, "alert-secondary")
 
 
 class ReportTemplateCreateViewTests(TestCase):
@@ -6233,13 +6256,14 @@ class EvidencePreviewTests(TestCase):
 
         response = self.client_mgr.get(self.deleted_uri)
         self.assertEqual(response.status_code, 200)
-        self.assertInHTML("<p>FILE NOT FOUND</p>", response.content.decode())
+        self.assertContains(response, "Evidence file unavailable")
+        self.assertContains(response, "alert alert-danger")
 
         response = self.client_mgr.get(self.unknown_uri)
         self.assertEqual(response.status_code, 200)
-        self.assertInHTML(
-            "<p>Evidence file type cannot be displayed.</p>", response.content.decode()
-        )
+        self.assertContains(response, "Preview unavailable for this file type")
+        self.assertContains(response, "Download Evidence")
+        self.assertNotContains(response, "alert alert-warning")
 
 
 # Tests related to :model:`reporting.Observation`
@@ -6336,6 +6360,34 @@ class ObservationListViewTests(TestCase):
         self.assertContains(response, "No matching observations")
         self.assertContains(response, "Reset filters")
         self.assertNotContains(response, 'id="observationsTable"')
+
+
+class ObservationDetailViewTests(TestCase):
+    """Collection of tests for :view:`reporting.ObservationDetail`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.observation = ObservationFactory(title="Detailed Observation", description="")
+        cls.observation.tags.add("detail-tag")
+        cls.uri = reverse("reporting:observation_detail", kwargs={"pk": cls.observation.pk})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    def test_view_uses_finding_style_detail_workspace(self):
+        response = self.client_auth.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "reporting/observation_detail.html")
+        self.assertContains(response, 'class="observation-detail-page finding-detail-page"')
+        self.assertContains(response, 'id="observation-actions-button"')
+        self.assertContains(response, "Description needed")
+        self.assertNotContains(response, 'class="dropdown-menu-btn"')
 
 
 class ObservationCreateViewTests(TestCase):

@@ -575,6 +575,12 @@ ul.collab-focused-users {
         border-color: var(--gw-border, #dfe3e8);
     }
 
+    .finding-affected-entities-field {
+        margin-bottom: 1.5rem;
+        padding-bottom: 1.25rem;
+        border-bottom: 1px solid var(--gw-border, #dfe3e8);
+    }
+
     .form-group {
         min-width: 0;
         text-align: left;

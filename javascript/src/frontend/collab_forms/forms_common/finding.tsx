@@ -39,30 +39,32 @@ function convertSeverities(data: Get_SeveritiesQuery): [number, string][] {
 
 const EMPTY = {};
 
-type FindingFormTab = "details" | "narrative" | "technical" | "extra-fields";
+type FindingFormTab = "overview" | "narrative" | "technical" | "extra-fields";
 
 const FINDING_FORM_TABS: {
     id: FindingFormTab;
     label: string;
     icon: string;
 }[] = [
-    { id: "details", label: "Details", icon: "fa-sliders-h" },
+    { id: "overview", label: "Overview", icon: "fa-list-alt" },
     { id: "narrative", label: "Narrative", icon: "fa-align-left" },
     { id: "technical", label: "Technical", icon: "fa-microscope" },
     { id: "extra-fields", label: "Extra Fields", icon: "fa-puzzle-piece" },
 ];
 
 function getInitialFindingFormTab(hasExtraFields: boolean): FindingFormTab {
-    const requestedTab = window.location.hash.replace(
-        "#",
-        ""
+    const requestedHash = window.location.hash.replace("#", "");
+    const requestedTab = (
+        requestedHash === "details" || requestedHash === "severity"
+            ? "overview"
+            : requestedHash
     ) as FindingFormTab;
     const validTabs = hasExtraFields
         ? FINDING_FORM_TABS
         : FINDING_FORM_TABS.filter((tab) => tab.id !== "extra-fields");
     return validTabs.some((tab) => tab.id === requestedTab)
         ? requestedTab
-        : "details";
+        : "overview";
 }
 
 function FindingFormSection(props: {
@@ -92,7 +94,7 @@ export function FindingFormFields({
     status,
     connected,
     toolbarExtra,
-    extraTop,
+    narrativeTop,
     extraBottom,
     setEditing,
     tabbed = false,
@@ -101,7 +103,7 @@ export function FindingFormFields({
     status: ConnectionStatus;
     connected: boolean;
     toolbarExtra?: (editor: Editor) => React.ReactNode;
-    extraTop?: React.ReactNode;
+    narrativeTop?: React.ReactNode;
     extraBottom?: React.ReactNode;
     setEditing?: (editing: boolean) => void;
     tabbed?: boolean;
@@ -209,11 +211,11 @@ export function FindingFormFields({
                 }
             >
                 <FindingFormSection
-                    id="details"
+                    id="overview"
                     tabbed={tabbed}
                     activeTab={activeTab}
                 >
-                    <h4 className="icon search-icon">Finding Details</h4>
+                    <h4 className="icon search-icon">Finding Overview</h4>
                     <hr />
 
                     <div className="form-row">
@@ -231,6 +233,10 @@ export function FindingFormFields({
                                         mapKey="title"
                                         setEditing={setEditing}
                                     />
+                                    <small className="form-text text-muted">
+                                        Use a concise, report-ready statement of
+                                        the issue.
+                                    </small>
                                 </div>
                             </div>
                         </div>
@@ -356,8 +362,6 @@ export function FindingFormFields({
                         scoreKey="cvssScore"
                         severityKey="severityId"
                     />
-
-                    {extraTop}
                 </FindingFormSection>
 
                 <FindingFormSection
@@ -367,6 +371,8 @@ export function FindingFormFields({
                 >
                     <h4 className="icon pencil-icon">Narrative</h4>
                     <hr />
+
+                    {narrativeTop}
 
                     <div className="form-group col-md-12">
                         <label>Description</label>
@@ -379,6 +385,10 @@ export function FindingFormFields({
                                 )}
                                 toolbarExtra={toolbarExtra}
                             />
+                            <small className="form-text text-muted">
+                                Describe the condition and how it was
+                                identified.
+                            </small>
                         </div>
                     </div>
 
@@ -393,6 +403,9 @@ export function FindingFormFields({
                                 )}
                                 toolbarExtra={toolbarExtra}
                             />
+                            <small className="form-text text-muted">
+                                Explain the risk or consequence to the client.
+                            </small>
                         </div>
                     </div>
 
@@ -418,6 +431,10 @@ export function FindingFormFields({
                                 )}
                                 toolbarExtra={toolbarExtra}
                             />
+                            <small className="form-text text-muted">
+                                Provide practical remediation or compensating
+                                controls.
+                            </small>
                         </div>
                     </div>
 
@@ -432,6 +449,10 @@ export function FindingFormFields({
                                 )}
                                 toolbarExtra={toolbarExtra}
                             />
+                            <small className="form-text text-muted">
+                                Document the steps needed to reproduce or
+                                validate the issue.
+                            </small>
                         </div>
                     </div>
 
@@ -446,6 +467,10 @@ export function FindingFormFields({
                                 )}
                                 toolbarExtra={toolbarExtra}
                             />
+                            <small className="form-text text-muted">
+                                List host-based telemetry or analytics that can
+                                identify related activity.
+                            </small>
                         </div>
                     </div>
 
@@ -460,6 +485,10 @@ export function FindingFormFields({
                                 )}
                                 toolbarExtra={toolbarExtra}
                             />
+                            <small className="form-text text-muted">
+                                List network telemetry or analytics that can
+                                identify related activity.
+                            </small>
                         </div>
                     </div>
 
@@ -477,6 +506,10 @@ export function FindingFormFields({
                                 )}
                                 toolbarExtra={toolbarExtra}
                             />
+                            <small className="form-text text-muted">
+                                Link to vendor guidance, standards, or relevant
+                                research.
+                            </small>
                         </div>
                     </div>
                 </FindingFormSection>

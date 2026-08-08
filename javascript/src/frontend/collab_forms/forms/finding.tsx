@@ -31,6 +31,10 @@ function FindingForm() {
                                     "findingGuidance"
                                 )}
                             />
+                            <small className="form-text text-muted">
+                                Add reusable context for operators adapting this
+                                finding to an engagement.
+                            </small>
                         </div>
                     </div>
                 </>

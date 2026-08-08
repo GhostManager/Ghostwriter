@@ -17,7 +17,10 @@
         {% if template.description %}
           {{ template.description|bleach|safe }}
         {% else %}
-          <p>No one has added a description of this template.{% if request.user|can_edit_report_template:template %} <a class="clickable" href="{% url 'reporting:template_update' template.id %}">Fix that here.</a>{% endif %}</p>
+          <div class="empty-state">
+            <p class="empty-state-title">No description provided</p>
+            <p class="empty-state-description">Add guidance that helps operators choose the right template.{% if request.user|can_edit_report_template:template %} <a class="clickable" href="{% url 'reporting:template_update' template.id %}">Edit template</a>.{% endif %}</p>
+          </div>
         {% endif %}
 
         <h5>Linting Results</h5>
@@ -77,9 +80,9 @@
                 {% endif %}
             {% endwith %}
         {% else %}
-            <div class="alert alert-secondary" role="alert">
-                <h4 style="margin-top: 0;" class="alert-heading">Unknown</h4>
-                Run the linter on this template to get new results
+            <div class="empty-state">
+                <p class="empty-state-title">No linting results yet</p>
+                <p class="empty-state-description">Run the linter to check this template for reporting issues.</p>
             </div>
         {% endif %}
       </div>
