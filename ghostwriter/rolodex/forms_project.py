@@ -1353,14 +1353,6 @@ class ProjectForm(forms.ModelForm):
                         css_class="form-row",
                     ),
                     SwitchToggle("update_checkouts"),
-                    HTML(
-                        """
-                        <div class="form-section-heading mt-2 mb-3">
-                            <h2>Operator context</h2>
-                            <p>Summarize the work so the team can orient quickly from the project dashboard.</p>
-                        </div>
-                        """
-                    ),
                     "description",
                     link_css_class="project-icon",
                     css_id="project",

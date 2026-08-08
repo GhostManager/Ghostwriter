@@ -237,7 +237,7 @@
         {% else %}
           <div class="empty-state">
             <p class="empty-state-title">No assignments yet</p>
-            <p class="empty-state-description">No operators have been assigned to this project.</p>
+            <p class="empty-state-description">Assign operators to record their roles and working dates for this engagement.</p>
           </div>
         {% endif %}
 
@@ -306,7 +306,7 @@
             {% else %}
               <div class="empty-state">
                 <p class="empty-state-title">No invitations yet</p>
-                <p class="empty-state-description">No additional users have been invited to view this project.</p>
+                <p class="empty-state-description">Invite users who need project visibility without an operator assignment.</p>
               </div>
             {% endif %}
           </section>
@@ -451,7 +451,7 @@
         {% else %}
           <div class="empty-state">
             <p class="empty-state-title">No scope lists yet</p>
-            <p class="empty-state-description">No scope lists have been attached to this project.</p>
+            <p class="empty-state-description">Attach a scope list to organize the systems and boundaries included in the assessment.</p>
           </div>
         {% endif %}
       </div>
@@ -526,7 +526,7 @@
         {% else %}
           <div class="empty-state">
             <p class="empty-state-title">No targets yet</p>
-            <p class="empty-state-description">No targets have been attached to this project.</p>
+            <p class="empty-state-description">Add targets to track in-scope hosts and their current assessment state.</p>
           </div>
         {% endif %}
       </div>
@@ -584,7 +584,7 @@
         {% else %}
           <div class="empty-state">
             <p class="empty-state-title">No operation logs yet</p>
-            <p class="empty-state-description">No activity logs have been started for this project.</p>
+            <p class="empty-state-description">Start an activity log to record operator actions and supporting evidence.</p>
           </div>
         {% endif %}
       </div>
@@ -622,7 +622,7 @@
         </header>
 
         {% if project.complete %}
-          <div class="alert alert-info access-note" role="note">This project is complete, so additional reports cannot be created.</div>
+          <div class="context-note access-note" role="note">This project is complete, so additional reports cannot be created.</div>
         {% endif %}
 
         {% if project.report_set.all %}
@@ -789,7 +789,7 @@
         {% else %}
           <div class="empty-state">
             <p class="empty-state-title">No reports yet</p>
-            <p class="empty-state-description">No reports have been attached to this project.</p>
+            <p class="empty-state-description">Create a report to begin organizing findings, observations, and evidence.</p>
           </div>
         {% endif %}
 
@@ -885,7 +885,7 @@
         {% else %}
           <div class="empty-state">
             <p class="empty-state-title">No domains yet</p>
-            <p class="empty-state-description">No domains are tied to this project.</p>
+            <p class="empty-state-description">Check out a domain when the engagement needs reusable infrastructure.</p>
           </div>
         {% endif %}
 
@@ -1039,7 +1039,7 @@
         {% else %}
           <div class="empty-state">
             <p class="empty-state-title">No servers yet</p>
-            <p class="empty-state-description">No servers are tied to this project.</p>
+            <p class="empty-state-description">Check out a server when the engagement needs reusable infrastructure.</p>
           </div>
         {% endif %}
 
@@ -1458,7 +1458,7 @@
         {% else %}
           <div class="empty-state">
             <p class="empty-state-title">No legacy comments yet</p>
-            <p class="empty-state-description">No legacy comments have been added for this project.</p>
+            <p class="empty-state-description">Use this area only for comments retained from the legacy project workflow.</p>
           </div>
         {% endif %}
       </div>

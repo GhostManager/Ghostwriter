@@ -155,7 +155,7 @@
               </thead>
               {% for invite in client.clientinvite_set.all %}
                 <tr>
-                  <td class="align-middle text-end">
+                  <td class="align-middle text-start">
                     <a class="clickable" href="{% url 'users:user_detail' invite.user.username %}">
                       {% if invite.user.name %}
                         {{ invite.user.name }}
@@ -168,7 +168,7 @@
                     {% if invite.comment %}{{ invite.comment|bleach }}{% else %}<span class="missing-value">No comment</span>{% endif %}
                   </td>
 
-                  <td class="align-middle text-start">
+                  <td class="align-middle text-end">
                     <div class="table-row-actions">
                       <a class="table-row-action"
                          title="Edit this invitation"
@@ -198,7 +198,7 @@
           {% else %}
             <div class="empty-state">
               <p class="empty-state-title">No invitations yet</p>
-              <p class="empty-state-description">No additional users have been given access to this client's complete history.</p>
+              <p class="empty-state-description">Invite users who need access to this client's complete project history.</p>
             </div>
           {% endif %}
         </div>
@@ -284,7 +284,7 @@
         </header>
 
         {% if not request.user|is_privileged %}
-          <div class="alert alert-info access-note" role="note">Some projects shown here may have incomplete
+          <div class="context-note access-note" role="note">Some projects shown here may have incomplete
             information if you do not have access. You gain access to a project by being assigned to it or invited to have full access
             to the related client's history.
           </div>
@@ -348,7 +348,7 @@
         {% else %}
           <div class="empty-state">
             <p class="empty-state-title">No projects yet</p>
-            <p class="empty-state-description">No projects have been created for this client.</p>
+            <p class="empty-state-description">Create a project to begin planning an engagement for this client.</p>
           </div>
         {% endif %}
       </div>
@@ -363,7 +363,7 @@
           </header>
           {% if domains %}
             {% if not request.user|is_privileged %}
-              <div class="alert alert-info access-note" role="note">Some projects shown here will be hidden if you do
+              <div class="context-note access-note" role="note">Some projects shown here will be hidden if you do
                 not have access. You gain access to a project by being assigned to it or invited to have full access
                 to the related client's history.
               </div>
@@ -401,7 +401,7 @@
           {% else %}
             <div class="empty-state mb-4">
               <p class="empty-state-title">No domains used</p>
-              <p class="empty-state-description">No domain usage has been recorded for this client.</p>
+              <p class="empty-state-description">Domain checkouts for this client's projects will appear here.</p>
             </div>
           {% endif %}
 
@@ -413,7 +413,7 @@
 
           {% if servers or vps %}
             {% if not request.user|is_privileged %}
-              <div class="alert alert-info access-note" role="note">Some projects shown here will be hidden if you do
+              <div class="context-note access-note" role="note">Some projects shown here will be hidden if you do
                 not have access. You gain access to a project by being assigned to it or invited to have full access
                 to the related client's history.
               </div>
@@ -468,7 +468,7 @@
           {% else %}
             <div class="empty-state">
               <p class="empty-state-title">No servers used</p>
-              <p class="empty-state-description">No server usage has been recorded for this client.</p>
+              <p class="empty-state-description">Server checkouts for this client's projects will appear here.</p>
             </div>
           {% endif %}
         {% else %}
@@ -479,7 +479,7 @@
           </header>
           <div class="empty-state">
             <p class="empty-state-title">No infrastructure used</p>
-            <p class="empty-state-description">No domains or servers have been associated with this client's projects.</p>
+            <p class="empty-state-description">Check out infrastructure to one of this client's projects to begin its usage history.</p>
           </div>
         {% endif %}
       </div>
@@ -600,7 +600,7 @@
         {% else %}
           <div class="empty-state">
             <p class="empty-state-title">No notes yet</p>
-            <p class="empty-state-description">No notes have been added for this client.</p>
+            <p class="empty-state-description">Add a note to preserve client context that does not belong to an individual project.</p>
           </div>
         {% endif %}
       </div>

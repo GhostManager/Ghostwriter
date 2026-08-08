@@ -40,7 +40,7 @@
     </div>
 
     {% if not request.user|is_privileged %}
-      <div class="alert alert-info d-flex gap-3 align-items-start mb-0" role="status">
+      <div class="context-note mb-0" role="note">
         <i class="fas fa-user-shield mt-1" aria-hidden="true"></i>
         <div>
           <strong>Showing projects you can access</strong>

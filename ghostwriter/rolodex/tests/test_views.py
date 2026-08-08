@@ -668,6 +668,8 @@ class ProjectUpdateTests(TestCase):
         self.assertContains(response, "projectCollectionConfigs")
         self.assertContains(response, "isNewProjectCollectionForm")
         self.assertContains(response, "gwInitTiptapStableContainer")
+        self.assertContains(response, 'id="id_description"')
+        self.assertNotContains(response, "Operator context")
 
     def test_view_selects_initial_tab(self):
         response = self.client_mgr.get(self.uri)
@@ -1198,6 +1200,10 @@ class ClientDetailViewTest(TestCase):
         self.assertNotContains(response, 'class="d-flex justify-content-center"')
         self.assertContains(response, 'class="align-middle sorter-false text-end">Options</th>')
         self.assertContains(response, 'class="sorter-false text-end">Options</th>', count=2)
+        invitation_cells = soup.select("#clientTable tr td")
+        self.assertIn("text-start", invitation_cells[0].get("class", []))
+        self.assertIn("text-start", invitation_cells[1].get("class", []))
+        self.assertIn("text-end", invitation_cells[2].get("class", []))
         self.assertContains(response, 'class="align-middle text-start">\n                    Invitation comment')
         self.assertTrue(all(action.get("title") for action in soup.select(".table-row-action")))
         self.assertContains(response, ".table-row-action[title]")
