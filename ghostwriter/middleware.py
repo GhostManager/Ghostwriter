@@ -1,7 +1,7 @@
 # Django Imports
-from django.http import HttpRequest, HttpResponse
 from django.conf import settings
 from django.contrib import messages
+from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect
 from django.utils.deprecation import MiddlewareMixin
 
@@ -9,6 +9,19 @@ from django.utils.deprecation import MiddlewareMixin
 from allauth.mfa.utils import is_mfa_enabled
 
 
+class ContentSecurityPolicyMiddleware:
+    """Attach the application's report-only Content Security Policy."""
+
+    header_name = "Content-Security-Policy-Report-Only"
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        response = self.get_response(request)
+        policy = settings.CONTENT_SECURITY_POLICY_REPORT_ONLY
+        response.headers.setdefault(self.header_name, policy)
+        return response
 
 class RequireMFAMiddleware(MiddlewareMixin):
     allowed_pages = [

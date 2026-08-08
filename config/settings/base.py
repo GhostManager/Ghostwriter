@@ -186,6 +186,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # https://docs.djangoproject.com/en/dev/ref/settings/#middleware
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "ghostwriter.middleware.ContentSecurityPolicyMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -197,6 +198,25 @@ MIDDLEWARE = [
     "ghostwriter.middleware.RequireMFAMiddleware",
     "allauth.account.middleware.AccountMiddleware",
 ]
+
+# CONTENT SECURITY POLICY
+# ------------------------------------------------------------------------------
+# Keep this policy in sync with compose/production/nginx/nginx_common.conf. It is
+# report-only while inline scripts, styles, and event handlers are migrated to
+# nonce-aware or static resources.
+CONTENT_SECURITY_POLICY_REPORT_ONLY = (
+    "default-src 'self'; "
+    "base-uri 'self'; "
+    "connect-src 'self' ws: wss:; "
+    "font-src 'self' data:; "
+    "form-action 'self'; "
+    "frame-ancestors 'self'; "
+    "img-src 'self' data: blob:; "
+    "object-src 'none'; "
+    "script-src 'self'; "
+    "style-src 'self'; "
+    "worker-src 'self' blob:"
+)
 
 # STATIC
 # ------------------------------------------------------------------------------
