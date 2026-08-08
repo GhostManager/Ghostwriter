@@ -158,6 +158,18 @@ def is_privileged(user):
 
 
 @register.filter
+def can_edit_report_template(user, report_template):
+    """Check if the user has permission to edit a report template."""
+    return report_template.user_can_edit(user)
+
+
+@register.filter
+def can_delete_report_template(user, report_template):
+    """Check if the user has permission to delete a report template."""
+    return report_template.user_can_delete(user)
+
+
+@register.filter
 def has_mfa(user):
     """Check if the user has a valid TOTP method configured."""
     return user_has_valid_totp_device(user)

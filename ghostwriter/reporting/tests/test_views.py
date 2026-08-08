@@ -1064,14 +1064,22 @@ class FindingsListViewTests(TestCase):
         self.assertIn("visible-finding-tag", tag_names)
         self.assertNotIn("hidden-report-tag", tag_names)
         self.assertNotIn("hidden-project-tag", tag_names)
-        self.assertIn("visible-finding-tag", response.context["autocomplete_data"]["tags"])
-        self.assertNotIn("hidden-report-tag", response.context["autocomplete_data"]["tags"])
-        self.assertNotIn("hidden-project-tag", response.context["autocomplete_data"]["tags"])
+        self.assertIn(
+            "visible-finding-tag", response.context["autocomplete_data"]["tags"]
+        )
+        self.assertNotIn(
+            "hidden-report-tag", response.context["autocomplete_data"]["tags"]
+        )
+        self.assertNotIn(
+            "hidden-project-tag", response.context["autocomplete_data"]["tags"]
+        )
 
     def test_search_report_findings(self):
         response = self.client_auth.get(self.uri + "?on_reports=on")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.context["filter"].qs), len(self.accessibleReportFindings))
+        self.assertEqual(
+            len(response.context["filter"].qs), len(self.accessibleReportFindings)
+        )
 
         response = self.client_auth.get(self.uri + "?on_reports=on&not_cloned=on")
         self.assertEqual(response.status_code, 200)
@@ -1541,8 +1549,12 @@ class ReportsListViewTests(TestCase):
         tag_names = list(response.context["tags"].values_list("name", flat=True))
         self.assertIn("visible-report-tag", tag_names)
         self.assertNotIn("hidden-report-tag", tag_names)
-        self.assertIn("visible-report-tag", response.context["autocomplete_data"]["tags"])
-        self.assertNotIn("hidden-report-tag", response.context["autocomplete_data"]["tags"])
+        self.assertIn(
+            "visible-report-tag", response.context["autocomplete_data"]["tags"]
+        )
+        self.assertNotIn(
+            "hidden-report-tag", response.context["autocomplete_data"]["tags"]
+        )
 
 
 class ReportDetailViewTests(TestCase):
@@ -1620,9 +1632,7 @@ class ReportDetailViewTests(TestCase):
         response = self.client_mgr.get(self.uri)
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(
-            response, r"Figure\u2028window.captionXss\u003Dtrue//"
-        )
+        self.assertContains(response, r"Figure\u2028window.captionXss\u003Dtrue//")
         self.assertContains(response, r"\u0026lt\u003B/p\u0026gt\u003B")
         self.assertNotContains(response, "</p><img src=x")
 
@@ -1798,7 +1808,10 @@ class ReportDetailViewTests(TestCase):
         # Verify the preview endpoint itself renders the list content
         preview_url = reverse(
             "reporting:report_extra_field_richtext",
-            kwargs={"pk": self.report.pk, "extra_field_name": "out_of_scope_activities"},
+            kwargs={
+                "pk": self.report.pk,
+                "extra_field_name": "out_of_scope_activities",
+            },
         )
         preview_response = self.client_mgr.get(preview_url)
         self.assertEqual(preview_response.status_code, 200)
@@ -1947,10 +1960,10 @@ class ReportOplogOutlineGenerateTests(TestCase):
                     "html": "<p><strong>Initial foothold</strong> confirmed.</p>",
                 },
                 {"type": "paragraph", "text": "Output:"},
-                {"type": "code", "text": "{% raw %}PORT 80/tcp open http{% endraw %}"},
-                {"type": "paragraph", "text": "{{.ref Alpha}}"},
+                {"type": "code", "text": "PORT 80/tcp open http"},
+                {"type": "reference", "ref": "Alpha"},
                 {"type": "evidence", "evidence_id": report_evidence.id},
-                {"type": "paragraph", "text": "{{.ref Bravo}}"},
+                {"type": "reference", "ref": "Bravo"},
                 {"type": "evidence", "evidence_id": finding_evidence.id},
                 {
                     "type": "narrative",
@@ -1964,9 +1977,7 @@ class ReportOplogOutlineGenerateTests(TestCase):
             ],
         )
 
-    def test_view_wraps_output_as_jinja_literal_text(self):
-        from ghostwriter.modules.reportwriter import prepare_jinja2_env
-
+    def test_view_returns_output_as_unmodified_literal_block_data(self):
         output = "\n".join(
             [
                 "project={{ project }}",
@@ -2005,14 +2016,11 @@ class ReportOplogOutlineGenerateTests(TestCase):
             if block["type"] == "code"
         ]
         self.assertEqual(len(code_blocks), 1)
+        self.assertEqual(code_blocks[0], output)
 
-        rendered = prepare_jinja2_env(debug=False).from_string(code_blocks[0]).render(
-            {"project": "Rendered Project"}
-        )
-        self.assertEqual(rendered, output)
-        self.assertNotIn("project=Rendered Project", rendered)
-
-    def test_view_includes_entries_matching_configured_exact_tag_case_insensitively(self):
+    def test_view_includes_entries_matching_configured_exact_tag_case_insensitively(
+        self,
+    ):
         self.report_config.outline_tags = "Credential"
         self.report_config.save()
 
@@ -2618,6 +2626,89 @@ class ReportDeliveryToggleViewTests(TestCase):
 # Tests related to :model:`reporting.ReportFindingLink`
 
 
+class ReportFindingLinkOrderViewTests(TestCase):
+    """Tests for :view:`reporting.ajax_update_report_findings`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.attacker = UserFactory(password=PASSWORD)
+        cls.victim = UserFactory(password=PASSWORD)
+        cls.attacker_project = ProjectFactory(client=ClientFactory())
+        cls.victim_project = ProjectFactory(client=ClientFactory())
+        cls.attacker_report = ReportFactory(project=cls.attacker_project)
+        cls.victim_report = ReportFactory(project=cls.victim_project)
+        ProjectAssignmentFactory(
+            operator=cls.attacker, project=cls.attacker_project
+        )
+        ProjectAssignmentFactory(operator=cls.victim, project=cls.victim_project)
+
+        cls.original_severity = SeverityFactory(severity="Original", weight=100)
+        cls.new_severity = SeverityFactory(severity="Reordered", weight=101)
+        cls.first_finding = ReportFindingLinkFactory(
+            report=cls.attacker_report,
+            severity=cls.original_severity,
+            position=7,
+        )
+        cls.second_finding = ReportFindingLinkFactory(
+            report=cls.attacker_report,
+            severity=cls.original_severity,
+            position=8,
+        )
+        cls.victim_finding = ReportFindingLinkFactory(
+            report=cls.victim_report,
+            severity=cls.original_severity,
+            position=9,
+        )
+        cls.uri = reverse("reporting:update_report_findings")
+
+    def setUp(self):
+        self.client = Client()
+        self.assertTrue(
+            self.client.login(username=self.attacker.username, password=PASSWORD)
+        )
+
+    def test_reorders_findings_attached_to_authorized_report(self):
+        response = self.client.post(
+            self.uri,
+            {
+                "report": self.attacker_report.pk,
+                "weight": self.new_severity.weight,
+                "positions": json.dumps(
+                    [str(self.second_finding.pk), str(self.first_finding.pk)]
+                ),
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(force_str(response.content), {"result": "success"})
+        self.first_finding.refresh_from_db()
+        self.second_finding.refresh_from_db()
+        self.assertEqual(self.first_finding.position, 2)
+        self.assertEqual(self.second_finding.position, 1)
+        self.assertEqual(self.first_finding.severity, self.new_severity)
+        self.assertEqual(self.second_finding.severity, self.new_severity)
+
+    def test_rejects_foreign_finding_and_rolls_back_reorder(self):
+        response = self.client.post(
+            self.uri,
+            {
+                "report": self.attacker_report.pk,
+                "weight": self.new_severity.weight,
+                "positions": json.dumps(
+                    [str(self.first_finding.pk), str(self.victim_finding.pk)]
+                ),
+            },
+        )
+
+        self.assertEqual(response.status_code, 404)
+        self.first_finding.refresh_from_db()
+        self.victim_finding.refresh_from_db()
+        self.assertEqual(self.first_finding.position, 7)
+        self.assertEqual(self.first_finding.severity, self.original_severity)
+        self.assertEqual(self.victim_finding.position, 9)
+        self.assertEqual(self.victim_finding.severity, self.original_severity)
+
+
 class ReportFindingLinkUpdateViewTests(TestCase):
     """Collection of tests for :view:`reporting.ReportFindingLinkUpdate`."""
 
@@ -2913,7 +3004,9 @@ class ReportExtraFieldEditViewTests(TestCase):
         self.assertNotIn("nested", rendered)
 
     def test_report_detail_json_lazy_loader_has_loading_spinner(self):
-        response = self.client_mgr.get(reverse("reporting:report_detail", kwargs={"pk": self.report.pk}))
+        response = self.client_mgr.get(
+            reverse("reporting:report_detail", kwargs={"pk": self.report.pk})
+        )
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "fa-spinner fa-spin")
         self.assertContains(response, "Loading JSON content...")
@@ -2975,6 +3068,75 @@ class ReportExtraFieldEditViewTests(TestCase):
 
         response = self.client_mgr.get(uri)
         self.assertEqual(response.status_code, 200)
+
+    def test_richtext_preview_renders_user_authored_jinja(self):
+        self.report.extra_fields["narrative"] = (
+            "<p>{{ client.name }}</p>"
+            '<p>{% for value in ["one", "two"] %}'
+            "{{ loop.index }}={{ value }} "
+            "{% endfor %}</p>"
+        )
+        self.report.save(update_fields=["extra_fields"])
+        uri = reverse(
+            "reporting:report_extra_field_richtext",
+            kwargs={
+                "pk": self.report.pk,
+                "extra_field_name": self.extra_field.internal_name,
+            },
+        )
+
+        response = self.client_mgr.get(uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.report.project.client.name)
+        self.assertContains(response, "1=one 2=two")
+
+    def test_richtext_preview_blocks_jinja_environment_access(self):
+        self.report.extra_fields["narrative"] = (
+            "<p>{{ project.description_rt.template.environment.template_class("
+            '"{{ 7 * 7 }}").render() }}</p>'
+        )
+        self.report.save(update_fields=["extra_fields"])
+        uri = reverse(
+            "reporting:report_extra_field_richtext",
+            kwargs={
+                "pk": self.report.pk,
+                "extra_field_name": self.extra_field.internal_name,
+            },
+        )
+
+        response = self.client_mgr.get(uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Template Error")
+        self.assertNotContains(response, ">49<")
+
+    def test_richtext_preview_treats_marked_oplog_content_as_literal_data(self):
+        self.report.extra_fields["narrative"] = (
+            '<div data-gw-jinja-literal="true">'
+            "<p>Logged payload: {{ client.name }}</p>"
+            "<pre><code>{% endraw %}{#</code></pre>"
+            "</div>"
+            "<p>Authored template: {{ client.name }}</p>"
+        )
+        self.report.save(update_fields=["extra_fields"])
+        uri = reverse(
+            "reporting:report_extra_field_richtext",
+            kwargs={
+                "pk": self.report.pk,
+                "extra_field_name": self.extra_field.internal_name,
+            },
+        )
+
+        response = self.client_mgr.get(uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Logged payload: {{ client.name }}")
+        self.assertContains(
+            response,
+            f"Authored template: {self.report.project.client.name}",
+        )
+        self.assertNotContains(response, "data-gw-jinja-literal")
 
     def test_richtext_preview_endpoint_rejects_non_richtext_fields(self):
         uri = reverse(
@@ -3063,7 +3225,10 @@ class ExpandEvidenceAndSanitizeTests(TestCase):
     """Tests for expand_evidence_and_sanitize marker expansion."""
 
     def test_ref_marker_expanded(self):
-        from ghostwriter.commandcenter.templatetags.extra_fields import expand_evidence_and_sanitize
+        from ghostwriter.commandcenter.templatetags.extra_fields import (
+            expand_evidence_and_sanitize,
+        )
+
         html = '<p>See <span data-gw-ref="evA"></span> for details</p>'
         result = expand_evidence_and_sanitize(html, None)
         self.assertIn("Figure", result)
@@ -3071,7 +3236,10 @@ class ExpandEvidenceAndSanitizeTests(TestCase):
         self.assertNotIn("data-gw-ref", result)
 
     def test_inline_caption_marker_expanded(self):
-        from ghostwriter.commandcenter.templatetags.extra_fields import expand_evidence_and_sanitize
+        from ghostwriter.commandcenter.templatetags.extra_fields import (
+            expand_evidence_and_sanitize,
+        )
+
         html = '<p><span data-gw-caption=""></span>My Caption</p>'
         result = expand_evidence_and_sanitize(html, None)
         self.assertIn("Figure", result)
@@ -3079,7 +3247,10 @@ class ExpandEvidenceAndSanitizeTests(TestCase):
         self.assertNotIn("data-gw-caption", result)
 
     def test_block_caption_wrapped_in_p(self):
-        from ghostwriter.commandcenter.templatetags.extra_fields import expand_evidence_and_sanitize
+        from ghostwriter.commandcenter.templatetags.extra_fields import (
+            expand_evidence_and_sanitize,
+        )
+
         html = '<div data-gw-caption="bookmark">Caption Text</div>'
         result = expand_evidence_and_sanitize(html, None)
         self.assertIn("<p>", result)
@@ -3087,7 +3258,10 @@ class ExpandEvidenceAndSanitizeTests(TestCase):
         self.assertIn("Figure", result)
 
     def test_image_marker_without_client_decomposed(self):
-        from ghostwriter.commandcenter.templatetags.extra_fields import expand_evidence_and_sanitize
+        from ghostwriter.commandcenter.templatetags.extra_fields import (
+            expand_evidence_and_sanitize,
+        )
+
         html = '<div data-gw-image="CLIENT_LOGO"></div>'
         result = expand_evidence_and_sanitize(html, None)
         self.assertNotIn("CLIENT_LOGO", result)
@@ -3095,12 +3269,17 @@ class ExpandEvidenceAndSanitizeTests(TestCase):
 
     def test_image_marker_with_client_logo(self):
         from unittest.mock import MagicMock, PropertyMock, patch
-        from ghostwriter.commandcenter.templatetags.extra_fields import expand_evidence_and_sanitize
+        from ghostwriter.commandcenter.templatetags.extra_fields import (
+            expand_evidence_and_sanitize,
+        )
+
         client = ClientFactory()
         logo_mock = MagicMock()
         logo_mock.__bool__ = lambda s: True
         logo_mock.name = "test_logo.png"
-        with patch.object(type(client), "logo", new_callable=PropertyMock, return_value=logo_mock):
+        with patch.object(
+            type(client), "logo", new_callable=PropertyMock, return_value=logo_mock
+        ):
             html = '<div data-gw-image="CLIENT_LOGO"></div>'
             result = expand_evidence_and_sanitize(html, None, client=client)
         self.assertIn("<img", result)
@@ -3108,14 +3287,20 @@ class ExpandEvidenceAndSanitizeTests(TestCase):
         self.assertNotIn("__GW_IMAGE_PREVIEW_", result)
 
     def test_evidence_markers_without_report_decomposed(self):
-        from ghostwriter.commandcenter.templatetags.extra_fields import expand_evidence_and_sanitize
+        from ghostwriter.commandcenter.templatetags.extra_fields import (
+            expand_evidence_and_sanitize,
+        )
+
         html = '<p><span data-gw-evidence="999"></span></p>'
         result = expand_evidence_and_sanitize(html, None)
         self.assertNotIn("data-gw-evidence", result)
 
     def test_plain_html_passes_through(self):
-        from ghostwriter.commandcenter.templatetags.extra_fields import expand_evidence_and_sanitize
-        html = '<p>Hello <strong>world</strong></p>'
+        from ghostwriter.commandcenter.templatetags.extra_fields import (
+            expand_evidence_and_sanitize,
+        )
+
+        html = "<p>Hello <strong>world</strong></p>"
         result = expand_evidence_and_sanitize(html, None)
         self.assertIn("Hello", result)
         self.assertIn("world", result)
@@ -3475,7 +3660,9 @@ class ExtraFieldRichTextPreviewPermissionTests(TestCase):
         self.assertEqual(response.status_code, 404)
 
     def test_template_error_returns_200_with_error_message(self):
-        self.report.extra_fields = {"test_rt": "<p>{% for x in %}broken{% endfor %}</p>"}
+        self.report.extra_fields = {
+            "test_rt": "<p>{% for x in %}broken{% endfor %}</p>"
+        }
         self.report.save(update_fields=["extra_fields"])
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
@@ -3484,7 +3671,9 @@ class ExtraFieldRichTextPreviewPermissionTests(TestCase):
         self.assertIn("alert-danger", content)
 
     def test_export_error_returns_generic_preview_error(self):
-        self.report.extra_fields = {"test_rt": "<p>{{ 'content'|regex_search('(') }}</p>"}
+        self.report.extra_fields = {
+            "test_rt": "<p>{{ 'content'|regex_search('(') }}</p>"
+        }
         self.report.save(update_fields=["extra_fields"])
 
         response = self.client_mgr.get(self.uri)
@@ -3866,6 +4055,17 @@ class ReportTemplateListViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "reporting/report_templates_list.html")
 
+    def test_delete_controls_require_privileged_user(self):
+        delete_uri = reverse(
+            "reporting:template_delete", kwargs={"pk": self.templates[0].pk}
+        )
+
+        response = self.client_auth.get(self.uri)
+        self.assertNotContains(response, delete_uri)
+
+        response = self.client_mgr.get(self.uri)
+        self.assertContains(response, delete_uri)
+
     def test_tags_are_scoped_to_visible_templates(self):
         self.templates[0].tags.add("visible-template-tag")
 
@@ -4033,15 +4233,26 @@ class ReportTemplateDetailViewTests(TestCase):
     def setUpTestData(cls):
         cls.template = ReportTemplateFactory(protected=True)
         cls.user = UserFactory(password=PASSWORD)
+        cls.template_manager = UserFactory(
+            password=PASSWORD,
+            enable_template_management=True,
+        )
         cls.admin_user = UserFactory(password=PASSWORD, role="admin")
         cls.uri = reverse("reporting:template_detail", kwargs={"pk": cls.template.pk})
 
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
+        self.client_template_manager = Client()
         self.client_admin = Client()
         self.assertTrue(
             self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+        self.assertTrue(
+            self.client_template_manager.login(
+                username=self.template_manager.username,
+                password=PASSWORD,
+            )
         )
         self.assertTrue(
             self.client_admin.login(
@@ -4062,6 +4273,22 @@ class ReportTemplateDetailViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "reporting/report_template_detail.html")
 
+    def test_delete_control_requires_template_management(self):
+        self.template.protected = False
+        self.template.save(update_fields=["protected"])
+        delete_uri = reverse(
+            "reporting:template_delete", kwargs={"pk": self.template.pk}
+        )
+
+        response = self.client_auth.get(self.uri)
+        self.assertNotContains(response, delete_uri)
+
+        response = self.client_admin.get(self.uri)
+        self.assertContains(response, delete_uri)
+
+        response = self.client_template_manager.get(self.uri)
+        self.assertContains(response, delete_uri)
+
     def test_view_for_protected_template(self):
         response = self.client_auth.get(self.uri)
         self.assertContains(
@@ -4070,18 +4297,16 @@ class ReportTemplateDetailViewTests(TestCase):
         )
         self.assertContains(
             response,
-            "This template is protected. Only administrators and managers may change it.",
+            "This template is protected – report template management permission is required to edit it.",
         )
 
-        response = self.client_admin.get(self.uri)
-        self.assertContains(
-            response,
-            'class="alert alert-secondary icon unlock-icon mt-3"',
-        )
-        self.assertContains(
-            response,
-            "This is a protected template. Your role permits changes.",
-        )
+        for client in (self.client_template_manager, self.client_admin):
+            response = client.get(self.uri)
+            self.assertContains(
+                response,
+                'class="alert alert-secondary icon unlock-icon mt-3"',
+            )
+            self.assertContains(response, "You may edit this protected template.")
 
 
 class ReportTemplateCreateViewTests(TestCase):
@@ -4091,13 +4316,29 @@ class ReportTemplateCreateViewTests(TestCase):
     def setUpTestData(cls):
         cls.template = ReportTemplateFactory()
         cls.user = UserFactory(password=PASSWORD)
+        cls.template_manager = UserFactory(
+            password=PASSWORD,
+            enable_template_management=True,
+        )
+        cls.template_client = ClientFactory()
+        ProjectAssignmentFactory(
+            project=ProjectFactory(client=cls.template_client),
+            operator=cls.user,
+        )
         cls.uri = reverse("reporting:template_create")
 
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
+        self.client_template_manager = Client()
         self.assertTrue(
             self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+        self.assertTrue(
+            self.client_template_manager.login(
+                username=self.template_manager.username,
+                password=PASSWORD,
+            )
         )
 
     def test_view_uri_exists_at_desired_location(self):
@@ -4128,6 +4369,75 @@ class ReportTemplateCreateViewTests(TestCase):
 
         self.assertEqual(response.context["form"].initial["changelog"], initial_upload)
 
+    def template_upload(self, client, web_client=None, protected=False):
+        with self.template.document.open("rb") as template_file:
+            document = SimpleUploadedFile(
+                "uploaded-template.docx",
+                template_file.read(),
+                content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            )
+
+        return (web_client or self.client_auth).post(
+            self.uri,
+            {
+                "name": "Uploaded Template",
+                "description": "",
+                "changelog": "",
+                "protected": protected,
+                "landscape": False,
+                "contains_bloodhound_data": False,
+                "filename_override": "",
+                "doc_type": self.template.doc_type_id,
+                "client": client,
+                "p_style": "Normal",
+                "bloodhound_heading_offset": 0,
+                "evidence_image_width": "",
+                "evidence_image_alignment": "USE_GLOBAL",
+                "document": document,
+            },
+        )
+
+    def test_user_cannot_create_global_template(self):
+        response = self.template_upload("")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("client", response.context["form"].errors)
+        self.assertFalse(
+            ReportTemplateFactory._meta.model.objects.filter(
+                name="Uploaded Template",
+                uploaded_by=self.user,
+            ).exists()
+        )
+
+    def test_user_can_create_client_template(self):
+        response = self.template_upload(self.template_client.pk)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(
+            ReportTemplateFactory._meta.model.objects.filter(
+                name="Uploaded Template",
+                uploaded_by=self.user,
+                client=self.template_client,
+            ).exists()
+        )
+
+    def test_template_manager_can_create_protected_global_template(self):
+        response = self.template_upload(
+            "",
+            web_client=self.client_template_manager,
+            protected=True,
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(
+            ReportTemplateFactory._meta.model.objects.filter(
+                name="Uploaded Template",
+                uploaded_by=self.template_manager,
+                client=None,
+                protected=True,
+            ).exists()
+        )
+
 
 class ReportTemplateUpdateViewTests(TestCase):
     """Collection of tests for :view:`reporting.ReportTemplateUpdate`."""
@@ -4135,6 +4445,7 @@ class ReportTemplateUpdateViewTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.template = ReportTemplateFactory(protected=True)
+        cls.global_template = ReportTemplateFactory(protected=False)
         cls.template_client = ClientFactory()
         cls.scoped_template = ReportTemplateFactory(
             client=cls.template_client, protected=False
@@ -4144,6 +4455,10 @@ class ReportTemplateUpdateViewTests(TestCase):
         )
         cls.user = UserFactory(password=PASSWORD)
         cls.assigned_user = UserFactory(password=PASSWORD)
+        cls.template_manager = UserFactory(
+            password=PASSWORD,
+            enable_template_management=True,
+        )
         cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
         cls.admin_user = UserFactory(password=PASSWORD, role="admin")
         ProjectAssignmentFactory(
@@ -4151,6 +4466,10 @@ class ReportTemplateUpdateViewTests(TestCase):
             operator=cls.assigned_user,
         )
         cls.uri = reverse("reporting:template_update", kwargs={"pk": cls.template.pk})
+        cls.global_uri = reverse(
+            "reporting:template_update",
+            kwargs={"pk": cls.global_template.pk},
+        )
         cls.scoped_uri = reverse(
             "reporting:template_update", kwargs={"pk": cls.scoped_template.pk}
         )
@@ -4163,6 +4482,7 @@ class ReportTemplateUpdateViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_assigned = Client()
+        self.client_template_manager = Client()
         self.client_mgr = Client()
         self.client_admin = Client()
         self.assertTrue(
@@ -4171,6 +4491,12 @@ class ReportTemplateUpdateViewTests(TestCase):
         self.assertTrue(
             self.client_assigned.login(
                 username=self.assigned_user.username, password=PASSWORD
+            )
+        )
+        self.assertTrue(
+            self.client_template_manager.login(
+                username=self.template_manager.username,
+                password=PASSWORD,
             )
         )
         self.assertTrue(
@@ -4224,6 +4550,44 @@ class ReportTemplateUpdateViewTests(TestCase):
         response = self.client_admin.get(self.uri)
         self.assertEqual(response.status_code, 200)
 
+    def test_non_privileged_user_cannot_modify_protected_template(self):
+        original_name = self.template.name
+
+        response = self.client_auth.post(self.uri, {"name": "Modified Template"})
+
+        self.assertEqual(response.status_code, 302)
+        self.template.refresh_from_db()
+        self.assertEqual(self.template.name, original_name)
+        self.assertTrue(self.template.protected)
+
+    def test_global_template_requires_template_management(self):
+        original_name = self.global_template.name
+
+        response = self.client_auth.get(self.global_uri)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            response.url,
+            reverse(
+                "reporting:template_detail",
+                kwargs={"pk": self.global_template.pk},
+            ),
+        )
+
+        response = self.client_auth.post(
+            self.global_uri,
+            {"name": "Modified Global Template"},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.global_template.refresh_from_db()
+        self.assertEqual(self.global_template.name, original_name)
+
+        self.assertEqual(self.client_mgr.get(self.global_uri).status_code, 200)
+        self.assertEqual(self.client_admin.get(self.global_uri).status_code, 200)
+        self.assertEqual(
+            self.client_template_manager.get(self.global_uri).status_code,
+            200,
+        )
+
     def test_view_denies_client_scoped_template_without_access(self):
         response = self.client_auth.get(self.scoped_uri)
         self.assertEqual(response.status_code, 302)
@@ -4234,12 +4598,54 @@ class ReportTemplateUpdateViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "reporting/report_template_form.html")
 
-    def test_view_protected_client_scoped_template_requires_privileged_user(self):
+    def test_user_cannot_promote_client_template_to_global(self):
+        response = self.client_assigned.post(
+            self.scoped_uri,
+            {
+                "name": self.scoped_template.name,
+                "description": self.scoped_template.description,
+                "changelog": self.scoped_template.changelog,
+                "landscape": self.scoped_template.landscape,
+                "contains_bloodhound_data": self.scoped_template.contains_bloodhound_data,
+                "filename_override": self.scoped_template.filename_override,
+                "doc_type": self.scoped_template.doc_type_id,
+                "client": "",
+                "p_style": self.scoped_template.p_style,
+                "bloodhound_heading_offset": self.scoped_template.bloodhound_heading_offset,
+                "evidence_image_width": self.scoped_template.evidence_image_width or "",
+                "evidence_image_alignment": self.scoped_template.evidence_image_alignment,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("client", response.context["form"].errors)
+        self.scoped_template.refresh_from_db()
+        self.assertEqual(self.scoped_template.client, self.template_client)
+
+    def test_protected_client_template_requires_template_management(self):
         response = self.client_assigned.get(self.protected_scoped_uri)
         self.assertEqual(response.status_code, 302)
 
+        response = self.client_assigned.get(self.protected_scoped_uri, follow=True)
+        self.assertContains(
+            response,
+            "Report template management permission is required to edit protected or global templates.",
+        )
+
         response = self.client_mgr.get(self.protected_scoped_uri)
         self.assertEqual(response.status_code, 200)
+
+    def test_template_manager_without_client_access_gets_generic_permission_error(self):
+        response = self.client_template_manager.get(
+            self.protected_scoped_uri, follow=True
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "You do not have permission to access that.")
+        self.assertNotContains(
+            response,
+            "Report template management permission is required to edit protected or global templates.",
+        )
 
 
 class ReportTemplateDeleteViewTests(TestCase):
@@ -4247,8 +4653,12 @@ class ReportTemplateDeleteViewTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.template = ReportTemplateFactory(protected=True)
+        cls.template = ReportTemplateFactory(protected=False)
         cls.user = UserFactory(password=PASSWORD)
+        cls.template_manager = UserFactory(
+            password=PASSWORD,
+            enable_template_management=True,
+        )
         cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
         cls.admin_user = UserFactory(password=PASSWORD, role="admin")
         cls.uri = reverse("reporting:template_delete", kwargs={"pk": cls.template.pk})
@@ -4256,10 +4666,17 @@ class ReportTemplateDeleteViewTests(TestCase):
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
+        self.client_template_manager = Client()
         self.client_mgr = Client()
         self.client_admin = Client()
         self.assertTrue(
             self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+        self.assertTrue(
+            self.client_template_manager.login(
+                username=self.template_manager.username,
+                password=PASSWORD,
+            )
         )
         self.assertTrue(
             self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD)
@@ -4307,6 +4724,18 @@ class ReportTemplateDeleteViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         response = self.client_admin.get(self.uri)
         self.assertEqual(response.status_code, 200)
+        response = self.client_template_manager.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_non_privileged_user_cannot_delete_unprotected_template(self):
+        response = self.client_auth.post(self.uri)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(
+            ReportTemplateFactory._meta.model.objects.filter(
+                pk=self.template.pk
+            ).exists()
+        )
 
 
 class ReportTemplateLintViewTests(TestCase):
@@ -4317,6 +4746,10 @@ class ReportTemplateLintViewTests(TestCase):
         cls.docx_template = ReportDocxTemplateFactory()
         cls.pptx_template = ReportPptxTemplateFactory()
         cls.user = UserFactory(password=PASSWORD)
+        cls.template_manager = UserFactory(
+            password=PASSWORD,
+            enable_template_management=True,
+        )
         cls.docx_uri = reverse(
             "reporting:ajax_lint_report_template", kwargs={"pk": cls.docx_template.pk}
         )
@@ -4327,9 +4760,15 @@ class ReportTemplateLintViewTests(TestCase):
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
-        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.client_template_manager = Client()
         self.assertTrue(
             self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+        self.assertTrue(
+            self.client_template_manager.login(
+                username=self.template_manager.username,
+                password=PASSWORD,
+            )
         )
 
     def test_view_uri_exists_at_desired_location(self):
@@ -4340,16 +4779,20 @@ class ReportTemplateLintViewTests(TestCase):
             "message": "Template linter returned results with no errors or warnings.",
         }
 
-        response = self.client_auth.get(self.docx_uri)
+        response = self.client_template_manager.get(self.docx_uri)
         self.assertEqual(response.status_code, 405)
 
-        response = self.client_auth.post(self.docx_uri)
+        response = self.client_template_manager.post(self.docx_uri)
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(force_str(response.content), data)
 
-        response = self.client_auth.post(self.pptx_uri)
+        response = self.client_template_manager.post(self.pptx_uri)
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(force_str(response.content), data)
+
+    def test_view_denies_global_template_without_template_management(self):
+        response = self.client_auth.post(self.docx_uri)
+        self.assertEqual(response.status_code, 403)
 
     def test_view_requires_login(self):
         response = self.client.get(self.docx_uri)
@@ -4367,7 +4810,7 @@ class ReportTemplateLintViewTests(TestCase):
 
         self.docx_template.p_style = "bad_style"
         self.docx_template.save()
-        response = self.client_auth.post(self.docx_uri)
+        response = self.client_template_manager.post(self.docx_uri)
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(force_str(response.content), data)
         self.docx_template.p_style = "Normal"
@@ -5897,7 +6340,6 @@ class ObservationListViewTests(TestCase):
 
 class ObservationCreateViewTests(TestCase):
     """Collection of tests for :view:`reporting.ObservationCreate`."""
-
 
     @classmethod
     def setUpTestData(cls):

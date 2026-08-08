@@ -1,4 +1,4 @@
-{% load bleach_tags %}
+{% load bleach_tags custom_tags %}
 
 <div id="template_detail_{{ template.id }}" class="modal fade" tabindex="-1" role="dialog">
   <div class="modal-dialog modal-super-sized modal-dialog-scrollable modal-dialog-centered" role="document">
@@ -17,7 +17,7 @@
         {% if template.description %}
           {{ template.description|bleach|safe }}
         {% else %}
-          <p>No one has added a description of this template. <a class="clickable" href="{% url 'reporting:template_update' template.id %}">Fix that here.</a></p>
+          <p>No one has added a description of this template.{% if request.user|can_edit_report_template:template %} <a class="clickable" href="{% url 'reporting:template_update' template.id %}">Fix that here.</a>{% endif %}</p>
         {% endif %}
 
         <h5>Linting Results</h5>

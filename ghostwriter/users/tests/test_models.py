@@ -57,3 +57,10 @@ class UserModelTests(TestCase):
         cleaned = hexlify("benny@ghostwriter.wiki".encode()).decode()
         user = UserFactory(username="benny@ghostwriter.wiki")
         self.assertEqual(user.get_clean_username(), cleaned)
+
+    def test_report_template_management_capability(self):
+        user = UserFactory(enable_template_management=True)
+
+        self.assertEqual(user.role, "user")
+        self.assertFalse(user.is_privileged)
+        self.assertTrue(user.can_manage_report_templates)

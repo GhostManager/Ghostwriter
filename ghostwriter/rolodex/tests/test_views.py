@@ -8,6 +8,7 @@ import factory
 from bs4 import BeautifulSoup
 
 # Django Imports
+from django.conf import settings
 from django.contrib.auth.models import Permission
 from django.template.loader import render_to_string
 from django.test import Client, TestCase
@@ -1507,6 +1508,25 @@ class ProjectDetailViewTests(TestCase):
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
+
+    def test_report_activation_treats_report_title_as_text(self):
+        response = self.client_mgr.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "/static/js/active-report.js?v=")
+
+        active_report_path = os.path.join(
+            settings.APPS_DIR,
+            "static",
+            "js",
+            "active-report.js",
+        )
+        with open(active_report_path) as active_report_file:
+            active_report_script = active_report_file.read()
+
+        self.assertIn(".text(reportTitle || 'Working report')", active_report_script)
+        self.assertIn("title.textContent = reportTitle", active_report_script)
+        self.assertNotIn(".html(reportTitle", active_report_script)
 
     def test_calendar_escapes_user_controlled_titles_for_javascript(self):
         payload = "'+(function(){window.calendarXss=true})()+'</script>"

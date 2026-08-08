@@ -52,7 +52,7 @@
       {% else %}
         <div class="library-guidance" role="note">
           <i class="fas fa-shield-alt" aria-hidden="true"></i>
-          <p><strong>Protected templates:</strong> only administrators and managers may edit or delete them. Open any template to investigate its current status.</p>
+          <p><strong>Template controls:</strong> report template management permission is required to edit global or protected templates or delete templates.</p>
         </div>
         <div class="table-responsive data-table-frame library-table-frame">
           <table id="reportTemplateTable" class="tablesorter table table-hover library-table library-table-wide">
@@ -155,22 +155,24 @@
                               title="Download template" aria-label="Download {{ template.name }}">
                         <i class="fas fa-download" aria-hidden="true"></i>
                       </button>
-                      {% if template.protected and request.user|is_privileged or not template.protected %}
+                      {% if request.user|can_edit_report_template:template %}
                         <a class="report-row-action" href="{% url 'reporting:template_update' template.id %}"
                            title="Edit template" aria-label="Edit {{ template.name }}">
                           <i class="fas fa-pen" aria-hidden="true"></i>
                         </a>
+                      {% else %}
+                        <span class="report-row-action"
+                              title="Report template management permission is required to edit global or protected templates"
+                              aria-label="{{ template.name }} cannot be edited">
+                          <i class="fas fa-lock" aria-hidden="true"></i>
+                        </span>
+                      {% endif %}
+                      {% if request.user|can_delete_report_template:template %}
                         <a class="report-row-action report-row-action-danger"
                            href="{% url 'reporting:template_delete' template.id %}"
                            title="Delete template" aria-label="Delete {{ template.name }}">
                           <i class="fas fa-trash-alt" aria-hidden="true"></i>
                         </a>
-                      {% else %}
-                        <span class="report-row-action"
-                              title="This protected template cannot be edited or deleted"
-                              aria-label="{{ template.name }} is protected">
-                          <i class="fas fa-lock" aria-hidden="true"></i>
-                        </span>
                       {% endif %}
                     </div>
                   </td>

@@ -43,6 +43,7 @@ type Mutation {
     enableObservationCreate: Boolean
     enableObservationEdit: Boolean
     enableObservationDelete: Boolean
+    enableTemplateManagement: Boolean
     require2fa: Boolean
   ): createUserResponse
 }

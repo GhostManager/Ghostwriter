@@ -81,6 +81,14 @@ class User(AbstractUser):
         help_text="Allow the user to delete observations in the library (only applies to accounts with the User role)",
         verbose_name="Allow Observation Deleting",
     )
+    enable_template_management = BooleanField(
+        default=False,
+        help_text=(
+            "Allow the user to manage global and protected report templates without "
+            "granting manager access to clients and projects"
+        ),
+        verbose_name="Allow Report Template Management",
+    )
     require_mfa = BooleanField(
         # Keep the original database column name for backward compatibility with existing databases
         db_column="require_2fa",
@@ -134,6 +142,11 @@ class User(AbstractUser):
         Verify that the user holds a privileged role or the ``is_staff`` flag.
         """
         return self.role in ("admin", "manager") or self.is_staff
+
+    @property
+    def can_manage_report_templates(self):
+        """Return whether the user has elevated report-template authority."""
+        return self.is_privileged or self.enable_template_management
 
     def save(self, *args, **kwargs):
         # Align Django's permissions flags with the chosen role

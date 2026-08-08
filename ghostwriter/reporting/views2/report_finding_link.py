@@ -12,6 +12,7 @@ from django.views.generic.detail import SingleObjectMixin
 from django.views.generic.edit import UpdateView
 from django.template.loader import render_to_string
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from django.db.models import Q
 from django.contrib import messages
 from django.contrib.auth import get_user_model
@@ -520,20 +521,17 @@ def ajax_update_report_findings(request):
             logger.exception("Failed to get Severity object for weight %s", weight)
 
         if severity:
-            counter = 1
-            for finding_id in order:
-                if "placeholder" not in finding_id:
-                    finding_instance = ReportFindingLink.objects.get(id=finding_id)
-                    if finding_instance:
+            with transaction.atomic():
+                counter = 1
+                for finding_id in order:
+                    if "placeholder" not in finding_id:
+                        finding_instance = get_object_or_404(
+                            ReportFindingLink, id=finding_id, report=report
+                        )
                         finding_instance.severity = severity
                         finding_instance.position = counter
                         finding_instance.save()
                         counter += 1
-                    else:
-                        logger.error(
-                            "Received a finding ID, %s, that did not match an existing finding",
-                            finding_id,
-                        )
         else:
             data = {"result": "error", "message": "Specified severity weight, {}, is invalid.".format(weight)}
     else:

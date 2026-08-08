@@ -247,6 +247,8 @@ class ApiReportTemplateFormTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user = UserFactory(password=PASSWORD)
+        cls.manager = UserFactory(password=PASSWORD, role="manager")
+        cls.template_manager = UserFactory(enable_template_management=True)
         cls.docx_type = DocTypeFactory(doc_type="docx", extension="docx", name="docx")
         cls.pptx_type = DocTypeFactory(doc_type="pptx", extension="pptx", name="pptx")
         cls.report_client = ClientFactory(name="Test Client")
@@ -258,6 +260,42 @@ class ApiReportTemplateFormTests(TestCase):
 
     def setUp(self):
         pass
+
+    def test_template_management_required_to_set_protected(self):
+        user_form = ApiReportTemplateForm(data={}, user_obj=self.user)
+        manager_form = ApiReportTemplateForm(data={}, user_obj=self.manager)
+        template_manager_form = ApiReportTemplateForm(
+            data={},
+            user_obj=self.template_manager,
+        )
+
+        self.assertNotIn("protected", user_form.fields)
+        self.assertIn("protected", manager_form.fields)
+        self.assertIn("protected", template_manager_form.fields)
+        self.assertTrue(user_form.fields["client"].required)
+        self.assertFalse(manager_form.fields["client"].required)
+        self.assertFalse(template_manager_form.fields["client"].required)
+
+    def test_non_privileged_protected_submission_is_ignored(self):
+        form = self.form_data(
+            name="Test Template",
+            description="Test Description",
+            protected=True,
+            changelog="Test Changelog",
+            landscape=False,
+            filename_override=None,
+            tags="Test, Tag",
+            doc_type=self.docx_type,
+            client=self.report_client,
+            p_style=None,
+            filename="test.docx",
+            file_base64=self.valid_docx,
+            user_obj=self.user,
+        )
+
+        self.assertTrue(form.is_valid())
+        self.assertNotIn("protected", form.cleaned_data)
+        self.assertFalse(form.save(commit=False).protected)
 
     def form_data(
         self,
@@ -335,6 +373,23 @@ class ApiReportTemplateFormTests(TestCase):
             p_style=None,
             filename="test.pptx",
             file_base64=self.valid_pptx,
+            user_obj=self.manager,
+        )
+        self.assertTrue(form.is_valid())
+
+        form = self.form_data(
+            name="Test Template",
+            description="Test Description",
+            protected=False,
+            changelog="Test Changelog",
+            landscape=False,
+            filename_override=None,
+            tags="Test, Tag",
+            doc_type=self.pptx_type,
+            client=self.report_client,
+            p_style=None,
+            filename="test.pptx",
+            file_base64=self.valid_pptx,
             user_obj=self.user,
         )
         self.assertTrue(form.is_valid())
@@ -359,6 +414,90 @@ class ApiReportTemplateFormTests(TestCase):
         self.assertTrue(form.is_valid())
         self.assertEqual(form.cleaned_data["evidence_image_width"], 4.25)
         self.assertEqual(form.cleaned_data["evidence_image_alignment"], EvidenceImageAlignmentOverride.RIGHT)
+
+    def test_template_management_required_to_create_global_templates(self):
+        form = self.form_data(
+            name="Test Template",
+            description="Test Description",
+            protected=False,
+            changelog="Test Changelog",
+            landscape=False,
+            filename_override=None,
+            tags="Test, Tag",
+            doc_type=self.docx_type,
+            client=None,
+            p_style=None,
+            filename="test.docx",
+            file_base64=self.valid_docx,
+            user_obj=self.user,
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertIn("client", form.errors)
+
+    def test_template_manager_can_create_protected_global_template(self):
+        form = self.form_data(
+            name="Test Template",
+            description="Test Description",
+            protected=True,
+            changelog="Test Changelog",
+            landscape=False,
+            filename_override=None,
+            tags="Test, Tag",
+            doc_type=self.docx_type,
+            client=None,
+            p_style=None,
+            filename="test.docx",
+            file_base64=self.valid_docx,
+            user_obj=self.template_manager,
+        )
+
+        self.assertTrue(form.is_valid())
+        self.assertTrue(form.save(commit=False).protected)
+
+    def test_rejects_invalid_filename_override(self):
+        form = self.form_data(
+            name="Test Template",
+            description="Test Description",
+            protected=False,
+            changelog="Test Changelog",
+            landscape=False,
+            filename_override="{{",
+            tags="Test, Tag",
+            doc_type=self.docx_type,
+            client=self.report_client,
+            p_style=None,
+            filename="test.docx",
+            file_base64=self.valid_docx,
+            user_obj=self.user,
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertIn("filename_override", form.errors)
+
+    def test_rejects_filename_override_for_unsupported_document_type(self):
+        unsupported_doc_type = DocTypeFactory(
+            doc_type="odt", extension="odt", name="OpenDocument Text"
+        )
+        form = self.form_data(
+            name="Test Template",
+            description="Test Description",
+            protected=False,
+            changelog="Test Changelog",
+            landscape=False,
+            filename_override="report",
+            tags="Test, Tag",
+            doc_type=unsupported_doc_type,
+            client=self.report_client,
+            p_style=None,
+            filename="test.docx",
+            file_base64=self.valid_docx,
+            user_obj=self.user,
+        )
+
+        self.assertFalse(form.is_valid())
+        errors = form.errors.as_data()["filename_override"]
+        self.assertEqual(errors[0].code, "unsupported_doc_type")
 
     def test_unauthorized_or_invalid_client(self):
         form = self.form_data(
@@ -391,7 +530,7 @@ class ApiReportTemplateFormTests(TestCase):
             filename_override=None,
             tags="Test, Tag",
             doc_type=self.docx_type,
-            client=None,
+            client=self.report_client,
             p_style=None,
             filename="test.txt",
             file_base64="dGVzdA==",
@@ -412,7 +551,7 @@ class ApiReportTemplateFormTests(TestCase):
             filename_override=None,
             tags="Test, Tag",
             doc_type=self.pptx_type,
-            client=None,
+            client=self.report_client,
             p_style=None,
             filename="test.docx",
             file_base64=self.valid_docx,
@@ -433,7 +572,7 @@ class ApiReportTemplateFormTests(TestCase):
             filename_override=None,
             tags="Test, Tag",
             doc_type=self.docx_type,
-            client=None,
+            client=self.report_client,
             p_style=None,
             filename="test.docx",
             file_base64=self.valid_pptx,
@@ -454,7 +593,7 @@ class ApiReportTemplateFormTests(TestCase):
             filename_override=None,
             tags="Test, Tag",
             doc_type=self.pptx_type,
-            client=None,
+            client=self.report_client,
             p_style=None,
             filename="test.pptx",
             file_base64=self.valid_docx,

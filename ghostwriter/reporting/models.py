@@ -453,6 +453,39 @@ class ReportTemplate(models.Model):
             return True
         return self.client.user_can_view(user)
 
+    @classmethod
+    def user_can_create(cls, user, client=None) -> bool:
+        """Return whether a user may create a template for the requested scope."""
+        if not user.is_active:
+            return False
+        if user.can_manage_report_templates:
+            if client is None:
+                return True
+            if user.is_privileged:
+                return True
+            return client.user_can_edit(user)
+        return client is not None and client.user_can_edit(user)
+
+    def user_can_edit(self, user) -> bool:
+        """Return whether a user may modify this template."""
+        if not user.is_active:
+            return False
+        if user.is_privileged:
+            return True
+        if user.enable_template_management:
+            return self.client_id is None or self.client.user_can_edit(user)
+        if self.protected or self.client_id is None:
+            return False
+        return self.client.user_can_edit(user)
+
+    def user_can_delete(self, user) -> bool:
+        """Return whether a user may delete this template."""
+        if not user.is_active or not user.can_manage_report_templates:
+            return False
+        if user.is_privileged or self.client_id is None:
+            return True
+        return self.client.user_can_edit(user)
+
     def can_apply_to_project(self, project) -> bool:
         """Return whether this template is global or scoped to the project's client."""
         return self.client_id is None or self.client_id == project.client_id

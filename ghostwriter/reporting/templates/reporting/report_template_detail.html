@@ -1,6 +1,6 @@
 {% extends "base_generic.html" %}
 
-{% load report_tags bleach_tags humanize %}
+{% load report_tags bleach_tags humanize custom_tags %}
 
 {% block pagetitle %}Report Template Detail{% endblock %}
 
@@ -50,15 +50,19 @@
         <div class="dropdown-menu dropdown-menu-end" aria-labelledby="template-actions-button">
           <a class="dropdown-item icon download-icon"
              href="{% url 'reporting:template_download' reporttemplate.id %}">Download template</a>
-          <button type="button" class="dropdown-item icon bug-icon js-lint-template"
-                  lint-template-csrftoken="{{ csrf_token }}"
-                  lint-template-url="{% url 'reporting:ajax_lint_report_template' reporttemplate.id %}">
-            Run template lint
-          </button>
-          {% if request.user.is_staff or request.user.role == "manager" or request.user.role == "admin" or not reporttemplate.protected %}
+          {% if request.user|can_edit_report_template:reporttemplate or request.user|can_delete_report_template:reporttemplate %}
             <div class="dropdown-divider"></div>
+          {% endif %}
+          {% if request.user|can_edit_report_template:reporttemplate %}
+            <button type="button" class="dropdown-item icon bug-icon js-lint-template"
+                    lint-template-csrftoken="{{ csrf_token }}"
+                    lint-template-url="{% url 'reporting:ajax_lint_report_template' reporttemplate.id %}">
+              Run template lint
+            </button>
             <a class="dropdown-item icon edit-icon"
                href="{% url 'reporting:template_update' reporttemplate.id %}">Edit template</a>
+          {% endif %}
+          {% if request.user|can_delete_report_template:reporttemplate %}
             <a class="dropdown-item icon trash-icon text-danger"
                href="{% url 'reporting:template_delete' reporttemplate.id %}">Delete template</a>
           {% endif %}
@@ -67,13 +71,17 @@
     </header>
 
     {% if reporttemplate.protected %}
-      <div class="alert {% if request.user.is_staff or request.user.role == 'manager' or request.user.role == 'admin' %}alert-secondary icon unlock-icon{% else %}alert-danger icon lock-icon{% endif %} mt-3"
+      <div class="alert {% if request.user|can_edit_report_template:reporttemplate %}alert-secondary icon unlock-icon{% else %}alert-danger icon lock-icon{% endif %} mt-3"
            role="alert">
-        {% if request.user.is_staff or request.user.role == "manager" or request.user.role == "admin" %}
-          This is a protected template. Your role permits changes.
+        {% if request.user|can_edit_report_template:reporttemplate %}
+          You may edit this protected template.
         {% else %}
-          This template is protected. Only administrators and managers may change it.
+          This template is protected – report template management permission is required to edit it.
         {% endif %}
+      </div>
+    {% elif not reporttemplate.client and not request.user|can_edit_report_template:reporttemplate %}
+      <div class="alert alert-danger icon lock-icon mt-3" role="alert">
+        This is a global template – report template management permission is required to edit it.
       </div>
     {% endif %}
 

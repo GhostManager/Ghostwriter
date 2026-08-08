@@ -273,6 +273,53 @@ class ReportTemplateModelTests(TestCase):
         except Exception:
             self.fail("ReportTemplate.get_absolute_url() raised an exception")
 
+    def test_global_template_authorization(self):
+        user = UserFactory()
+        template_manager = UserFactory(enable_template_management=True)
+        manager = UserFactory(role="manager")
+        template = ReportTemplateFactory(client=None, protected=False)
+
+        self.assertTrue(template.user_can_view(user))
+        self.assertFalse(template.user_can_edit(user))
+        self.assertFalse(template.user_can_delete(user))
+        self.assertTrue(template.user_can_edit(template_manager))
+        self.assertTrue(template.user_can_delete(template_manager))
+        self.assertTrue(template.user_can_edit(manager))
+        self.assertFalse(self.ReportTemplate.user_can_create(user, client=None))
+        self.assertTrue(
+            self.ReportTemplate.user_can_create(template_manager, client=None)
+        )
+        self.assertTrue(self.ReportTemplate.user_can_create(manager, client=None))
+
+    def test_client_template_authorization(self):
+        user = UserFactory()
+        template_manager = UserFactory(enable_template_management=True)
+        client = ClientFactory()
+        ClientInviteFactory(client=client, user=user)
+        ClientInviteFactory(client=client, user=template_manager)
+        template = ReportTemplateFactory(client=client, protected=False)
+
+        self.assertTrue(self.ReportTemplate.user_can_create(user, client=client))
+        self.assertTrue(template.user_can_edit(user))
+
+        template.protected = True
+        self.assertFalse(template.user_can_edit(user))
+        self.assertTrue(template.user_can_edit(template_manager))
+        self.assertTrue(template.user_can_delete(template_manager))
+
+    def test_template_manager_does_not_gain_unrelated_client_access(self):
+        template_manager = UserFactory(enable_template_management=True)
+        client = ClientFactory()
+        template = ReportTemplateFactory(client=client, protected=True)
+
+        self.assertFalse(client.user_can_view(template_manager))
+        self.assertFalse(template.user_can_view(template_manager))
+        self.assertFalse(template.user_can_edit(template_manager))
+        self.assertFalse(template.user_can_delete(template_manager))
+        self.assertFalse(
+            self.ReportTemplate.user_can_create(template_manager, client=client)
+        )
+
     def test_prop_filename(self):
         report_template = ReportTemplateFactory()
         try:

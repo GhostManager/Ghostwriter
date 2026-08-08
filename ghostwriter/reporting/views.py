@@ -474,7 +474,7 @@ class ReportTemplateLint(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     model = ReportTemplate
 
     def test_func(self):
-        return self.get_object().user_can_view(self.request.user)
+        return self.get_object().user_can_edit(self.request.user)
 
     def handle_no_permission(self):
         return ForbiddenJsonResponse()

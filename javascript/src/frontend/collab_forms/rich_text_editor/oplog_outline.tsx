@@ -21,6 +21,7 @@ type OutlineBlock =
     | { type: "paragraph"; text: string }
     | { type: "html"; html: string }
     | { type: "code"; text: string }
+    | { type: "reference"; ref: string }
     | { type: "evidence"; evidence_id: number };
 
 type ToastLevel = "success" | "warning" | "error" | "info";
@@ -90,6 +91,20 @@ function buildNarrativeContent(
     );
 
     return content;
+}
+
+function literalBlock(content: Record<string, unknown>) {
+    return {
+        type: "jinjaLiteral",
+        content: [content],
+    };
+}
+
+function literalHtmlBlock(html: string) {
+    const wrapper = document.createElement("div");
+    wrapper.setAttribute("data-gw-jinja-literal", "true");
+    wrapper.innerHTML = html;
+    return wrapper.outerHTML;
 }
 
 export default function OplogOutlineButton({ editor }: { editor: Editor }) {
@@ -312,34 +327,60 @@ async function appendOutline(
                 editor
                     .chain()
                     .focus("end")
-                    .insertContent({
-                        type: "paragraph",
-                        content: buildNarrativeContent(block),
-                    })
+                    .insertContent(
+                        literalBlock({
+                            type: "paragraph",
+                            content: buildNarrativeContent(block),
+                        })
+                    )
                     .run();
             } else if (block.type === "paragraph") {
                 editor
                     .chain()
                     .focus("end")
-                    .insertContent({
-                        type: "paragraph",
-                        content: block.text
-                            ? [{ type: "text", text: block.text }]
-                            : [],
-                    })
+                    .insertContent(
+                        literalBlock({
+                            type: "paragraph",
+                            content: block.text
+                                ? [{ type: "text", text: block.text }]
+                                : [],
+                        })
+                    )
                     .run();
             } else if (block.type === "html") {
-                editor.chain().focus("end").insertContent(block.html).run();
+                editor
+                    .chain()
+                    .focus("end")
+                    .insertContent(literalHtmlBlock(block.html))
+                    .run();
             } else if (block.type === "code") {
                 editor
                     .chain()
                     .focus("end")
-                    .insertContent({
-                        type: "codeBlock",
-                        content: block.text
-                            ? [{ type: "text", text: block.text }]
-                            : [],
-                    })
+                    .insertContent(
+                        literalBlock({
+                            type: "codeBlock",
+                            content: block.text
+                                ? [{ type: "text", text: block.text }]
+                                : [],
+                        })
+                    )
+                    .run();
+            } else if (block.type === "reference") {
+                editor
+                    .chain()
+                    .focus("end")
+                    .insertContent(
+                        literalBlock({
+                            type: "paragraph",
+                            content: [
+                                {
+                                    type: "jinjaReference",
+                                    attrs: { ref: block.ref },
+                                },
+                            ],
+                        })
+                    )
                     .run();
             } else {
                 editor

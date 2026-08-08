@@ -7,6 +7,7 @@ from django.test import TestCase
 # Ghostwriter Libraries
 from ghostwriter.factories import (
     ClientFactory,
+    ClientInviteFactory,
     DocTypeFactory,
     EvidenceFactory,
     FindingNoteFactory,
@@ -441,9 +442,13 @@ class ReportTemplateFormTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.template = ReportDocxTemplateFactory()
-        cls.template_dict = cls.template.__dict__
+        cls.report_client = ClientFactory()
         cls.user = UserFactory(password=PASSWORD)
+        cls.manager = UserFactory(password=PASSWORD, role="manager")
+        cls.template_manager = UserFactory(enable_template_management=True)
+        ClientInviteFactory(client=cls.report_client, user=cls.user)
+        cls.template = ReportDocxTemplateFactory(client=cls.report_client)
+        cls.template_dict = cls.template.__dict__
 
     def setUp(self):
         pass
@@ -456,6 +461,7 @@ class ReportTemplateFormTests(TestCase):
         protected=False,
         lint_result=None,
         changelog=None,
+        filename_override=None,
         client_id=None,
         doc_type_id=None,
         p_type=None,
@@ -464,6 +470,7 @@ class ReportTemplateFormTests(TestCase):
         bloodhound_heading_offset=None,
         contains_bloodhound_data=None,
         user=None,
+        instance=None,
         **kwargs,
     ):
         return ReportTemplateForm(
@@ -473,6 +480,7 @@ class ReportTemplateFormTests(TestCase):
                 "protected": protected,
                 "lint_result": lint_result,
                 "changelog": changelog,
+                "filename_override": filename_override,
                 "client": client_id,
                 "doc_type": doc_type_id,
                 "p_type": p_type,
@@ -485,6 +493,7 @@ class ReportTemplateFormTests(TestCase):
             files={
                 "document": document,
             },
+            instance=instance,
         )
 
     def test_valid_data(self):
@@ -493,6 +502,86 @@ class ReportTemplateFormTests(TestCase):
 
         form = self.form_data(**template, user=self.user)
         self.assertTrue(form.is_valid())
+
+    def test_template_management_required_to_set_protected(self):
+        user_form = ReportTemplateForm(user=self.user)
+        manager_form = ReportTemplateForm(user=self.manager)
+        template_manager_form = ReportTemplateForm(user=self.template_manager)
+
+        self.assertNotIn("protected", user_form.fields)
+        self.assertIn("protected", manager_form.fields)
+        self.assertIn("protected", template_manager_form.fields)
+        self.assertTrue(user_form.fields["client"].required)
+        self.assertFalse(manager_form.fields["client"].required)
+        self.assertFalse(template_manager_form.fields["client"].required)
+
+    def test_template_management_required_to_create_global_templates(self):
+        template = self.template_dict.copy()
+        template["document"] = self.template.document.file
+        template["client_id"] = None
+
+        user_form = self.form_data(**template, user=self.user)
+        manager_form = self.form_data(**template, user=self.manager)
+        template_manager_form = self.form_data(
+            **template,
+            user=self.template_manager,
+        )
+
+        self.assertFalse(user_form.is_valid())
+        self.assertIn("client", user_form.errors)
+        self.assertTrue(manager_form.is_valid())
+        self.assertTrue(template_manager_form.is_valid())
+
+    def test_non_privileged_user_cannot_promote_template_to_global(self):
+        template = self.template_dict.copy()
+        template["document"] = self.template.document.file
+        template["client_id"] = None
+
+        form = self.form_data(
+            **template,
+            user=self.user,
+            instance=self.template,
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertIn("client", form.errors)
+        self.template.refresh_from_db()
+        self.assertEqual(self.template.client, self.report_client)
+
+    def test_non_privileged_protected_submission_is_ignored(self):
+        template = self.template_dict.copy()
+        template["document"] = self.template.document.file
+        template["protected"] = True
+
+        form = self.form_data(**template, user=self.user)
+
+        self.assertTrue(form.is_valid())
+        self.assertNotIn("protected", form.cleaned_data)
+        self.assertFalse(form.save(commit=False).protected)
+
+    def test_rejects_invalid_filename_override(self):
+        template = self.template_dict.copy()
+        template["document"] = self.template.document.file
+        template["filename_override"] = "{{"
+
+        form = self.form_data(**template, user=self.user)
+
+        self.assertFalse(form.is_valid())
+        self.assertIn("filename_override", form.errors)
+
+    def test_rejects_filename_override_for_unsupported_document_type(self):
+        template = self.template_dict.copy()
+        template["document"] = self.template.document.file
+        template["filename_override"] = "report"
+        template["doc_type_id"] = DocTypeFactory(
+            doc_type="odt", extension="odt", name="OpenDocument Text"
+        ).pk
+
+        form = self.form_data(**template, user=self.user)
+
+        self.assertFalse(form.is_valid())
+        errors = form.errors.as_data()["filename_override"]
+        self.assertEqual(errors[0].code, "unsupported_doc_type")
 
     def test_blank_template(self):
         template = self.template_dict.copy()

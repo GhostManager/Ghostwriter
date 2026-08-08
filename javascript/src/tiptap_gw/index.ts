@@ -35,6 +35,7 @@ import Footnote from "./footnote";
 import { PassiveVoiceDecoration } from "./passive_voice_decoration";
 import DateTimeShortcuts from "./now_shortcut";
 import { LegacyTextStyleCompat } from "./legacy_html";
+import JinjaLiteral, { JinjaReference } from "./jinja_literal";
 
 export function createGhostwriterExtensions(options?: {
     undoRedo?: boolean;
@@ -96,6 +97,8 @@ export function createGhostwriterExtensions(options?: {
         Footnote,
         PassiveVoiceDecoration,
         DateTimeShortcuts,
+        JinjaLiteral,
+        JinjaReference,
     ];
 }
 

@@ -656,10 +656,7 @@ GRAPHQL_JWT = {
     "JWT_ALGORITHM": "HS256",
 }
 
-HASURA_ACTION_SECRET = env(
-    "HASURA_ACTION_SECRET",
-    default="changeme",
-)
+HASURA_ACTION_SECRET = env("HASURA_ACTION_SECRET")
 
 GRAPHQL_HOST = env("HASURA_GRAPHQL_SERVER_HOSTNAME", default="graphql_engine")
 
