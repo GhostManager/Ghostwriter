@@ -126,8 +126,19 @@ class OplogEntryFormTests(TestCase):
 
         self.assertIn("no-auto-rich-text", form.fields["command"].widget.attrs["class"])
         self.assertIn("no-auto-rich-text", form.fields["output"].widget.attrs["class"])
-        self.assertNotIn("no-auto-rich-text", form.fields["description"].widget.attrs.get("class", ""))
-        self.assertNotIn("no-auto-rich-text", form.fields["comments"].widget.attrs.get("class", ""))
+        self.assertNotIn(
+            "no-auto-rich-text",
+            form.fields["description"].widget.attrs.get("class", ""),
+        )
+        self.assertNotIn(
+            "no-auto-rich-text", form.fields["comments"].widget.attrs.get("class", "")
+        )
+        self.assertIn(
+            "gw-tiptap-compact", form.fields["description"].widget.attrs["class"]
+        )
+        self.assertIn(
+            "gw-tiptap-compact", form.fields["comments"].widget.attrs["class"]
+        )
 
     @patch("ghostwriter.oplog.forms.timezone.now")
     def test_datetime_initials_use_active_timezone(self, mock_now):

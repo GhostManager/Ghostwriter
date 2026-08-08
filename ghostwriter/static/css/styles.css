@@ -1097,7 +1097,10 @@ a.btn-sm {
   flex-wrap: wrap;
   gap: 0.5rem;
   justify-content: center;
-  align-items: stretch;
+  align-items: center;
+  min-height: 3.875rem;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
 }
 
 .mfa-action-button {
@@ -1444,6 +1447,59 @@ table.table-oplog tbody tr {
    OPLOG SPLIT-PANE LAYOUT (mail client style)
 ----------------------------------------------------- */
 
+.oplog-page-heading {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--gw-border);
+  text-align: left;
+}
+
+.oplog-page-identity {
+  min-width: 0;
+}
+
+.oplog-page-identity h2 {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--gw-text-strong);
+  font-family: var(--gw-font-display);
+  font-size: clamp(1.55rem, 2vw, 2.15rem);
+  font-weight: 700;
+  line-height: 1.1;
+  text-align: left;
+}
+
+.oplog-page-identity p {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.35rem 0 0;
+  color: color-mix(in srgb, var(--main-txt-color) 62%, transparent);
+  font-size: 0.8rem;
+}
+
+.oplog-page-identity p a {
+  color: inherit;
+}
+
+.oplog-page-identity p a:hover,
+.oplog-page-identity p a:focus-visible {
+  color: var(--gw-engagement-violet);
+}
+
+.oplog-page-statuses {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
 /* Toolbar */
 .oplog-toolbar {
   display: flex;
@@ -1452,6 +1508,39 @@ table.table-oplog tbody tr {
   margin-bottom: 12px;
   flex-wrap: wrap;
   container-type: inline-size;
+}
+
+.oplog-create-entry {
+  color: #fff;
+  background: var(--gw-engagement-violet);
+  border-color: var(--gw-engagement-violet);
+}
+
+.oplog-create-entry:hover,
+.oplog-create-entry:focus-visible {
+  color: #fff;
+  background: color-mix(in srgb, var(--gw-engagement-violet) 84%, #000);
+  border-color: color-mix(in srgb, var(--gw-engagement-violet) 84%, #000);
+}
+
+.oplog-toolbar .input-group .btn:disabled {
+  opacity: 0.32;
+  cursor: default;
+}
+
+#columnSelect {
+  margin: -4px 0 12px;
+  padding: 10px 12px 4px;
+  background-color: var(--gw-surface-muted);
+  border: 1px solid var(--gw-border);
+  border-radius: var(--gw-radius-md);
+  text-align: left;
+}
+
+#columnSelectDropdown.open {
+  color: var(--gw-engagement-violet);
+  background: color-mix(in srgb, var(--gw-engagement-violet) 9%, var(--gw-surface));
+  border-color: color-mix(in srgb, var(--gw-engagement-violet) 45%, var(--gw-border));
 }
 
 .oplog-toolbar-right {
@@ -1463,12 +1552,61 @@ table.table-oplog tbody tr {
   flex: 0 1 auto;
 }
 
-.oplog-default-source-group {
-  width: 310px;
-}
-
 .oplog-filter-group {
   width: 280px;
+}
+
+.oplog-entry-defaults-button {
+  white-space: nowrap;
+}
+
+.oplog-entry-defaults-button.has-defaults {
+  color: var(--gw-engagement-violet);
+  background: color-mix(in srgb, var(--gw-engagement-violet) 9%, var(--gw-surface));
+  border-color: color-mix(in srgb, var(--gw-engagement-violet) 42%, var(--gw-border));
+}
+
+.oplog-entry-defaults-count {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.15rem;
+  margin-left: 0.3rem;
+  padding: 0.05rem 0.38rem;
+  color: var(--gw-text-strong);
+  background: var(--gw-surface-muted);
+  border: 1px solid var(--gw-border);
+  border-radius: 999px;
+  font-family: var(--gw-font-data);
+  font-size: 0.64rem;
+  line-height: 1;
+}
+
+.oplog-entry-defaults-note {
+  display: flex;
+  gap: 0.45rem;
+  align-items: flex-start;
+  margin-top: 1rem;
+  color: color-mix(in srgb, var(--main-txt-color) 66%, transparent);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.oplog-entry-defaults-note i {
+  margin-top: 0.17rem;
+  color: var(--gw-information-slate);
+}
+
+.oplog-defaults-done {
+  color: #fff;
+  background: var(--gw-engagement-violet);
+  border-color: var(--gw-engagement-violet);
+}
+
+.oplog-defaults-done:hover,
+.oplog-defaults-done:focus-visible {
+  color: #fff;
+  background: color-mix(in srgb, var(--gw-engagement-violet) 84%, #000);
+  border-color: color-mix(in srgb, var(--gw-engagement-violet) 84%, #000);
 }
 
 .oplog-toolbar-actions {
@@ -1507,10 +1645,10 @@ table.table-oplog tbody tr {
   display: flex;
   height: calc(100vh - 250px);
   min-height: 400px;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  border-radius: 6px;
+  border: 1px solid var(--gw-border);
+  border-radius: var(--gw-radius-md);
   overflow: hidden;
-  background: var(--main-bg-color);
+  background: var(--gw-surface);
 }
 
 /* When no entry is selected: hide detail pane and resize handle */
@@ -1531,14 +1669,14 @@ table.table-oplog tbody tr {
   min-width: 280px;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid rgba(0, 0, 0, 0.1);
+  border-right: 1px solid var(--gw-border);
   overflow: hidden;
 }
 
 .oplog-list-header {
   flex-shrink: 0;
-  border-bottom: 2px solid var(--primary-color);
-  background: var(--ghost-white);
+  border-bottom: 1px solid var(--gw-border);
+  background: var(--gw-surface-muted);
 }
 
 table.oplog-list-header-table {
@@ -1555,7 +1693,10 @@ table.oplog-list-header-table {
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.03em;
-  color: var(--ghost-white);
+  color: var(--gw-text-strong);
+  background-color: var(--gw-surface-muted);
+  background-repeat: no-repeat;
+  background-position: right center;
   padding: 8px 10px;
   border: none;
   user-select: none;
@@ -1563,6 +1704,35 @@ table.oplog-list-header-table {
   overflow: hidden;
   text-overflow: ellipsis;
   border-radius: 0;
+  cursor: pointer;
+}
+
+.oplog-list-header-table thead th:focus-visible {
+  position: relative;
+  z-index: 1;
+  box-shadow: inset var(--gw-focus-ring);
+}
+
+.oplog-list-header-table .startDateColumn,
+.oplog-list-table .startDateColumn {
+  width: 28%;
+}
+
+.oplog-list-header-table .destIPColumn,
+.oplog-list-table .destIPColumn {
+  width: 22%;
+}
+
+.oplog-list-header-table .toolNameColumn,
+.oplog-list-table .toolNameColumn {
+  width: 18%;
+}
+
+.oplog-list-header-table .operatorColumn,
+.oplog-list-table .operatorColumn,
+.oplog-list-header-table .tagsColumn,
+.oplog-list-table .tagsColumn {
+  width: 16%;
 }
 
 .oplog-list-scroll {
@@ -1593,12 +1763,17 @@ table.oplog-list-table {
 }
 
 .oplog-list-table tbody tr:hover {
-  background-color: rgba(80, 176, 113, 0.06);
+  background-color: color-mix(in srgb, var(--gw-engagement-violet) 6%, var(--gw-surface));
 }
 
 .oplog-list-table tbody tr.oplog-entry-selected {
-  background-color: rgba(80, 176, 113, 0.12);
-  border-left: 3px solid var(--primary-color);
+  background-color: color-mix(in srgb, var(--gw-engagement-violet) 13%, var(--gw-surface));
+  border-left: 3px solid var(--gw-engagement-violet);
+}
+
+.oplog-list-table tbody tr:focus-visible {
+  outline: 0;
+  box-shadow: inset var(--gw-focus-ring);
 }
 
 .oplog-list-table tbody tr td {
@@ -1623,6 +1798,18 @@ table.oplog-list-table {
   text-align: center;
 }
 
+.oplog-empty-title {
+  margin: 12px 0 2px;
+  color: var(--gw-text-strong);
+  font-weight: 600;
+}
+
+.oplog-empty-description {
+  max-width: 30rem;
+  margin: 0 0 12px;
+  opacity: 0.72;
+}
+
 /* Resize handle */
 .oplog-resize-handle {
   width: 6px;
@@ -1636,8 +1823,10 @@ table.oplog-list-table {
 }
 
 .oplog-resize-handle:hover,
-.oplog-resize-handle.dragging {
-  background: rgba(80, 176, 113, 0.15);
+.oplog-resize-handle.dragging,
+.oplog-resize-handle:focus-visible {
+  outline: 0;
+  background: color-mix(in srgb, var(--gw-engagement-violet) 18%, transparent);
 }
 
 .oplog-resize-grip {
@@ -1673,7 +1862,7 @@ table.oplog-list-table {
 .oplog-detail-header {
   padding: 4px 24px 5px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-  background: var(--ghost-white);
+  background: var(--gw-surface);
   position: sticky;
   top: 0;
   z-index: 5;
@@ -1746,6 +1935,7 @@ table.oplog-list-table {
 .oplog-meta-item {
   display: flex;
   flex-direction: column;
+  text-align: left;
 }
 
 .oplog-meta-label {
@@ -1770,6 +1960,7 @@ table.oplog-list-table {
 /* Detail sections for long content */
 .oplog-detail-section {
   margin-bottom: 20px;
+  text-align: left;
 }
 
 .oplog-detail-section:last-child {
@@ -1794,9 +1985,16 @@ table.oplog-list-table {
   cursor: pointer;
   font-size: 0.7rem;
   color: var(--primary-color);
+  width: 1.6rem;
+  height: 1.6rem;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: var(--gw-radius-sm);
 }
 
-.oplog-detail-section:hover .copy-btn {
+.oplog-detail-section:hover .copy-btn,
+.oplog-detail-label .copy-btn:focus-visible {
   opacity: 0.7;
 }
 
@@ -1831,7 +2029,7 @@ table.oplog-list-table {
   background: rgba(0, 0, 0, 0.02);
   border-radius: 4px;
   border: 1px solid rgba(0, 0, 0, 0.06);
-  text-align: justify;
+  text-align: left;
 }
 
 .oplog-rich-content:empty {
@@ -1866,6 +2064,7 @@ table.oplog-list-table {
 
 .oplog-attachment-section {
   margin-bottom: 20px;
+  text-align: left;
 }
 
 .oplog-attachment-section:last-child {
@@ -1893,7 +2092,8 @@ table.oplog-list-table {
 .oplog-attachment-dropzone {
   border: 2px dashed rgba(0, 0, 0, 0.12);
   border-radius: 8px;
-  padding: 28px 20px;
+  width: 100%;
+  padding: 20px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1902,16 +2102,21 @@ table.oplog-list-table {
   cursor: pointer;
   transition: border-color 0.2s ease, background-color 0.2s ease;
   color: var(--ghost-grey);
+  background: transparent;
+  font: inherit;
 }
 
-.oplog-attachment-dropzone:hover {
-  border-color: var(--primary-color);
-  background-color: rgba(80, 176, 113, 0.04);
+.oplog-attachment-dropzone:hover,
+.oplog-attachment-dropzone:focus-visible {
+  outline: 0;
+  border-color: var(--gw-engagement-violet);
+  background-color: color-mix(in srgb, var(--gw-engagement-violet) 6%, transparent);
+  box-shadow: var(--gw-focus-ring);
 }
 
 .oplog-attachment-dropzone.dragover {
-  border-color: var(--primary-color);
-  background-color: rgba(80, 176, 113, 0.08);
+  border-color: var(--gw-engagement-violet);
+  background-color: color-mix(in srgb, var(--gw-engagement-violet) 10%, transparent);
   border-style: solid;
 }
 
@@ -1919,6 +2124,74 @@ table.oplog-list-table {
   font-size: 2rem;
   opacity: 0.2;
   margin-bottom: 10px;
+}
+
+.oplog-tag {
+  color: var(--gw-text-strong);
+  background: var(--gw-surface-muted);
+  border: 1px solid var(--gw-border);
+}
+
+.oplog-tag-technique,
+.oplog-tag-evidence {
+  color: color-mix(in srgb, var(--gw-engagement-violet) 82%, var(--gw-text-strong));
+  background: color-mix(in srgb, var(--gw-engagement-violet) 11%, var(--gw-surface));
+  border-color: color-mix(in srgb, var(--gw-engagement-violet) 32%, var(--gw-border));
+}
+
+.oplog-tag-credential {
+  color: color-mix(in srgb, var(--gw-signal-amber) 76%, var(--gw-text-strong));
+  background: color-mix(in srgb, var(--gw-signal-amber) 12%, var(--gw-surface));
+  border-color: color-mix(in srgb, var(--gw-signal-amber) 34%, var(--gw-border));
+}
+
+.oplog-tag-attention {
+  color: color-mix(in srgb, var(--gw-accent-coral) 78%, var(--gw-text-strong));
+  background: color-mix(in srgb, var(--gw-accent-coral) 10%, var(--gw-surface));
+  border-color: color-mix(in srgb, var(--gw-accent-coral) 30%, var(--gw-border));
+}
+
+.oplog-tag-detection {
+  color: color-mix(in srgb, var(--gw-context-blue) 80%, var(--gw-text-strong));
+  background: color-mix(in srgb, var(--gw-context-blue) 10%, var(--gw-surface));
+  border-color: color-mix(in srgb, var(--gw-context-blue) 30%, var(--gw-border));
+}
+
+.oplog-tag-recording {
+  color: color-mix(in srgb, var(--main-txt-color) 72%, transparent);
+}
+
+@media (max-width: 720px) {
+  .oplog-page-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .oplog-page-statuses {
+    justify-content: flex-start;
+  }
+
+  .oplog-split-container.oplog-has-selection .oplog-list-pane,
+  .oplog-split-container.oplog-has-selection .oplog-resize-handle {
+    display: none;
+  }
+
+  .oplog-split-container.oplog-has-selection .oplog-detail-pane {
+    display: block;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .oplog-list-pane {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .oplog-detail-header,
+  .oplog-detail-body {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
 }
 
 .oplog-attachment-dropzone .dropzone-text {
@@ -3980,8 +4253,9 @@ th.priority-header.tertiary:before {
 }
 
 #oplog-notification-status {
-  background-color: #f8d7da;
-  color: #721c24;
+  color: color-mix(in srgb, var(--gw-signal-amber) 72%, var(--gw-text-strong));
+  background-color: color-mix(in srgb, var(--gw-signal-amber) 16%, var(--gw-surface));
+  border: 1px solid color-mix(in srgb, var(--gw-signal-amber) 38%, var(--gw-border));
 }
 
 #oplog-notification-status.silenced-notification-icon:before {
@@ -4602,8 +4876,9 @@ input[type="color"]:focus,
 }
 
 [data-theme="dark"] #oplog-notification-status {
-  background-color: #5b252c;
-  color: #fecdd3;
+  color: #f7d78b;
+  background-color: color-mix(in srgb, var(--gw-signal-amber) 18%, var(--gw-surface));
+  border-color: color-mix(in srgb, var(--gw-signal-amber) 42%, var(--gw-border));
 }
 
 [data-theme="dark"] #oplog-sanitization-status-button.badge-info {
@@ -4901,7 +5176,7 @@ input[type="color"]:focus,
 }
 
 [data-theme="dark"] .oplog-list-header {
-  background: #252525;
+  background: var(--gw-surface-muted);
 }
 
 [data-theme="dark"] .oplog-list-table tbody tr {
@@ -4909,11 +5184,11 @@ input[type="color"]:focus,
 }
 
 [data-theme="dark"] .oplog-list-table tbody tr:hover {
-  background-color: rgba(80, 176, 113, 0.08);
+  background-color: color-mix(in srgb, var(--gw-engagement-violet) 10%, var(--gw-surface));
 }
 
 [data-theme="dark"] .oplog-list-table tbody tr.oplog-entry-selected {
-  background-color: rgba(80, 176, 113, 0.18);
+  background-color: color-mix(in srgb, var(--gw-engagement-violet) 19%, var(--gw-surface));
 }
 
 [data-theme="dark"] .oplog-resize-grip {
@@ -4921,7 +5196,7 @@ input[type="color"]:focus,
 }
 
 [data-theme="dark"] .oplog-detail-header {
-  background: #252525;
+  background: var(--gw-surface);
   border-bottom-color: rgba(255, 255, 255, 0.06);
 }
 
@@ -4941,12 +5216,12 @@ input[type="color"]:focus,
 }
 
 [data-theme="dark"] .oplog-attachment-dropzone:hover {
-  border-color: var(--primary-color);
-  background-color: rgba(80, 176, 113, 0.06);
+  border-color: var(--gw-engagement-violet);
+  background-color: color-mix(in srgb, var(--gw-engagement-violet) 8%, transparent);
 }
 
 [data-theme="dark"] .oplog-attachment-dropzone.dragover {
-  background-color: rgba(80, 176, 113, 0.1);
+  background-color: color-mix(in srgb, var(--gw-engagement-violet) 12%, transparent);
 }
 
 [data-theme="dark"] .oplog-screenshot-preview {

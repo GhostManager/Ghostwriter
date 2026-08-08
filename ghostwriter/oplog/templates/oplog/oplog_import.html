@@ -15,60 +15,66 @@
 {% block content %}
   <!-- File Upload -->
   <h2>Upload Operation Log Entries CSV</h2>
-  <p>Select a target log and upload a csv file containing log entries to be imported:</p>
+  <p>Select a target log and upload a CSV file containing log entries to be imported.</p>
   {% if initial_log %}<p>You came from <em>{{ initial_log.name }} (ID #{{ initial_log.id }})</em></p>{% endif %}
-  <form action="{% url 'oplog:oplog_import' %}" method="POST" enctype="multipart/form-data" class="form-horizontal">
-    {% csrf_token %}
-    <div class="input-group mb-3 offset-2 col-8">
-      <label for="oplog_id"></label>
-      <select class="form-control" id="oplog_log" name="oplog_id" required {% if not logs %}disabled{% endif %}>
-        {%  if logs %}
+  {% if logs %}
+    <form action="{% url 'oplog:oplog_import' %}" method="POST" enctype="multipart/form-data" class="oplog-import-form">
+      {% csrf_token %}
+      <div class="input-group mb-3">
+        <label class="sr-only" for="oplog_log">Target operation log</label>
+        <select class="form-control" id="oplog_log" name="oplog_id" required>
           <option value="">-- Select a Target Log --</option>
           {% for log in logs %}
             <option value="{{ log.id }}" {% if initial_log.id == log.id %}selected="selected"{% endif %}>{{ log.name }} (ID {{ log.id }})</option>
           {% endfor %}
-        {% else %}
-          <option value="0">-- No Logs Available --</option>
-        {% endif %}
-      </select>
-    </div>
-    <div class="input-group input-group-lg mb-3 offset-2 col-8">
-      <div class="custom-file">
-        <input type="file" class="custom-file-input" id="csv_file" name="csv_file" required {% if not logs %}disabled{% endif %}>
-        <label class="custom-file-label" for="csv_file">Choose csv file...</label>
+        </select>
       </div>
-    </div>
+      <div class="input-group input-group-lg mb-3">
+        <div class="custom-file">
+          <input type="file" class="custom-file-input" id="csv_file" name="csv_file" required>
+          <label class="custom-file-label" for="csv_file">Choose CSV file...</label>
+        </div>
+      </div>
 
-    <div class="form-group">
-      <button class="btn btn-primary col-2" {% if not logs %}disabled{% endif %}><i class="fas fa-file-upload"></i> Upload</button>
+      <div class="form-group">
+        <button class="btn btn-primary"><i class="fas fa-file-upload"></i> Upload</button>
+      </div>
+    </form>
+  {% else %}
+    <div class="empty-state oplog-import-empty-state" role="status">
+      <p class="empty-state-title">No operation logs available</p>
+      <p class="empty-state-description">Create an operation log before importing entries from a CSV file.</p>
+      <a class="btn btn-primary btn-sm icon add-icon mt-3" href="{% url 'oplog:oplog_create_no_project' %}">Create Log</a>
     </div>
-  </form>
+  {% endif %}
 
-  <!-- Section for Instructions -->
-  <h3>Instructions</h3>
-  <div>
-    <div class="row">
-      <div class="alert alert-success offset-md-2 col-md-8 mt-1" role="alert">
-        <h4 class="alert-heading">CSV Headers</h4>
-        <p>Your csv file must have these headers:</p>
-        <em>
+  <section aria-labelledby="oplog-import-requirements-heading">
+    <h3 id="oplog-import-requirements-heading">Import Requirements</h3>
+    <div class="instruction-grid">
+      <article class="instruction-panel">
+        <span class="instruction-panel-icon" aria-hidden="true"><i class="fas fa-file-csv"></i></span>
+        <div class="instruction-panel-content">
+          <h4>Required CSV Headers</h4>
+          <p>Your CSV file must have these headers:</p>
+          <code class="instruction-code-block">
           entry_identifier, start_date, end_date, source_ip, dest_ip, tool, user_context, command, description, output,
           comments, operator_name, tags
-        </em>
-        <p class="mt-3">The <em>entry_identifer</em> field can be empty or a unique value for the log entry. If an existing log
-          entry shares the same <em>entry_identifer</em> it will be updated with the imported values.</p>
-        <p class="mt-3">An <em>extra_fields</em> column can optionally be provided. It should contain a JSON object with field internal names for keys.</p>
-      </div>
-    </div>
+          </code>
+          <p>The <code>entry_identifier</code> field may be empty or contain a unique value. If it matches an existing entry, the import updates that entry.</p>
+          <p>An optional <code>extra_fields</code> column may contain a JSON object keyed by extra-field internal names.</p>
+        </div>
+      </article>
 
-    <div class="row">
-      <div class="alert alert-warning offset-md-2 col-md-8 mt-2" role="alert">
-        <h4 class="alert-heading">Notes on Timestamps</h4>
-        <p>Your <em>start_date</em> and <em>end_date</em> values must be in the <em>YYYY-MM-DD HH:MM:SS</em> format. The timestamps should match what you get when exporting a log.</p>
-        <p>Include a timezone offset at the end (e.g., <em>+00:00</em> for UTC). If you do not include an offset, the timestamps will use the server's timezone ({{ TIME_ZONE }}).</p>
-      </div>
+      <article class="instruction-panel">
+        <span class="instruction-panel-icon" aria-hidden="true"><i class="fas fa-clock"></i></span>
+        <div class="instruction-panel-content">
+          <h4>Timestamp Format</h4>
+          <p>Use <code>YYYY-MM-DD HH:MM:SS</code> for <code>start_date</code> and <code>end_date</code>. Match the timestamp format produced by a log export.</p>
+          <p>Include a timezone offset such as <code>+00:00</code>. Without one, Ghostwriter uses the server timezone ({{ TIME_ZONE }}).</p>
+        </div>
+      </article>
     </div>
-  </div>
+  </section>
 {% endblock %}
 
 {% block morescripts %}

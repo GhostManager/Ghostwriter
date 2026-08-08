@@ -19,10 +19,19 @@
     <script src="{% static 'vendor/asciinema-player/asciinema-player.min.js' %}"></script>
     <script src="{% static 'js/purify.min.js' %}"></script>
     <script src="{% static 'js/oplog.js' %}"></script>
-    <div class="container text-center">
-        <div class="d-inline-flex align-items-center flex-wrap justify-content-center">
+    <header class="oplog-page-heading" aria-labelledby="oplog-page-title">
+        <div class="oplog-page-identity">
+            <span class="detail-eyebrow">Activity log</span>
+            <h2 id="oplog-page-title">{{ oplog.name }}</h2>
+            <p>
+                <a href="{% url 'rolodex:client_detail' oplog.project.client.id %}">{{ oplog.project.client }}</a>
+                <span aria-hidden="true">&middot;</span>
+                <a href="{% url 'rolodex:project_detail' oplog.project.id %}">{{ oplog.project }}</a>
+            </p>
+        </div>
+        <div class="oplog-page-statuses" aria-label="Log status">
             <span
-                class="badge badge-secondary oplog-header-badge px-3 py-2 me-2"
+                class="badge badge-secondary oplog-header-badge px-3 py-2"
                 data-bs-toggle="tooltip"
                 data-bs-placement="top"
                 title="Oplog ID for use with the API and tools like `mythic_sync` and `cobalt_sync`"
@@ -43,19 +52,18 @@
                     </span>
                 </button>
             </div>
-            <span id="oplog-notification-status" class="badge oplog-header-badge px-3 py-2 ms-2 icon silenced-notification-icon" {% if not oplog.mute_notifications %}style="display:none;"{% endif %}>Notifications silenced</span>
-            <span id="connectionStatus" class="badge badge-secondary oplog-header-badge px-3 py-2 ms-2 js-connection-status icon network-icon disconnected">Disconnected</span>
+            <span id="oplog-notification-status" class="badge oplog-header-badge px-3 py-2 icon silenced-notification-icon" {% if not oplog.mute_notifications %}style="display:none;"{% endif %}>Notifications silenced</span>
+            <span id="connectionStatus" class="badge badge-secondary oplog-header-badge px-3 py-2 js-connection-status icon network-icon disconnected" aria-live="polite">Disconnected</span>
         </div>
-    </div>
-    <hr>
+    </header>
 
     <!-- Toolbar -->
     <div class="oplog-toolbar">
         <div class="oplog-toolbar-actions">
-            <a id="createNewEntryButton" class="icon add-icon btn btn-primary btn-sm" href="javascript:void(0);" onClick="javascript:createEntry({{ oplog.pk }});">Create Entry</a>
-            <a id="columnSelectDropdown" class="icon open-icon btn btn-info btn-sm" href="javascript:void(0);">Show/Hide Columns</a>
-            <a id="resetSortBtn" class="btn btn-secondary icon sync-icon btn-sm" role="button">Reset Sort</a>
-            <a class="btn btn-outline-secondary btn-sm" role="button" data-bs-toggle="modal" data-bs-target="#oplog-help-modal" title="Help"><i class="fas fa-question-circle"></i> Help</a>
+            <button id="createNewEntryButton" type="button" class="icon add-icon btn btn-sm oplog-create-entry" onclick="createEntry({{ oplog.pk }});">Create Entry</button>
+            <button id="columnSelectDropdown" type="button" class="icon open-icon btn btn-outline-secondary btn-sm" aria-expanded="false" aria-controls="columnSelect">Columns</button>
+            <button id="resetSortBtn" type="button" class="btn btn-outline-secondary icon sync-icon btn-sm">Reset Sort</button>
+            <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#oplog-help-modal" title="Help"><i class="fas fa-question-circle"></i> Help</button>
             <div class="dropdown d-inline-block">
                 <button id="oplog-dropdown-btn" type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="More oplog actions" title="More actions">
                     <i class="fas fa-ellipsis-h"></i>
@@ -91,33 +99,26 @@
         </div>
 
         <div class="oplog-toolbar-right">
-            <div class="input-group input-group-sm oplog-default-source-group">
-                <div class="input-group-prepend">
-                    <span class="input-group-text" id="default-source-addon">Default Source</span>
-                </div>
-                <input
-                    id="defaultSourceInput"
-                    type="text"
-                    class="form-control"
-                    placeholder="IP / hostname"
-                    aria-label="Default source IP or hostname for new entries"
-                    aria-describedby="default-source-addon"
-                    autocomplete="off"
-                    data-toggle="tooltip"
-                    data-placement="top"
-                    title="Used only for new entries created on this page. Cleared when the page reloads or closes."
-                >
-                <div class="input-group-append">
-                    <button id="clearDefaultSourceBtn" class="btn btn-outline-secondary" type="button" aria-label="Clear default source"><i class="fas fa-times"></i></button>
-                </div>
-            </div>
+            <button
+                id="entryDefaultsButton"
+                type="button"
+                class="btn btn-outline-secondary btn-sm oplog-entry-defaults-button"
+                data-bs-toggle="modal"
+                data-bs-target="#oplog-entry-defaults-modal"
+                aria-controls="oplog-entry-defaults-modal"
+                title="Configure values applied to newly created entries"
+            >
+                <i class="fas fa-sliders-h" aria-hidden="true"></i>
+                Entry Defaults
+                <span id="entryDefaultsCount" class="oplog-entry-defaults-count d-none" aria-live="polite"></span>
+            </button>
             <div class="input-group input-group-sm oplog-filter-group">
                 <div class="input-group-prepend">
                     <span class="input-group-text" id="filter-addon"><i class="fas fa-filter"></i></span>
                 </div>
-                <input id="searchInput" type="text" class="form-control" placeholder="Filter Entries" aria-describedby="filter-addon">
+                <input id="searchInput" type="search" class="form-control" placeholder="Filter entries" aria-label="Filter log entries" aria-describedby="filter-addon">
                 <div class="input-group-append">
-                  <button id="clearSearchBtn" class="btn btn-outline-secondary" type="button"><i class="fas fa-times"></i></button>
+                  <button id="clearSearchBtn" class="btn btn-outline-secondary" type="button" aria-label="Clear entry filter" disabled><i class="fas fa-times"></i></button>
                 </div>
             </div>
         </div>
@@ -153,7 +154,9 @@
                 </table>
                 <div style="display:none;" id="oplogTableNoEntries" class="oplog-list-placeholder">
                     <i class="fas fa-inbox" style="font-size:2rem;opacity:0.3;"></i>
-                    <p>No entries to display</p>
+                    <p id="oplogEmptyTitle" class="oplog-empty-title">No entries yet</p>
+                    <p id="oplogEmptyDescription" class="oplog-empty-description">Create an entry to begin recording activity.</p>
+                    <button id="oplogEmptyAction" type="button" class="btn btn-sm btn-outline-secondary">Create Entry</button>
                 </div>
                 <div style="display:none;" id="oplogTableLoading" class="oplog-list-placeholder">
                     <i class="fa fa-sync fa-spin"></i> Loading entries...
@@ -162,7 +165,7 @@
         </div>
 
         <!-- Resize handle -->
-        <div class="oplog-resize-handle" id="oplogResizeHandle">
+        <div class="oplog-resize-handle" id="oplogResizeHandle" role="separator" aria-orientation="vertical" aria-label="Resize entry list and detail panes" tabindex="0">
             <div class="oplog-resize-grip"></div>
         </div>
 
@@ -171,7 +174,7 @@
             <div class="oplog-detail-empty" id="oplogDetailEmpty">
                 <i class="fas fa-mouse-pointer" style="font-size:2.5rem;opacity:0.15;margin-bottom:16px;"></i>
                 <p style="opacity:0.5;font-size:0.9rem;">Select an entry to view details</p>
-                <p style="opacity:0.35;font-size:0.8rem;">Double-click to edit &middot; CTRL+N to create</p>
+                <p style="opacity:0.45;font-size:0.8rem;">Double-click to edit &middot; Ctrl/Cmd+N to create</p>
             </div>
             <div class="oplog-detail-content" id="oplogDetailContent" style="display:none;"></div>
         </div>
@@ -208,13 +211,20 @@
       </div>
   </div>
 
-  <div id="edit-modal" class="modal" tabindex="-1" role="dialog" aria-hidden="true" data-tiptap-min-height="260" data-submit-on-mod-enter>
+  <div id="edit-modal" class="modal" tabindex="-1" role="dialog" aria-hidden="true" aria-labelledby="oplog-entry-edit-title" data-tiptap-min-height="150" data-submit-on-mod-enter>
       <div class="modal-dialog modal-dialog-centered modal-super-sized modal-dialog-scrollable" role="document">
           <div class="modal-content">
               <div class="modal-header">
-                  <h5 class="modal-title">Edit Entry</h5>
+                  <div>
+                      <span class="detail-eyebrow">Operation log</span>
+                      <h5 class="modal-title" id="oplog-entry-edit-title">Edit entry</h5>
+                      <p class="oplog-entry-modal-intro">Update the activity record without losing your place in the timeline.</p>
+                  </div>
+                  <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+                      <span aria-hidden="true">&times;</span>
+                  </button>
               </div>
-              <div class="modal-body text-center oplog-form-div"></div>
+              <div class="modal-body text-start oplog-form-div"></div>
           </div>
       </div>
   </div>
@@ -229,6 +239,63 @@
                   </button>
               </div>
               <div class="modal-body oplog-evidence-form-div"></div>
+          </div>
+      </div>
+  </div>
+
+  <div id="oplog-entry-defaults-modal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="oplog-entry-defaults-title" aria-describedby="oplog-entry-defaults-description" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered" role="document">
+          <div class="modal-content">
+              <div class="modal-header">
+                  <div>
+                      <span class="detail-eyebrow">New entries</span>
+                      <h5 class="modal-title" id="oplog-entry-defaults-title">Entry defaults</h5>
+                      <p class="oplog-entry-modal-intro" id="oplog-entry-defaults-description">Pre-fill routine context without changing existing or copied entries.</p>
+                  </div>
+                  <button type="button" class="close ms-auto align-self-start" data-bs-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+              </div>
+              <div class="modal-body text-start">
+                  <div class="row">
+                      <div class="col-md-6 mb-3">
+                          <label for="defaultSourceInput" class="form-label">Source</label>
+                          <input id="defaultSourceInput" type="text" class="form-control js-oplog-entry-default" placeholder="IP address or hostname" autocomplete="off">
+                      </div>
+                      <div class="col-md-6 mb-3">
+                          <label for="defaultDestinationInput" class="form-label">Destination</label>
+                          <input id="defaultDestinationInput" type="text" class="form-control js-oplog-entry-default" placeholder="IP address or hostname" autocomplete="off">
+                      </div>
+                      <div class="col-12">
+                          <label for="defaultUserContextInput" class="form-label">User Context</label>
+                          <input id="defaultUserContextInput" type="text" class="form-control js-oplog-entry-default" placeholder="Domain or local account context" autocomplete="off">
+                      </div>
+                  </div>
+                  <p class="oplog-entry-defaults-note mb-0"><i class="fas fa-info-circle" aria-hidden="true"></i> Defaults remain on this page until it is reloaded or closed.</p>
+              </div>
+              <div class="modal-footer">
+                  <button id="clearEntryDefaultsBtn" type="button" class="btn btn-outline-secondary me-auto" disabled>Clear Defaults</button>
+                  <button type="button" class="btn oplog-defaults-done" data-bs-dismiss="modal">Done</button>
+              </div>
+          </div>
+      </div>
+  </div>
+
+  <div id="oplog-entry-delete-modal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="oplog-entry-delete-title" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered" role="document">
+          <div class="modal-content">
+              <div class="modal-header">
+                  <div>
+                      <span class="detail-eyebrow">Permanent action</span>
+                      <h5 class="modal-title" id="oplog-entry-delete-title">Delete log entry?</h5>
+                  </div>
+                  <button type="button" class="close ms-auto align-self-start" data-bs-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+              </div>
+              <div class="modal-body text-start">
+                  This entry and its linked activity record will be permanently removed. This cannot be undone.
+              </div>
+              <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                  <button id="confirmOplogEntryDelete" type="button" class="btn btn-danger">Delete Entry</button>
+              </div>
           </div>
       </div>
   </div>
@@ -305,7 +372,7 @@
                                       <li><kbd>Ctrl+Enter</kbd> or <kbd>Cmd+Enter</kbd> submits the edit form, saving the entry and closing the modal.</li>
                                       <li>Typing <code>@today</code>/<code>@date</code> or <code>@now</code>/<code>@time</code> followed by a space or punctuation in a rich text field inserts the current date or time.</li>
                                       <li><kbd>Esc</kbd> closes the details pane and deselects the entry, giving the table full width.</li>
-                                      <li><kbd>Ctrl+N</kbd> creates a new entry.</li>
+                                      <li><kbd>Ctrl+N</kbd> or <kbd>Cmd+N</kbd> creates a new entry.</li>
                                   </ul>
                               </div>
                           </div>
@@ -314,11 +381,11 @@
                       <div class="col-md-6 mb-3">
                           <div class="card h-100">
                               <div class="card-header py-2">
-                                  <i class="fas fa-laptop me-1"></i> <strong>Default Source</strong>
+                                  <i class="fas fa-sliders-h me-1"></i> <strong>Entry Defaults</strong>
                               </div>
                               <div class="card-body py-2">
-                                  <p class="card-text small mb-1">Enter the host you are working from in <strong>Default Source</strong>. Entries created with <strong>Create Entry</strong> or <kbd>Ctrl+N</kbd> will start with that value in Source IP / Hostname.</p>
-                                  <p class="card-text small mb-0">The value remains only on this page and clears when the page reloads or closes. It is not stored or carried to another log. It does not overwrite existing or copied entries. Use <i class="fas fa-times"></i> to clear it.</p>
+                                  <p class="card-text small mb-1">Use <strong>Entry Defaults</strong> to pre-fill Source, Destination, and User Context for entries created with <strong>Create Entry</strong>, <kbd>Ctrl+N</kbd>, or <kbd>Cmd+N</kbd>.</p>
+                                  <p class="card-text small mb-0">Defaults remain only on this page and clear when it reloads or closes. They do not overwrite existing or copied entries.</p>
                               </div>
                           </div>
                       </div>
@@ -345,7 +412,7 @@
                                   <i class="fas fa-columns me-1"></i> <strong>Show / Hide Columns</strong>
                               </div>
                               <div class="card-body py-2">
-                                  <p class="card-text small mb-0">Click <strong>Show/Hide Columns</strong> to toggle individual columns on or off. Your preferences are saved in your browser. Long-form fields (Command, Output, Description, Comments) are truncated in the table &mdash; select an entry to read the full content in the details pane.</p>
+                                  <p class="card-text small mb-0">Click <strong>Columns</strong> to toggle individual columns on or off. Your preferences are saved in your browser. Long-form fields (Command, Output, Description, Comments) are truncated in the table &mdash; select an entry to read the full content in the details pane.</p>
                               </div>
                           </div>
                       </div>

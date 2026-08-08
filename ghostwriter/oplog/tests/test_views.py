@@ -169,17 +169,46 @@ class OplogListEntriesTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "oplog/oplog_detail.html")
 
-    def test_view_includes_default_source_control(self):
+    def test_view_includes_entry_defaults_controls(self):
         response = self.client_mgr.get(self.uri)
 
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="entryDefaultsButton"')
+        self.assertContains(response, 'id="oplog-entry-defaults-modal"')
         self.assertContains(response, 'id="defaultSourceInput"')
-        self.assertContains(response, 'id="clearDefaultSourceBtn"')
-        self.assertContains(response, "Default source IP or hostname for new entries")
-        self.assertContains(response, "Cleared when the page reloads or closes.")
-        self.assertContains(response, "It is not stored or carried to another log")
-        self.assertContains(response, "It does not overwrite existing or copied entries")
+        self.assertContains(response, 'id="defaultDestinationInput"')
+        self.assertContains(response, 'id="defaultUserContextInput"')
+        self.assertContains(response, 'id="clearEntryDefaultsBtn"')
+        self.assertContains(response, "Source, Destination, and User Context")
+        self.assertContains(response, "Defaults remain on this page")
+        self.assertContains(response, "They do not overwrite existing or copied entries")
         self.assertNotContains(response, "data-user-id=")
+
+    def test_view_uses_accessible_split_view_controls_and_states(self):
+        response = self.client_mgr.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'class="oplog-page-heading"')
+        self.assertContains(response, 'id="oplog-page-title"')
+        self.assertContains(response, self.oplog.name)
+        self.assertContains(response, 'aria-label="Log status"')
+        self.assertContains(response, 'id="columnSelectDropdown"')
+        self.assertContains(response, 'aria-controls="columnSelect"')
+        self.assertContains(response, 'aria-label="Clear entry filter"')
+        self.assertContains(response, 'id="oplogEmptyTitle"')
+        self.assertContains(response, 'id="oplogEmptyAction"')
+        self.assertContains(response, 'role="separator"')
+        self.assertContains(response, 'aria-orientation="vertical"')
+        self.assertContains(response, 'id="oplog-entry-delete-modal"')
+        self.assertContains(response, 'id="confirmOplogEntryDelete"')
+        self.assertContains(
+            response,
+            'class="close ms-auto align-self-start"',
+            count=2,
+        )
+        self.assertContains(response, "Ctrl+N")
+        self.assertContains(response, "Cmd+N")
+        self.assertNotContains(response, "Alt+N")
 
     def test_view_exposes_active_time_zone(self):
         with timezone.override("America/Los_Angeles"):
@@ -354,6 +383,18 @@ class OplogEntriesImportTests(TestCase):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "oplog/oplog_import.html")
+        self.assertContains(response, "No operation logs available")
+        self.assertContains(response, reverse("oplog:oplog_create_no_project"))
+        self.assertNotContains(response, 'id="oplog_log"')
+        self.assertContains(response, 'class="instruction-panel"', count=2)
+        self.assertContains(response, "Required CSV Headers")
+        self.assertContains(response, "Timestamp Format")
+        self.assertNotContains(response, "alert alert-success")
+
+        manager_response = self.client_mgr.get(self.uri)
+        self.assertContains(manager_response, 'class="oplog-import-form"')
+        self.assertContains(manager_response, 'id="oplog_log"')
+        self.assertNotContains(manager_response, "No operation logs available")
 
     def test_view_uri_with_log_id(self):
         response = self.client_auth.get(f"{self.uri}?log={self.oplog.id}")
@@ -835,6 +876,33 @@ class OplogEntryUpdateViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "js-set-oplog-end-date-now")
         self.assertContains(response, "Set end date and time to now")
+
+    def test_ajax_form_uses_tabbed_entry_editor(self):
+        response = self.client_mgr.get(
+            self.uri, **{"HTTP_X_REQUESTED_WITH": "XMLHttpRequest"}
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="oplog-entry-tab-bar"')
+        self.assertContains(response, "Activity")
+        self.assertContains(response, "Notes &amp; Output")
+        self.assertContains(response, "Save Entry")
+        self.assertContains(response, "oplog-entry-form-actions")
+
+        activity_markup = force_str(response.content).split('id="tab-pane-activity"', 1)[1]
+        activity_markup = activity_markup.split('id="tab-pane-notes-output"', 1)[0]
+        self.assertIn('id="id_command"', activity_markup)
+        self.assertIn('id="id_operator_name"', activity_markup)
+        self.assertIn('id="id_entry_identifier"', activity_markup)
+        self.assertNotIn('id="id_output"', activity_markup)
+        self.assertLess(
+            activity_markup.index('id="id_command"'),
+            activity_markup.index('id="id_operator_name"'),
+        )
+        self.assertLess(
+            activity_markup.index('id="id_command"'),
+            activity_markup.index('id="id_entry_identifier"'),
+        )
 
 
 class OplogExportViewTests(TestCase):
