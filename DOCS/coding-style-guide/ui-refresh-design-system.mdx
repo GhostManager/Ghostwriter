@@ -297,7 +297,7 @@ still collapsed. Preserve `prefers-reduced-motion` behavior.
 
 The sticky working-context bar replaces the old breadcrumb bar and the sidebar's
 Jump to Report shortcut. Some implementation classes still use
-`engagement-context` for compatibility. The visible language is **Working in**, not
+`engagement-context` for compatibility. The visible language is **Working on**, not
 the ambiguous **Active project** or **Activate report**.
 
 It provides direct access to:
@@ -305,6 +305,7 @@ It provides direct access to:
 - Working report
 - Client
 - Project
+- Activity logs belonging to the working report's project
 - Draft or complete state
 - Delivered or not delivered state
 
@@ -317,6 +318,9 @@ continues to navigate to the report.
 The report title must look clickable without scaling dramatically on hover. Long
 client, project, and report names truncate safely. At narrower widths, status pills
 must remain accessible and secondary context collapses into the compact context menu.
+The Activity logs control is a compact project-scoped dropdown, not a filter. It must
+refresh when the working report changes, present a clear zero-log state, and retain a
+route to the full Activity Logs library.
 
 Keep visible space between the sticky engagement bar and content above or below it.
 Do not reintroduce a second breadcrumb path unless the information architecture grows

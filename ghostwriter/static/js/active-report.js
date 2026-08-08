@@ -66,6 +66,14 @@
       if (!engagement || !engagement.dataset.activeReportId) {
         return null;
       }
+      const activityLogs = Array.from(
+        engagement.querySelectorAll('.engagement-context-activity-item')
+      ).map(function (activityLog) {
+        return {
+          name: activityLog.dataset.engagementLogName || '',
+          url: activityLog.getAttribute('href') || '',
+        };
+      });
       return {
         id: Number(engagement.dataset.activeReportId),
         title: engagement.dataset.activeReportTitle || '',
@@ -76,7 +84,48 @@
         client_url: engagement.dataset.activeClientUrl || '',
         project: engagement.dataset.activeProject || '',
         project_url: engagement.dataset.activeProjectUrl || '',
+        activity_logs: activityLogs,
       };
+    }
+
+    function updateActivityLogs(engagement, activityLogs, projectName) {
+      const root = engagement.get(0);
+      const list = root.querySelector('[data-engagement-log-list]');
+      const empty = root.querySelector('[data-engagement-log-empty]');
+      const count = root.querySelector('[data-engagement-log-count]');
+      const project = root.querySelector('[data-engagement-log-project]');
+      if (!list || !empty || !count || !project) {
+        return;
+      }
+
+      list.querySelectorAll('.engagement-context-activity-item').forEach(function (item) {
+        item.remove();
+      });
+
+      activityLogs.forEach(function (activityLog) {
+        const link = document.createElement('a');
+        link.className = 'dropdown-item engagement-context-activity-item';
+        link.href = activityLog.url || '';
+        link.dataset.engagementLogName = activityLog.name || '';
+
+        const leadingIcon = document.createElement('i');
+        leadingIcon.className = 'fas fa-stream';
+        leadingIcon.setAttribute('aria-hidden', 'true');
+
+        const label = document.createElement('span');
+        label.textContent = activityLog.name || 'Untitled activity log';
+
+        const trailingIcon = document.createElement('i');
+        trailingIcon.className = 'fas fa-arrow-right';
+        trailingIcon.setAttribute('aria-hidden', 'true');
+
+        link.append(leadingIcon, label, trailingIcon);
+        list.insertBefore(link, empty);
+      });
+
+      empty.classList.toggle('d-none', activityLogs.length > 0);
+      count.textContent = String(activityLogs.length);
+      project.textContent = projectName || '';
     }
 
     function updateActivationControls(reportId) {
@@ -150,6 +199,7 @@
         client_url: '',
         project: '',
         project_url: '',
+        activity_logs: [],
       }, contextData || {});
 
       engagement
@@ -187,6 +237,7 @@
         .text(normalized.report_complete ? 'Complete' : 'Draft');
       engagement.find('.engagement-context-delivery-status')
         .text(normalized.report_delivered ? 'Delivered' : 'Not delivered');
+      updateActivityLogs(engagement, normalized.activity_logs, normalized.project);
 
       document.querySelectorAll('[data-working-report-title]').forEach(function (title) {
         title.textContent = reportTitle || 'Choose a report';

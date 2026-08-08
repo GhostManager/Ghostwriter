@@ -20,6 +20,7 @@ def get_active_engagement(request):
 
     # Import here to keep application startup and migration discovery lightweight.
     # Ghostwriter Libraries
+    from ghostwriter.oplog.models import Oplog
     from ghostwriter.reporting.models import Report
 
     report = (
@@ -31,10 +32,17 @@ def get_active_engagement(request):
     if not report:
         return None
 
+    activity_logs = (
+        Oplog.user_viewable(request.user)
+        .filter(project=report.project)
+        .order_by("name", "pk")
+    )
+
     return {
         "report": report,
         "project": report.project,
         "client": report.project.client,
+        "activity_logs": activity_logs,
     }
 
 

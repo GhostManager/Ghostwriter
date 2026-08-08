@@ -250,7 +250,54 @@
               </span>
             </div>
           </div>
-          <div class="engagement-context-state" aria-label="Working report state">
+          <div class="engagement-context-state" aria-label="Engagement actions and working report state">
+            <div class="dropdown engagement-context-activity">
+              <button type="button"
+                      class="engagement-context-activity-toggle"
+                      data-bs-toggle="dropdown"
+                      data-bs-auto-close="outside"
+                      aria-expanded="false"
+                      aria-label="Open activity logs for this engagement">
+                <i class="fas fa-stream" aria-hidden="true"></i>
+                <span>Activity logs</span>
+                <span class="engagement-context-activity-count" data-engagement-log-count>
+                  {% if active_engagement %}{{ active_engagement.activity_logs|length }}{% else %}0{% endif %}
+                </span>
+                <i class="fas fa-chevron-down engagement-context-activity-chevron" aria-hidden="true"></i>
+              </button>
+              <div class="dropdown-menu dropdown-menu-end engagement-context-activity-menu">
+                <div class="engagement-context-activity-heading">
+                  <span>Activity logs</span>
+                  <small data-engagement-log-project>
+                    {% if active_engagement %}{{ active_engagement.project }}{% endif %}
+                  </small>
+                </div>
+                <div class="engagement-context-activity-list" data-engagement-log-list>
+                  {% if active_engagement and active_engagement.activity_logs %}
+                    {% for activity_log in active_engagement.activity_logs %}
+                      <a class="dropdown-item engagement-context-activity-item"
+                         href="{{ activity_log.get_absolute_url }}"
+                         data-engagement-log-name="{{ activity_log.name }}">
+                        <i class="fas fa-stream" aria-hidden="true"></i>
+                        <span>{{ activity_log.name }}</span>
+                        <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                      </a>
+                    {% endfor %}
+                  {% endif %}
+                  <div class="engagement-context-activity-empty{% if active_engagement and active_engagement.activity_logs %} d-none{% endif %}"
+                       data-engagement-log-empty>
+                    <i class="far fa-clipboard" aria-hidden="true"></i>
+                    <span>No activity logs for this project.</span>
+                  </div>
+                </div>
+                <div class="engagement-context-activity-footer">
+                  <a href="{% url 'oplog:index' %}">
+                    View all activity logs
+                    <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                  </a>
+                </div>
+              </div>
+            </div>
             <span class="engagement-context-state-item">
               <i class="fas fa-pencil-alt" aria-hidden="true"></i>
               <span class="engagement-context-report-status">
@@ -314,7 +361,7 @@
     {% endif %}
 
     {%  comment %} Page Content Goes Here {% endcomment %}
-    <div>
+    <div class="page-content">
       {% block content %}{% endblock %}
     </div>
   </div>

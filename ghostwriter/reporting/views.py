@@ -41,6 +41,7 @@ from ghostwriter.api.utils import (
 from ghostwriter.commandcenter.models import ReportConfiguration
 from ghostwriter.home.working_context import record_recent_report
 from ghostwriter.modules.shared import add_content_disposition_header
+from ghostwriter.oplog.models import Oplog
 from ghostwriter.reporting.filters import ArchiveFilter
 from ghostwriter.reporting.forms import (
     EvidenceForm,
@@ -170,6 +171,11 @@ class ReportActivate(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                 "Working report updated. Findings and observations added "
                 "from the libraries will go to {report}."
             ).format(report=escape(report.title))
+            activity_logs = (
+                Oplog.user_viewable(self.request.user)
+                .filter(project=report.project)
+                .order_by("name", "pk")
+            )
             data = {
                 "result": "success",
                 "report": report.title,
@@ -180,6 +186,13 @@ class ReportActivate(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                 "project_url": report.project.get_absolute_url(),
                 "client": report.project.client.name,
                 "client_url": report.project.client.get_absolute_url(),
+                "activity_logs": [
+                    {
+                        "name": activity_log.name,
+                        "url": activity_log.get_absolute_url(),
+                    }
+                    for activity_log in activity_logs
+                ],
                 "message": message,
             }
         except Exception as exception:  # pragma: no cover

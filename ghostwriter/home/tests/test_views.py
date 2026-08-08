@@ -22,6 +22,7 @@ from allauth.mfa.totp.internal.auth import TOTP, generate_totp_secret
 from ghostwriter.factories import (
     ClientInviteFactory,
     GroupFactory,
+    OplogFactory,
     ProjectAssignmentFactory,
     ProjectFactory,
     ProjectInviteFactory,
@@ -583,6 +584,7 @@ class DashboardTests(TestCase):
         self.assertContains(
             response, 'class="engagement-context engagement-context-active"'
         )
+        self.assertContains(response, 'class="page-content"')
         self.assertNotContains(response, "Open report")
         self.assertNotContains(response, "Open active report")
         self.assertContains(response, 'class="engagement-context-mobile-context"')
@@ -591,6 +593,38 @@ class DashboardTests(TestCase):
         self.assertContains(response, self.report.title)
         self.assertContains(response, self.current_project.client.name)
         self.assertContains(response, self.current_project.get_absolute_url())
+        self.assertContains(response, "No activity logs for this project.")
+
+    def test_application_shell_lists_activity_logs_for_active_engagement(self):
+        first_log = OplogFactory(
+            name="Alpha engagement activity",
+            project=self.current_project,
+        )
+        second_log = OplogFactory(
+            name="Bravo engagement activity",
+            project=self.current_project,
+        )
+        other_log = OplogFactory(
+            name="Unrelated project activity",
+            project=self.inaccessible_project,
+        )
+        session = self.client_auth.session
+        session["active_report"] = {
+            "id": self.report.id,
+            "title": self.report.title,
+        }
+        session.save()
+
+        response = self.client_auth.get(self.uri)
+
+        self.assertEqual(
+            list(response.context["active_engagement"]["activity_logs"]),
+            [first_log, second_log],
+        )
+        self.assertContains(response, "Activity logs")
+        self.assertContains(response, first_log.get_absolute_url())
+        self.assertContains(response, second_log.name)
+        self.assertNotContains(response, other_log.name)
 
     def test_application_shell_ignores_inaccessible_active_engagement(self):
         inaccessible_report = ReportFactory(project=self.inaccessible_project)
