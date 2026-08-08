@@ -31,14 +31,18 @@
         </table>
       </div>
     {% else %}
-      <div class="alert alert-warning offset-md-2 col-md-8 mt-2" role="alert">
-        <p class="mb-0">{% trans 'Backup tokens are available; however, your administrator has turned off the display of the codes here for security reasons.' %}</p>
-        <p class="mb-0">{% trans 'Download the codes to view them, or press the button below to generate new ones.' %}</p>
+      <div class="instruction-panel col-md-8 mx-auto mt-2">
+        <span class="instruction-panel-icon" aria-hidden="true"><i class="fas fa-lock"></i></span>
+        <div class="instruction-panel-content">
+          <h4>{% trans 'Backup codes are hidden' %}</h4>
+          <p>{% trans 'Your administrator has disabled displaying backup codes on this page. Download them or generate a new set below.' %}</p>
+        </div>
       </div>
     {% endif %}
   {% else %}
-      <div class="alert alert-warning offset-md-2 col-md-8 mt-2" role="alert">
-        {% trans 'No tokens. Press the button below to generate some.' %}
+      <div class="empty-state col-md-8 mx-auto mt-2">
+        <p class="empty-state-title">{% trans 'No backup codes yet' %}</p>
+        <p class="empty-state-description">{% trans 'Generate backup codes before you need an alternate way to complete sign-in.' %}</p>
       </div>
   {% endif %}
 

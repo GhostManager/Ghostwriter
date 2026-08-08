@@ -41,7 +41,23 @@ class UserChangeForm(UserChangeForm):
         self.fields["name"].widget.attrs["autocomplete"] = "off"
         self.fields["phone"].widget.attrs["placeholder"] = "(212) 555-2368"
         self.fields["phone"].help_text = "Work phone number for work contacts"
-        self.fields["timezone"].help_text = "Timezone in which you work"
+        timezone_choices = [
+            {"value": str(value), "label": str(label)}
+            for value, label in self.fields["timezone"].choices
+            if value
+        ]
+        self.fields["timezone"].widget = TextInput(
+            attrs={
+                "autocomplete": "off",
+                "class": "form-control profile-timezone-input",
+                "data-timezone-search": "true",
+                "spellcheck": "false",
+            }
+        )
+        self.fields["timezone"].help_text = (
+            "Start typing a city or region, then choose a timezone"
+        )
+        self.timezone_choices = timezone_choices
         self.fields["name"].help_text = "Your full name as it should appear in reports"
         self.fields["name"].label = "Your Full Name"
         self.fields["timezone"].label = "Your Timezone"
@@ -56,8 +72,8 @@ class UserChangeForm(UserChangeForm):
                     <div class="resource-form-section-heading">
                       <span class="resource-form-section-icon"><i class="fas fa-user" aria-hidden="true"></i></span>
                       <div>
-                        <h4>Operator identity</h4>
-                        <p>Keep the contact details and timezone used for assignments and reports current.</p>
+                        <h1>Operator identity</h1>
+                        <p>Edit the contact details and timezone used for assignments and reports.</p>
                       </div>
                     </div>
                     """
@@ -71,13 +87,12 @@ class UserChangeForm(UserChangeForm):
                 css_class="resource-form-card",
             ),
             Div(
-                HTML("""<span class="resource-form-actions-context">Editing your profile</span>"""),
                 Div(
                     HTML("""<a href="{{ cancel_link }}" class="btn btn-outline-secondary">Cancel</a>"""),
                     Submit("submit", "Save Changes", css_class="btn btn-primary"),
                     css_class="resource-form-actions-buttons",
                 ),
-                css_class="resource-form-actions",
+                css_class="resource-form-actions resource-form-actions-compact",
             ),
         )
 

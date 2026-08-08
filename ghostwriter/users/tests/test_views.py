@@ -53,6 +53,12 @@ class UserDetailViewTests(TestCase):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "users/profile.html")
+        self.assertContains(response, 'class="page-content"')
+        self.assertContains(response, 'class="profile-dashboard"')
+        self.assertContains(response, 'class="profile-identity-panel"')
+        self.assertContains(response, 'id="account-actions"')
+        self.assertContains(response, "Settings and security")
+        self.assertContains(response, "Personal access tokens")
 
 
 class UserUpdateViewTests(TestCase):
@@ -86,6 +92,21 @@ class UserUpdateViewTests(TestCase):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "users/profile_form.html")
+        self.assertContains(response, "Operator identity")
+        self.assertContains(
+            response,
+            "Edit the contact details and timezone used for assignments and reports.",
+        )
+        self.assertContains(response, 'data-timezone-search="true"')
+        self.assertContains(response, 'id="profile-timezone-options"')
+        self.assertContains(response, "America/Los_Angeles")
+        self.assertContains(
+            response,
+            'class="resource-form-actions resource-form-actions-compact"',
+        )
+        self.assertNotContains(response, "Editing your profile")
+        self.assertNotContains(response, "Edit operator profile")
+        self.assertNotContains(response, '<span class="detail-eyebrow">Profile</span>')
 
     def test_view_blocks_improper_access(self):
         response = self.other_client_auth.get(self.uri)
@@ -102,6 +123,23 @@ class UserUpdateViewTests(TestCase):
             },
         )
         self.assertRedirects(response, self.success_uri)
+
+    def test_invalid_timezone_is_rejected(self):
+        response = self.client_auth.post(
+            self.uri,
+            {
+                "name": self.user.name,
+                "timezone": "Not/A_Timezone",
+                "phone": self.user.phone,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFormError(
+            response.context["form"],
+            "timezone",
+            "Select a valid choice. Not/A_Timezone is not one of the available choices.",
+        )
 
 
 class UserProfileUpdateViewTests(TestCase):
@@ -142,6 +180,18 @@ class UserProfileUpdateViewTests(TestCase):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "users/profile_form.html")
+        self.assertContains(response, 'class="profile-avatar-current"')
+        self.assertContains(response, "Choose a new image")
+        self.assertContains(response, "profile-avatar-submit")
+        self.assertContains(response, "disabled")
+        self.assertContains(
+            response,
+            'class="resource-form-actions resource-form-actions-compact"',
+        )
+        self.assertNotContains(response, "Updating your profile image")
+        self.assertNotContains(response, "Avatar Upload")
+        self.assertNotContains(response, "Update profile image")
+        self.assertNotContains(response, '<span class="detail-eyebrow">Profile</span>')
 
     def test_view_blocks_improper_access(self):
         response = self.other_client_auth.get(self.uri)
@@ -194,6 +244,7 @@ class GhostwriterPasswordChangeViewTests(TestCase):
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "password-change-form")
 
     def test_view_requires_login(self):
         response = self.client.get(self.uri)
@@ -207,6 +258,28 @@ class GhostwriterPasswordChangeViewTests(TestCase):
         self.assertRedirects(response, self.success_uri)
         self.user.password = PASSWORD
         self.user.save()
+
+
+class MFAIndexViewTests(TestCase):
+    """Collection of tests for the multi-factor authentication settings page."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.uri = reverse("mfa_index")
+
+    def setUp(self):
+        self.client_auth = Client()
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    def test_actions_are_centered_with_footer_spacing(self):
+        response = self.client_auth.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'class="card-footer mfa-actions"', count=2)
+        self.assertNotContains(response, "card-footer pt-0 mfa-actions")
 
 
 class UserLoginViewTests(TestCase):

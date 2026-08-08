@@ -14,8 +14,6 @@
 {% endblock %}
 
 {% block content %}
-    <p>Create a scoped service token for an integration or automation workflow.</p>
-
     {% if form.errors %}
         <script>
             {% for field in form %}
@@ -29,7 +27,9 @@
         </script>
     {% endif %}
 
-    {% crispy form form.helper %}
+    <div class="resource-form-shell token-create-editor">
+        {% crispy form form.helper %}
+    </div>
 {% endblock %}
 
 {% block morescripts %}

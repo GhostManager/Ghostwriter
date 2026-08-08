@@ -103,11 +103,16 @@ class UserProfileTokenDisplayTests(TestCase):
         self.assertContains(response, 'class="js-token-row"', count=6)
         self.assertContains(
             response,
-            'class="alert alert-secondary mt-2 mb-2 js-token-table-empty-alert d-none"',
+            'class="empty-state profile-token-empty-state mt-2 mb-2 js-token-table-empty-state d-none"',
             count=2,
         )
         self.assertContains(
-            response, '<th class="align-middle text-start">Last Used</th>', count=2
+            response, '<th class="align-middle text-start">Last used</th>', count=2
+        )
+        self.assertContains(
+            response,
+            '<th class="align-middle text-end sorter-false">Options</th>',
+            count=2,
         )
 
         self.assertContains(
@@ -135,7 +140,8 @@ class UserProfileTokenDisplayTests(TestCase):
             'data-revoke-target-url="/api/ajax/service-token/revoke/',
         )
         self.assertContains(response, "Edit Expiry", count=6)
-        self.assertContains(response, ">Regenerate</button>", count=6)
+        self.assertContains(response, 'title="View details"', count=6)
+        self.assertContains(response, 'title="Revoke token"', count=6)
 
         self.assertContains(response, 'id="token-expiry-display-', count=3)
         self.assertContains(response, 'id="service-token-expiry-display-', count=3)
@@ -151,7 +157,9 @@ class UserProfileTokenDisplayTests(TestCase):
         self.assertContains(response, 'action="/api/token/regenerate/')
         self.assertContains(response, 'action="/api/service-token/regenerate/')
         self.assertContains(response, 'class="d-flex m-0 js-regenerate-token-form"', count=6)
-        self.assertContains(response, "disabled>Regenerate</button>", count=2)
+        self.assertContains(response, 'aria-label="Regenerate API token"', count=3)
+        self.assertContains(response, 'aria-label="Regenerate service token"', count=3)
+        self.assertContains(response, "disabled><i class=\"fas fa-sync-alt\"", count=2)
 
         self.assertContains(response, 'id="edit-token-expiry-modal"')
         self.assertContains(response, 'id="edit-token-expiry-error"')

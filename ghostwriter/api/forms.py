@@ -18,7 +18,7 @@ from django.utils.translation import gettext_lazy as _
 
 # 3rd Party Libraries
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import HTML, ButtonHolder, Column, Field, Layout, Row, Submit
+from crispy_forms.layout import HTML, Column, Div, Field, Layout, Row, Submit
 from docx import Document
 from pptx import Presentation
 
@@ -97,12 +97,13 @@ class ApiKeyForm(forms.Form):
         self.fields["expiry_date"].label = "Expiry Date & Time"
         self.fields["expiry_date"].widget.input_type = "datetime-local"
         self.fields["expiry_date"].initial = timezone.now() + timedelta(days=1)
-        self.fields[
-            "expiry_date"
-        ].help_text = f"Pick a date / time and then select AM or PM (uses server's time zone–{settings.TIME_ZONE})"
-        self.fields[
-            "name"
-        ].help_text = "Enter a name to help you identify this API token later"
+        self.fields["expiry_date"].help_text = (
+            f"Choose when this token expires. Ghostwriter uses the server time zone "
+            f"({settings.TIME_ZONE})."
+        )
+        self.fields["name"].help_text = (
+            "Use a name that identifies the script, integration, or device using it."
+        )
         self.fields["name"].widget.attrs[
             "placeholder"
         ] = "API Token – Automation Script"
@@ -110,19 +111,51 @@ class ApiKeyForm(forms.Form):
         self.helper = FormHelper()
         self.helper.form_show_labels = True
         self.helper.form_method = "post"
+        self.helper.form_class = "resource-edit-form token-create-form"
         self.helper.layout = Layout(
-            Row(
-                Column("name", css_class="form-group col-6 mb-0"),
-                Column(Field("expiry_date", step=1), css_class="form-group col-6 mb-0"),
-                css_class="form-group",
-            ),
-            ButtonHolder(
-                Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
+            Div(
                 HTML(
                     """
-                    <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    <div class="resource-form-section-heading">
+                      <span class="resource-form-section-icon"><i class="fas fa-key" aria-hidden="true"></i></span>
+                      <div>
+                        <h1>Create API token</h1>
+                        <p>Create a personal credential that authenticates with your current Ghostwriter permissions.</p>
+                      </div>
+                    </div>
                     """
                 ),
+                Row(
+                    Column("name", css_class="form-group col-md-6"),
+                    Column(
+                        Field("expiry_date", step=1),
+                        css_class="form-group col-md-6",
+                    ),
+                    css_class="form-row",
+                ),
+                HTML(
+                    """
+                    <div class="token-create-guidance">
+                      <i class="fas fa-info-circle" aria-hidden="true"></i>
+                      <p>The token value is displayed once after creation. Store it securely before leaving that screen.</p>
+                    </div>
+                    """
+                ),
+                css_class="resource-form-card",
+            ),
+            Div(
+                Div(
+                    HTML(
+                        """<a href="{{ cancel_link }}" class="btn btn-outline-secondary">Cancel</a>"""
+                    ),
+                    Submit(
+                        "submit_btn",
+                        "Create API Token",
+                        css_class="btn btn-primary",
+                    ),
+                    css_class="resource-form-actions-buttons",
+                ),
+                css_class="resource-form-actions resource-form-actions-compact",
             ),
         )
 
@@ -258,9 +291,10 @@ class ServiceTokenForm(forms.Form):
         self.fields["expiry_date"].label = "Expiry Date & Time"
         self.fields["expiry_date"].widget.input_type = "datetime-local"
         self.fields["expiry_date"].initial = timezone.now() + timedelta(days=1)
-        self.fields[
-            "expiry_date"
-        ].help_text = f"Pick a date / time and then select AM or PM (uses server's time zone–{settings.TIME_ZONE})"
+        self.fields["expiry_date"].help_text = (
+            f"Choose when this token expires. Ghostwriter uses the server time zone "
+            f"({settings.TIME_ZONE})."
+        )
         self.fields[
             "name"
         ].help_text = (
@@ -298,48 +332,105 @@ class ServiceTokenForm(forms.Form):
         self.helper = FormHelper()
         self.helper.form_show_labels = True
         self.helper.form_method = "post"
+        self.helper.form_class = (
+            "resource-edit-form token-create-form service-token-create-form"
+        )
         self.helper.layout = Layout(
-            Row(
-                Column("token_preset", css_class="form-group col-12 mb-0"),
-                css_class="form-group",
-            ),
-            Row(
-                Column("name", css_class="form-group col-6 mb-0"),
-                Column(Field("expiry_date", step=1), css_class="form-group col-6 mb-0"),
-                css_class="form-group",
-            ),
-            Row(
-                Column("service_principal", css_class="form-group col-6 mb-0"),
-                Column("new_service_principal_name", css_class="form-group col-6 mb-0"),
-                css_class="form-group",
-            ),
-            Row(
-                Column("oplog", css_class="form-group col-12 mb-0"),
-                css_class="form-group",
-                css_id="service-token-oplog-row",
-            ),
-            Row(
-                Column("project_scope", css_class="form-group col-12 mb-0"),
-                css_class="form-group",
-                css_id="service-token-project-scope-row",
-            ),
-            Row(
-                Column("clients", css_class="form-group col-12 mb-0"),
-                css_class="form-group",
-                css_id="service-token-clients-row",
-            ),
-            Row(
-                Column("projects", css_class="form-group col-12 mb-0"),
-                css_class="form-group",
-                css_id="service-token-projects-row",
-            ),
-            ButtonHolder(
-                Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
+            Div(
                 HTML(
                     """
-                    <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    <div class="resource-form-section-heading">
+                      <span class="resource-form-section-icon"><i class="fas fa-id-badge" aria-hidden="true"></i></span>
+                      <div>
+                        <h1>Token identity</h1>
+                        <p>Name the credential, choose its permission preset, and set its lifetime.</p>
+                      </div>
+                    </div>
                     """
                 ),
+                Row(
+                    Column("token_preset", css_class="form-group col-12"),
+                    css_class="form-row",
+                ),
+                Row(
+                    Column("name", css_class="form-group col-md-6"),
+                    Column(
+                        Field("expiry_date", step=1),
+                        css_class="form-group col-md-6",
+                    ),
+                    css_class="form-row",
+                ),
+                css_class="resource-form-card",
+            ),
+            Div(
+                HTML(
+                    """
+                    <div class="resource-form-section-heading">
+                      <span class="resource-form-section-icon"><i class="fas fa-robot" aria-hidden="true"></i></span>
+                      <div>
+                        <h4>Service principal</h4>
+                        <p>Reuse an automation identity or create one for this integration.</p>
+                      </div>
+                    </div>
+                    """
+                ),
+                Row(
+                    Column("service_principal", css_class="form-group col-md-6"),
+                    Column(
+                        "new_service_principal_name",
+                        css_class="form-group col-md-6",
+                    ),
+                    css_class="form-row",
+                ),
+                css_class="resource-form-card",
+            ),
+            Div(
+                HTML(
+                    """
+                    <div class="resource-form-section-heading">
+                      <span class="resource-form-section-icon"><i class="fas fa-lock" aria-hidden="true"></i></span>
+                      <div>
+                        <h4>Access scope</h4>
+                        <p>Limit this credential to the operation log or project data required by the integration.</p>
+                      </div>
+                    </div>
+                    """
+                ),
+                Row(
+                    Column("oplog", css_class="form-group col-12"),
+                    css_class="form-row",
+                    css_id="service-token-oplog-row",
+                ),
+                Row(
+                    Column("project_scope", css_class="form-group col-12"),
+                    css_class="form-row",
+                    css_id="service-token-project-scope-row",
+                ),
+                Row(
+                    Column("clients", css_class="form-group col-12"),
+                    css_class="form-row",
+                    css_id="service-token-clients-row",
+                ),
+                Row(
+                    Column("projects", css_class="form-group col-12"),
+                    css_class="form-row",
+                    css_id="service-token-projects-row",
+                ),
+                css_class="resource-form-card",
+            ),
+            Div(
+                Div(
+                    HTML(
+                        """<a href="{{ cancel_link }}" class="btn btn-outline-secondary">Cancel</a>"""
+                    ),
+                    Submit(
+                        "submit_btn",
+                        "Create Service Token",
+                        css_class="btn btn-primary",
+                    ),
+                    css_class="resource-form-actions-buttons",
+                ),
+                css_class="resource-form-actions resource-form-actions-compact",
             ),
         )
 

@@ -1,7 +1,7 @@
 {% extends "base_generic.html" %}
 {% load crispy_forms_tags %}
 
-{% block pagetitle %}Oplog Creation{% endblock %}
+{% block pagetitle %}API Token Creation{% endblock %}
 
 {% block breadcrumbs %}
     <nav aria-label="breadcrumb">
@@ -14,9 +14,6 @@
 {% endblock %}
 
 {% block content %}
-    <!-- Instructions Section -->
-    <p>Provide a meaningful name for your token and select an expiry date:</p>
-
     <!-- Form Error Section -->
     {% if form.errors %}
         <script>
@@ -31,6 +28,7 @@
         </script>
     {% endif %}
 
-    <!-- Form Section -->
-    {% crispy form form.helper %}
+    <div class="resource-form-shell token-create-editor">
+        {% crispy form form.helper %}
+    </div>
 {% endblock %}
