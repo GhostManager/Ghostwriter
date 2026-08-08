@@ -17,14 +17,21 @@
 {% block content %}
   {% get_solo "commandcenter.VirusTotalConfiguration" as vt_config %}
 
-  <div class="dropdown">
-    <div class="dropdown-menu-btn" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
-         onclick="hamburger(this)">
-      <div class="bar1"></div>
-      <div class="bar2"></div>
-      <div class="bar3"></div>
-    </div>
-    <div class="dropdown-menu dropdown-menu-end" aria-labelledby="domain-dropdown-btn">
+  <div class="infrastructure-detail-page">
+    <header class="detail-page-heading resource-detail-heading">
+      <div class="detail-page-heading-main resource-detail-heading-main">
+        <span class="detail-eyebrow">Domain</span>
+        <h2>{{ domain.name }}</h2>
+        <div class="detail-tag-list" aria-label="Domain status and tags">
+          <span class="library-tag {% if domain.domain_status.domain_status == 'Available' %}library-tag-success{% else %}library-tag-danger{% endif %}">{{ domain.domain_status }}</span>
+          <span class="library-tag {% if domain.health_status.health_status == 'Healthy' %}library-tag-success{% else %}library-tag-danger{% endif %}">{{ domain.health_status }}</span>
+          {% for tag in domain.tags.names %}<span class="badge badge-secondary">{{ tag|bleach }}</span>{% endfor %}
+        </div>
+      </div>
+      <div class="dropdown detail-page-heading-actions">
+        <button id="domain-actions-button" type="button" class="btn btn-outline-primary btn-sm dropdown-toggle"
+                data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Actions</span></button>
+        <div class="dropdown-menu dropdown-menu-end" aria-labelledby="domain-actions-button">
       {% if domain.is_expired is False %}
         <a class="dropdown-item icon edit-icon" href="{% url 'shepherd:domain_update' domain.id %}">Edit</a>
         {% if domain.domain_status.domain_status == "Available" or domain.domain_status.domain_status == "Burned" %}
@@ -41,21 +48,11 @@
         {% endif %}
       {% endif %}
       <a class="dropdown-item icon trash-icon" href="{% url 'shepherd:domain_delete' domain.id %}">Delete</a>
-    </div>
-  </div>
+        </div>
+      </div>
+    </header>
 
-  <div class="container">
-    <h2>{{ domain.name }}</h2>
-  </div>
-  <span class="badge {% if domain.domain_status.domain_status == "Available" %}badge-healthy{% else %}badge-unhealthy{% endif %}">
-    {{ domain.domain_status }}
-  </span>
-  {% for tag in domain.tags.names %}
-    <span class="badge badge-secondary">{{ tag|bleach }}</span>
-  {% endfor %}
-  <hr/>
-
-  <div>
+  <div class="infrastructure-detail-workspace">
     <!-- Navigation Tabs -->
     {% comment %} Load tabs via AJAX so badges update with delete actions {% endcomment %}
     <ul id="tab-bar" class="nav nav-tabs nav-justified"
@@ -83,7 +80,10 @@
             </div>
           </div>
         {% else %}
-          <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">There is no additional information provided for this domain.</div>
+          <div class="empty-state mb-3">
+            <p class="empty-state-title">No domain description yet</p>
+            <p class="empty-state-description">Add purchasing or operational context to help operators choose and use this domain.</p>
+          </div>
         {% endif %}
 
         <table class="table">
@@ -93,7 +93,7 @@
             <th class="align-middle text-start">Purchase Date</th>
             <th class="align-middle text-start">Expiration Date</th>
             <th class="align-middle">Auto Renew Status</th>
-            <th class="align-middle">Domain Age (Days)</th>
+            <th class="align-middle">Domain Age</th>
           </tr>
           <tr>
             {% if domain.domain_status.domain_status == "Available" %}
@@ -113,28 +113,29 @@
             {% else %}
               <td class="icon cross-icon burned"></td>
             {% endif %}
-            <td class="align-middle">{{ domain.get_domain_age|intcomma }}</td>
+            <td class="align-middle">{{ domain.get_domain_age_display }}</td>
           </tr>
         </table>
       </div>
 
       <!-- DNS Records Tab -->
       <div id="dns" class="tab-pane">
-        <h4>DNS Records</h4>
-        <hr/>
-
-        {% if not domain.is_expired %}
-          <p>
-            <a href="javascript:void(0)" class="icon redo-icon clickable-link js-domain-update btn btn-primary col-3"
+        <header class="content-section-header">
+          <div class="content-section-heading">
+            <h4 id="domain-dns-heading">DNS Records</h4>
+          </div>
+          {% if not domain.is_expired %}
+            <a href="javascript:void(0)" class="icon redo-icon clickable-link js-domain-update btn btn-primary btn-sm"
                domain-update-csrftoken="{{ csrf_token }}"
                domain-update-url="{% url 'shepherd:ajax_update_dns_single' domain.id %}"
                domain-update-id="{{ domain.id }}">Refresh DNS Records</a>
-          </p>
-        {% endif %}
+          {% endif %}
+        </header>
 
         {% if domain.reset_dns %}
-          <div class="alert alert-secondary offset-md-2 col-md-8" role="alert">
-            Domain is configured to reset DNS records after use (if possible with the registrar).
+          <div class="context-note mb-3" role="note">
+            <i class="fas fa-sync-alt" aria-hidden="true"></i>
+            <div><strong>Automatic DNS reset enabled.</strong> Ghostwriter will reset records after use when the registrar supports it.</div>
           </div>
         {% else %}
           <div class="alert alert-warning" role="alert">
@@ -169,23 +170,28 @@
             {% endif %}
           </table>
         {% else %}
-          <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">No DNS records have been found for this domain. Refresh DNS records to populate this area.</div>
+          <div class="empty-state">
+            <p class="empty-state-title">No DNS records yet</p>
+            <p class="empty-state-description">Use <strong>Refresh DNS Records</strong> to query the domain's current DNS data.</p>
+          </div>
         {% endif %}
       </div>
 
       <!-- Domain Health Tab -->
       <div id="health" class="tab-pane">
-        <h4>Domain Health</h4>
-        <hr/>
-
-        {% if not domain.is_expired and vt_config.enable %}
-          <p>
-            <a href="javascript:void(0)" class="icon redo-icon clickable-link js-domain-update btn btn-primary col-3"
+        <header class="content-section-header">
+          <div class="content-section-heading">
+            <h4 id="domain-health-heading">Domain Health</h4>
+          </div>
+          {% if not domain.is_expired and vt_config.enable %}
+            <a href="javascript:void(0)" class="icon redo-icon clickable-link js-domain-update btn btn-primary btn-sm"
                domain-update-csrftoken="{{ csrf_token }}"
                domain-update-url="{% url 'shepherd:ajax_update_cat_single' domain.id %}"
                domain-update-id="{{ domain.id }}">Refresh Categorization</a>
-          </p>
-        {% else %}
+          {% endif %}
+        </header>
+
+        {% if domain.is_expired or not vt_config.enable %}
           <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">VirusTotal integration is disabled or the domain is expired; categorization cannot be refreshed.</div>
         {% endif %}
 
@@ -325,7 +331,10 @@
             {% endfor %}
           </table>
         {% else %}
-          <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">This domain has no history.</div>
+          <div class="empty-state">
+            <p class="empty-state-title">No project history yet</p>
+            <p class="empty-state-description">Check this domain out to a project to begin its usage history.</p>
+          </div>
         {% endif %}
       </div>
 
@@ -380,13 +389,13 @@
 
       <!-- Notes Tab -->
       <div id="notes" class="tab-pane">
-        <h4>Domain Notes</h4>
-        <hr/>
-
-        <p>
-          <a class="icon add-icon btn btn-primary col-3" href="{% url 'shepherd:domain_note_add' domain.id %}">Add a
-            Note</a>
-        </p>
+        <header class="content-section-header">
+          <div class="content-section-heading">
+            <h4 id="domain-notes-heading">Domain Notes</h4>
+          </div>
+          <a class="icon add-icon btn btn-primary btn-sm"
+             href="{% url 'shepherd:domain_note_add' domain.id %}">Add a Note</a>
+        </header>
         {% if domain.domainnote_set.all %}
           {% for note in domain.domainnote_set.all reversed %}
             <div id="note-container-{{ note.id }}">
@@ -416,10 +425,14 @@
             {% endif %}
           {% endfor %}
         {% else %}
-          <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">There are no notes for this domain.</div>
+          <div class="empty-state">
+            <p class="empty-state-title">No notes yet</p>
+            <p class="empty-state-description">Add a note when operators need context that does not belong in the domain description.</p>
+          </div>
         {% endif %}
       </div>
     </div>
+  </div>
   </div>
 {% endblock %}
 

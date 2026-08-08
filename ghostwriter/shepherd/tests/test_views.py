@@ -379,6 +379,21 @@ class DomainDetailViewTests(TestCase):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "shepherd/domain_detail.html")
+        self.assertContains(response, 'class="infrastructure-detail-page"')
+        self.assertContains(response, 'id="domain-actions-button"')
+        self.assertContains(response, 'id="domain-notes-heading"')
+        self.assertContains(response, 'id="domain-dns-heading"')
+        self.assertContains(response, 'id="domain-health-heading"')
+        self.assertContains(response, "Refresh DNS Records")
+        self.assertContains(response, "No project history yet")
+        self.assertContains(response, "No notes yet")
+        self.assertNotContains(response, "This domain has no history.")
+        self.assertNotContains(response, "There are no notes for this domain.")
+        self.assertContains(
+            response,
+            reverse("shepherd:domain_note_add", kwargs={"pk": self.domain.pk}),
+        )
+        self.assertNotContains(response, 'class="dropdown-menu-btn"')
 
     def test_view_handles_list_category_values(self):
         self.domain.categorization = {"source": "demo", "categories": ["business", "technology"]}
@@ -416,6 +431,8 @@ class DomainCreateViewTests(TestCase):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "shepherd/domain_form.html")
+        self.assertContains(response, 'id="id_description"')
+        self.assertNotContains(response, "Operator context")
 
     def test_custom_context_exists(self):
         response = self.client_auth.get(self.uri)
@@ -977,6 +994,18 @@ class ServerDetailViewTests(TestCase):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "shepherd/server_detail.html")
+        self.assertContains(response, 'class="infrastructure-detail-page"')
+        self.assertContains(response, 'id="server-actions-button"')
+        self.assertContains(response, 'id="server-notes-heading"')
+        self.assertContains(response, "No project history yet")
+        self.assertContains(response, "No notes yet")
+        self.assertNotContains(response, "This server has no history.")
+        self.assertNotContains(response, "There are no notes for this server.")
+        self.assertContains(
+            response,
+            reverse("shepherd:server_note_add", kwargs={"pk": self.server.pk}),
+        )
+        self.assertNotContains(response, 'class="dropdown-menu-btn"')
 
 
 class ServerCreateViewTests(TestCase):
@@ -1005,6 +1034,8 @@ class ServerCreateViewTests(TestCase):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "shepherd/server_form.html")
+        self.assertContains(response, 'id="id_description"')
+        self.assertNotContains(response, "Operator context")
 
     def test_custom_context_exists(self):
         response = self.client_auth.get(self.uri)
@@ -1756,6 +1787,9 @@ class UserAssetsViewTests(TestCase):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "shepherd/checkouts_for_user.html")
+        self.assertContains(response, 'class="active-assets-page"')
+        self.assertContains(response, 'class="table-row-actions"', count=6)
+        self.assertNotContains(response, 'class="dropdown-menu-btn-table"')
 
     def test_custom_context_exists(self):
         response = self.client_auth.get(self.uri)

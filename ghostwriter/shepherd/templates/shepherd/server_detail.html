@@ -16,14 +16,21 @@
 
 {% block content %}
 
-  <div class="dropdown">
-    <div class="dropdown-menu-btn" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
-         onclick="hamburger(this)">
-      <div class="bar1"></div>
-      <div class="bar2"></div>
-      <div class="bar3"></div>
-    </div>
-    <div class="dropdown-menu dropdown-menu-end" aria-labelledby="client-dropdown-btn">
+  <div class="infrastructure-detail-page">
+    <header class="detail-page-heading resource-detail-heading">
+      <div class="detail-page-heading-main resource-detail-heading-main">
+        <span class="detail-eyebrow">Reusable Server</span>
+        <h2 class="operator-data">{{ primary_address }}</h2>
+        <div class="detail-tag-list" aria-label="Server status and tags">
+          {% if staticserver.name %}<span class="library-tag library-tag-info">{{ staticserver.name }}</span>{% endif %}
+          <span class="library-tag {% if staticserver.server_status.server_status == 'Available' %}library-tag-success{% else %}library-tag-danger{% endif %}">{{ staticserver.server_status }}</span>
+          {% for tag in staticserver.tags.names %}<span class="badge badge-secondary">{{ tag|bleach }}</span>{% endfor %}
+        </div>
+      </div>
+      <div class="dropdown detail-page-heading-actions">
+        <button id="server-actions-button" type="button" class="btn btn-outline-primary btn-sm dropdown-toggle"
+                data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Actions</span></button>
+        <div class="dropdown-menu dropdown-menu-end" aria-labelledby="server-actions-button">
       <a class="dropdown-item icon edit-icon" href="{% url 'shepherd:server_update' staticserver.id %}">Edit Details</a>
       <a class="dropdown-item icon add-icon" href="{% url 'shepherd:server_update' staticserver.id %}#addresses">Add Aux
         IP Address</a>
@@ -34,18 +41,11 @@
         <a class="dropdown-item icon block-icon" href="#">Server Unavailable</a>
       {% endif %}
       <a class="dropdown-item icon trash-icon" href="{% url 'shepherd:server_delete' staticserver.id %}">Delete</a>
-    </div>
-  </div>
+        </div>
+      </div>
+    </header>
 
-  <div class="container">
-    <h2>{{ primary_address }} {% if staticserver.name %}({{ staticserver.name }}){% endif %}</h2>
-  </div>
-  {% for tag in staticserver.tags.names %}
-    <span class="badge badge-secondary">{{ tag|bleach }}</span>
-  {% endfor %}
-  <hr>
-
-  <div>
+  <div class="infrastructure-detail-workspace">
     <!-- Navigation Tabs -->
     <ul id="tab-bar" class="nav nav-tabs nav-justified"
         js-update-tabs-url="{% url 'shepherd:ajax_update_server_badges' staticserver.id %}">
@@ -89,7 +89,7 @@
             {% if staticserver.note %}
               {{ staticserver.note|strip_empty_tags|bleach }}
             {% else %}
-              <p class="mb-0">There are no additional information provided for this server.</p>
+              <p class="detail-empty mb-0">No additional information has been provided for this server.</p>
             {% endif %}
           </div>
         </div>
@@ -185,19 +185,22 @@
             {% endfor %}
           </table>
         {% else %}
-          <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">This server has no history.</div>
+          <div class="empty-state">
+            <p class="empty-state-title">No project history yet</p>
+            <p class="empty-state-description">Check this server out to a project to begin its usage history.</p>
+          </div>
         {% endif %}
       </div>
 
       <!-- Notes Tab -->
       <div id="notes" class="tab-pane">
-        <h4>Server Notes</h4>
-        <hr/>
-
-        <p>
-          <a class="icon add-icon btn btn-primary col-3" href="{% url 'shepherd:server_note_add' staticserver.id %}">Add
-            a Note</a>
-        </p>
+        <header class="content-section-header">
+          <div class="content-section-heading">
+            <h4 id="server-notes-heading">Server Notes</h4>
+          </div>
+          <a class="icon add-icon btn btn-primary btn-sm"
+             href="{% url 'shepherd:server_note_add' staticserver.id %}">Add a Note</a>
+        </header>
         {% if staticserver.servernote_set.all %}
           {% for note in staticserver.servernote_set.all reversed %}
             <div id="note-container-{{ note.id }}">
@@ -227,7 +230,10 @@
             {% endif %}
           {% endfor %}
         {% else %}
-          <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">There are no notes for this server.</div>
+          <div class="empty-state">
+            <p class="empty-state-title">No notes yet</p>
+            <p class="empty-state-description">Add a note when operators need context that does not belong in the server description.</p>
+          </div>
         {% endif %}
       </div>
 
@@ -280,6 +286,7 @@
         </div>
       {% endif %}
     </div>
+  </div>
   </div>
 {% endblock %}
 

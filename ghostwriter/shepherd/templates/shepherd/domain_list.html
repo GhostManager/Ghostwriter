@@ -125,9 +125,9 @@
                   </td>
                   <td class="align-middle text-start" data-label="Purchase Date">{{ domain.creation }}</td>
                   <td class="align-middle text-start" data-label="Expiration Date">{{ domain.expiration }}</td>
-                  <td class="align-middle text-start" data-label="Age (Days)">
+                  <td class="align-middle text-start" data-label="Age">
                     <span class="library-tag library-tag-neutral library-tag-date">
-                      <i class="fas fa-hourglass-start" aria-hidden="true"></i>{{ domain.get_domain_age|intcomma }} days
+                      <i class="fas fa-hourglass-start" aria-hidden="true"></i>{{ domain.get_domain_age_display }}
                     </span>
                   </td>
                   <td class="align-middle text-start" data-label="Expiry">

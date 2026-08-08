@@ -241,14 +241,6 @@ class DomainForm(forms.ModelForm):
                         Div(SwitchToggle("reset_dns"), css_class="resource-toggle-item"),
                         css_class="resource-toggle-grid resource-toggle-grid-two mb-3",
                     ),
-                    HTML(
-                        """
-                        <div class="form-section-heading mt-2 mb-3">
-                            <h2>Operator context</h2>
-                            <p>Capture why the domain exists and any handling details the team should know.</p>
-                        </div>
-                        """
-                    ),
                     "description",
                     link_css_class="icon domain-icon",
                     css_id="domain",

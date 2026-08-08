@@ -251,14 +251,6 @@ class ServerForm(forms.ModelForm):
                         css_class="form-row",
                     ),
                     "tags",
-                    HTML(
-                        """
-                        <div class="form-section-heading mt-2 mb-3">
-                            <h2>Operator context</h2>
-                            <p>Capture capabilities, installed tooling, and handling details for this server.</p>
-                        </div>
-                        """
-                    ),
                     "description",
                     link_css_class="icon server-icon",
                     css_id="server",

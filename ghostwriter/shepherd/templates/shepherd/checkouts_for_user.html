@@ -1,186 +1,181 @@
 {% extends "base_generic.html" %}
 
-{% block pagetitle %}Your Checked-out Assets{% endblock %}
+{% block pagetitle %}My Active Assets{% endblock %}
 
 {% block breadcrumbs %}
-    <nav aria-label="breadcrumb">
-        <ul class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-            <li class="breadcrumb-item active" aria-current="page">User Infra</li>
-        </ul>
-    </nav>
+  <nav aria-label="breadcrumb">
+    <ul class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+      <li class="breadcrumb-item active" aria-current="page">My Active Assets</li>
+    </ul>
+  </nav>
 {% endblock %}
 
 {% block content %}
-<!-- Domain Section -->
-    <h2>Your Active Domains</h2>
-    {% if domains %}
-        <p>The following domains are currently checked-out for {{ request.user.get_username }}:</p>
-        <div id="domains_table">
-            <table id="domainTable" class="tablesorter table table-hover">
-                <thead>
-                    <tr>
-                        <th>Domain</th>
-                        <th>Health</th>
-                        <th>Project</th>
-                        <th>Purpose</th>
-                        <th>Check-in</th>
-                        <th class="sorter-false">Options</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for entry in domains %}
-                        {% if entry %}
-                            <tr>
-                                <td class="align-middle"><a class="clickale" href="{{ entry.domain.get_absolute_url }}">{{ entry.domain.name }}</a></td>
+  <div class="active-assets-page">
+    <header class="detail-page-heading resource-detail-heading">
+      <div class="detail-page-heading-main resource-detail-heading-main">
+        <span class="detail-eyebrow">Infrastructure</span>
+        <h2>My Active Assets</h2>
+        <p class="active-assets-intro">Infrastructure currently checked out to {{ request.user.get_username }}.</p>
+      </div>
+    </header>
 
-                                {% if entry.domain.health_status.health_status == "Healthy" %}
-                                    <td class=" align-middle healthy">{{ entry.domain.health_status }}</td>
-                                {% else %}
-                                    <td class="align-middle burned">{{ entry.domain.health_status }}</td>
-                                {% endif %}
-
-                                <td class="align-middle"><a class="clickable" href="{{ entry.project.get_absolute_url }}">{{ entry.project}}</a></td>
-
-                                <td class="align-middle">{{ entry.activity_type}}</td>
-
-                                <td class="align-middle {% if entry.will_be_released %}burned{% endif %}">{{ entry.end_date|date:"DATE_FORMAT" }}</td>
-
-                                <td class="align-middle">
-                                    <div class="dropdown">
-                                        <button class="dropdown-menu-btn-table" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
-                                        <div class="dropdown-menu dropdown-menu-end" aria-labelledby="client-dropdown-btn">
-                                            <a class="dropdown-item icon edit-icon" href="{% url 'shepherd:history_update' entry.id %}">Edit</a>
-                                            <a class="dropdown-item icon redo-icon clickable-link js-release-asset" href="javascript:void(0)" release-asset-csrftoken="{{ csrf_token }}" release-asset-url="{% url 'shepherd:ajax_domain_release' entry.id %}" release-asset-id="{{ entry.id }}">Release</a>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                        {% endif %}
-                    {% endfor %}
-                </tbody>
-            </table>
+    <div class="active-assets-grid">
+      <section class="detail-panel active-assets-panel" aria-labelledby="active-domains-heading">
+        <div class="detail-panel-header">
+          <div>
+            <span class="detail-eyebrow">Domains</span>
+            <h4 id="active-domains-heading">Checked-out domains</h4>
+          </div>
+          <span class="badge active-assets-count">{{ domains|length }}</span>
         </div>
-    {% else %}
-        <p>There are no domains currently checked-out for your account.</p>
-    {% endif %}
 
-    <!-- Server Section -->
-    <h2>Your Active Servers</h2>
-    {% if servers %}
-        <p>The following servers are currently checked-out for {{ request.user.get_username }}:</p>
-        <div id="servers_table">
-            <table id="serverTable" class="tablesorter">
-                <thead>
-                    <tr>
-                        <th>IP Address</th>
-                        <th>Project</th>
-                        <th>Purpose</th>
-                        <th>Role</th>
-                        <th>Check-in</th>
-                        <th class="sorter-false">Options</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for entry in servers %}
-                        {% if entry %}
-                            <tr>
-                                <td class="align-middle"><a class="clickable" href="{{ entry.server.get_absolute_url }}">{{ entry.server.ip_address }}</a></td>
-
-                                <td class="align-middle"><a class="clickable" href="{{ entry.project.get_absolute_url }}">{{ entry.project}}</a></td>
-
-                                <td class="align-middle">{{ entry.activity_type}}</td>
-
-                                <td class="align-middle">{{ entry.server_role}}</td>
-
-                                <td class="align-middle {% if entry.will_be_released %}burned{% endif %}">{{ entry.end_date|date:"DATE_FORMAT" }}</td>
-
-                                <td class="align-middle">
-                                    <div class="dropdown">
-                                        <button class="dropdown-menu-btn-table" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
-                                        <div class="dropdown-menu dropdown-menu-end" aria-labelledby="client-dropdown-btn">
-                                            <a class="dropdown-item icon edit-icon" href="{% url 'shepherd:server_history_update' entry.id %}">Edit</a>
-                                            <a class="dropdown-item icon redo-icon clickable-link js-release-asset" href="javascript:void(0)" release-asset-csrftoken="{{ csrf_token }}" release-asset-url="{% url 'shepherd:ajax_server_release' entry.id %}" release-asset-id="{{ entry.id }}">Release</a>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                        {% endif %}
-                    {% endfor %}
-                </tbody>
+        {% if domains %}
+          <div class="table-responsive data-table-frame">
+            <table id="domainTable" class="tablesorter table table-hover active-assets-table">
+              <thead>
+                <tr>
+                  <th class="text-start">Domain</th>
+                  <th class="text-start">Health</th>
+                  <th class="text-start">Project</th>
+                  <th class="text-start">Purpose</th>
+                  <th class="text-start">Check-in</th>
+                  <th class="sorter-false text-end">Options</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for entry in domains %}
+                  <tr>
+                    <td class="align-middle text-start"><a class="clickable" href="{{ entry.domain.get_absolute_url }}">{{ entry.domain.name }}</a></td>
+                    <td class="align-middle text-start">
+                      <span class="library-tag {% if entry.domain.health_status.health_status == 'Healthy' %}library-tag-success{% else %}library-tag-danger{% endif %}">{{ entry.domain.health_status }}</span>
+                    </td>
+                    <td class="align-middle text-start"><a class="clickable" href="{{ entry.project.get_absolute_url }}">{{ entry.project }}</a></td>
+                    <td class="align-middle text-start">{{ entry.activity_type }}</td>
+                    <td class="align-middle text-start {% if entry.will_be_released %}active-assets-checkin-warning{% endif %}">{{ entry.end_date|date:"DATE_FORMAT" }}</td>
+                    <td class="align-middle text-end">
+                      <div class="table-row-actions">
+                        <a class="table-row-action" title="Edit domain checkout" aria-label="Edit domain checkout"
+                           href="{% url 'shepherd:history_update' entry.id %}"><i class="fas fa-pen" aria-hidden="true"></i></a>
+                        <button type="button" class="table-row-action table-row-action-danger js-release-asset"
+                                title="Release domain" aria-label="Release domain"
+                                release-asset-csrftoken="{{ csrf_token }}"
+                                release-asset-url="{% url 'shepherd:ajax_domain_release' entry.id %}"
+                                release-asset-id="{{ entry.id }}"><i class="fas fa-undo" aria-hidden="true"></i></button>
+                      </div>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
             </table>
+          </div>
+        {% else %}
+          <div class="empty-state">
+            <p class="empty-state-title">No active domains</p>
+            <p class="empty-state-description">Domains checked out to you will appear here until they are released.</p>
+          </div>
+        {% endif %}
+      </section>
+
+      <section class="detail-panel active-assets-panel" aria-labelledby="active-servers-heading">
+        <div class="detail-panel-header">
+          <div>
+            <span class="detail-eyebrow">Servers</span>
+            <h4 id="active-servers-heading">Checked-out servers</h4>
+          </div>
+          <span class="badge active-assets-count">{{ servers|length }}</span>
         </div>
-    {% else %}
-        <p>There are no servers currently checked-out for your account.</p>
-    {% endif %}
+
+        {% if servers %}
+          <div class="table-responsive data-table-frame">
+            <table id="serverTable" class="tablesorter table table-hover active-assets-table">
+              <thead>
+                <tr>
+                  <th class="text-start">IP Address</th>
+                  <th class="text-start">Project</th>
+                  <th class="text-start">Purpose</th>
+                  <th class="text-start">Role</th>
+                  <th class="text-start">Check-in</th>
+                  <th class="sorter-false text-end">Options</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for entry in servers %}
+                  <tr>
+                    <td class="align-middle text-start"><a class="clickable operator-data" href="{{ entry.server.get_absolute_url }}">{{ entry.server.ip_address }}</a></td>
+                    <td class="align-middle text-start"><a class="clickable" href="{{ entry.project.get_absolute_url }}">{{ entry.project }}</a></td>
+                    <td class="align-middle text-start">{{ entry.activity_type }}</td>
+                    <td class="align-middle text-start">{{ entry.server_role }}</td>
+                    <td class="align-middle text-start {% if entry.will_be_released %}active-assets-checkin-warning{% endif %}">{{ entry.end_date|date:"DATE_FORMAT" }}</td>
+                    <td class="align-middle text-end">
+                      <div class="table-row-actions">
+                        <a class="table-row-action" title="Edit server checkout" aria-label="Edit server checkout"
+                           href="{% url 'shepherd:server_history_update' entry.id %}"><i class="fas fa-pen" aria-hidden="true"></i></a>
+                        <button type="button" class="table-row-action table-row-action-danger js-release-asset"
+                                title="Release server" aria-label="Release server"
+                                release-asset-csrftoken="{{ csrf_token }}"
+                                release-asset-url="{% url 'shepherd:ajax_server_release' entry.id %}"
+                                release-asset-id="{{ entry.id }}"><i class="fas fa-undo" aria-hidden="true"></i></button>
+                      </div>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="empty-state">
+            <p class="empty-state-title">No active servers</p>
+            <p class="empty-state-description">Servers checked out to you will appear here until they are released.</p>
+          </div>
+        {% endif %}
+      </section>
+    </div>
+  </div>
 {% endblock %}
 
 {% block morescripts %}
-    <!-- jQuery Tablesorter Script -->
-    <script>
-        $(document).ready(function()  {
-            $("#domainTable").tablesorter(
-                            {
-                                cssAsc: 'down',
-                                cssDesc: 'up',
-                                cssNone: 'none',
-                            }
-                        );
-            $('.tablesorter').trigger('update');
-            $("#serverTable").tablesorter(
-                            {
-                                cssAsc: 'down',
-                                cssDesc: 'up',
-                                cssNone: 'none',
-                            }
-                        );
-            $('.tablesorter').trigger('update');
-        });
-    </script>
+  <script>
+    $(document).ready(function() {
+      $('.tablesorter').tablesorter({ cssAsc: 'down', cssDesc: 'up', cssNone: 'none' });
+    });
 
-    <!-- Release Domain with AJAX -->
-    <script>
-        $('.js-release-asset').each(function(index) {
-            $(this).click(function () {
-                var url = $(this).attr('release-asset-url');
-                var assetId = $(this).attr('release-asset-id');
-                var csrftoken = $(this).attr('release-asset-csrftoken');
-                // Selectors for each major parent object – tr, tbody, and table
-                var targetRow = $(this).closest('tr');
-                var targetTbody = $(this).closest('tbody');
-                var targetTable = $(this).closest('table');
-                // Prep AJAX request with CSRF token
-                $.ajaxSetup({
-                    beforeSend: function(xhr, settings) {
-                        if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-                            xhr.setRequestHeader('X-CSRFToken', csrftoken);
-                        }
-                    }
-                });
-                // Send AJAX POST request
-                $.ajax({
-                    url: url,
-                    type: 'POST',
-                    dataType: 'json',
-                    data: {
-                        'asset': assetId,
-                    },
-                    success: function (data) {
-                        if (data['result'] == 'success') {
-                            if (targetRow) {
-                                targetRow.remove();
-                            }
-                            // If that was the last row, hide the empty table
-                            if (targetTbody.find('tr').length == 0) {
-                                targetTable.hide();
-                            }
-                        }
-                        if (data['message']) {
-                            displayToastTop({type:data['result'], string:data['message'], title:'Asset Update'});
-                        }
-                    }
-                });
-            });
-        });
-    </script>
+    $('.js-release-asset').on('click', function () {
+      const $action = $(this);
+      const $row = $action.closest('tr');
+      const url = $action.attr('release-asset-url');
+      const assetId = $action.attr('release-asset-id');
+      const csrftoken = $action.attr('release-asset-csrftoken');
+
+      $.ajaxSetup({
+        beforeSend: function(xhr, settings) {
+          if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+            xhr.setRequestHeader('X-CSRFToken', csrftoken);
+          }
+        }
+      });
+      $action.prop('disabled', true);
+      $.ajax({
+        url: url,
+        type: 'POST',
+        dataType: 'json',
+        data: { asset: assetId },
+        success: function (data) {
+          if (data.result === 'success') {
+            $row.remove();
+            $action.closest('table').trigger('update');
+          } else {
+            $action.prop('disabled', false);
+          }
+          if (data.message) {
+            displayToastTop({type: data.result, string: data.message, title: 'Asset update'});
+          }
+        },
+        error: function () {
+          $action.prop('disabled', false);
+        }
+      });
+    });
+  </script>
 {% endblock %}
