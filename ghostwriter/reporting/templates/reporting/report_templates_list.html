@@ -97,17 +97,16 @@
                     </span>
                   </td>
                   <td class="align-middle text-start library-primary-cell" data-label="Name">
-                    <a class="library-primary-link" href="{% url 'reporting:template_detail' template.id %}">
-                      <span>{{ template.name }}</span>
+                    <a class="table-primary-link library-primary-link" href="{% url 'reporting:template_detail' template.id %}">
+                      <span class="template-library-title">
+                        {% if template.protected %}
+                          <i class="fas fa-lock template-library-protected-icon" aria-hidden="true"></i>
+                          <span class="visually-hidden">Protected template: </span>
+                        {% endif %}
+                        <span class="template-library-title-text">{{ template.name }}</span>
+                      </span>
                       <i class="fas fa-arrow-right" aria-hidden="true"></i>
                     </a>
-                    {% if template.protected %}
-                      <div class="library-cell-tags">
-                        <span class="library-tag library-tag-warning">
-                          <i class="fas fa-lock" aria-hidden="true"></i>Protected
-                        </span>
-                      </div>
-                    {% endif %}
                   </td>
                   <td class="align-middle text-start" data-label="Orientation">
                     {% if template.landscape %}
