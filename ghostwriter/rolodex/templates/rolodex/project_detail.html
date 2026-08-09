@@ -194,7 +194,7 @@
             {% for operator in project.projectassignment_set.all %}
               <tr>
                 <td id="delete-target-content-assignment-{{ operator.id }}" class="align-middle text-start">
-                  <a class="clickable" href="{% url 'users:user_detail' operator.operator.username %}">
+                  <a class="table-primary-link" href="{% url 'users:user_detail' operator.operator.username %}">
                     {% if operator.operator.name %}
                       {{ operator.operator.name }}
                     {% else %}
@@ -270,7 +270,7 @@
                 {% for invite in project.projectinvite_set.all %}
                   <tr>
                     <td class="align-middle text-start">
-                      <a class="clickable" href="{% url 'users:user_detail' invite.user.username %}">
+                      <a class="table-primary-link" href="{% url 'users:user_detail' invite.user.username %}">
                         {% if invite.user.name %}
                           {{ invite.user.name }}
                         {% else %}
@@ -556,7 +556,7 @@
             {% for log in project.oplog_set.all %}
               <tr>
                 <td class="oplog-id align-middle text-start">{{ log.id }}</td>
-                <td class="align-middle text-start"><a class="clickable"
+                <td class="align-middle text-start"><a class="table-primary-link"
                                             href="{% url 'oplog:oplog_entries' log.pk %}">{{ log.name }}</a></td>
                 <td class="align-middle text-start">
                   {% if log.entries.all %}
@@ -637,7 +637,7 @@
             </thead>
             {% for report in project.report_set.all %}
               <tr>
-                <td class="align-middle text-start"><a class="clickable"
+                <td class="align-middle text-start"><a class="table-primary-link"
                                             href="{{ report.get_absolute_url }}">{{ report.title }}</a></td>
                 {% if report.complete %}
                   {% if report.delivered %}
@@ -737,7 +737,7 @@
                       {% for finding in values.findings %}
                         <tr class="report-item-row">
                           <td class="report-item-primary-cell align-middle text-start">
-                            <a class="clickable report-item-title"
+                            <a class="table-primary-link report-item-title"
                                href="{% url 'reporting:local_edit' finding.id %}">{{ finding.title }}</a>
                             {% if finding.added_as_blank %}
                               <i class="fas fa-flag report-item-source-icon" aria-hidden="true"

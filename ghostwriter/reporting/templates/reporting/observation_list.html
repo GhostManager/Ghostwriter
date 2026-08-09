@@ -88,7 +88,7 @@
               {% for observation in filter.qs %}
                 <tr>
                   <td class="align-middle text-start library-primary-cell" data-label="Title">
-                    <a class="library-primary-link" href="{{ observation.get_absolute_url }}">
+                    <a class="table-primary-link library-primary-link" href="{{ observation.get_absolute_url }}">
                       <span>{{ observation.display_title }}</span>
                       <i class="fas fa-arrow-right" aria-hidden="true"></i>
                     </a>
@@ -103,24 +103,31 @@
                     </div>
                   </td>
                   <td class="align-middle text-end" data-label="Actions">
-                    <div class="library-row-actions">
-                      <button type="button" class="report-row-action icon preview-icon"
+                    <div class="table-row-actions" role="group" aria-label="Actions for {{ observation.display_title }}">
+                      <button type="button" class="table-row-action"
                               title="Preview observation"
                               aria-label="Preview {{ observation.display_title }}"
-                              onclick="openModal('#observation_detail_{{ observation.id }}')"></button>
+                              data-bs-toggle="modal"
+                              data-bs-target="#observation_detail_{{ observation.id }}">
+                        <i class="fas fa-eye" aria-hidden="true"></i>
+                      </button>
                       <button type="button"
-                              class="report-row-action js-quick-add icon add-icon"
+                              class="table-row-action js-quick-add"
                               data-quick-add-kind="observation"
                               data-quick-add-id="{{ observation.id }}"
                               data-quick-add-label="{{ observation.display_title }}"
                               data-quick-add-csrftoken="{{ csrf_token }}"
                               data-quick-add-url="{% url 'reporting:ajax_assign_observation' observation.id %}"
                               title="{% if active_engagement %}Add to {{ active_engagement.report.title }}{% else %}Choose a working report to add this observation{% endif %}"
-                              aria-label="{% if active_engagement %}Add {{ observation.display_title }} to {{ active_engagement.report.title }}{% else %}Choose a working report to add {{ observation.display_title }}{% endif %}"></button>
-                      <a class="report-row-action icon edit-icon"
+                              aria-label="{% if active_engagement %}Add {{ observation.display_title }} to {{ active_engagement.report.title }}{% else %}Choose a working report to add {{ observation.display_title }}{% endif %}">
+                        <i class="fas fa-plus" aria-hidden="true"></i>
+                      </button>
+                      <a class="table-row-action"
                          href="{% url 'reporting:observation_update' observation.id %}"
                          title="Edit observation"
-                         aria-label="Edit {{ observation.display_title }}"></a>
+                         aria-label="Edit {{ observation.display_title }}">
+                        <i class="fas fa-pen" aria-hidden="true"></i>
+                      </a>
                     </div>
                   </td>
                 </tr>

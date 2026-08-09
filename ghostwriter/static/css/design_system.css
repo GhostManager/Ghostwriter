@@ -1222,6 +1222,30 @@ textarea.form-control {
   box-shadow: none;
 }
 
+/* Text links in data tables identify records; reserve green for status and success. */
+.table-primary-link,
+.table a.clickable,
+a.report-item-title {
+  color: var(--gw-text-strong);
+  font-weight: 650;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  text-decoration: none;
+  text-underline-offset: 0.18em;
+  word-break: normal;
+}
+
+.table-primary-link:hover,
+.table-primary-link:focus-visible,
+.table a.clickable:hover,
+.table a.clickable:focus-visible,
+a.report-item-title:hover,
+a.report-item-title:focus-visible {
+  color: var(--gw-engagement-violet);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+}
+
 /* Findings and observations behave like compact, sortable work items. */
 .report-workflow-hint {
   display: flex;
@@ -1338,20 +1362,6 @@ textarea.form-control {
 
 a.report-item-title {
   display: inline;
-  color: var(--gw-text-strong);
-  font-weight: 550;
-  line-height: 1.4;
-  overflow-wrap: anywhere;
-  text-decoration: none;
-  text-underline-offset: 0.18em;
-  word-break: normal;
-}
-
-a.report-item-title:hover,
-a.report-item-title:focus-visible {
-  color: var(--primary-color);
-  text-decoration: underline;
-  text-decoration-thickness: 1px;
 }
 
 .report-item-source-icon {
@@ -6916,7 +6926,7 @@ a.report-item-title:focus-visible {
 }
 
 .library-filters .input-group-text {
-  color: var(--primary-color);
+  color: var(--gw-engagement-violet);
   background: var(--gw-surface-muted);
   border-color: var(--gw-border);
 }
@@ -7286,9 +7296,6 @@ a.report-item-title:focus-visible {
   gap: 0.55rem;
   align-items: center;
   max-width: 100%;
-  color: var(--gw-text-strong);
-  font-weight: 650;
-  text-decoration: none;
 }
 
 .library-primary-link > span {
@@ -7298,23 +7305,35 @@ a.report-item-title:focus-visible {
 
 .library-primary-link > i {
   flex: 0 0 auto;
-  color: var(--primary-color);
+  color: var(--gw-engagement-violet);
   font-size: 0.72rem;
   opacity: 0;
   transform: translateX(-0.2rem);
   transition: opacity 140ms ease, transform 140ms ease;
 }
 
-.library-primary-link:hover,
-.library-primary-link:focus-visible {
-  color: var(--primary-color);
-  text-decoration: none;
-}
-
 .library-primary-link:hover > i,
 .library-primary-link:focus-visible > i {
   opacity: 1;
   transform: translateX(0);
+}
+
+.template-library-title {
+  display: inline-flex;
+  gap: 0.45rem;
+  align-items: flex-start;
+}
+
+.template-library-protected-icon {
+  flex: 0 0 auto;
+  margin-top: 0.24em;
+  color: var(--gw-signal-amber);
+  font-size: 0.8em;
+}
+
+.template-library-title-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .library-count-badge {

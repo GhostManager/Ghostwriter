@@ -4128,8 +4128,15 @@ class ReportTemplateListViewTests(TestCase):
         self.assertContains(response, 'class="filter-form library-filters template-library-filters"')
         self.assertContains(response, 'class="library-results template-library-results"')
         self.assertContains(response, "library-table library-table-wide")
-        self.assertContains(response, 'class="library-cell-tags"')
-        self.assertContains(response, 'class="fas fa-lock"')
+        self.assertContains(response, 'class="template-library-title"')
+        self.assertContains(
+            response,
+            'class="fas fa-lock template-library-protected-icon"',
+        )
+        self.assertContains(response, 'class="visually-hidden">Protected template: </span>')
+        self.assertContains(response, 'class="template-library-title-text"')
+        self.assertNotContains(response, 'class="library-cell-tags"')
+        self.assertNotContains(response, '</i>Protected')
         self.assertContains(response, 'class="fas fa-arrows-alt-v"')
         self.assertContains(response, 'class="fas fa-building"')
         self.assertContains(response, 'data-label="Project-Only"')
@@ -6307,11 +6314,25 @@ class ObservationListViewTests(TestCase):
         self.assertContains(response, "Create Observation")
         self.assertContains(
             response,
-            'class="library-primary-link"',
+            'class="table-primary-link library-primary-link"',
         )
         self.assertContains(response, 'data-label="Title"')
         self.assertContains(response, 'data-label="Tags"')
         self.assertContains(response, 'data-1p-ignore="true"', count=2)
+        self.assertContains(
+            response,
+            'class="table-row-actions" role="group" aria-label="Actions for Visible Observation"',
+        )
+        self.assertContains(
+            response,
+            f'data-bs-target="#observation_detail_{self.observation.id}"',
+        )
+        self.assertContains(response, 'title="Preview observation"')
+        self.assertContains(response, 'title="Edit observation"')
+        self.assertContains(response, 'class="fas fa-eye"')
+        self.assertContains(response, 'class="fas fa-plus"')
+        self.assertContains(response, 'class="fas fa-pen"')
+        self.assertNotContains(response, "report-row-action icon preview-icon")
 
     def test_tags_are_scoped_to_observations(self):
         hidden_report = ReportFactory(title="Hidden Tagged Report")

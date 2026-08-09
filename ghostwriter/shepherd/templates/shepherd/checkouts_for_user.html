@@ -47,11 +47,11 @@
               <tbody>
                 {% for entry in domains %}
                   <tr>
-                    <td class="align-middle text-start"><a class="clickable" href="{{ entry.domain.get_absolute_url }}">{{ entry.domain.name }}</a></td>
+                    <td class="align-middle text-start"><a class="table-primary-link" href="{{ entry.domain.get_absolute_url }}">{{ entry.domain.name }}</a></td>
                     <td class="align-middle text-start">
                       <span class="library-tag {% if entry.domain.health_status.health_status == 'Healthy' %}library-tag-success{% else %}library-tag-danger{% endif %}">{{ entry.domain.health_status }}</span>
                     </td>
-                    <td class="align-middle text-start"><a class="clickable" href="{{ entry.project.get_absolute_url }}">{{ entry.project }}</a></td>
+                    <td class="align-middle text-start"><a class="table-primary-link" href="{{ entry.project.get_absolute_url }}">{{ entry.project }}</a></td>
                     <td class="align-middle text-start">{{ entry.activity_type }}</td>
                     <td class="align-middle text-start {% if entry.will_be_released %}active-assets-checkin-warning{% endif %}">{{ entry.end_date|date:"DATE_FORMAT" }}</td>
                     <td class="align-middle text-end">
@@ -103,8 +103,8 @@
               <tbody>
                 {% for entry in servers %}
                   <tr>
-                    <td class="align-middle text-start"><a class="clickable operator-data" href="{{ entry.server.get_absolute_url }}">{{ entry.server.ip_address }}</a></td>
-                    <td class="align-middle text-start"><a class="clickable" href="{{ entry.project.get_absolute_url }}">{{ entry.project }}</a></td>
+                    <td class="align-middle text-start"><a class="table-primary-link operator-data" href="{{ entry.server.get_absolute_url }}">{{ entry.server.ip_address }}</a></td>
+                    <td class="align-middle text-start"><a class="table-primary-link" href="{{ entry.project.get_absolute_url }}">{{ entry.project }}</a></td>
                     <td class="align-middle text-start">{{ entry.activity_type }}</td>
                     <td class="align-middle text-start">{{ entry.server_role }}</td>
                     <td class="align-middle text-start {% if entry.will_be_released %}active-assets-checkin-warning{% endif %}">{{ entry.end_date|date:"DATE_FORMAT" }}</td>

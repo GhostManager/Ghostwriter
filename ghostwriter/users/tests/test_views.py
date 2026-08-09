@@ -19,7 +19,7 @@ from allauth.mfa import app_settings as mfa_app_settings
 from allauth.mfa.internal.flows.add import validate_can_add_authenticator
 
 # Ghostwriter Libraries
-from ghostwriter.factories import UserFactory
+from ghostwriter.factories import ProjectAssignmentFactory, ProjectFactory, UserFactory
 from ghostwriter.home.models import UserProfile
 
 logging.disable(logging.CRITICAL)
@@ -59,6 +59,17 @@ class UserDetailViewTests(TestCase):
         self.assertContains(response, 'id="account-actions"')
         self.assertContains(response, "Settings and security")
         self.assertContains(response, "Personal access tokens")
+
+    def test_active_project_uses_shared_table_link_style(self):
+        project = ProjectFactory()
+        ProjectAssignmentFactory(project=project, operator=self.user)
+
+        response = self.client_auth.get(self.uri)
+
+        self.assertContains(
+            response,
+            f'class="table-primary-link" href="{project.get_absolute_url()}"',
+        )
 
 
 class UserUpdateViewTests(TestCase):

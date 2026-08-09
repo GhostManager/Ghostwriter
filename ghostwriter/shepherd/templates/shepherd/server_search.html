@@ -39,15 +39,15 @@
             <tbody>
                 {% for server in servers %}
                     <tr>
-                        <td class="align-middle"><a href="{{ server.get_absolute_url }}" class="clickable">{{ server.ip_address }}</a></td>
-                        <td class="align-middle"><a href="{{ server.get_absolute_url }}" class="clickable">{{ server.name }}</a></td>
+                        <td class="align-middle"><a href="{{ server.get_absolute_url }}" class="table-primary-link">{{ server.ip_address }}</a></td>
+                        <td class="align-middle"><a href="{{ server.get_absolute_url }}" class="table-primary-link">{{ server.name }}</a></td>
                         <td class="align-middle">Static Server</td>
                         <td class="align-middle">{{ server.server_provider }}</td>
                     </tr>
                 {% endfor %}
                 {% for server in vps %}
                     <tr>
-                        <td class="align-middle"><a href="{{ server.project.get_absolute_url }}#infrastructure" class="clickable">{{ server.ip_address }}</a></td>
+                        <td class="align-middle"><a href="{{ server.project.get_absolute_url }}#infrastructure" class="table-primary-link">{{ server.ip_address }}</a></td>
                         <td class="align-middle">{% if server.name %}{{ server.name }}{% else %}--{% endif %}</td>
                         <td class="align-middle">Cloud Server</td>
                         <td class="align-middle">{{ server.server_provider }}</td>
@@ -55,7 +55,7 @@
                 {% endfor %}
                 {% for server in addresses %}
                     <tr>
-                        <td class="align-middle"><a href="{{ server.static_server.get_absolute_url }}" class="clickable">{{ server.ip_address }}</a></td>
+                        <td class="align-middle"><a href="{{ server.static_server.get_absolute_url }}" class="table-primary-link">{{ server.ip_address }}</a></td>
                         <td class="align-middle">{% if server.static_server.name %}{{ server.static_server.name }}{% else %}--{% endif %}</td>
                         <td class="align-middle">Alternate Address</td>
                         <td class="align-middle">{{ server.static_server.server_provider }}</td>
@@ -65,4 +65,3 @@
         </table>
     {% endif %}
 {% endblock %}
-

@@ -794,7 +794,11 @@ class ClientListViewTests(TestCase):
         self.assertContains(response, 'class="filter-form library-filters client-library-filters"')
         self.assertContains(response, 'class="library-results client-library-results"')
         self.assertContains(response, 'class="tablesorter table table-hover library-table client-library-table"')
-        self.assertContains(response, 'library-primary-link client-library-name-link', count=3)
+        self.assertContains(
+            response,
+            'table-primary-link library-primary-link client-library-name-link',
+            count=3,
+        )
         self.assertContains(response, 'id="resetSortBtn"')
         self.assertNotContains(response, 'btn btn-info col-2')
         self.assertEqual(name_filter.get("data-1p-ignore"), "true")

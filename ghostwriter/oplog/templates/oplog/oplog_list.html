@@ -67,7 +67,7 @@
                     <span class="library-count-badge">{{ log.id }}</span>
                   </td>
                   <td class="align-middle text-start library-primary-cell" data-label="Name">
-                    <a class="library-primary-link" href="{% url 'oplog:oplog_entries' log.pk %}">
+                    <a class="table-primary-link library-primary-link" href="{% url 'oplog:oplog_entries' log.pk %}">
                       <span>{{ log.name }}</span>
                       <i class="fas fa-arrow-right" aria-hidden="true"></i>
                     </a>

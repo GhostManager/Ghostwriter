@@ -101,7 +101,11 @@ class OplogListViewTests(TestCase):
         self.assertContains(response, 'class="library-results oplog-library-results"')
         self.assertContains(response, "library-table library-table-wide")
         self.assertContains(response, "library-tag library-tag-success")
-        self.assertContains(response, 'class="library-primary-link"', count=2)
+        self.assertContains(
+            response,
+            'class="table-primary-link library-primary-link"',
+            count=2,
+        )
         self.assertNotContains(response, "buttonHolder")
         self.assertNotContains(response, 'id="oplog-library-results-title"')
 

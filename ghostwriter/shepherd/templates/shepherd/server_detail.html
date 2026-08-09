@@ -148,7 +148,7 @@
               <tr>
                 <td class="align-middle text-start">
                   {% if checkout.project|has_access:request.user %}
-                    <a class="clickable"
+                    <a class="table-primary-link"
                        href="{% url 'rolodex:project_detail' checkout.project.id %}">{{ checkout.project }}</a>
                   {% else %}
                     <span class="blurry">REDACTED</span>

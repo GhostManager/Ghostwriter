@@ -129,7 +129,7 @@
               {% for assignment in user.projectassignment_set.all %}
                 {% if not assignment.project.complete %}
                   <tr id="assignment_{{ assignment.id }}">
-                    <td class="align-middle text-start"><a class="clickable" href="{{ assignment.project.get_absolute_url }}">{{ assignment.project.codename|bleach }}</a></td>
+                    <td class="align-middle text-start"><a class="table-primary-link" href="{{ assignment.project.get_absolute_url }}">{{ assignment.project.codename|bleach }}</a></td>
                     <td class="align-middle text-start">{{ assignment.role }}</td>
                     <td class="align-middle text-start" data-text="{{ assignment.start_date|date:"Y-m-d" }}">{{ assignment.start_date|date:"DATE_FORMAT" }} – {{ assignment.end_date|date:"DATE_FORMAT" }}</td>
                   </tr>

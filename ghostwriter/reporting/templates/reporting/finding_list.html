@@ -127,14 +127,14 @@
                     </span>
                   </td>
                   <td class="align-middle text-start finding-title-cell library-primary-cell" data-label="Title">
-                    <a class="library-primary-link" href="{{ finding.get_absolute_url }}">
+                    <a class="table-primary-link library-primary-link" href="{{ finding.get_absolute_url }}">
                       <span>{{ finding.display_title }}</span>
                       <i class="fas fa-arrow-right" aria-hidden="true"></i>
                     </a>
                   </td>
                   {% if searching_report_findings %}
                     <td class="align-middle text-start" data-label="Report">
-                      <a class="clickable" href="{{ finding.report.get_absolute_url }}">{{ finding.report.title }}</a>
+                      <a class="table-primary-link" href="{{ finding.report.get_absolute_url }}">{{ finding.report.title }}</a>
                     </td>
                   {% endif %}
                   <td class="align-middle text-start" data-label="CVSS Vector">

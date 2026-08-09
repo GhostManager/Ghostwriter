@@ -156,7 +156,7 @@
               {% for invite in client.clientinvite_set.all %}
                 <tr>
                   <td class="align-middle text-start">
-                    <a class="clickable" href="{% url 'users:user_detail' invite.user.username %}">
+                    <a class="table-primary-link" href="{% url 'users:user_detail' invite.user.username %}">
                       {% if invite.user.name %}
                         {{ invite.user.name }}
                       {% else %}
@@ -305,7 +305,7 @@
               {% with has_access=project.current_user_can_view %}
                 <tr>
                   {% if has_access %}
-                    <td class="align-middle text-start"><a class="clickable"
+                    <td class="align-middle text-start"><a class="table-primary-link"
                                                 href="{{ project.get_absolute_url }}">{{ project.codename }}</a></td>
                   {% else %}
                     <td class="align-middle text-start"><span class="blurry">REDACTED</span></td>
@@ -382,13 +382,13 @@
               {% for domain in domains %}
                 <tr>
                   {% if domain.current_user_can_view %}
-                    <td class="align-middle text-start"><a class="clickable"
+                    <td class="align-middle text-start"><a class="table-primary-link"
                                                 href="{{ domain.project.get_absolute_url }}">{{ domain.project.codename }}</a>
                     </td>
                   {% else %}
                     <td class="align-middle text-start"><span class="blurry">REDACTED</span></td>
                   {% endif %}
-                  <td class="align-middle text-start"><a class="clickable"
+                  <td class="align-middle text-start"><a class="table-primary-link"
                                               href="{{ domain.domain.get_absolute_url }}">{{ domain.domain.name }}</a>
                   </td>
                   <td class="align-middle text-start">{{ domain.activity_type }}</td>
@@ -433,13 +433,13 @@
               {% for server in servers %}
                 <tr>
                   {% if server.current_user_can_view %}
-                    <td class="align-middle text-start"><a class="clickable"
+                    <td class="align-middle text-start"><a class="table-primary-link"
                                                 href="{{ server.project.get_absolute_url }}">{{ server.project.codename }}</a>
                     </td>
                   {% else %}
                     <td class="align-middle text-start"><span class="blurry">REDACTED</span></td>
                   {% endif %}
-                  <td class="align-middle text-start"><a class="clickable"
+                  <td class="align-middle text-start"><a class="table-primary-link"
                                               href="{{ server.server.get_absolute_url }}">{{ server.server.ip_address }}</a>
                   </td>
                   <td class="align-middle text-start">{{ server.activity_type }}</td>
@@ -451,7 +451,7 @@
               {% for server in vps %}
                 <tr>
                   {% if server.current_user_can_view %}
-                    <td class="align-middle text-start"><a class="clickable"
+                    <td class="align-middle text-start"><a class="table-primary-link"
                                                 href="{{ server.project.get_absolute_url }}">{{ server.project.codename }}</a>
                     </td>
                   {% else %}

@@ -35,7 +35,7 @@
                 <tr>
                     <td class="align-middle text-start">{{ zip.project.client.name }}</td>
                     <td class="align-middle text-start">{{ zip.project.start_date }} {{ zip.project.project_type }}</td>
-                    <td class="align-middle text-start"><a class="icon download-icon" href="{% url 'reporting:download_archive' zip.pk %}">{{ zip.filename }}</a></td>
+                    <td class="align-middle text-start"><a class="table-primary-link icon download-icon" href="{% url 'reporting:download_archive' zip.pk %}">{{ zip.filename }}</a></td>
                 </tr>
             {% endfor %}
         </table>
