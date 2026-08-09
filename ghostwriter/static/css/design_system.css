@@ -4341,6 +4341,12 @@ a.report-item-title {
   grid-column: 1 / -1;
 }
 
+.template-detail-section-icon {
+  flex: 0 0 auto;
+  color: var(--gw-engagement-violet);
+  opacity: 0.86;
+}
+
 .evidence-log-groups {
   display: grid;
   gap: 1rem;
@@ -7392,6 +7398,24 @@ a.report-item-title {
   color: color-mix(in srgb, var(--primary-color) 78%, var(--gw-text-strong));
   background: color-mix(in srgb, var(--primary-color) 10%, var(--gw-surface));
   border-color: color-mix(in srgb, var(--primary-color) 28%, var(--gw-border));
+}
+
+.library-tag-word {
+  color: var(--word-color);
+  background: color-mix(in srgb, var(--word-color) 11%, var(--gw-surface));
+  border-color: color-mix(in srgb, var(--word-color) 34%, var(--gw-border));
+}
+
+.library-tag-powerpoint {
+  color: var(--pptx-color);
+  background: color-mix(in srgb, var(--pptx-color) 11%, var(--gw-surface));
+  border-color: color-mix(in srgb, var(--pptx-color) 34%, var(--gw-border));
+}
+
+.library-tag-context {
+  color: var(--gw-engagement-violet);
+  background: color-mix(in srgb, var(--gw-engagement-violet) 11%, var(--gw-surface));
+  border-color: color-mix(in srgb, var(--gw-engagement-violet) 34%, var(--gw-border));
 }
 
 .library-tag-neutral {

@@ -20,7 +20,7 @@
         <span class="detail-eyebrow">Report Template</span>
         <h2 class="mb-0">{{ reporttemplate.name|bleach }}</h2>
         <div class="detail-tag-list mt-0" aria-label="Template properties and tags">
-          <span class="library-tag {% if reporttemplate.doc_type.extension == 'docx' %}library-tag-info{% else %}library-tag-neutral{% endif %}">
+          <span class="library-tag {% if reporttemplate.doc_type.extension == 'docx' %}library-tag-word{% else %}library-tag-powerpoint{% endif %}">
             <i class="fas {% if reporttemplate.doc_type.extension == 'docx' %}fa-file-word{% else %}fa-file-powerpoint{% endif %}"
                aria-hidden="true"></i>
             <span>{% if reporttemplate.doc_type.extension == "docx" %}Word{% else %}PowerPoint{% endif %}</span>
@@ -29,7 +29,7 @@
             <span class="library-tag library-tag-warning"><i class="fas fa-lock" aria-hidden="true"></i>Protected</span>
           {% endif %}
           {% if reporttemplate.doc_type.doc_type == "project_docx" %}
-            <span class="library-tag library-tag-success"><i class="fas fa-project-diagram" aria-hidden="true"></i>Project document</span>
+            <span class="library-tag library-tag-context"><i class="fas fa-project-diagram" aria-hidden="true"></i>Project document</span>
           {% endif %}
           <span class="library-tag library-tag-neutral">
             <i class="fas fa-arrows-alt-{% if reporttemplate.landscape %}h{% else %}v{% endif %}" aria-hidden="true"></i>
@@ -94,7 +94,7 @@
             <span class="detail-eyebrow">Render behavior</span>
             <h4 id="template-settings-heading">Template Settings</h4>
           </div>
-          <i class="fas fa-sliders-h finding-section-icon" aria-hidden="true"></i>
+          <i class="fas fa-sliders-h template-detail-section-icon" aria-hidden="true"></i>
         </div>
         <dl class="detail-grid template-settings-grid">
           <div class="detail-field">
@@ -162,7 +162,7 @@
             <span class="detail-eyebrow">Release history</span>
             <h4 id="template-changelog-heading">Template Changelog</h4>
           </div>
-          <i class="fas fa-history finding-section-icon" aria-hidden="true"></i>
+          <i class="fas fa-history template-detail-section-icon" aria-hidden="true"></i>
         </div>
         {% if reporttemplate.changelog %}
           <div class="detail-prose rich-text-field-preview">{{ reporttemplate.changelog|bleach }}</div>

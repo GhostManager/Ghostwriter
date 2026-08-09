@@ -4301,6 +4301,28 @@ class ReportTemplateDetailViewTests(TestCase):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "reporting/report_template_detail.html")
+        self.assertContains(response, "library-tag-word")
+        self.assertContains(response, "template-detail-section-icon", count=3)
+        self.assertNotContains(response, "finding-section-icon")
+
+    def test_powerpoint_template_uses_powerpoint_format_tag(self):
+        pptx_type = DocTypeFactory(
+            doc_type="pptx",
+            extension="pptx",
+            name="PowerPoint",
+        )
+        template = ReportTemplateFactory(
+            protected=False,
+            pptx=True,
+            doc_type=pptx_type,
+        )
+
+        response = self.client_admin.get(
+            reverse("reporting:template_detail", kwargs={"pk": template.pk})
+        )
+
+        self.assertContains(response, "library-tag-powerpoint")
+        self.assertNotContains(response, "library-tag-word")
 
     def test_delete_control_requires_template_management(self):
         self.template.protected = False
