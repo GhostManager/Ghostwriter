@@ -1246,6 +1246,46 @@ a.report-item-title:focus-visible {
   text-decoration-thickness: 1px;
 }
 
+.table-primary-link:not(.library-primary-link)::after,
+.table a.clickable:not(.library-primary-link)::after {
+  display: inline-block;
+  margin-left: 0.45rem;
+  color: var(--gw-engagement-violet);
+  content: "\f061";
+  font-family: "Font Awesome 5 Free";
+  font-size: 0.72em;
+  font-weight: 900;
+  opacity: 0;
+  text-decoration: none;
+  transform: translateX(-0.2rem);
+  transition: opacity 140ms ease, transform 140ms ease;
+}
+
+.table-primary-link:not(.library-primary-link):hover::after,
+.table-primary-link:not(.library-primary-link):focus-visible::after,
+.table a.clickable:not(.library-primary-link):hover::after,
+.table a.clickable:not(.library-primary-link):focus-visible::after {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .table-primary-link:not(.library-primary-link)::after,
+  .table a.clickable:not(.library-primary-link)::after,
+  .library-primary-link > i {
+    transition: none;
+  }
+
+  .table-primary-link:not(.library-primary-link):hover::after,
+  .table-primary-link:not(.library-primary-link):focus-visible::after,
+  .table a.clickable:not(.library-primary-link):hover::after,
+  .table a.clickable:not(.library-primary-link):focus-visible::after,
+  .library-primary-link:hover > i,
+  .library-primary-link:focus-visible > i {
+    transform: none;
+  }
+}
+
 /* Findings and observations behave like compact, sortable work items. */
 .report-workflow-hint {
   display: flex;

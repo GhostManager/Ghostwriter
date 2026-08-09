@@ -1789,6 +1789,7 @@ class UserAssetsViewTests(TestCase):
         self.assertTemplateUsed(response, "shepherd/checkouts_for_user.html")
         self.assertContains(response, 'class="active-assets-page"')
         self.assertContains(response, 'class="table-row-actions"', count=6)
+        self.assertContains(response, "table-primary-link", count=12)
         self.assertNotContains(response, 'class="dropdown-menu-btn-table"')
 
     def test_custom_context_exists(self):

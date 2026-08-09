@@ -458,10 +458,11 @@ For genuine tables:
 - Wrap with `table-responsive data-table-frame`.
 - Align titles and descriptive text left.
 - Style record links with `table-primary-link`: bold neutral text at rest, then
-  engagement violet with a thin underline on hover or keyboard focus. Do not use a
-  persistent dotted green underline in tables; green remains reserved for success and
-  healthy states. Add `library-primary-link` alongside the shared class only when the
-  library-row arrow treatment is needed.
+  engagement violet with a thin underline and right-pointing arrow on hover or
+  keyboard focus. The shared component reserves the arrow's space so the row does not
+  shift. Do not use a persistent dotted green underline in tables; green remains
+  reserved for success and healthy states. Add `library-primary-link` alongside the
+  shared class only when the library-row arrow element is present.
 - Keep search/filter controls separated from the table with normal Bootstrap spacing.
 - Use a flat header edge when a column chooser, filter summary, or other row sits above
   the column headers.
