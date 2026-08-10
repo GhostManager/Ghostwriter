@@ -3,6 +3,7 @@ import json
 import logging
 import re
 from datetime import date, timedelta
+from uuid import uuid4
 
 # Django Imports
 from django.contrib.messages import get_messages
@@ -10,6 +11,9 @@ from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import force_str
+
+# 3rd Party Libraries
+from django_q.models import Failure, Task
 
 # Ghostwriter Libraries
 from ghostwriter.factories import (
@@ -131,6 +135,32 @@ class UpdateViewTests(TestCase):
         self.assertIn("cloud_last_update_completed", response.context)
         self.assertIn("cloud_last_update_time", response.context)
         self.assertIn("cloud_last_result", response.context)
+
+    def test_view_displays_failed_domain_health_task(self):
+        error_message = "VirusTotal rejected the API request (HTTP 401)."
+        task = Task.objects.create(
+            id=uuid4().hex,
+            name="failed-domain-health-update",
+            func="ghostwriter.shepherd.tasks.check_domains",
+            hook="",
+            args=(),
+            kwargs={},
+            result=f"{error_message} : Traceback (most recent call last):\\nSensitive details",
+            group="Domain Updates",
+            started=timezone.now(),
+            stopped=timezone.now(),
+            success=False,
+        )
+
+        self.assertTrue(Failure.objects.filter(pk=task.pk).exists())
+        self.assertIn("Traceback", Failure.objects.get(pk=task.pk).result)
+
+        response = self.client_auth.get(self.uri)
+
+        self.assertContains(response, "Failed")
+        self.assertContains(response, error_message)
+        self.assertNotContains(response, "Traceback")
+        self.assertNotContains(response, "Sensitive details")
 
     def test_view_with_zero_sleep_time(self):
         self.vt_config.sleep_time = 0

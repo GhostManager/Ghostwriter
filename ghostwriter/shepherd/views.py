@@ -76,6 +76,13 @@ from ghostwriter.shepherd.resources import DomainResource, StaticServerResource
 logger = logging.getLogger(__name__)
 
 
+def get_task_error_summary(result):
+    """Return the user-safe message from a Django Q failure result."""
+    if isinstance(result, str):
+        return result.split(" : Traceback", maxsplit=1)[0]
+    return result
+
+
 ##################
 # AJAX Functions #
 ##################
@@ -748,6 +755,7 @@ def update(request):
                 cat_last_update_time = round(queryset.time_taken() / 60, 2)
             else:
                 cat_last_update_completed = "Failed"
+                cat_last_result = get_task_error_summary(cat_last_result)
         except IndexError:
             cat_last_update_requested = "Updates Have Not Been Run Yet"
 
