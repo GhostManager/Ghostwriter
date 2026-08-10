@@ -564,65 +564,6 @@ def index(request):
 
 
 @login_required
-def infrastructure_search(request):
-    """
-    Search :model:`shepherd.StaticServer`, :model:`shepherd.AuxServerAddress`, and
-    :model:`shepherd:TransientServer` and return any matches with any related
-    :model:`rolodex.Project` entries.
-    """
-    context = {}
-    if request.method == "GET":
-        search_term = ""
-        try:
-            if "query" in request.GET:
-                search_term = request.GET.get("query").strip()
-                if search_term is None or search_term == "":
-                    search_term = ""
-
-                if search_term:
-                    projects = get_project_list(request.user)
-                    server_qs = StaticServer.objects.filter(
-                        Q(ip_address__contains=search_term) | Q(name__icontains=search_term)
-                    )
-                    vps_qs = TransientServer.objects.select_related("project").filter(
-                        Q(ip_address__contains=search_term) | Q(name__icontains=search_term) & Q(project__in=projects)
-                    )
-                    aux_qs = AuxServerAddress.objects.select_related("static_server").filter(
-                        ip_address__contains=search_term
-                    )
-
-                    total_result = server_qs.count() + vps_qs.count() + aux_qs.count()
-                    context = {
-                        "servers": server_qs,
-                        "vps": vps_qs,
-                        "addresses": aux_qs,
-                        "total_result": total_result,
-                    }
-
-                    if total_result > 0:
-                        messages.success(
-                            request,
-                            f"Found {total_result} results for: {search_term}",
-                            extra_tags="alert-success",
-                        )
-                    else:
-                        messages.warning(
-                            request,
-                            f"Found zero results for: {search_term}",
-                            extra_tags="alert-warning",
-                        )
-        except Exception:
-            messages.error(
-                request,
-                f"Failed searching for: {search_term}",
-                extra_tags="alert-danger",
-            )
-            logger.exception("Encountered error with search query: %s", search_term)
-
-    return render(request, "shepherd/server_search.html", context)
-
-
-@login_required
 def user_assets(request):
     """
     Display all :model:`shepherd.Domain` and :model:`shepherd.StaticServer` associated
