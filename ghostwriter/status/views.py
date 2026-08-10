@@ -106,8 +106,16 @@ class HealthCheckCustomView(HealthCheckView):
                     result.check.__class__.__name__,
                     result.check.__class__.__name__,
                 ),
+                "is_healthy": not bool(result.error),
                 "result": result,
             }
             for result in self.results
         ]
+        context["healthy_check_count"] = sum(
+            status_result["is_healthy"] for status_result in context["status_results"]
+        )
+        context["has_check_failures"] = any(
+            not status_result["is_healthy"]
+            for status_result in context["status_results"]
+        )
         return context
