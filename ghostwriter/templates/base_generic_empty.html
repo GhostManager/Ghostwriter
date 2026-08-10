@@ -523,13 +523,6 @@
       });
     });
 
-    $(window).click(function () {
-      {% comment %} Toggle the hamburger menu back to normal if user clicks away {% endcomment %}
-      let $hamburgerMenu = $('.dropdown-menu-btn')
-      if ($hamburgerMenu.hasClass('change')) {
-        $hamburgerMenu.removeClass('change');
-      }
-    });
   </script>
 {% endblock %}
 
