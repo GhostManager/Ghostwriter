@@ -136,7 +136,9 @@ export default function CommentButton({ editor }: { editor: Editor }) {
     useEffect(() => {
         const dom = editor.view.dom;
         function handleClick(e: MouseEvent) {
-            if (!(e.target as HTMLElement).closest(".gw-comment")) return;
+            const target = e.target;
+            if (!(target instanceof Element)) return;
+            if (!target.closest(".gw-comment")) return;
             // rAF lets ProseMirror update the selection before we read it
             requestAnimationFrame(() => {
                 if (!editor.isActive("gwComment")) return;
@@ -294,7 +296,7 @@ export default function CommentButton({ editor }: { editor: Editor }) {
                             <div className="gw-comment-list mb-3">
                                 {comments.map((entry, i) => (
                                     <CommentCard
-                                        key={i}
+                                        key={`${entry.author}-${entry.timestamp}`}
                                         entry={entry}
                                         currentUser={currentUser}
                                         onEdit={(text) =>
