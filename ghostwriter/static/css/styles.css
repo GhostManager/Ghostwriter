@@ -309,14 +309,14 @@ label {
 ----------------------------------------------------- */
 
 h1 {
-  text-align: center;
+  text-align: left;
   color: var(--h1-font-color);
   font-family: 'Metrophobic', 'Font Awesome 5 Free', 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
   font-size: 2.75em;
 }
 
 h2 {
-  text-align: center;
+  text-align: left;
   color: var(--h2-font-color);
   font-family: 'Metrophobic', 'Font Awesome 5 Free', 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
   font-size: 2.5em;
@@ -798,7 +798,7 @@ ul ul button {
   padding: 5px 20px 20px;
   min-height: 100vh;
   transition: all 0.3s;
-  text-align: center;
+  text-align: left;
 }
 
 #sidebarCollapse {
@@ -1577,6 +1577,32 @@ table.table-oplog tbody tr {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.oplog-toolbar-action {
+  display: inline-flex;
+  gap: 0.45rem;
+  align-items: center;
+  justify-content: center;
+}
+
+.oplog-toolbar-action > i {
+  font-size: 0.85em;
+  line-height: 1;
+}
+
+.oplog-columns-icon {
+  transition: transform 120ms ease-out;
+}
+
+#columnSelectDropdown.open .oplog-columns-icon {
+  transform: rotate(90deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .oplog-columns-icon {
+    transition: none;
+  }
 }
 
 @container (max-width: 1120px) {
@@ -3203,18 +3229,6 @@ html[data-theme="light"] .bloodhound-icon:before {
 
 .expand-icon:before {
   content: '\f31e';
-}
-
-.open-icon:before {
-  content: '\f101';
-  display: inline-block;
-  transition: all .5s ease-in-out;
-}
-
-.open-icon.open:before {
-  --webkit-transform: rotate(90deg);
-  transform: translateY(4px) translateX(-5px) rotate(90deg);
-  transition: all .5s ease-in-out;
 }
 
 .calendar-icon:before {

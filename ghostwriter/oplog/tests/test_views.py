@@ -198,6 +198,9 @@ class OplogListEntriesTests(TestCase):
         self.assertContains(response, 'aria-label="Log status"')
         self.assertContains(response, 'id="columnSelectDropdown"')
         self.assertContains(response, 'aria-controls="columnSelect"')
+        self.assertContains(response, 'class="fas fa-plus-square"')
+        self.assertContains(response, 'class="fas fa-angle-double-right oplog-columns-icon"')
+        self.assertContains(response, 'class="fas fa-sync"')
         self.assertContains(response, 'aria-label="Clear entry filter"')
         self.assertContains(response, 'id="oplogEmptyTitle"')
         self.assertContains(response, 'id="oplogEmptyAction"')
@@ -205,14 +208,25 @@ class OplogListEntriesTests(TestCase):
         self.assertContains(response, 'aria-orientation="vertical"')
         self.assertContains(response, 'id="oplog-entry-delete-modal"')
         self.assertContains(response, 'id="confirmOplogEntryDelete"')
+        self.assertContains(response, 'id="confirm-sanitize-modal"')
+        self.assertContains(response, 'id="confirm-sanitize-modal-label"')
+        self.assertContains(response, 'id="sanitize-modal-error"')
+        self.assertContains(response, 'id="sanitize-checklist-fields"')
+        self.assertContains(response, "Sanitize selected fields")
+        self.assertContains(response, "bootstrap.Modal.getOrCreateInstance")
+        self.assertContains(response, "pageScrollPosition")
+        self.assertContains(response, "window.scrollTo(pageScrollPosition.left, pageScrollPosition.top)")
+        self.assertContains(response, 'data-sanitize-url=')
+        self.assertNotContains(response, 'data-bs-target="#confirm-sanitize-modal"')
         self.assertContains(
             response,
             'class="close ms-auto align-self-start"',
-            count=2,
+            count=5,
         )
         self.assertContains(response, "Ctrl+N")
         self.assertContains(response, "Cmd+N")
         self.assertNotContains(response, "Alt+N")
+        self.assertNotContains(response, "Jump to Project")
 
     def test_view_exposes_active_time_zone(self):
         with timezone.override("America/Los_Angeles"):
@@ -390,14 +404,25 @@ class OplogEntriesImportTests(TestCase):
         self.assertContains(response, "No operation logs available")
         self.assertContains(response, reverse("oplog:oplog_create_no_project"))
         self.assertNotContains(response, 'id="oplog_log"')
-        self.assertContains(response, 'class="instruction-panel"', count=2)
-        self.assertContains(response, "Required CSV Headers")
-        self.assertContains(response, "Timestamp Format")
+        self.assertContains(
+            response,
+            'class="instruction-panel oplog-import-reference-card"',
+            count=2,
+        )
+        self.assertContains(response, "Required headers")
+        self.assertContains(response, "Timestamp format")
+        self.assertContains(response, 'class="oplog-import-page"')
+        self.assertContains(response, "Import entries")
+        self.assertContains(response, 'class="oplog-import-reference"')
         self.assertNotContains(response, "alert alert-success")
 
         manager_response = self.client_mgr.get(self.uri)
         self.assertContains(manager_response, 'class="oplog-import-form"')
         self.assertContains(manager_response, 'id="oplog_log"')
+        self.assertContains(manager_response, 'id="csv_file"')
+        self.assertContains(manager_response, 'id="oplog-import-file-name"')
+        self.assertContains(manager_response, "What happens next")
+        self.assertContains(manager_response, "Import safely")
         self.assertNotContains(manager_response, "No operation logs available")
 
     def test_view_uri_with_log_id(self):

@@ -50,26 +50,35 @@
     <!-- Toolbar -->
     <div class="oplog-toolbar">
         <div class="oplog-toolbar-actions">
-            <button id="createNewEntryButton" type="button" class="icon add-icon btn btn-sm oplog-create-entry" onclick="createEntry({{ oplog.pk }});">Create Entry</button>
-            <button id="columnSelectDropdown" type="button" class="icon open-icon btn btn-outline-secondary btn-sm" aria-expanded="false" aria-controls="columnSelect">Columns</button>
-            <button id="resetSortBtn" type="button" class="btn btn-outline-secondary icon sync-icon btn-sm">Reset Sort</button>
+            <button id="createNewEntryButton" type="button" class="btn btn-sm oplog-create-entry oplog-toolbar-action" onclick="createEntry({{ oplog.pk }});">
+                <i class="fas fa-plus-square" aria-hidden="true"></i> Create Entry
+            </button>
+            <button id="columnSelectDropdown" type="button" class="btn btn-outline-secondary btn-sm oplog-toolbar-action" aria-expanded="false" aria-controls="columnSelect">
+                <i class="fas fa-angle-double-right oplog-columns-icon" aria-hidden="true"></i> Columns
+            </button>
+            <button id="resetSortBtn" type="button" class="btn btn-outline-secondary btn-sm oplog-toolbar-action">
+                <i class="fas fa-sync" aria-hidden="true"></i> Reset Sort
+            </button>
             <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#oplog-help-modal" title="Help"><i class="fas fa-question-circle"></i> Help</button>
             <div class="dropdown d-inline-block">
                 <button id="oplog-dropdown-btn" type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="More oplog actions" title="More actions">
                     <i class="fas fa-ellipsis-h"></i>
                 </button>
-                <div class="dropdown-menu" aria-labelledby="oplog-dropdown-btn">
+                <div class="dropdown-menu oplog-action-menu" aria-labelledby="oplog-dropdown-btn">
                     <a href="{% url 'oplog:oplog_update' oplog.id %}" class="dropdown-item icon edit-icon" >Edit Log</a>
                     <a href="{% url "oplog:oplog_import" %}?log={{ oplog.id }}" class="dropdown-item icon upload-icon">Import Entries</a>
                     <a href="javascript:void(0)" id="exportEntries" class="dropdown-item icon export-icon">Export Entries</a>
-                    <a href="{% url 'rolodex:project_detail' oplog.project.id %}" class="dropdown-item icon project-icon" >Jump to Project</a>
                     {% if request.user.is_staff or request.user.role == "manager" or request.user.role == "admin" %}
-                        <a id="sanitize-button-{{ oplog.id }}" class="dropdown-item icon clean-icon js-confirm-sanitize" data-bs-toggle="modal"
-                           data-bs-target="#confirm-sanitize-modal" href="javascript:void(0);"
-                           sanitize-target-csrftoken="{{ csrf_token }}" sanitize-target-url="{% url 'oplog:ajax_oplog_sanitize' oplog.id %}"
-                           sanitize-target-id="{{ oplog.id }}">
+                        <button
+                            id="sanitize-button-{{ oplog.id }}"
+                            type="button"
+                            class="dropdown-item icon clean-icon js-confirm-sanitize"
+                            data-sanitize-csrftoken="{{ csrf_token }}"
+                            data-sanitize-url="{% url 'oplog:ajax_oplog_sanitize' oplog.id %}"
+                            data-sanitize-id="{{ oplog.id }}"
+                        >
                           Sanitize Entries
-                        </a>
+                        </button>
                         <a
                           href="javascript:void(0)"
                           class="dropdown-item js-toggle-mute icon {% if oplog.mute_notifications %}silenced-notification-icon{% else %}notification-bell-icon{% endif %}"
@@ -210,7 +219,7 @@
                       <h5 class="modal-title" id="oplog-entry-edit-title">Edit entry</h5>
                       <p class="oplog-entry-modal-intro">Update the activity record without losing your place in the timeline.</p>
                   </div>
-                  <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+                  <button type="button" class="close ms-auto align-self-start" data-bs-dismiss="modal" aria-label="Close">
                       <span aria-hidden="true">&times;</span>
                   </button>
               </div>
@@ -296,7 +305,7 @@
           <div class="modal-content">
               <div class="modal-header">
                   <h5 class="modal-title" id="exportModalLabel"><i class="fas fa-file-archive me-2"></i> Export Entries</h5>
-                  <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+                  <button type="button" class="close ms-auto align-self-start" data-bs-dismiss="modal" aria-label="Close">
                       <span aria-hidden="true">&times;</span>
                   </button>
               </div>

@@ -46,6 +46,141 @@
   --gw-focus-ring: 0 0 0 0.2rem rgba(95, 197, 135, 0.32);
 }
 
+/* Destructive confirmation modal */
+.sanitize-modal .modal-dialog {
+  max-width: min(42rem, calc(100vw - 2rem));
+}
+
+.sanitize-modal .modal-header {
+  align-items: flex-start;
+}
+
+.sanitize-modal .modal-title {
+  margin-top: 0.15rem;
+  color: var(--gw-text-strong);
+  font-family: var(--gw-font-display);
+  font-weight: 700;
+}
+
+.sanitize-modal-intro {
+  max-width: 58ch;
+  margin: 0 0 1rem;
+}
+
+.sanitize-modal-warning {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.7rem;
+  align-items: start;
+  padding: 0.8rem 0.9rem;
+  color: color-mix(in srgb, var(--gw-signal-amber) 82%, var(--gw-text-strong));
+  background: color-mix(in srgb, var(--gw-signal-amber) 11%, var(--gw-surface-muted));
+  border: 1px solid color-mix(in srgb, var(--gw-signal-amber) 40%, var(--gw-border));
+  border-left: 3px solid var(--gw-signal-amber);
+  border-radius: var(--gw-radius-md);
+}
+
+.sanitize-modal-warning i {
+  margin-top: 0.2rem;
+}
+
+.sanitize-modal-warning p {
+  margin: 0;
+}
+
+.sanitize-fieldset {
+  margin: 1.15rem 0 0;
+}
+
+.sanitize-fieldset legend {
+  margin-bottom: 0.2rem;
+  color: var(--gw-text-strong);
+  font-size: 0.95rem;
+  font-weight: 650;
+}
+
+.sanitize-fieldset-description {
+  margin: 0 0 0.7rem;
+  color: color-mix(in srgb, var(--main-txt-color) 73%, transparent);
+  font-size: 0.8rem;
+}
+
+.sanitize-field-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11.5rem, 1fr));
+  gap: 0.55rem;
+}
+
+.sanitize-field-choice {
+  min-height: 3rem;
+  margin: 0;
+  padding: 0.65rem 0.7rem 0.6rem 2.95rem;
+  background: var(--gw-surface-muted);
+  border: 1px solid var(--gw-border);
+  border-radius: var(--gw-radius-sm);
+}
+
+.sanitize-field-choice .form-check-input {
+  margin-left: -2.25rem;
+}
+
+.sanitize-field-choice label {
+  cursor: pointer;
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.sanitize-field-choice-recordings {
+  grid-column: 1 / -1;
+  min-height: 3.85rem;
+  background: color-mix(in srgb, var(--gw-accent-coral) 7%, var(--gw-surface-muted));
+  border-color: color-mix(in srgb, var(--gw-accent-coral) 31%, var(--gw-border));
+}
+
+.sanitize-field-choice-recordings label > span {
+  display: block;
+  margin-top: 0.08rem;
+  color: color-mix(in srgb, var(--main-txt-color) 70%, transparent);
+  font-size: 0.74rem;
+  font-weight: 500;
+}
+
+.sanitize-command-note {
+  margin-top: 1rem;
+  color: color-mix(in srgb, var(--main-txt-color) 78%, transparent);
+  font-size: 0.8rem;
+}
+
+.sanitize-command-note summary {
+  width: fit-content;
+  cursor: pointer;
+  color: var(--gw-context-blue);
+  font-weight: 600;
+}
+
+.sanitize-command-note p {
+  max-width: 60ch;
+  margin: 0.55rem 0 0;
+}
+
+.sanitize-modal .modal-footer .btn-danger {
+  min-width: 12.5rem;
+}
+
+@media (max-width: 575.98px) {
+  .sanitize-field-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sanitize-modal .modal-footer {
+    gap: 0.5rem;
+  }
+
+  .sanitize-modal .modal-footer .btn-danger {
+    min-width: 0;
+  }
+}
+
 body,
 #content {
   background-color: var(--gw-canvas);
@@ -7638,6 +7773,248 @@ a.report-item-title {
   max-width: 100%;
 }
 
+.oplog-import-page {
+  width: 100%;
+  margin: 0 0 3rem;
+  text-align: left;
+}
+
+.resource-form-page-heading.oplog-import-heading {
+  width: 100%;
+  max-width: none;
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  text-align: left;
+}
+
+.oplog-import-heading > div {
+  min-width: 0;
+  max-width: 72ch;
+}
+
+.oplog-import-heading p {
+  max-width: 66ch;
+}
+
+.oplog-import-return {
+  flex: 0 0 auto;
+  margin-left: auto;
+  margin-top: 0.25rem;
+}
+
+.oplog-import-page .oplog-import-form {
+  width: 100%;
+  margin: 0;
+}
+
+.oplog-import-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(17rem, 0.8fr);
+  gap: 1rem;
+  align-items: stretch;
+}
+
+.oplog-import-upload-card,
+.oplog-import-flow {
+  min-width: 0;
+  padding: 1.25rem;
+  background: var(--gw-surface);
+  border: 1px solid var(--gw-border);
+  border-radius: var(--gw-radius-lg);
+  box-shadow: var(--gw-shadow-sm);
+  text-align: left;
+}
+
+.oplog-import-card-heading {
+  display: flex;
+  margin-bottom: 1.25rem;
+}
+
+.oplog-import-card-heading h2,
+.oplog-import-flow h2,
+.oplog-import-reference-heading h2 {
+  margin: 0;
+  color: var(--gw-text-strong);
+  font-family: var(--gw-font-display);
+  font-size: 1.2rem;
+  font-weight: 700;
+  text-align: left;
+}
+
+.oplog-import-card-heading p,
+.oplog-import-reference-heading p {
+  margin: 0.3rem 0 0;
+}
+
+.oplog-import-field-note {
+  margin: 0.45rem 0 0;
+  color: color-mix(in srgb, var(--main-txt-color) 71%, transparent);
+  font-size: 0.78rem;
+}
+
+.oplog-import-field-note i {
+  margin-right: 0.25rem;
+  color: var(--gw-engagement-violet);
+}
+
+.oplog-import-dropzone {
+  margin-top: 1rem;
+}
+
+.oplog-import-dropzone .custom-file-label {
+  min-height: 7.25rem;
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.oplog-import-dropzone .custom-file-label > i {
+  color: var(--gw-context-blue);
+  font-size: 1.65rem;
+}
+
+.oplog-import-file-copy {
+  display: grid;
+  gap: 0.13rem;
+  min-width: 0;
+}
+
+.oplog-import-file-copy strong {
+  overflow: hidden;
+  color: var(--gw-text-strong);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.oplog-import-file-copy small {
+  color: color-mix(in srgb, var(--main-txt-color) 70%, transparent);
+  font-weight: 500;
+}
+
+.oplog-import-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: center;
+  margin-top: 1.25rem;
+}
+
+.oplog-import-submit {
+  color: #fff;
+  background: var(--gw-engagement-violet);
+  border-color: var(--gw-engagement-violet);
+}
+
+.oplog-import-submit:hover,
+.oplog-import-submit:focus-visible {
+  color: #fff;
+  background: color-mix(in srgb, var(--gw-engagement-violet) 86%, #000);
+  border-color: color-mix(in srgb, var(--gw-engagement-violet) 86%, #000);
+}
+
+.oplog-import-flow {
+  background: linear-gradient(145deg, color-mix(in srgb, var(--gw-engagement-violet) 9%, var(--gw-surface)), var(--gw-surface));
+}
+
+.oplog-import-flow h2 {
+  margin-top: 0.2rem;
+}
+
+.oplog-import-flow ol {
+  display: grid;
+  gap: 0.9rem;
+  margin: 1.15rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.oplog-import-flow li {
+  display: grid;
+  grid-template-columns: 1.55rem minmax(0, 1fr);
+  gap: 0.65rem;
+  align-items: start;
+}
+
+.oplog-import-flow li > span {
+  display: inline-flex;
+  width: 1.55rem;
+  height: 1.55rem;
+  align-items: center;
+  justify-content: center;
+  color: var(--gw-engagement-violet);
+  background: color-mix(in srgb, var(--gw-engagement-violet) 13%, var(--gw-surface));
+  border-radius: 50%;
+  font-family: var(--gw-font-data);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.oplog-import-flow li p {
+  margin: 0.05rem 0 0;
+  font-size: 0.83rem;
+  line-height: 1.5;
+}
+
+.oplog-import-reference {
+  margin-top: 1.75rem;
+  text-align: left;
+}
+
+.oplog-import-reference-heading {
+  margin-bottom: 0.85rem;
+}
+
+.oplog-import-reference-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+}
+
+.instruction-panel.oplog-import-reference-card {
+  height: 100%;
+  background: var(--gw-surface);
+  text-align: left;
+}
+
+.oplog-import-reference-card .instruction-panel-content {
+  flex: 1 1 auto;
+}
+
+.oplog-import-reference-card h3 {
+  margin: 0;
+  color: var(--gw-text-strong);
+  font-family: var(--gw-font-display);
+  font-size: 1.02rem;
+}
+
+@media (max-width: 767.98px) {
+  .oplog-import-workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 575.98px) {
+  .oplog-import-heading {
+    flex-direction: column;
+  }
+
+  .oplog-import-return {
+    margin-left: 0;
+    margin-top: 0;
+  }
+
+  .oplog-import-upload-card,
+  .oplog-import-flow {
+    padding: 1rem;
+  }
+
+  .oplog-import-dropzone .custom-file-label {
+    min-height: 6.5rem;
+  }
+}
+
 .instruction-panel {
   display: flex;
   min-width: 0;
@@ -8059,6 +8436,24 @@ a.report-item-title {
 
 .dropdown-item {
   border-radius: var(--gw-radius-sm);
+}
+
+.oplog-action-menu .dropdown-item.icon {
+  display: grid;
+  grid-template-columns: 1.25rem minmax(0, 1fr);
+  column-gap: 0.5rem;
+  align-items: center;
+  text-align: left;
+}
+
+.oplog-action-menu .dropdown-item.icon::before {
+  display: block;
+  width: 1.25rem;
+  padding: 0;
+  font-size: 0.75em;
+  line-height: 1;
+  text-align: center;
+  vertical-align: initial;
 }
 
 .modal-content {

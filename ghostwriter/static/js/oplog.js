@@ -29,7 +29,7 @@ $(document).ready(function () {
     const $detailContent = $('#oplogDetailContent');
     const $checkboxList = $('#checkboxList');
     const $connectionStatus = $('#connectionStatus');
-    const $sanitizeCheckboxList = $('#sanitize-checklist-form');
+    const $sanitizeCheckboxList = $('#sanitize-checklist-fields');
     const $searchInput = $('#searchInput');
     const $oplogTableNoEntries = $('#oplogTableNoEntries');
     const $oplogTableLoading = $('#oplogTableLoading');
@@ -407,11 +407,9 @@ $(document).ready(function () {
             coveredNames.add(col.internalName);
             let checked = (col.sanitizeByDefault === undefined || col.sanitizeByDefault) ? 'checked' : '';
             $sanitizeCheckboxList.append(`
-            <div class="form-check-inline">
-              <div class="custom-control custom-switch">
-                <input type="checkbox" name="${col.internalName}" id="sanitize_${col.checkBoxID}" class="form-check-input custom-control-input" ${checked}/>
-                <label class="form-check-label custom-control-label" for="sanitize_${col.checkBoxID}">${col.prettyName}</label>
-              </div>
+            <div class="form-check form-switch sanitize-field-choice">
+              <input type="checkbox" name="${col.internalName}" id="sanitize_${col.checkBoxID}" class="form-check-input" ${checked}/>
+              <label class="form-check-label" for="sanitize_${col.checkBoxID}">${col.prettyName}</label>
             </div>`);
         });
         // Detail fields - skip any already added via summaryColumns
@@ -420,11 +418,9 @@ $(document).ready(function () {
             coveredNames.add(f.internalName);
             let checked = (f.sanitizeByDefault === undefined || f.sanitizeByDefault) ? 'checked' : '';
             $sanitizeCheckboxList.append(`
-            <div class="form-check-inline">
-              <div class="custom-control custom-switch">
-                <input type="checkbox" name="${f.internalName}" id="sanitize_${f.internalName}Checkbox" class="form-check-input custom-control-input" ${checked}/>
-                <label class="form-check-label custom-control-label" for="sanitize_${f.internalName}Checkbox">${f.prettyName}</label>
-              </div>
+            <div class="form-check form-switch sanitize-field-choice">
+              <input type="checkbox" name="${f.internalName}" id="sanitize_${f.internalName}Checkbox" class="form-check-input" ${checked}/>
+              <label class="form-check-label" for="sanitize_${f.internalName}Checkbox">${f.prettyName}</label>
             </div>`);
         });
         // Meta fields - skip any already covered
@@ -432,20 +428,19 @@ $(document).ready(function () {
             if (coveredNames.has(f.internalName)) return;
             let checked = (f.sanitizeByDefault === undefined || f.sanitizeByDefault) ? 'checked' : '';
             $sanitizeCheckboxList.append(`
-            <div class="form-check-inline">
-              <div class="custom-control custom-switch">
-                <input type="checkbox" name="${f.internalName}" id="sanitize_${f.internalName}Checkbox" class="form-check-input custom-control-input" ${checked}/>
-                <label class="form-check-label custom-control-label" for="sanitize_${f.internalName}Checkbox">${f.prettyName}</label>
-              </div>
+            <div class="form-check form-switch sanitize-field-choice">
+              <input type="checkbox" name="${f.internalName}" id="sanitize_${f.internalName}Checkbox" class="form-check-input" ${checked}/>
+              <label class="form-check-label" for="sanitize_${f.internalName}Checkbox">${f.prettyName}</label>
             </div>`);
         });
         // Recordings — separate option: deletes recording files from disk
         $sanitizeCheckboxList.append(`
-        <div class="form-check-inline">
-          <div class="custom-control custom-switch">
-            <input type="checkbox" name="recordings" id="sanitize_recordingsCheckbox" class="form-check-input custom-control-input"/>
-            <label class="form-check-label custom-control-label" for="sanitize_recordingsCheckbox">Recordings <span class="badge badge-danger">Deletes Files</span></label>
-          </div>
+        <div class="form-check form-switch sanitize-field-choice sanitize-field-choice-recordings">
+          <input type="checkbox" name="recordings" id="sanitize_recordingsCheckbox" class="form-check-input"/>
+          <label class="form-check-label" for="sanitize_recordingsCheckbox">
+            Recordings
+            <span>Delete terminal recording files from disk.</span>
+          </label>
         </div>`);
     }
 
@@ -1420,10 +1415,10 @@ $(document).ready(function () {
 
     $('#columnSelectDropdown').click(function () {
         let $button = $(this);
-        $('#columnSelect').stop(true, true).slideToggle(160, function () {
-            let isOpen = $(this).is(':visible');
-            $button.toggleClass('open', isOpen).attr('aria-expanded', String(isOpen));
-        });
+        let $columnSelect = $('#columnSelect').stop(true, true);
+        let isOpen = !$columnSelect.is(':visible');
+        $button.toggleClass('open', isOpen).attr('aria-expanded', String(isOpen));
+        $columnSelect.slideToggle(120);
     });
 
     // --- Click handlers ---

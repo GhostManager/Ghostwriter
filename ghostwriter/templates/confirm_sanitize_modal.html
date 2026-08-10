@@ -1,114 +1,170 @@
-<!-- Sanitize button will redirect to the href of the element with ``id = caller-id`` property in this modal -->
-<div class="modal fade" id="confirm-sanitize-modal" tabindex="-1" caller-id="" role="dialog"
+<div class="modal fade sanitize-modal" id="confirm-sanitize-modal" tabindex="-1" role="dialog"
+     data-bs-backdrop="static" data-bs-keyboard="false"
      aria-labelledby="confirm-sanitize-modal-label" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered" role="document">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" role="document">
     <div class="modal-content">
-      <div class="modal-body confirm-sanitize">
-        Are you sure you want to sanitize this log and all log entries?
-        <p class="bold mt-3">This action cannot be reversed!</p>
-        <p class="mt-3">Select the fields to sanitize below:</p>
+      <div class="modal-header">
+        <div>
+          <span class="detail-eyebrow">Permanent action</span>
+          <h5 class="modal-title" id="confirm-sanitize-modal-label">Sanitize log entries?</h5>
+        </div>
+        <button type="button" class="close ms-auto align-self-start" data-bs-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p class="sanitize-modal-intro">Clear selected data from every entry in this activity log.</p>
+        <div class="sanitize-modal-warning" role="note">
+          <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+          <p><strong>This cannot be undone.</strong> Sanitized entry data cannot be recovered from Ghostwriter.</p>
+        </div>
+        <div id="sanitize-modal-error" class="alert alert-danger d-none" role="alert" aria-live="assertive"></div>
 
         <form id="sanitize-checklist-form">
+          <fieldset class="sanitize-fieldset">
+            <legend>Fields to clear</legend>
+            <p class="sanitize-fieldset-description">Review the preselected fields and turn off anything that should remain in the log.</p>
+            <div id="sanitize-checklist-fields" class="sanitize-field-grid"></div>
+          </fieldset>
         </form>
 
-        <p class="mt-3">If sanitizing the <em>Command</em> field, Ghostwriter will delete everything after the first space (the tool/command name) to remove potentially sensitive information in arguments and parameters (e.g., hashes, keys).</p>
-        <p class="mt-3"><span class="bold">Note:</span> Selecting <em>Recordings</em> will <span class="bold">permanently delete</span> the recording files from disk. This cannot be undone.</p>
+        <details class="sanitize-command-note">
+          <summary>How command cleanup works</summary>
+          <p>Clearing <em>Command</em> keeps the tool or command name and removes everything after its first space, including arguments and parameters.</p>
+        </details>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-danger" data-bs-dismiss="modal" id="confirm-sanitize-button-modal">Sanitize
-        </button>
+        <button type="button" class="btn btn-danger" id="confirm-sanitize-button-modal">Sanitize selected fields</button>
       </div>
     </div>
   </div>
 </div>
 
-{% comment %}
-      Script to make modal appear whenever a user clicks any sanitize button/link
-
-      The modal's sanitize button fires the second script to actually sanitize the $target entry
-  {% endcomment %}
-
 <script>
-  $('[data-bs-target="#confirm-sanitize-modal"]').each(function (index) {
-    $(this).click(function () {
-      $('#confirm-sanitize-modal').attr('caller-id', $(this).attr('id'));
-    });
-  });
+  (function () {
+    const modalElement = document.getElementById('confirm-sanitize-modal');
+    const $modal = $(modalElement);
+    const $error = $('#sanitize-modal-error');
+    const $submitButton = $('#confirm-sanitize-button-modal');
+    let pageScrollPosition = { left: 0, top: 0 };
 
-  $('#confirm-sanitize-modal').on('show.bs.modal', function () {
-    let caller = $('#confirm-sanitize-button-modal').closest('.modal').attr('caller-id');
-    let $target = $('#' + caller);
-    let targetId = $target.attr('sanitize-target-id');
-    let $previewContent = $('#key_name_' + targetId);
-
-    if ($previewContent.length) {
-      $('#object-preview-content').html(escapeHtml($previewContent.text()));
-    }
-  });
-
-  function updateOplogSanitizationStatus(sanitization) {
-    let $status = $('#oplog-sanitization-status');
-    if (!$status.length) {
-      return;
+    function clearSanitizeError() {
+      $error.empty().addClass('d-none');
     }
 
-    let fields = $('#sanitize-checklist-form input:checked').map(function () {
-      return $('label[for="' + this.id + '"]').clone().children().remove().end().text().trim()
-        .replace(' / Hostname', '');
-    }).get();
-    let sanitizedAt = new Date(sanitization.sanitized_at);
-    let date = sanitizedAt.toLocaleDateString(undefined, { dateStyle: 'long' });
-    let time = sanitizedAt.toLocaleTimeString(undefined, { timeStyle: 'short' });
-    let $fieldList = $('#oplog-sanitization-details-fields');
+    function showSanitizeError(message) {
+      $error.text(message).removeClass('d-none');
+    }
 
-    $('#oplog-sanitization-status-button').removeClass('badge-warning').addClass('badge-info');
-    $('#oplog-sanitization-status-icon').removeClass('fa-exclamation-triangle').addClass('fa-shield-alt');
-    $('#oplog-sanitization-status-text').text('Sanitized');
-    $('#oplog-sanitization-details-time').text(date + ' at ' + time);
-    $('#oplog-sanitization-details-user').text(sanitization.sanitized_by_name);
-    $('#oplog-sanitization-stale-message').addClass('d-none');
-    $fieldList.empty();
-    fields.forEach(function (field) {
-      $fieldList.append($('<span>', { class: 'badge badge-light border me-1 mb-1', text: field }));
+    function setSanitizeSubmitting(isSubmitting) {
+      $submitButton.prop('disabled', isSubmitting);
+      $modal.find('[data-bs-dismiss="modal"]').prop('disabled', isSubmitting);
+      $submitButton.html(
+        isSubmitting
+          ? '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Sanitizing entries'
+          : 'Sanitize selected fields'
+      );
+    }
+
+    $(document).on('click', '.js-confirm-sanitize', function (event) {
+      event.preventDefault();
+      $modal.data('sanitizeTarget', this);
+      clearSanitizeError();
+      $('#sanitize-checklist-form input[type="checkbox"]').each(function () {
+        this.checked = this.defaultChecked;
+      });
+      bootstrap.Modal.getOrCreateInstance(modalElement).show(this);
     });
-    $status.show();
-  }
 
-  $('#confirm-sanitize-button-modal').click(function () {
-    // Get the ``id`` of the clicked element
-    let caller = $('#confirm-sanitize-button-modal').closest('.modal').attr('caller-id');
-    let $target = $('#' + caller);
-    // Values for the POST
-    let url = $target.attr('sanitize-target-url');
-    let targetId = $target.attr('sanitize-target-id');
-    let csrftoken = $target.attr('sanitize-target-csrftoken');
+    $modal.on('show.bs.modal', function () {
+      pageScrollPosition = { left: window.scrollX, top: window.scrollY };
+    });
 
-    let formData = $('#sanitize-checklist-form').serializeArray();
-    formData = JSON.stringify(formData);
+    $modal.on('shown.bs.modal', function () {
+      requestAnimationFrame(function () {
+        window.scrollTo(pageScrollPosition.left, pageScrollPosition.top);
+      });
+    });
 
-    $.ajax({
-      url: url,
-      type: 'POST',
-      dataType: 'json',
-      headers: {
-        'X-CSRFToken': csrftoken,
-      },
-      data: {
-        'target': targetId,
-        'fields': formData,
-      },
-      success: function (data) {
-          if (data['message']) {
-            displayToastTop({type:data['result'], string:data['message'], title:'Log Update'});
-          }
-          if (data['result'] === 'success') {
-            updateOplogSanitizationStatus(data['sanitization']);
-          }
-      },
-      error: function(jqXHR, textStatus, errorThrown) {
-          console.error('Error occurred: ', textStatus, errorThrown);
+    function updateOplogSanitizationStatus(sanitization) {
+      let $status = $('#oplog-sanitization-status');
+      if (!$status.length) {
+        return;
       }
+
+      let fields = $('#sanitize-checklist-form input:checked').map(function () {
+        return $('label[for="' + this.id + '"]').clone().children().remove().end().text().trim()
+          .replace(' / Hostname', '');
+      }).get();
+      let sanitizedAt = new Date(sanitization.sanitized_at);
+      let date = sanitizedAt.toLocaleDateString(undefined, { dateStyle: 'long' });
+      let time = sanitizedAt.toLocaleTimeString(undefined, { timeStyle: 'short' });
+      let $fieldList = $('#oplog-sanitization-details-fields');
+
+      $('#oplog-sanitization-status-button').removeClass('badge-warning').addClass('badge-info');
+      $('#oplog-sanitization-status-icon').removeClass('fa-exclamation-triangle').addClass('fa-shield-alt');
+      $('#oplog-sanitization-status-text').text('Sanitized');
+      $('#oplog-sanitization-details-time').text(date + ' at ' + time);
+      $('#oplog-sanitization-details-user').text(sanitization.sanitized_by_name);
+      $('#oplog-sanitization-stale-message').addClass('d-none');
+      $fieldList.empty();
+      fields.forEach(function (field) {
+        $fieldList.append($('<span>', { class: 'badge badge-light border me-1 mb-1', text: field }));
+      });
+      $status.show();
+    }
+
+    $submitButton.click(function () {
+      let $target = $($modal.data('sanitizeTarget'));
+      let url = $target.data('sanitizeUrl');
+      let targetId = $target.data('sanitizeId');
+      let csrftoken = $target.data('sanitizeCsrftoken');
+
+      if (!$target.length || !url || !targetId || !csrftoken) {
+        showSanitizeError('Could not prepare this log for sanitization. Close the dialog and try again.');
+        return;
+      }
+
+      let formData = JSON.stringify($('#sanitize-checklist-form').serializeArray());
+      clearSanitizeError();
+      setSanitizeSubmitting(true);
+
+      $.ajax({
+        url: url,
+        type: 'POST',
+        dataType: 'json',
+        headers: {
+          'X-CSRFToken': csrftoken,
+        },
+        data: {
+          'target': targetId,
+          'fields': formData,
+        },
+        success: function (data) {
+          if (data.result === 'success') {
+            updateOplogSanitizationStatus(data.sanitization);
+            displayToastTop({ type: 'success', string: data.message, title: 'Log sanitized' });
+            setSanitizeSubmitting(false);
+            bootstrap.Modal.getInstance(modalElement).hide();
+            return;
+          }
+
+          let message = data.message || 'Ghostwriter could not sanitize these entries. Review the selected fields and try again.';
+          showSanitizeError(message);
+          displayToastTop({ type: 'error', string: message, title: 'Sanitization failed' });
+        },
+        error: function (jqXHR) {
+          let message = jqXHR.responseJSON && jqXHR.responseJSON.message
+            ? jqXHR.responseJSON.message
+            : 'Ghostwriter could not reach the server to sanitize these entries. Try again.';
+          showSanitizeError(message);
+          displayToastTop({ type: 'error', string: message, title: 'Sanitization failed' });
+        },
+        complete: function () {
+          setSanitizeSubmitting(false);
+        },
+      });
     });
-  });
+  })();
 </script>
