@@ -1,38 +1,83 @@
 {% extends "account/base.html" %}
 {% load i18n %}
-{% load static %}
 {% load crispy_forms_tags %}
-{% load allauth %}
 
-{% block pagetitle %}Edit Security Key Name{% endblock %}
+{% block pagetitle %}{% trans "Rename security key" %}{% endblock %}
 
 
 {% block content %}
-    <div class="container">
-        <div class="row">
-            <div class="col-12 text-center">
-                <h2 class="form-header">{% trans "Edit Security Key" %}</h2>
-            </div>
+  <div class="resource-form-shell account-profile-editor account-webauthn-edit">
+    <form
+      method="post"
+      action="{% url 'mfa_edit_webauthn' authenticator.pk %}"
+      class="resource-edit-form account-webauthn-edit-form"
+    >
+      {% csrf_token %}
+
+      {% if form.errors %}
+        <div class="alert alert-danger account-security-alert" role="alert">
+          <div class="account-security-alert-icon" aria-hidden="true">
+            <i class="fas fa-exclamation-circle"></i>
+          </div>
+          <div>
+            <strong>{% trans "Security key not renamed" %}</strong>
+            <p>{% trans "Review the highlighted field and try again." %}</p>
+            {% if form.non_field_errors %}{{ form.non_field_errors }}{% endif %}
+          </div>
         </div>
-        <div class="row justify-content-center">
-            <div class="col-md-12 col-lg-6">
-                {% url 'mfa_edit_webauthn' as action_url %}
-                <form method="post" action="{{ action_url }}" class="form">
-                    {% csrf_token %}
-                    <div class="form-group">
-                        <label for="mfa_webauthn_edit">{% trans "Name" %}</label>
-                        <input id="mfa_webauthn_edit" type="text" name="name" value="{{ authenticator }}" class="form-control">
-                    </div>
-                    <div class="text-center">
-                        <button id="mfa_webauthn_edit_submit" type="submit" class="btn btn-primary">
-                            {% trans "Save" %}
-                        </button>
-                        <a href="{% url 'mfa_list_webauthn' %}" class="btn btn-danger">
-                            {% trans "Cancel" %}
-                        </a>
-                    </div>
-                </form>
-            </div>
+      {% endif %}
+
+      <section class="resource-form-card account-webauthn-edit-card" aria-labelledby="webauthn-edit-heading">
+        <div class="resource-form-section-heading">
+          <span class="resource-form-section-icon account-webauthn-card-icon" aria-hidden="true">
+            <i class="fas fa-pen"></i>
+          </span>
+          <div>
+            <h1 id="webauthn-edit-heading">{% trans "Rename security key" %}</h1>
+            <p>{% trans "Give this credential a name that makes it easy to recognize later." %}</p>
+          </div>
         </div>
-    </div>
+
+        {% with security_key=authenticator.wrap %}
+          <div class="account-webauthn-key-summary">
+            <span class="account-webauthn-key-summary-icon" aria-hidden="true">
+              {% if security_key.is_passwordless is True %}
+                <i class="fas fa-fingerprint"></i>
+              {% else %}
+                <i class="fas fa-key"></i>
+              {% endif %}
+            </span>
+            <div>
+              <span>{% trans "Current credential" %}</span>
+              <strong>{{ authenticator }}</strong>
+              {% if security_key.is_passwordless is True %}
+                <small>{% trans "Passkey" %}</small>
+              {% elif security_key.is_passwordless is False %}
+                <small>{% trans "Security key" %}</small>
+              {% else %}
+                <small>{% trans "Type unknown" %}</small>
+              {% endif %}
+            </div>
+          </div>
+        {% endwith %}
+
+        <div class="account-webauthn-edit-field">
+          {{ form.name|as_crispy_field }}
+        </div>
+        <div class="account-webauthn-edit-note">
+          <i class="fas fa-info-circle" aria-hidden="true"></i>
+          <span>{% trans "Renaming changes only how this key appears in Ghostwriter. The credential itself stays the same." %}</span>
+        </div>
+      </section>
+
+      <div class="resource-form-actions resource-form-actions-compact account-webauthn-edit-actions">
+        <div class="resource-form-actions-buttons">
+          <a class="btn btn-outline-secondary" href="{% url 'mfa_list_webauthn' %}">{% trans "Cancel" %}</a>
+          <button id="mfa_webauthn_edit_submit" type="submit" class="btn btn-primary">
+            <i class="fas fa-save" aria-hidden="true"></i> {% trans "Save name" %}
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
 {% endblock %}

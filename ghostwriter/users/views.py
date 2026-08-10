@@ -305,13 +305,19 @@ class RecoveryCodesView(ViewRecoveryCodesView):
 
 recovery_codes_view = RecoveryCodesView.as_view()
 
+
 class RemoveDeviceTOTPView(DeactivateTOTPView):
     def get_form_kwargs(self):
         """Add user and authenticator to form kwargs."""
         kwargs = super().get_form_kwargs()
         kwargs["user"] = self.request.user
+        if self.request.method == "GET":
+            # The upstream form has no input and binds an empty payload on GET to
+            # surface policy errors. Ghostwriter requires a verification code, so
+            # keep the form unbound until the user submits it.
+            kwargs.pop("data", None)
         # The authenticator is already provided by the parent class
         return kwargs
 
-remove_device_totp_view = RemoveDeviceTOTPView.as_view()
 
+remove_device_totp_view = RemoveDeviceTOTPView.as_view()

@@ -1,75 +1,132 @@
-
 {% extends "account/base.html" %}
 
 {% load i18n %}
 {% load crispy_forms_tags %}
 
-{% block pagetitle %}Account{% endblock %}
+{% block pagetitle %}Email Addresses{% endblock %}
 
-
-{% block inner %}
-    <h2>{% trans "Email Addresses" %}</h2>
-
+{% block content %}
+  <div class="resource-form-shell account-profile-editor account-email-editor">
     {% if user.emailaddress_set.all %}
-        <p>{% trans 'The following email addresses are associated with your account:' %}</p>
-
-        <form action="{% url 'account_email' %}" class="email_list" method="post">
-            {% csrf_token %}
-            <fieldset class="blockLabels p-2">
-                {% for emailaddress in user.emailaddress_set.all %}
-                    <div class="radio">
-                        <input id="email_radio_{{forloop.counter}}" type="radio" name="email" {% if emailaddress.primary or user.emailaddress_set.count == 1 %}checked="checked"{%endif %} value="{{emailaddress.email}}"/>
-                        <label for="email_radio_{{forloop.counter}}" class="{% if emailaddress.primary %}primary_email{%endif%} ps-1 pe-1">
-                            {{ emailaddress.email }}
-                            {% if emailaddress.verified %}
-                                <span class="verified">{% trans " [Verified] " %}</span>
-                            {% else %}
-                                <span class="unverified">{% trans " [Unverified] " %}</span>
-                            {% endif %}
-                            {% if emailaddress.primary %}
-                                <span class="primary">{% trans "Primary" %}</span>
-                            {% endif %}
-                        </label>
-                    </div>
-                {% endfor %}
-            </fieldset>
-            <div class="btn-group mt-2">
-                <button class="secondaryAction btn btn-primary" type="submit" name="action_primary" >{% trans 'Make Primary' %}</button>
-                <button class="secondaryAction btn btn-secondary" type="submit" name="action_send" >{% trans 'Re-send Verification' %}</button>
-                <button class="primaryAction btn btn-danger" type="submit" name="action_remove" >{% trans 'Remove' %}</button>
+      <form action="{% url 'account_email' %}" class="email_list resource-edit-form account-email-list-form" method="post">
+        {% csrf_token %}
+        <section class="resource-form-card account-email-card" aria-labelledby="email-addresses-heading">
+          <div class="resource-form-section-heading">
+            <span class="resource-form-section-icon account-email-card-icon" aria-hidden="true"><i class="fas fa-envelope"></i></span>
+            <div>
+              <h1 id="email-addresses-heading">{% trans "Email addresses" %}</h1>
+              <p>{% trans "Choose an address to change its status, resend verification, or remove it from your account." %}</p>
             </div>
-        </form>
+          </div>
+
+          <fieldset class="account-email-list">
+            <legend class="visually-hidden">{% trans "Select an email address" %}</legend>
+            {% for emailaddress in user.emailaddress_set.all %}
+              <label class="account-email-option" for="email_radio_{{ forloop.counter }}">
+                <input
+                  class="form-check-input"
+                  id="email_radio_{{ forloop.counter }}"
+                  type="radio"
+                  name="email"
+                  value="{{ emailaddress.email }}"
+                  {% if emailaddress.primary or user.emailaddress_set.count == 1 %}checked{% endif %}
+                >
+                <span class="account-email-option-copy">
+                  <strong>{{ emailaddress.email }}</strong>
+                  <span class="account-email-statuses">
+                    {% if emailaddress.verified %}
+                      <span class="account-email-status account-email-status-verified">{% trans "Verified" %}</span>
+                    {% else %}
+                      <span class="account-email-status account-email-status-unverified">{% trans "Unverified" %}</span>
+                    {% endif %}
+                    {% if emailaddress.primary %}
+                      <span class="account-email-status account-email-status-primary">{% trans "Primary" %}</span>
+                    {% endif %}
+                  </span>
+                </span>
+              </label>
+            {% endfor %}
+          </fieldset>
+        </section>
+
+        <div class="resource-form-actions resource-form-actions-compact account-email-actions">
+          <div class="resource-form-actions-buttons">
+            <button class="secondaryAction btn btn-primary" type="submit" name="action_primary">{% trans "Make primary" %}</button>
+            <button class="secondaryAction btn btn-outline-secondary" type="submit" name="action_send">{% trans "Resend verification" %}</button>
+            <button
+              class="primaryAction btn btn-outline-danger"
+              type="submit"
+              name="action_remove"
+              data-confirm-message="{% trans 'Do you really want to remove the selected email address?' %}"
+            >{% trans "Remove" %}</button>
+          </div>
+        </div>
+      </form>
     {% else %}
-        <p><strong>{% trans "Warning:"%}</strong> {% trans "You currently do not have any email address set up. You should really add an e-mail address so you can receive notifications, reset your password, etc." %}</p>
+      <section class="resource-form-card account-email-card" aria-labelledby="email-addresses-heading">
+        <div class="resource-form-section-heading">
+          <span class="resource-form-section-icon account-email-card-icon" aria-hidden="true"><i class="fas fa-envelope"></i></span>
+          <div>
+            <h1 id="email-addresses-heading">{% trans "Email addresses" %}</h1>
+            <p>{% trans "Manage the addresses used for notifications, verification, and password recovery." %}</p>
+          </div>
+        </div>
+        <div class="account-email-empty" role="status">
+          <strong>{% trans "No email addresses added" %}</strong>
+          <p>{% trans "Add an address below so you can receive notifications and recover your account." %}</p>
+        </div>
+      </section>
     {% endif %}
 
-    <hr>
+    <form method="post" action="{% url 'account_email' %}" class="add_email resource-edit-form account-email-add-form">
+      {% csrf_token %}
 
-    <h2>{% trans "Add Email Address" %}</h2>
+      {% if form.errors %}
+        <div class="alert alert-danger account-security-alert" role="alert">
+          <div class="account-security-alert-icon" aria-hidden="true"><i class="fas fa-exclamation-circle"></i></div>
+          <div>
+            <strong>{% trans "Email address not added" %}</strong>
+            <p>{% trans "Review the highlighted field below and try again." %}</p>
+            {% if form.non_field_errors %}{{ form.non_field_errors }}{% endif %}
+          </div>
+        </div>
+      {% endif %}
 
-    <form method="post" action="{% url 'account_email' %}" class="add_email">
-        {% csrf_token %}
+      <section class="resource-form-card account-email-card" aria-labelledby="add-email-heading">
+        <div class="resource-form-section-heading">
+          <span class="resource-form-section-icon account-email-add-icon" aria-hidden="true"><i class="fas fa-plus"></i></span>
+          <div>
+            <h2 id="add-email-heading">{% trans "Add an email address" %}</h2>
+            <p>{% trans "Ghostwriter will send a verification message before using the new address as verified contact information." %}</p>
+          </div>
+        </div>
         {{ form|crispy }}
-        <button class="btn btn-primary col-md-7" name="action_add" type="submit">{% trans "Add Email" %}</button>
+      </section>
+
+      <div class="resource-form-actions resource-form-actions-compact account-email-actions">
+        <div class="resource-form-actions-buttons">
+          <a class="btn btn-outline-secondary" href="{% url 'users:user_detail' request.user.username %}">{% trans "Cancel" %}</a>
+          <button class="btn btn-primary" name="action_add" type="submit">
+            <i class="fas fa-plus" aria-hidden="true"></i> {% trans "Add email address" %}
+          </button>
+        </div>
+      </div>
     </form>
+  </div>
 {% endblock %}
 
-
-{% block javascript %}
-    {{ block.super }}
-    <script type="text/javascript">
-        (function() {
-        var message = "{% trans 'Do you really want to remove the selected email address?' %}";
-        var actions = document.getElementsByName('action_remove');
-        if (actions.length) {
-            actions[0].addEventListener("click", function(e) {
-            if (! confirm(message)) {
-                e.preventDefault();
-            }
-            });
-        }
-        })();
-
-        $('.form-group').removeClass('row');
-    </script>
+{% block morescripts %}
+  {{ block.super }}
+  <script>
+    (function () {
+      const removeAction = document.querySelector('[name="action_remove"]')
+      if (removeAction) {
+        removeAction.addEventListener('click', function (event) {
+          if (!window.confirm(removeAction.dataset.confirmMessage)) {
+            event.preventDefault()
+          }
+        })
+      }
+    })()
+  </script>
 {% endblock %}

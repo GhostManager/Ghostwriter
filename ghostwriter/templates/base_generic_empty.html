@@ -48,7 +48,7 @@
   <script src="{% static 'js/project.js' %}"></script>
   <script src="{% static 'js/active-report.js' %}"></script>
   <link rel="stylesheet" href="{% static 'css/styles.css' %}?v={{ VERSION }}"/>
-  <link rel="stylesheet" href="{% static 'css/design_system.css' %}?v={{ VERSION }}-ui9"/>
+  <link rel="stylesheet" href="{% static 'css/design_system.css' %}?v={{ VERSION }}-ui16"/>
 
   <!-- Standalone Tiptap editor (packaged for offline deployments) -->
   <script type="module" src="{% static 'assets/standalone_tiptap_loader.js' %}?v={{ VERSION }}"></script>
@@ -178,7 +178,6 @@
   GhostwriterActiveReport.init({
     reportUrlTemplate: '{% url 'reporting:report_detail' 0 %}',
     activationUrlTemplate: '{% url 'reporting:ajax_activate_report' 0 %}',
-    redirectToShortcutAfterMessage: true,
   });
 
   {% comment %} Open and close the sidebar {% endcomment %}

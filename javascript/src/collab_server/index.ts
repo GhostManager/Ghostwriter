@@ -2,23 +2,19 @@
 //
 // Dynamically converts the standard models from the GraphQL API to/from YJS.
 
-// Apollo's lib is commonjs and tsx doesn't see its exports, so work around it.
-import * as apollo from "@apollo/client/core";
 import type {
     ApolloClient as ApolloClientType,
     NormalizedCacheObject,
 } from "@apollo/client/core";
-const { ApolloClient, createHttpLink, InMemoryCache } = apollo;
 
 import { randomUUID } from "node:crypto";
 import { Server } from "@hocuspocus/server";
-import { setContext } from "@apollo/client/link/context";
-import { env } from "node:process";
 import * as Y from "yjs";
 import pino from "pino";
 import { type Logger } from "pino";
 
 import { type ModelHandler } from "./base_handler";
+import { createCollabGqlClient } from "./graphql_client";
 import ObservationHandler from "./handlers/observation";
 import ReportObservationLinkHandler from "./handlers/report_observation_link";
 import FindingHandler from "./handlers/finding";
@@ -40,42 +36,10 @@ const HANDLERS: Map<string, ModelHandler<any>> = new Map(HANDLERS_ARR);
 
 // Graphql Client
 
-const graphql_engine_hostname: string =
-    env["HASURA_GRAPHQL_SERVER_HOSTNAME"] || "graphql_engine";
-
-const httpLink = createHttpLink({
-    uri: "http://" + graphql_engine_hostname + ":8080/v1/graphql",
-});
-
 function getGqlClient(context: Context) {
     if (context.gqlClient) return context.gqlClient;
 
-    const authLink = setContext((_, { headers }) => {
-        return {
-            headers: {
-                ...headers,
-                "x-hasura-admin-secret": (env as any)[
-                    "HASURA_GRAPHQL_ADMIN_SECRET"
-                ],
-                Authorization: "Bearer " + context.token,
-            },
-        };
-    });
-
-    context.gqlClient = new ApolloClient({
-        link: authLink.concat(httpLink),
-        cache: new InMemoryCache(),
-        defaultOptions: {
-            query: {
-                fetchPolicy: "no-cache",
-                errorPolicy: "all",
-            },
-            watchQuery: {
-                fetchPolicy: "no-cache",
-                errorPolicy: "all",
-            },
-        },
-    });
+    context.gqlClient = createCollabGqlClient(context.token);
     return context.gqlClient;
 }
 

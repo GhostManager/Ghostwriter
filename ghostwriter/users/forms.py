@@ -235,27 +235,27 @@ class UserSignupForm(SignupForm):
 class UserMFAAuthenticateForm(AuthenticateForm):
     """
     Authenticate an individual :model:`users.User` with their TOTP. This is customized
-    to make adjustments like disabling autocomplete on the token field.
+    to support one-time-code entry while retaining recovery-code authentication.
     """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        for field in self.fields:
-            self.fields[field].widget.attrs["autocomplete"] = "off"
-        self.fields["code"].widget.attrs["placeholder"] = "421 984"
+        self.fields["code"].label = _("Authentication or recovery code")
+        self.fields["code"].help_text = _(
+            "Enter the current code from your authenticator app or an unused recovery code."
+        )
+        self.fields["code"].widget.attrs.update(
+            {
+                "autocomplete": "one-time-code",
+                "autocapitalize": "off",
+                "spellcheck": "false",
+                "placeholder": _("Enter code"),
+            }
+        )
         self.helper = FormHelper()
         self.helper.form_method = "post"
         self.helper.form_tag = False
-        self.helper.form_show_errors = False
-        self.helper.layout = Layout(
-            Row(
-                Column("code", css_class="form-group col-4 offset-4 mb-0"),
-                css_class="form-row mt-4",
-            ),
-            ButtonHolder(
-                Submit("submit", "Authenticate", css_class="col-4"),
-            ),
-        )
+        self.helper.layout = Layout("code")
 
     def clean_code(self):
         clear_rl = check_rate_limit(self.user)
@@ -275,35 +275,37 @@ class UserMFAAuthenticateForm(AuthenticateForm):
 class UserMFADeviceForm(ActivateTOTPForm):
     """
     Enroll an MFA device for an individual :model:`users.User`. This is customized
-    to make adjustments like disabling autocomplete on the token field.
+    to optimize the verification field for one-time-code entry.
     """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        for field in self.fields:
-            self.fields[field].widget.attrs["autocomplete"] = "off"
-        self.fields["code"].widget.attrs["placeholder"] = "421 984"
+        self.fields["code"].label = _("6-digit authenticator code")
+        self.fields["code"].help_text = _(
+            "Enter the current code from your authenticator app."
+        )
+        self.fields["code"].widget.attrs.update(
+            {
+                "autocomplete": "one-time-code",
+                "inputmode": "numeric",
+                "pattern": "[0-9]{6}",
+                "maxlength": "6",
+                "placeholder": "123456",
+            }
+        )
         self.helper = FormHelper()
         self.helper.form_method = "post"
-        self.helper.form_show_errors = False
-        self.helper.layout = Layout(
-            Row(
-                Column("code", css_class="form-group col-4 offset-4 mb-0"),
-                css_class="form-row mt-4",
-            ),
-            ButtonHolder(
-                Submit("submit", "Verify", css_class="col-4"),
-            ),
-        )
+        self.helper.form_tag = False
+        self.helper.layout = Layout("code")
 
 
 class UserMFADeviceRemoveForm(DeactivateTOTPForm):
     """
     Remove an MFA device enrolled for an individual :model:`users.User`. This is customized
-    to make adjustments like disabling autocomplete on the password field.
+    to require the current authenticator code and apply rate limiting.
     """
     code = CharField(
-        label=_("Current Authenticator Code"),
+        label=_("Current authenticator code"),
         max_length=6,
         min_length=6,
         required=True,
@@ -315,7 +317,9 @@ class UserMFADeviceRemoveForm(DeactivateTOTPForm):
                 "pattern": "[0-9]{6}",
             }
         ),
-        help_text="Enter the current 6-digit code from your authenticator app to confirm deactivation.",
+        help_text=_(
+            "Enter the current 6-digit code from your authenticator app to confirm deactivation."
+        ),
     )
 
     def __init__(self, *args, **kwargs):
@@ -324,16 +328,8 @@ class UserMFADeviceRemoveForm(DeactivateTOTPForm):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "post"
-        self.helper.form_show_errors = False
-        self.helper.layout = Layout(
-            Row(
-                Column("code", css_class="form-group col-4 offset-4 mb-0"),
-                css_class="form-row mt-4",
-            ),
-            ButtonHolder(
-                Submit("submit", "Disable Multi-Factor", css_class="col-4"),
-            ),
-        )
+        self.helper.form_tag = False
+        self.helper.layout = Layout("code")
 
     def clean_code(self):
         """

@@ -2,59 +2,89 @@
 {% load i18n %}
 {% load crispy_forms_tags %}
 
+{% block pagetitle %}{% trans "Confirm your sign-in" %}{% endblock %}
+
 {% block content %}
-  <h2>
-    {% trans "Multi-Factor Authentication" %}
-  </h2>
+  <div class="auth-challenge-page">
+    <section class="auth-challenge-card" aria-labelledby="auth-challenge-heading">
+      <div class="auth-challenge-heading">
+        <span class="auth-challenge-icon" aria-hidden="true"><i class="fas fa-shield-alt"></i></span>
+        <div>
+          <span class="auth-challenge-eyebrow">{% trans "Additional verification" %}</span>
+          <h1 id="auth-challenge-heading">{% trans "Confirm your sign-in" %}</h1>
+          <p>{% trans "Complete one more security check to continue to Ghostwriter." %}</p>
+        </div>
+      </div>
 
-  <!-- Form Error Section -->
-  {% if form.errors %}
-    <script>
-      {% for field in form %}
-        {% for error in field.errors %}
-          displayToastTop({type: 'error', string: '{{ error|escapejs }}', context: 'form'});
-        {% endfor %}
-      {% endfor %}
+      {% if form.errors or webauthn_form.errors %}
+        <div class="alert alert-danger account-security-alert auth-challenge-alert" role="alert">
+          <div class="account-security-alert-icon" aria-hidden="true"><i class="fas fa-exclamation-circle"></i></div>
+          <div>
+            <strong>{% trans "We could not verify your sign-in" %}</strong>
+            <p>{% trans "Check the code and try again, or use another available method." %}</p>
+            {% if form.non_field_errors %}{{ form.non_field_errors }}{% endif %}
+            {% if webauthn_form.non_field_errors %}{{ webauthn_form.non_field_errors }}{% endif %}
+          </div>
+        </div>
+      {% endif %}
 
-      {% for error in form.non_field_errors %}
-        displayToastTop({type: 'error', string: '{{ error|escapejs }}', context: 'form'});
-      {% endfor %}
-    </script>
-  {% endif %}
+      <form class="validate auth-challenge-form" method="post" action="{% url 'mfa_authenticate' %}" novalidate>
+        {% csrf_token %}
+        <div class="auth-challenge-field">
+          {{ form.code|as_crispy_field }}
+        </div>
 
-  <!-- Form Section -->
-  <form class="validate" method="POST" action="{% url 'mfa_authenticate'  %}" novalidate>
-    {% csrf_token %}
-    {% crispy form form.helper %}
+        {% if redirect_field_value %}
+          <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">
+        {% endif %}
 
-    {% if redirect_field_value %}
-      <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}"/>
-    {% endif %}
-  </form>
+        <button class="btn btn-primary auth-challenge-submit" type="submit">
+          <i class="fas fa-arrow-right" aria-hidden="true"></i> {% trans "Verify and continue" %}
+        </button>
+      </form>
 
-  <br>
+      {% if webauthn_form %}
+        <div class="auth-challenge-divider"><span>{% trans "Another sign-in method" %}</span></div>
 
-  <h3>{% trans "Alternate Methods" %}</h3>
+        <div class="auth-challenge-method">
+          <div class="auth-challenge-method-copy">
+            <span class="auth-challenge-method-icon" aria-hidden="true"><i class="fas fa-fingerprint"></i></span>
+            <div>
+              <h2>{% trans "Use a passkey" %}</h2>
+              <p>{% trans "Verify with a registered security key or this device." %}</p>
+            </div>
+          </div>
+          <button
+            type="submit"
+            form="webauthn_form"
+            id="mfa_webauthn_authenticate"
+            class="btn btn-outline-secondary"
+          >
+            {% trans "Use passkey" %}
+          </button>
+        </div>
 
-  <button type="submit" form="webauthn_form" id="mfa_webauthn_authenticate" class="btn btn-outline-primary prominent login">
-    {% trans "Use Security Passkey" %}
-  </button>
+        <form
+          id="webauthn_form"
+          class="auth-challenge-webauthn-form"
+          method="post"
+          action="{% url 'mfa_authenticate' %}"
+        >
+          {% csrf_token %}
+          {{ webauthn_form.as_p }}
+        </form>
 
-  <form id="webauthn_form" method="post" action="{% url 'mfa_authenticate' %}">
-    {% csrf_token %}
-    {{ webauthn_form.as_p }}
-  </form>
-
-  {{ js_data|json_script:"js_data" }}
-
-  {% include "mfa/webauthn/snippets/scripts.html" %}
-
-  <script data-allauth-onload="allauth.webauthn.forms.authenticateForm" type="application/json">{
-    "ids": {
-      "authenticate": "mfa_webauthn_authenticate",
-      "credential": "{{ webauthn_form.credential.auto_id }}",
-      "data": "js_data"
-    }
-  }
-  </script>
+        {{ js_data|json_script:"js_data" }}
+        {% include "mfa/webauthn/snippets/scripts.html" %}
+        <script data-allauth-onload="allauth.webauthn.forms.authenticateForm" type="application/json">{
+          "ids": {
+            "authenticate": "mfa_webauthn_authenticate",
+            "credential": "{{ webauthn_form.credential.auto_id }}",
+            "data": "js_data"
+          }
+        }
+        </script>
+      {% endif %}
+    </section>
+  </div>
 {% endblock %}
