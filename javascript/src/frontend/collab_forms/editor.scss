@@ -492,6 +492,11 @@ ul.collab-focused-users {
     cursor: pointer;
 }
 
+[data-theme="dark"] .gw-comment {
+    background-color: #4a3e00;
+    border-bottom-color: #c8940a;
+}
+
 // Resolved comments lose the highlight but the data stays in the DOM
 .gw-comment.gw-comment-resolved {
     background-color: transparent;
@@ -519,6 +524,16 @@ ul.collab-focused-users {
     &.gw-comment-card-own {
         border-color: #0d6efd;
         background-color: #f0f5ff;
+    }
+}
+
+[data-theme="dark"] .gw-comment-card {
+    border-color: #444;
+    background-color: #2a2a2a;
+
+    &.gw-comment-card-own {
+        border-color: #3a7fd5;
+        background-color: #1a2a3a;
     }
 }
 
