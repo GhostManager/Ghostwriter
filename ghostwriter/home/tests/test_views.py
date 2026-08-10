@@ -4,6 +4,7 @@ from datetime import date, datetime, timedelta
 from datetime import timezone as datetime_timezone
 from io import StringIO
 from unittest.mock import patch
+from uuid import uuid4
 from zoneinfo import ZoneInfo
 
 # Django Imports
@@ -17,6 +18,7 @@ from django.utils import timezone
 
 # 3rd Party Libraries
 from allauth.mfa.totp.internal.auth import TOTP, generate_totp_secret
+from django_q.models import Task
 
 # Ghostwriter Libraries
 from ghostwriter.factories import (
@@ -39,6 +41,7 @@ from ghostwriter.home.navigation import (
     DEFAULT_VISIBLE_PANELS,
     SIDEBAR_PREFERENCES_VERSION,
 )
+from ghostwriter.home.models import DashboardExceptionDismissal
 from ghostwriter.home.working_context import WORKSPACE_PREFERENCES_VERSION
 from ghostwriter.home.templatetags import custom_tags
 from ghostwriter.reporting.models import ReportTemplate
@@ -690,6 +693,48 @@ class DashboardTests(TestCase):
         self.assertNotContains(response, ">Assigned Observations<")
         self.assertNotContains(response, ">Recent Background Tasks<")
         self.assertNotContains(response, ">All Systems Go!<")
+
+    def test_privileged_user_can_clear_failed_task_dashboard_alert(self):
+        task = Task.objects.create(
+            id=uuid4().hex,
+            name="failed-dashboard-task",
+            func="ghostwriter.shepherd.tasks.check_domains",
+            hook="",
+            args=(),
+            kwargs={},
+            result="Task failed",
+            group="Domain Updates",
+            started=timezone.now(),
+            stopped=timezone.now(),
+            success=False,
+        )
+        dismiss_uri = reverse(
+            "home:dismiss_dashboard_exception", kwargs={"task_id": task.id}
+        )
+
+        response = self.client_auth.get(self.uri)
+        self.assertNotContains(response, "System exceptions")
+
+        response = self.client_auth.post(dismiss_uri)
+        self.assertRedirects(response, self.uri)
+        self.assertFalse(
+            DashboardExceptionDismissal.objects.filter(task_id=task.id).exists()
+        )
+
+        response = self.client_manager.get(self.uri)
+        self.assertContains(response, "System exceptions")
+        self.assertContains(response, "Domain Updates")
+        self.assertContains(response, dismiss_uri)
+
+        response = self.client_manager.post(dismiss_uri)
+        self.assertRedirects(response, self.uri)
+        self.assertTrue(
+            DashboardExceptionDismissal.objects.filter(task_id=task.id).exists()
+        )
+        self.assertTrue(Task.objects.filter(id=task.id, success=False).exists())
+
+        response = self.client_admin.get(self.uri)
+        self.assertNotContains(response, "Domain Updates")
 
     def test_custom_context_exists(self):
         response = self.client_auth.get(self.uri)

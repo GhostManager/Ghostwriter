@@ -8799,10 +8799,15 @@ a.report-item-title {
   color: var(--gw-accent-coral);
 }
 
-.operator-exception-item > div {
+.operator-exception-copy {
   flex: 1;
   min-width: 0;
   text-align: left;
+}
+
+.operator-exception-dismiss {
+  align-self: center;
+  margin: 0;
 }
 
 .operator-exception-item strong,

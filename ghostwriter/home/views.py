@@ -12,7 +12,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.db.models import Prefetch, Q
 from django.http import HttpResponseNotAllowed, JsonResponse
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -31,6 +31,7 @@ from ghostwriter.api.utils import (
     verify_user_is_privileged,
 )
 from ghostwriter.home.editor_shortcuts import get_editor_shortcuts_date_config
+from ghostwriter.home.models import DashboardExceptionDismissal
 from ghostwriter.home.navigation import (
     DEFAULT_PANEL_ORDER,
     OPTIONAL_NAVIGATION_BY_ID,
@@ -530,7 +531,12 @@ class Dashboard(RoleBasedAccessControlMixin, View):
         failed_tasks = []
         system_health = None
         if request.user.is_privileged:
-            failed_tasks = list(Task.objects.filter(success=False)[:5])
+            dismissed_task_ids = DashboardExceptionDismissal.objects.values_list(
+                "task_id", flat=True
+            )
+            failed_tasks = list(
+                Task.objects.filter(success=False).exclude(id__in=dismissed_task_ids)[:5]
+            )
             system_health = "OK"
             try:
                 healthcheck = DjangoHealthChecks()
@@ -558,6 +564,24 @@ class Dashboard(RoleBasedAccessControlMixin, View):
             "system_health": system_health,
         }
         return render(request, "index.html", context=context)
+
+
+class DashboardExceptionDismiss(RoleBasedAccessControlMixin, View):
+    """Clear a failed-task alert from the privileged dashboard."""
+
+    def test_func(self):
+        return verify_user_is_privileged(self.request.user)
+
+    def handle_no_permission(self):
+        return redirect("home:dashboard")
+
+    def post(self, request, task_id, *args, **kwargs):
+        task = get_object_or_404(Task, id=task_id, success=False)
+        DashboardExceptionDismissal.objects.get_or_create(
+            task_id=task.id,
+            defaults={"dismissed_by": request.user},
+        )
+        return redirect("home:dashboard")
 
 
 class Management(RoleBasedAccessControlMixin, View):

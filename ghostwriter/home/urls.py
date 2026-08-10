@@ -12,6 +12,11 @@ app_name = "home"
 # URLs for the basic views
 urlpatterns = [
     path("", views.Dashboard.as_view(), name="dashboard"),
+    path(
+        "dashboard/exceptions/<str:task_id>/dismiss/",
+        views.DashboardExceptionDismiss.as_view(),
+        name="dismiss_dashboard_exception",
+    ),
     path("management/", views.Management.as_view(), name="management"),
     path(
         "navigation/preferences/",

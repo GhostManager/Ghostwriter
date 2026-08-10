@@ -276,7 +276,7 @@
             {% if system_health != "OK" %}
               <div class="operator-exception-item is-critical">
                 <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
-                <div>
+                <div class="operator-exception-copy">
                   <strong>System health requires attention</strong>
                   <span>Database or cache checks did not return a healthy result.</span>
                 </div>
@@ -285,10 +285,17 @@
             {% for task in failed_tasks %}
               <div class="operator-exception-item">
                 <i class="fas fa-times-circle" aria-hidden="true"></i>
-                <div>
+                <div class="operator-exception-copy">
                   <strong>{{ task.group|default:"Background job" }}</strong>
                   <span>Background task failed{% if task.stopped %} on {{ task.stopped|date:"M j, Y" }}{% endif %}.</span>
                 </div>
+                <form class="operator-exception-dismiss" method="post" action="{% url 'home:dismiss_dashboard_exception' task.id %}">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-sm btn-outline-secondary"
+                          aria-label="Clear {{ task.group|default:'background job' }} alert">
+                    Clear
+                  </button>
+                </form>
               </div>
             {% endfor %}
           </div>
