@@ -8078,16 +8078,6 @@ a.report-item-title {
   box-shadow: var(--gw-shadow-xs);
 }
 
-/* Navigation typography */
-.top-bar .breadcrumb {
-  font-size: 0.9rem;
-}
-
-.top-bar .breadcrumb a {
-  text-decoration: none;
-  font-weight: 500;
-}
-
 #sidebar .sideheader {
   font-size: 0.75rem;
   font-weight: 600;
@@ -8845,6 +8835,272 @@ a.report-item-title {
   color: var(--gw-information-slate);
 }
 
+/* System status */
+.status-page {
+  display: grid;
+  gap: 1rem;
+  width: min(100% - 2rem, 78rem);
+  margin: 1.5rem auto 2.5rem;
+  text-align: left;
+}
+
+.status-page-heading {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+}
+
+.status-page-heading > div:first-child {
+  min-width: 0;
+}
+
+.status-page-heading h1 {
+  margin: 0.22rem 0 0;
+  color: var(--gw-text-strong);
+  font-family: var(--gw-font-display);
+  font-size: clamp(1.8rem, 3vw, 2.6rem);
+  font-weight: 650;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+  text-align: left;
+}
+
+.status-page-heading p {
+  max-width: 62ch;
+  margin: 0.45rem 0 0;
+  color: color-mix(in srgb, var(--main-txt-color) 68%, transparent);
+  font-size: 0.9rem;
+}
+
+.status-page-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.status-overall-state {
+  display: inline-flex;
+  gap: 0.38rem;
+  align-items: center;
+  min-height: 2rem;
+  padding: 0.33rem 0.62rem;
+  border: 1px solid transparent;
+  border-radius: var(--gw-radius-pill);
+  font-size: 0.75rem;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.status-overall-state.is-healthy {
+  border-color: color-mix(in srgb, var(--gw-signal-green) 31%, transparent);
+  background: color-mix(in srgb, var(--gw-signal-green) 11%, transparent);
+  color: var(--gw-signal-green);
+}
+
+.status-overall-state.is-attention {
+  border-color: color-mix(in srgb, var(--gw-signal-coral) 32%, transparent);
+  background: color-mix(in srgb, var(--gw-signal-coral) 10%, transparent);
+  color: var(--gw-signal-coral);
+}
+
+.status-summary-card {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  padding: 1.1rem 1.2rem;
+  border: 1px solid var(--gw-border-subtle);
+  border-radius: var(--gw-radius-card);
+  background: var(--gw-surface);
+  box-shadow: var(--gw-shadow-xs);
+}
+
+.status-summary-card.is-healthy {
+  border-color: color-mix(in srgb, var(--gw-signal-green) 26%, var(--gw-border-subtle));
+}
+
+.status-summary-card.is-attention {
+  border-color: color-mix(in srgb, var(--gw-signal-coral) 30%, var(--gw-border-subtle));
+}
+
+.status-summary-icon,
+.status-section-icon {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: var(--gw-radius-control);
+}
+
+.status-summary-icon {
+  width: 2.55rem;
+  height: 2.55rem;
+  font-size: 1.05rem;
+}
+
+.status-summary-card.is-healthy .status-summary-icon {
+  background: color-mix(in srgb, var(--gw-signal-green) 12%, transparent);
+  color: var(--gw-signal-green);
+}
+
+.status-summary-card.is-attention .status-summary-icon {
+  background: color-mix(in srgb, var(--gw-signal-coral) 12%, transparent);
+  color: var(--gw-signal-coral);
+}
+
+.status-summary-copy h2,
+.status-section-header h2 {
+  margin: 0;
+  color: var(--gw-text-strong);
+  font-family: var(--gw-font-display);
+  font-weight: 650;
+  text-align: left;
+}
+
+.status-summary-copy h2 {
+  margin-top: 0.12rem;
+  font-size: 1rem;
+}
+
+.status-summary-copy p {
+  margin: 0.2rem 0 0;
+  color: color-mix(in srgb, var(--main-txt-color) 65%, transparent);
+  font-size: 0.8rem;
+}
+
+.status-page-grid {
+  display: grid;
+  grid-template-columns: minmax(16rem, 0.85fr) minmax(0, 2.15fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.status-section {
+  overflow: hidden;
+  border: 1px solid var(--gw-border-subtle);
+  border-radius: var(--gw-radius-card);
+  background: var(--gw-surface);
+  box-shadow: var(--gw-shadow-xs);
+}
+
+.status-section-header {
+  display: flex;
+  gap: 0.7rem;
+  align-items: center;
+  padding: 0.95rem 1.1rem 0.88rem;
+  border-bottom: 1px solid var(--gw-border-subtle);
+  background: var(--gw-surface-muted);
+}
+
+.status-section-icon {
+  width: 2rem;
+  height: 2rem;
+  background: color-mix(in srgb, var(--gw-information-slate) 12%, transparent);
+  color: var(--gw-information-slate);
+  font-size: 0.85rem;
+}
+
+.status-section-header h2 {
+  margin-top: 0.1rem;
+  font-size: 0.95rem;
+}
+
+.status-section-header p {
+  margin: 0.12rem 0 0;
+  color: color-mix(in srgb, var(--main-txt-color) 62%, transparent);
+  font-size: 0.75rem;
+}
+
+.status-threshold-list {
+  margin: 0;
+}
+
+.status-threshold-list > div {
+  display: flex;
+  gap: 1rem;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 0.86rem 1.1rem;
+  border-bottom: 1px solid var(--gw-border-subtle);
+}
+
+.status-threshold-list > div:last-child {
+  border-bottom: 0;
+}
+
+.status-threshold-list dt {
+  color: var(--gw-text-strong);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.status-threshold-list dd {
+  margin: 0;
+  color: var(--gw-text-strong);
+  font-size: 0.84rem;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.status-check-table {
+  border: 0;
+  border-radius: 0;
+}
+
+.status-check-table .table {
+  margin-bottom: 0;
+}
+
+.status-check-table .table th,
+.status-check-table .table td {
+  text-align: left;
+  vertical-align: middle;
+}
+
+.status-check-indicator {
+  width: 3.25rem;
+  text-align: center;
+}
+
+.status-check-table .table .status-check-indicator {
+  text-align: center;
+}
+
+.status-check-table tbody tr.is-healthy .status-check-indicator,
+.status-check-result.is-healthy {
+  color: var(--gw-signal-green);
+}
+
+.status-check-table tbody tr.is-attention .status-check-indicator,
+.status-check-result.is-attention {
+  color: var(--gw-signal-coral);
+}
+
+.status-check-service {
+  color: var(--gw-text-strong);
+  font-size: 0.84rem;
+  font-weight: 650;
+}
+
+.status-check-result {
+  display: block;
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.status-check-time {
+  color: color-mix(in srgb, var(--main-txt-color) 68%, transparent);
+  font-size: 0.78rem;
+  text-align: right !important;
+  white-space: nowrap;
+}
+
+.status-check-table .table .status-check-time-header {
+  text-align: right;
+}
+
 @media (max-width: 1199.98px) {
   .operator-dashboard-grid {
     grid-template-columns: minmax(0, 1fr);
@@ -8854,6 +9110,10 @@ a.report-item-title {
     grid-template-columns: minmax(0, 1fr) auto;
   }
 
+  .status-page-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .operator-setup-steps {
     grid-column: 1 / -1;
     grid-row: 2;
@@ -8861,6 +9121,79 @@ a.report-item-title {
 }
 
 @media (max-width: 767.98px) {
+  .status-page {
+    width: auto;
+    margin: 1rem;
+  }
+
+  .status-page-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .status-page-actions {
+    justify-content: flex-start;
+  }
+
+  .status-summary-card {
+    align-items: flex-start;
+  }
+
+  .status-check-indicator {
+    width: 2.5rem;
+  }
+
+  .status-check-table .table {
+    min-width: 0;
+  }
+
+  .status-check-table .table thead {
+    display: none;
+  }
+
+  .status-check-table .table tbody tr {
+    display: grid;
+    grid-template-columns: 1.6rem minmax(0, 1fr);
+    gap: 0.16rem 0.65rem;
+    padding: 0.78rem 1rem;
+  }
+
+  .status-check-table .table tbody tr + tr {
+    border-top: 1px solid var(--gw-border-subtle);
+  }
+
+  .status-check-table .table tbody td {
+    display: block;
+    padding: 0;
+    border: 0;
+  }
+
+  .status-check-table .table .status-check-indicator {
+    grid-row: 1 / span 3;
+    width: auto;
+    align-self: center;
+  }
+
+  .status-check-service,
+  .status-check-result,
+  .status-check-time {
+    grid-column: 2;
+  }
+
+  .status-check-time {
+    text-align: left !important;
+  }
+
+  .status-check-time::before {
+    margin-right: 0.45rem;
+    color: color-mix(in srgb, var(--main-txt-color) 57%, transparent);
+    content: "Response time";
+    font-family: var(--gw-font-sans);
+    font-size: 0.7rem;
+    font-variant-numeric: normal;
+    font-weight: 600;
+  }
+
   .operator-dashboard {
     padding-top: 0;
   }

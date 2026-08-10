@@ -82,21 +82,6 @@
 <div class="wrapper">
   <!-- Page Content Holder -->
   <div id="content">
-    {% if user.is_authenticated %}
-      <div class="top-bar container-fluid align-middle mb-3">
-        <!-- Breadcrumb Links -->
-        {% block breadcrumbs %}{% endblock %}
-
-        <!-- User Profile & Avatar -->
-        <a href="{% url 'users:user_detail' request.user.username %}">
-          <img class="navbar-avatar"
-               data-bs-toggle="tooltip" data-bs-placement="top" title="Logged-in as {{ request.user.username }}"
-               src="{%  url 'users:avatar_download' slug=request.user.username %}"
-               alt="Avatar">
-        </a>
-      </div>
-    {% endif %}
-
     {%  comment %} Page Content Goes Here {% endcomment %}
     <div>
       {% block content %}{% endblock %}

@@ -3,16 +3,6 @@
 
 {% block pagetitle %}{% if object %}Edit {{ object.name }}{% else %}New Report Template{% endif %}{% endblock %}
 
-{% block breadcrumbs %}
-  <nav aria-label="breadcrumb">
-    <ul class="breadcrumb">
-      {% comment %} Create breadcrumbs based on the context of the request {% endcomment %}
-      <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-      <li class="breadcrumb-item"><a href="{% url 'reporting:templates' %}">Report Templates</a></li>
-      <li class="breadcrumb-item active" aria-current="page">Report Template Form</li>
-    </ul>
-  </nav>
-{% endblock %}
 
 {% block content %}
   <div class="resource-edit-page">

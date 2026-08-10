@@ -3,31 +3,6 @@
 
 {% block pagetitle %}Project Form{% endblock %}
 
-{% block breadcrumbs %}
-  <nav aria-label="breadcrumb">
-    <ul class="breadcrumb">
-      {% comment %} Create breadcrumbs based on the context of the request {% endcomment %}
-      <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-      {% comment %} Check if `object` is in context to determine if this is a ProjectUpdate` request {% endcomment %}
-      {% if object.id %}
-        <li class="breadcrumb-item"><a data-bs-toggle="tooltip" title="{{ object.client }}"
-                                       href="{% url 'rolodex:client_detail' object.client.id %}">{{ object.client }}</a>
-        </li>
-        <li class="breadcrumb-item"><a data-bs-toggle="tooltip" title="{{ object }}"
-                                       href="{% url 'rolodex:project_detail' object.id %}">{{ object.start_date|date:"DATE_FORMAT" }} {{ object.project_type }}</a>
-        </li>
-        <li class="breadcrumb-item active" aria-current="page">Edit</li>
-      {% else %}
-        {% comment %} Check if `client` is in context for `ProjectCreate` for a specific client {% endcomment %}
-        {% if client %}
-          <li class="breadcrumb-item"><a data-bs-toggle="tooltip" title="{{ client }}"
-                                         href="{% url 'rolodex:client_detail' client.id %}">{{ client }}</a></li>
-        {% endif %}
-        <li class="breadcrumb-item active" aria-current="page">New Project Form</li>
-      {% endif %}
-    </ul>
-  </nav>
-{% endblock %}
 
 {% block content %}
   <header class="resource-form-page-heading mb-4">

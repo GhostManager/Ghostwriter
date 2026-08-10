@@ -7,15 +7,6 @@
 
 {% block pagetitle %}{{ client.name }} Details{% endblock %}
 
-{% block breadcrumbs %}
-  <nav aria-label="breadcrumb">
-    <ul class="breadcrumb">
-      <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-      <li class="breadcrumb-item"><a href="{% url 'rolodex:clients' %}">Clients</a></li>
-      <li class="breadcrumb-item active" aria-current="page">{{ client.name }}</li>
-    </ul>
-  </nav>
-{% endblock %}
 
 {% block content %}
   <!-- Current language: {{ LANGUAGE_CODE }} -->

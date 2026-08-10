@@ -1129,21 +1129,6 @@
   background: var(--gw-surface-muted);
 }
 
-.top-bar {
-  position: sticky;
-  top: 0;
-  z-index: 1010;
-  min-height: 3rem;
-  padding-left: 1rem;
-  border-bottom: 1px solid var(--search-box-shadow);
-  box-shadow: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.06);
-}
-
-.top-bar .navbar-avatar {
-  top: 50%;
-  transform: translateY(-50%);
-}
-
 #content {
   container-name: app-content;
   container-type: inline-size;

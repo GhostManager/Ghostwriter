@@ -4,15 +4,6 @@
 
 {% block pagetitle %}Evidence Detail{% endblock %}
 
-{% block breadcrumbs %}
-  <nav aria-label="breadcrumb">
-    <ul class="breadcrumb">
-      <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-      <li class="breadcrumb-item"><a href="{% url 'reporting:report_detail' evidence.report.id %}">{{ evidence.report }}</a></li>
-      <li class="breadcrumb-item active" aria-current="page">Evidence</li>
-    </ul>
-  </nav>
-{% endblock %}
 
 {% block content %}
   {% get_solo "commandcenter.ReportConfiguration" as report_config %}

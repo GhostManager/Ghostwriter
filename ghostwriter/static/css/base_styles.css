@@ -50,10 +50,6 @@
   --sidebar-collapse-button-text: #fff;
 
   /* NAVBAR */
-  --navbar-background-color: #f8f9fa;
-  --navbar-breadcrumb-active-color: #7386D5;
-  --navbar-breadcrumb-background-color: #f8f9fa;
-  --navbar-breadcrumb-active-background-color: #f8f9fa;
   --navbar-report-selected-font-color: #21612e;
   --navbar-report-selected-background-color: #d4eed9;
   --navbar-report-empty-font-color: #721c23;
@@ -145,10 +141,6 @@
   --sidebar-collapse-button-text: #fff;
 
   /* NAVBAR */
-  --navbar-background-color: #2a2a2a;
-  --navbar-breadcrumb-active-color: #9AA5E8;
-  --navbar-breadcrumb-background-color: #2a2a2a;
-  --navbar-breadcrumb-active-background-color: #2a2a2a;
   --navbar-report-selected-font-color: #5FC587;
   --navbar-report-selected-background-color: #2d4a33;
   --navbar-report-empty-font-color: #FF7E79;

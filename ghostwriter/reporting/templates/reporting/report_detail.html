@@ -3,21 +3,6 @@
 
 {% block pagetitle %}{{ report.title }}{% endblock %}
 
-{% block breadcrumbs %}
-  <nav aria-label="breadcrumb">
-    <ul class="breadcrumb">
-      <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-      <li class="breadcrumb-item"><a data-bs-toggle="tooltip" title="{{ report.project.client }}"
-                                     href="{% url 'rolodex:client_detail' report.project.client.id %}">{{ report.project.client }}</a>
-      </li>
-      <li class="breadcrumb-item"><a data-bs-toggle="tooltip"
-                                     title="{{ report.project }}"
-                                     href="{% url 'rolodex:project_detail' report.project.id %}">{{ report.project.start_date }} {{ report.project.project_type }}</a>
-      </li>
-      <li class="breadcrumb-item active" aria-current="page">{{ report }}</li>
-    </ul>
-  </nav>
-{% endblock %}
 
 {% block content %}
   <header class="detail-page-heading report-detail-heading">

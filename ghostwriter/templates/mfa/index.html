@@ -7,15 +7,6 @@
     {% trans "Multi-Factor Authentication" %}
 {% endblock pagetitle %}
 
-{% block breadcrumbs %}
-    <nav aria-label="breadcrumb">
-        <ul class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'users:user_detail' request.user.username %}">Your Profile</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Multi-Factor Authentication</li>
-        </ul>
-    </nav>
-{% endblock %}
 
 {% block content %}
     <h1 class="mt-4 mb-4">{% trans "Multi-Factor Authentication" %}</h1>

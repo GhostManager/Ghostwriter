@@ -4,15 +4,6 @@
 
 {% block pagetitle %}{{ primary_address }}{% endblock %}
 
-{% block breadcrumbs %}
-  <nav aria-label="breadcrumb">
-    <ul class="breadcrumb">
-      <li class="breadcrumb-item truncate"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-      <li class="breadcrumb-item truncate"><a href="{% url 'shepherd:servers' %}">Servers</a></li>
-      <li class="breadcrumb-item active truncate" aria-current="page">{{ primary_address }}</li>
-    </ul>
-  </nav>
-{% endblock %}
 
 {% block content %}
 

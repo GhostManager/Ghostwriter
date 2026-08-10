@@ -45,8 +45,8 @@ p {
   color: var(--main-txt-color);
 }
 
-ul:not(.list-unstyled):not(.nav):not(.breadcrumb):not(.tiptap ul),
-ol:not(.list-unstyled):not(.nav):not(.breadcrumb):not(.tiptap ol) {
+ul:not(.list-unstyled):not(.nav):not(.tiptap ul),
+ol:not(.list-unstyled):not(.nav):not(.tiptap ol) {
   margin-top: 10px;
   margin-bottom: 10px;
   list-style-position: inside;
@@ -553,17 +553,6 @@ h6 {
   box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
 }
 
-/* ---------------------------------------------------
-    TOP BAR STYLES
------------------------------------------------------ */
-
-.top-bar {
-  background: var(--navbar-background-color);
-  padding-top: 8px;
-  padding-bottom: 5px;
-  vertical-align: middle;
-}
-
 .report {
   border-radius: var(--button-border-radius);
   width: 100%;
@@ -595,31 +584,6 @@ h6 {
   height: 1px;
   border-bottom: 1px dashed #ddd;
   margin: 40px 0;
-}
-
-.breadcrumb {
-  background: var(--navbar-breadcrumb-background-color);
-  border-radius: 10px;
-  margin: 0;
-}
-
-.breadcrumb>.active {
-  background-color: var(--navbar-breadcrumb-background-color);
-  color: var(--navbar-breadcrumb-active-color);
-}
-
-.breadcrumb li {
-  display: inline;
-  max-width: 285px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.breadcrumb a {
-  background-color: var(--navbar-breadcrumb-active-background-color);
-  color: var(--active-link-color);
-  text-decoration: underline;
 }
 
 .current-report {
@@ -4901,15 +4865,6 @@ input[type="color"]:focus,
 [data-theme="dark"] .tooltip-inner {
   background-color: var(--primary-color);
   color: #fff;
-}
-
-/* Breadcrumbs */
-[data-theme="dark"] .breadcrumb {
-  background-color: var(--search-input-background-color);
-}
-
-[data-theme="dark"] .breadcrumb-item.active {
-  color: var(--secondary-color-fade);
 }
 
 /* List groups */

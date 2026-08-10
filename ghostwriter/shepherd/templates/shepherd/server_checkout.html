@@ -3,16 +3,6 @@
 
 {% block pagetitle %}Server Check-out{% endblock %}
 
-{% block breadcrumbs %}
-    <nav aria-label="breadcrumb">
-        <ul class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'shepherd:domains' %}">Servers</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'shepherd:server_detail' server.id %}">{{ server.ip_address }}</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Checkout</li>
-        </ul>
-    </nav>
-{% endblock %}
 
 {% block content %}
     <header class="resource-form-page-heading mb-4">
