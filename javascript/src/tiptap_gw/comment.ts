@@ -81,6 +81,7 @@ const GwComment = Mark.create({
                     ? "gw-comment gw-comment-resolved"
                     : "gw-comment",
             },
+            0,
         ];
     },
     addCommands() {
