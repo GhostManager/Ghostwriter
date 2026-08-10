@@ -8,6 +8,7 @@ import type {
 } from "@apollo/client/core";
 
 import { randomUUID } from "node:crypto";
+import { env } from "node:process";
 import { Server } from "@hocuspocus/server";
 import * as Y from "yjs";
 import pino from "pino";
