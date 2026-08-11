@@ -1,4 +1,4 @@
-// Apollo's lib is commonjs and tsx doesn't see its exports, so work around it.
+// Apollo's CommonJS declarations require a namespace import for TypeScript.
 import * as apollo from "@apollo/client/core";
 const { ApolloClient, createHttpLink, InMemoryCache } = apollo;
 

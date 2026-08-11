@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [7.2.6] - 10 August 2026
+
 ### Fixed
 
 * Fixed a report finding ordering feedback loop that could generate excessive Hasura events, database writes, and logs after bulk inserts (Closes #924)

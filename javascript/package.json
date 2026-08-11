@@ -9,7 +9,7 @@
         "check": "tsc --noEmit",
         "test:collab-graphql-auth": "vite build -c vite.config.collab_client_test.ts && node dist_collab_client_test/graphql-client-test.js",
         "test:html-compatibility": "vite build -c vite.config.html_compatibility.ts && node dist_html_compatibility/compatibility-test.js",
-        "format": "prettier src/ vite.config.collab_server.ts vite.config.frontend.ts vite.config.html_compatibility.ts --write",
+        "format": "prettier src/ vite.config.collab_server.ts vite.config.frontend.ts vite.config.collab_client_test.ts vite.config.html_compatibility.ts --write",
         "codegen": "graphql-codegen",
         "e2e": "playwright test",
         "e2e:headed": "playwright test --headed",

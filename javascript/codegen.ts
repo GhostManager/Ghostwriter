@@ -14,7 +14,7 @@ const config: CodegenConfig = {
             },
         },
     ],
-    documents: ["src/**/*.{ts,tsx}"],
+    documents: ["src/**/*.{ts,tsx}", "!src/**/*.test.{ts,tsx}"],
     generates: {
         "./src/__generated__/": {
             preset: "client",
