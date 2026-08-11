@@ -1584,6 +1584,10 @@ class OplogEvidenceCreateViewTests(TestCase):
             self.uri, HTTP_X_REQUESTED_WITH="XMLHttpRequest"
         )
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'class="oplog-evidence-upload-form"')
+        self.assertContains(response, "oplog-evidence-upload-actions")
+        self.assertContains(response, "Upload evidence")
+        self.assertNotContains(response, "col-md-4")
 
     def test_get_as_manager(self):
         response = self.client_mgr.get(self.uri, HTTP_X_REQUESTED_WITH="XMLHttpRequest")

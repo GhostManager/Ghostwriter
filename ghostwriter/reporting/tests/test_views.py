@@ -1438,6 +1438,8 @@ class FindingDeleteViewTests(TestCase):
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "confirm_delete.html")
+        self.assertContains(response, "direct-delete-confirmation-card")
+        self.assertContains(response, "Delete permanently")
 
     def test_custom_context_exists(self):
         response = self.client_mgr.get(self.uri)
@@ -3108,6 +3110,9 @@ class ReportExtraFieldEditViewTests(TestCase):
 
         self.assertIn(lazy_json_url, rendered)
         self.assertIn("JSON content will load when this preview opens.", rendered)
+        self.assertIn("extra-field-preview-modal", rendered)
+        self.assertIn("extra-field-preview-footer", rendered)
+        self.assertNotIn("btn btn-secondary col-3", rendered)
         self.assertNotIn("jsonView", rendered)
         self.assertNotIn("nested", rendered)
 

@@ -14,5 +14,53 @@
     </script>
 {% endif %}
 
-<!-- Form Section -->
-{% crispy form form.helper %}
+<form id="oplog-evidence-form" class="oplog-evidence-upload-form" action="{{ form.helper.form_action }}" method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+
+  <div class="oplog-evidence-upload-body">
+    <p class="oplog-evidence-upload-intro"><i class="fas fa-paperclip" aria-hidden="true"></i> Add a file to the selected report. Its friendly name and caption are used when it appears in report output.</p>
+
+    {% if form.non_field_errors %}
+      <div class="alert alert-danger oplog-evidence-upload-errors" role="alert">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <div class="oplog-evidence-upload-field">
+      {{ form.report|as_crispy_field }}
+    </div>
+
+    <div class="oplog-evidence-upload-field-grid">
+      <div>{{ form.friendly_name|as_crispy_field }}</div>
+      <div>{{ form.tags|as_crispy_field }}</div>
+    </div>
+
+    <div class="oplog-evidence-upload-field">
+      {{ form.caption|as_crispy_field }}
+    </div>
+
+    <div class="oplog-evidence-upload-field">
+      {{ form.description|as_crispy_field }}
+    </div>
+
+    <div class="oplog-evidence-upload-file-field">
+      <label class="form-label" for="{{ form.document.id_for_label }}">{{ form.document.label }}</label>
+      <div class="custom-file resource-file-dropzone oplog-evidence-file-dropzone">
+        {{ form.document }}
+        <label class="custom-file-label" for="{{ form.document.id_for_label }}">
+          <i class="fas fa-cloud-upload-alt" aria-hidden="true"></i>
+          <span>Choose a file or drag it here</span>
+        </label>
+      </div>
+      {% if form.document.errors %}
+        <div class="invalid-feedback d-block">{{ form.document.errors }}</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="resource-form-actions oplog-evidence-upload-actions">
+    <span class="resource-form-actions-context">Evidence is attached to this log entry after upload.</span>
+    <div class="resource-form-actions-buttons">
+      <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+      <button type="submit" class="btn btn-primary"><i class="fas fa-cloud-upload-alt" aria-hidden="true"></i> Upload evidence</button>
+    </div>
+  </div>
+</form>

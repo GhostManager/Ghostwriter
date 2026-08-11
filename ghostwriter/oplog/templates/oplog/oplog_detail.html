@@ -228,12 +228,16 @@
       </div>
   </div>
 
-  <div id="evidence-modal" class="modal" tabindex="-1" role="dialog" aria-hidden="true">
+  <div id="evidence-modal" class="modal fade oplog-evidence-modal" tabindex="-1" role="dialog" aria-labelledby="evidence-modal-title" aria-describedby="evidence-modal-description" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable" role="document">
           <div class="modal-content">
               <div class="modal-header">
-                  <h5 class="modal-title"><i class="fas fa-file-upload"></i> Upload Evidence</h5>
-                  <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+                  <div>
+                      <span class="detail-eyebrow">Entry attachment</span>
+                      <h5 class="modal-title" id="evidence-modal-title">Upload evidence</h5>
+                      <p class="oplog-entry-modal-intro" id="evidence-modal-description">Attach supporting material without leaving the activity timeline.</p>
+                  </div>
+                  <button type="button" class="close oplog-evidence-modal-close ms-auto align-self-start" data-bs-dismiss="modal" aria-label="Close">
                       <span aria-hidden="true">&times;</span>
                   </button>
               </div>

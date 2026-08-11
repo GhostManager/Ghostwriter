@@ -305,7 +305,7 @@ class OplogEvidenceForm(forms.ModelForm):
             "tags",
         )
         widgets = {
-            "document": forms.FileInput(attrs={"class": "form-control"}),
+            "document": forms.FileInput(attrs={"class": "custom-file-input"}),
             "description": forms.Textarea(attrs={"rows": 1}),
         }
 
@@ -340,33 +340,7 @@ class OplogEvidenceForm(forms.ModelForm):
         self.helper.form_method = "post"
         self.helper.attrs = {"enctype": "multipart/form-data"}
         self.helper.form_id = "oplog-evidence-form"
-        self.helper.layout = Layout(
-            HTML(
-                """
-                <p class="mb-1">Upload evidence and attach it to the selected report. The friendly name is used to
-                reference this evidence in reports, and the caption appears below figures.
-                You can press <em>Enter</em> to submit.</p>
-                """
-            ),
-            "report",
-            Row(
-                Column("friendly_name", css_class="form-group col-md-6 mb-0"),
-                Column("tags", css_class="form-group col-md-6 mb-0"),
-                css_class="form-row",
-            ),
-            "caption",
-            "description",
-            Field("document", css_class="custom-file-input"),
-            ButtonHolder(
-                Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
-                HTML(
-                    """
-                    <button data-bs-dismiss="modal" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
-                    """
-                ),
-                css_class="mt-3",
-            ),
-        )
+        self.helper.form_class = "oplog-evidence-upload-form"
 
     def clean(self):
         cleaned_data = super().clean()
