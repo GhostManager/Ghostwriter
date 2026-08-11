@@ -142,6 +142,14 @@ class UserProfileTokenDisplayTests(TestCase):
         self.assertContains(response, "Edit Expiry", count=6)
         self.assertContains(response, 'title="View details"', count=6)
         self.assertContains(response, 'title="Revoke token"', count=6)
+        self.assertContains(
+            response,
+            'class="modal fade destructive-confirmation-modal" id="confirm-revoke-modal"',
+        )
+        self.assertContains(response, 'id="confirm-revoke-modal-label">Revoke token?</h5>')
+        self.assertContains(response, 'id="revoke-object-preview-content"')
+        self.assertContains(response, "Create a replacement token before revoking one that is still in use.")
+        self.assertContains(response, "Revoke token")
 
         self.assertContains(response, 'id="token-expiry-display-', count=3)
         self.assertContains(response, 'id="service-token-expiry-display-', count=3)

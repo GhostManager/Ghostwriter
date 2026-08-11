@@ -47,45 +47,104 @@
 }
 
 /* Destructive confirmation modal */
-.sanitize-modal .modal-dialog {
+.destructive-confirmation-modal .modal-dialog {
   max-width: min(42rem, calc(100vw - 2rem));
 }
 
-.sanitize-modal .modal-header {
-  align-items: flex-start;
+.destructive-confirmation-modal .modal-content {
+  overflow: hidden;
 }
 
-.sanitize-modal .modal-title {
+.destructive-confirmation-modal .modal-header {
+  gap: 1rem;
+  align-items: flex-start;
+  padding: 1rem 1.25rem;
+  background: var(--gw-surface-muted);
+  border-bottom-color: var(--gw-border);
+}
+
+.destructive-confirmation-modal .modal-title {
   margin-top: 0.15rem;
   color: var(--gw-text-strong);
   font-family: var(--gw-font-display);
   font-weight: 700;
 }
 
-.sanitize-modal-intro {
+.destructive-confirmation-close {
+  flex: 0 0 auto;
+  min-width: 2rem;
+  min-height: 2rem;
+  margin: -0.25rem -0.35rem 0 auto;
+  padding: 0;
+  color: var(--main-txt-color);
+  background: transparent;
+  border: 0;
+  border-radius: var(--gw-radius-sm);
+  line-height: 1;
+}
+
+.destructive-confirmation-close:hover {
+  color: var(--gw-text-strong);
+  background: color-mix(in srgb, var(--gw-accent-coral) 10%, transparent);
+}
+
+.destructive-confirmation-close:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--gw-accent-coral) 36%, transparent);
+}
+
+.destructive-confirmation-modal .modal-body {
+  padding: 1.2rem 1.25rem;
+}
+
+.destructive-confirmation-copy {
   max-width: 58ch;
   margin: 0 0 1rem;
 }
 
-.sanitize-modal-warning {
+.destructive-confirmation-warning {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   gap: 0.7rem;
   align-items: start;
   padding: 0.8rem 0.9rem;
-  color: color-mix(in srgb, var(--gw-signal-amber) 82%, var(--gw-text-strong));
-  background: color-mix(in srgb, var(--gw-signal-amber) 11%, var(--gw-surface-muted));
-  border: 1px solid color-mix(in srgb, var(--gw-signal-amber) 40%, var(--gw-border));
-  border-left: 3px solid var(--gw-signal-amber);
+  color: color-mix(in srgb, var(--gw-accent-coral) 78%, var(--gw-text-strong));
+  background: color-mix(in srgb, var(--gw-accent-coral) 9%, var(--gw-surface-muted));
+  border: 1px solid color-mix(in srgb, var(--gw-accent-coral) 40%, var(--gw-border));
+  border-left: 3px solid var(--gw-accent-coral);
   border-radius: var(--gw-radius-md);
 }
 
-.sanitize-modal-warning i {
+.destructive-confirmation-warning i {
   margin-top: 0.2rem;
 }
 
-.sanitize-modal-warning p {
+.destructive-confirmation-warning p {
   margin: 0;
+}
+
+.destructive-confirmation-preview {
+  max-width: 58ch;
+  margin-top: 1rem;
+  padding: 0.7rem 0.85rem;
+  overflow-wrap: anywhere;
+  color: var(--gw-text-strong);
+  background: var(--gw-surface-muted);
+  border: 1px solid var(--gw-border);
+  border-radius: var(--gw-radius-sm);
+  font-family: var(--gw-font-data);
+  font-size: 0.8rem;
+}
+
+.destructive-confirmation-modal .modal-footer {
+  gap: 0.5rem;
+  padding: 0.85rem 1.25rem;
+  background: var(--gw-surface-muted);
+  border-top-color: var(--gw-border);
+}
+
+.destructive-confirmation-modal .modal-footer .btn-danger {
+  min-width: 10.75rem;
 }
 
 .sanitize-fieldset {
@@ -163,20 +222,12 @@
   margin: 0.55rem 0 0;
 }
 
-.sanitize-modal .modal-footer .btn-danger {
-  min-width: 12.5rem;
-}
-
 @media (max-width: 575.98px) {
   .sanitize-field-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .sanitize-modal .modal-footer {
-    gap: 0.5rem;
-  }
-
-  .sanitize-modal .modal-footer .btn-danger {
+  .destructive-confirmation-modal .modal-footer .btn-danger {
     min-width: 0;
   }
 }
@@ -4904,6 +4955,322 @@ a.report-item-title {
   color: var(--gw-context-blue);
 }
 
+/* Multi-factor authentication management */
+.account-mfa-management {
+  margin-bottom: 3rem;
+  text-align: left;
+}
+
+.account-mfa-management-heading {
+  margin-bottom: 1rem;
+}
+
+.account-mfa-management-heading h1 {
+  margin: 0.15rem 0 0;
+  color: var(--gw-text-strong);
+  font-family: var(--gw-font-display);
+  font-size: clamp(1.35rem, 2.5vw, 1.8rem);
+  font-weight: 700;
+}
+
+.account-mfa-management-heading p {
+  max-width: 62ch;
+  margin: 0.35rem 0 0;
+  color: color-mix(in srgb, var(--main-txt-color) 68%, transparent);
+  font-size: 0.87rem;
+  line-height: 1.5;
+}
+
+.account-mfa-management-status {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding: 0.85rem 0.95rem;
+  background: var(--gw-surface-muted);
+  border: 1px solid var(--gw-border);
+  border-radius: var(--gw-radius-md);
+}
+
+.account-mfa-management-status-icon {
+  display: grid;
+  place-items: center;
+  width: 2.2rem;
+  height: 2.2rem;
+  color: var(--gw-information-slate);
+  background: color-mix(in srgb, var(--gw-information-slate) 11%, var(--gw-surface));
+  border-radius: var(--gw-radius-sm);
+}
+
+.account-mfa-management-status-icon-active {
+  color: var(--gw-signal-green);
+  background: color-mix(in srgb, var(--gw-signal-green) 12%, var(--gw-surface));
+}
+
+.account-mfa-management-status > div {
+  display: grid;
+  gap: 0.08rem;
+  min-width: 0;
+}
+
+.account-mfa-management-status span:not(.account-mfa-management-status-icon) {
+  color: color-mix(in srgb, var(--main-txt-color) 60%, transparent);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.account-mfa-management-status strong {
+  color: var(--gw-text-strong);
+  font-size: 0.92rem;
+  font-weight: 650;
+}
+
+.account-mfa-management-status p {
+  margin: 0;
+  color: color-mix(in srgb, var(--main-txt-color) 67%, transparent);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.account-mfa-method-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  gap: 1rem;
+}
+
+.account-mfa-method-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 1rem;
+  background: var(--gw-surface);
+  border: 1px solid var(--gw-border);
+  border-radius: var(--gw-radius-lg);
+  box-shadow: var(--gw-shadow-sm);
+}
+
+.account-mfa-method-heading {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.7rem;
+  align-items: start;
+  margin-bottom: 0.85rem;
+}
+
+.account-mfa-method-icon {
+  display: grid;
+  place-items: center;
+  width: 2.15rem;
+  height: 2.15rem;
+  color: var(--gw-engagement-violet);
+  background: color-mix(in srgb, var(--gw-engagement-violet) 12%, var(--gw-surface-muted));
+  border-radius: var(--gw-radius-sm);
+}
+
+.account-mfa-method-icon-key {
+  color: var(--gw-context-blue);
+  background: color-mix(in srgb, var(--gw-context-blue) 12%, var(--gw-surface-muted));
+}
+
+.account-mfa-method-icon-recovery {
+  color: var(--gw-information-slate);
+  background: color-mix(in srgb, var(--gw-information-slate) 12%, var(--gw-surface-muted));
+}
+
+.account-mfa-method-heading h2,
+.account-mfa-method-heading p {
+  margin: 0;
+  text-align: left;
+}
+
+.account-mfa-method-heading h2 {
+  color: var(--gw-text-strong);
+  font-family: var(--gw-font-interface);
+  font-size: 1rem;
+  font-weight: 650;
+}
+
+.account-mfa-method-heading p,
+.account-mfa-method-detail {
+  color: color-mix(in srgb, var(--main-txt-color) 68%, transparent);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.account-mfa-method-heading p {
+  margin-top: 0.18rem;
+}
+
+.account-mfa-method-state {
+  display: inline-flex;
+  gap: 0.4rem;
+  align-items: center;
+  align-self: flex-start;
+  margin-bottom: 0.65rem;
+  padding: 0.3rem 0.5rem;
+  color: color-mix(in srgb, var(--gw-information-slate) 85%, var(--gw-text-strong));
+  background: color-mix(in srgb, var(--gw-information-slate) 9%, var(--gw-surface-muted));
+  border: 1px solid color-mix(in srgb, var(--gw-information-slate) 33%, var(--gw-border));
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 650;
+}
+
+.account-mfa-method-state-active {
+  color: color-mix(in srgb, var(--gw-signal-green) 80%, var(--gw-text-strong));
+  background: color-mix(in srgb, var(--gw-signal-green) 9%, var(--gw-surface-muted));
+  border-color: color-mix(in srgb, var(--gw-signal-green) 38%, var(--gw-border));
+}
+
+.account-mfa-method-state-warning {
+  color: color-mix(in srgb, var(--gw-signal-amber) 82%, var(--gw-text-strong));
+  background: color-mix(in srgb, var(--gw-signal-amber) 9%, var(--gw-surface-muted));
+  border-color: color-mix(in srgb, var(--gw-signal-amber) 40%, var(--gw-border));
+}
+
+.account-mfa-method-detail {
+  margin: 0;
+}
+
+.account-mfa-method-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: auto;
+  padding-top: 1rem;
+}
+
+.account-mfa-method-actions .btn {
+  display: inline-flex;
+  gap: 0.4rem;
+  align-items: center;
+  justify-content: center;
+}
+
+.account-mfa-method-actions .btn-primary,
+.account-recovery-generate-actions .btn-primary {
+  color: #fff;
+  background: var(--gw-engagement-violet);
+  border-color: var(--gw-engagement-violet);
+}
+
+.account-mfa-method-actions .btn-primary:hover,
+.account-mfa-method-actions .btn-primary:focus-visible,
+.account-recovery-generate-actions .btn-primary:hover,
+.account-recovery-generate-actions .btn-primary:focus-visible {
+  background: color-mix(in srgb, var(--gw-engagement-violet) 86%, #000);
+  border-color: color-mix(in srgb, var(--gw-engagement-violet) 86%, #000);
+}
+
+.account-mfa-method-actions .btn-outline-danger {
+  color: var(--gw-accent-coral);
+  border-color: color-mix(in srgb, var(--gw-accent-coral) 72%, var(--gw-border));
+}
+
+.account-mfa-method-actions .btn-outline-danger:hover,
+.account-mfa-method-actions .btn-outline-danger:focus-visible {
+  color: #fff;
+  background: var(--gw-accent-coral);
+  border-color: var(--gw-accent-coral);
+}
+
+.account-recovery-generate-actions .btn-danger {
+  color: #fff;
+  background: var(--gw-accent-coral);
+  border-color: var(--gw-accent-coral);
+}
+
+.account-recovery-generate-actions .btn-danger:hover,
+.account-recovery-generate-actions .btn-danger:focus-visible {
+  background: color-mix(in srgb, var(--gw-accent-coral) 86%, #000);
+  border-color: color-mix(in srgb, var(--gw-accent-coral) 86%, #000);
+}
+
+.account-recovery-generate {
+  margin-bottom: 3rem;
+  text-align: left;
+}
+
+.account-recovery-generate-form {
+  width: 100%;
+}
+
+.account-recovery-generate-form > p {
+  display: none;
+}
+
+.account-recovery-generate-warning,
+.account-recovery-generate-note {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.7rem;
+  align-items: start;
+  padding: 0.85rem;
+  border-radius: var(--gw-radius-md);
+}
+
+.account-recovery-generate-warning {
+  color: color-mix(in srgb, var(--gw-accent-coral) 78%, var(--gw-text-strong));
+  background: color-mix(in srgb, var(--gw-accent-coral) 8%, var(--gw-surface-muted));
+  border: 1px solid color-mix(in srgb, var(--gw-accent-coral) 40%, var(--gw-border));
+  border-left: 3px solid var(--gw-accent-coral);
+}
+
+.account-recovery-generate-note {
+  color: color-mix(in srgb, var(--gw-context-blue) 78%, var(--gw-text-strong));
+  background: color-mix(in srgb, var(--gw-context-blue) 8%, var(--gw-surface-muted));
+  border: 1px solid color-mix(in srgb, var(--gw-context-blue) 35%, var(--gw-border));
+  border-left: 3px solid var(--gw-context-blue);
+}
+
+.account-recovery-generate-warning i,
+.account-recovery-generate-note i {
+  margin-top: 0.14rem;
+}
+
+.account-recovery-generate-warning strong,
+.account-recovery-generate-note strong {
+  color: var(--gw-text-strong);
+  font-size: 0.88rem;
+}
+
+.account-recovery-generate-warning p,
+.account-recovery-generate-note p {
+  margin: 0.15rem 0 0;
+  color: var(--main-txt-color);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.auth-mfa-code-challenge-field input {
+  font-family: var(--gw-font-data);
+  font-size: 1rem;
+  letter-spacing: 0.12em;
+}
+
+.auth-mfa-login-code-note {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.45rem;
+  align-items: start;
+  margin: 0.8rem 0 0;
+  color: color-mix(in srgb, var(--main-txt-color) 60%, transparent);
+  font-size: 0.74rem;
+  line-height: 1.4;
+}
+
+.auth-mfa-login-code-note i {
+  margin-top: 0.12rem;
+  color: var(--gw-information-slate);
+}
+
+.auth-mfa-webauthn-note {
+  margin-bottom: 1rem;
+}
+
 .account-recovery-codes {
   margin-bottom: 3rem;
   text-align: left;
@@ -5261,6 +5628,133 @@ a.report-item-title {
 
 .auth-challenge-webauthn-form {
   display: none;
+}
+
+/* Account recovery, onboarding, and reauthentication */
+.auth-journey-card {
+  width: min(100%, 38rem);
+}
+
+.auth-journey-icon {
+  color: var(--gw-context-blue);
+  background: color-mix(in srgb, var(--gw-context-blue) 12%, var(--gw-surface-muted));
+}
+
+.auth-journey-icon-success {
+  color: var(--gw-signal-green);
+  background: color-mix(in srgb, var(--gw-signal-green) 12%, var(--gw-surface-muted));
+}
+
+.auth-journey-icon-warning {
+  color: var(--gw-signal-amber);
+  background: color-mix(in srgb, var(--gw-signal-amber) 12%, var(--gw-surface-muted));
+}
+
+.auth-journey-form {
+  width: 100%;
+}
+
+.auth-journey-form .mb-3,
+.auth-journey-form .form-group {
+  margin-bottom: 0.9rem !important;
+}
+
+.auth-journey-form input:not([type="checkbox"]):not([type="radio"]) {
+  font-family: var(--gw-font-data);
+}
+
+.auth-journey-intro {
+  margin: 0 0 1rem;
+  color: color-mix(in srgb, var(--main-txt-color) 76%, transparent);
+  font-size: 0.84rem;
+  line-height: 1.5;
+  text-align: left;
+}
+
+.auth-journey-intro a,
+.auth-journey-status a {
+  color: var(--gw-context-blue);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.auth-journey-intro a:hover,
+.auth-journey-intro a:focus-visible,
+.auth-journey-status a:hover,
+.auth-journey-status a:focus-visible {
+  color: var(--gw-engagement-violet);
+  text-decoration: underline;
+  text-underline-offset: 0.18rem;
+}
+
+.auth-journey-status {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.65rem;
+  align-items: start;
+  margin: 0 0 1rem;
+  padding: 0.8rem;
+  color: color-mix(in srgb, var(--gw-context-blue) 76%, var(--gw-text-strong));
+  background: color-mix(in srgb, var(--gw-context-blue) 8%, var(--gw-surface-muted));
+  border: 1px solid color-mix(in srgb, var(--gw-context-blue) 34%, var(--gw-border));
+  border-left: 3px solid var(--gw-context-blue);
+  border-radius: var(--gw-radius-md);
+}
+
+.auth-journey-status i {
+  margin-top: 0.15rem;
+}
+
+.auth-journey-status p {
+  margin: 0;
+  color: var(--main-txt-color);
+  font-size: 0.82rem;
+  line-height: 1.5;
+  text-align: left;
+}
+
+.auth-journey-status-warning {
+  color: color-mix(in srgb, var(--gw-signal-amber) 80%, var(--gw-text-strong));
+  background: color-mix(in srgb, var(--gw-signal-amber) 8%, var(--gw-surface-muted));
+  border-color: color-mix(in srgb, var(--gw-signal-amber) 42%, var(--gw-border));
+  border-left-color: var(--gw-signal-amber);
+}
+
+.auth-journey-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1.1rem;
+}
+
+.auth-journey-actions .auth-challenge-submit {
+  width: auto;
+  min-width: min(100%, 13rem);
+}
+
+.auth-journey-assistance {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.45rem;
+  align-items: start;
+  margin: 1rem 0 0;
+  color: color-mix(in srgb, var(--main-txt-color) 62%, transparent);
+  font-size: 0.76rem;
+  line-height: 1.45;
+  text-align: left;
+}
+
+.auth-journey-assistance i {
+  margin-top: 0.12rem;
+  color: var(--gw-information-slate);
+}
+
+.auth-journey-alternatives {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.auth-journey-alternatives .btn {
+  text-align: left;
 }
 
 /* Primary sign-in and sign-out surfaces */
@@ -6061,6 +6555,14 @@ a.report-item-title {
   }
 
   .auth-challenge-method > .btn {
+    width: 100%;
+  }
+
+  .auth-journey-actions {
+    display: block;
+  }
+
+  .auth-journey-actions .auth-challenge-submit {
     width: 100%;
   }
 

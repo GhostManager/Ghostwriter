@@ -5,7 +5,17 @@
 {% block pagetitle %}Account Inactive{% endblock %}
 
 {% block inner %}
-    <h2>{% trans "Account Inactive" %}</h2>
+    <div class="auth-challenge-heading">
+        <span class="auth-challenge-icon auth-journey-icon-warning" aria-hidden="true"><i class="fas fa-user-slash"></i></span>
+        <div>
+            <span class="auth-challenge-eyebrow">{% trans "Account access" %}</span>
+            <h1>{% trans "Account inactive" %}</h1>
+            <p>{% trans "This account is not currently able to access Ghostwriter." %}</p>
+        </div>
+    </div>
 
-    <p>{% trans "This account is inactive." %}</p>
+    <div class="auth-journey-status auth-journey-status-warning" role="alert">
+        <i class="fas fa-info-circle" aria-hidden="true"></i>
+        <p>{% trans "Contact your Ghostwriter administrator to restore access." %}</p>
+    </div>
 {% endblock %}

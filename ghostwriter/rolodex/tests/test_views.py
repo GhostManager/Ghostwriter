@@ -1194,6 +1194,20 @@ class ClientDetailViewTest(TestCase):
         self.assertNotContains(response, "note-container darker")
         self.assertContains(response, "const $relatedTarget = $(event.relatedTarget);")
 
+    def test_client_detail_uses_shared_destructive_confirmation_modal(self):
+        response = self.client_mgr.get(self.uri)
+
+        self.assertContains(response, 'id="confirm-delete-modal"')
+        self.assertContains(
+            response,
+            'class="modal fade destructive-confirmation-modal" id="confirm-delete-modal"',
+        )
+        self.assertContains(response, 'id="confirm-delete-modal-label">Delete item?</h5>')
+        self.assertContains(response, 'class="close destructive-confirmation-close"')
+        self.assertContains(response, 'id="delete-object-preview-content"')
+        self.assertContains(response, "Delete permanently")
+        self.assertContains(response, "$modalPreview.empty().addClass('d-none');")
+
     def test_client_tables_use_modern_actions_and_render_contact_details(self):
         response = self.client_mgr.get(self.uri)
         soup = BeautifulSoup(response.content, "html.parser")

@@ -28,9 +28,9 @@
         </div>
       {% endif %}
 
-      <form class="validate auth-challenge-form" method="post" action="{% url 'mfa_authenticate' %}" novalidate>
+      <form class="validate auth-challenge-form auth-mfa-login-code-form" method="post" action="{% url 'mfa_authenticate' %}" novalidate>
         {% csrf_token %}
-        <div class="auth-challenge-field">
+        <div class="auth-challenge-field auth-mfa-code-challenge-field">
           {{ form.code|as_crispy_field }}
         </div>
 
@@ -42,6 +42,8 @@
           <i class="fas fa-arrow-right" aria-hidden="true"></i> {% trans "Verify and continue" %}
         </button>
       </form>
+
+      <p class="auth-mfa-login-code-note"><i class="fas fa-info-circle" aria-hidden="true"></i> {% trans "Authenticator codes refresh regularly. Recovery codes work once." %}</p>
 
       {% if webauthn_form %}
         <div class="auth-challenge-divider"><span>{% trans "Another sign-in method" %}</span></div>

@@ -220,9 +220,12 @@ class OplogListEntriesTests(TestCase):
         self.assertNotContains(response, 'data-bs-target="#confirm-sanitize-modal"')
         self.assertContains(
             response,
-            'class="close ms-auto align-self-start"',
-            count=5,
+            'class="close destructive-confirmation-close"',
+            count=2,
         )
+        self.assertContains(response, 'class="modal fade destructive-confirmation-modal" id="confirm-sanitize-modal"')
+        self.assertContains(response, 'class="modal fade destructive-confirmation-modal"')
+        self.assertContains(response, "Delete permanently")
         self.assertContains(response, "Ctrl+N")
         self.assertContains(response, "Cmd+N")
         self.assertNotContains(response, "Alt+N")

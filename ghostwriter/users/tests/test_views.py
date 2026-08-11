@@ -384,12 +384,21 @@ class MFAIndexViewTests(TestCase):
             self.client_auth.login(username=self.user.username, password=PASSWORD)
         )
 
-    def test_actions_are_centered_with_footer_spacing(self):
+    def test_view_uses_refreshed_method_cards(self):
         response = self.client_auth.get(self.uri)
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'class="card-footer mfa-actions"', count=2)
-        self.assertNotContains(response, "card-footer pt-0 mfa-actions")
+        self.assertContains(
+            response,
+            'class="resource-form-shell account-profile-editor account-mfa-management"',
+        )
+        self.assertContains(response, "Multi-factor authentication")
+        self.assertContains(response, 'class="account-mfa-method-card"', count=3)
+        self.assertContains(response, "Authenticator app")
+        self.assertContains(response, "Security keys and passkeys")
+        self.assertContains(response, "Recovery codes")
+        self.assertNotContains(response, 'class="mfa-card-container"')
+        self.assertNotContains(response, 'class="card-footer mfa-actions"')
 
 
 class MFALoginChallengeViewTests(TestCase):
@@ -436,6 +445,8 @@ class MFALoginChallengeViewTests(TestCase):
         self.assertContains(response, 'autocomplete="one-time-code"')
         self.assertContains(response, 'autocapitalize="off"')
         self.assertNotContains(response, 'class="form-group col-4 offset-4')
+        self.assertContains(response, "auth-mfa-login-code-form")
+        self.assertContains(response, "Authenticator codes refresh regularly")
 
 
 class MFAActivationViewTests(TestCase):
@@ -836,6 +847,19 @@ class MFARecoveryCodesViewTests(TestCase):
         )
         self.assertNotContains(response, self.recovery_codes[0])
 
+    def test_recovery_code_generation_uses_local_confirmation_template(self):
+        response = self.client_auth.get(reverse("mfa_generate_recovery_codes"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "mfa/recovery_codes/generate.html")
+        self.assertContains(
+            response,
+            'class="resource-form-shell account-profile-editor account-recovery-generate"',
+        )
+        self.assertContains(response, "Replace the existing recovery-code set?")
+        self.assertContains(response, "Replace recovery codes")
+        self.assertNotContains(response, 'class="offset-4 col-4"')
+
 
 class UserLoginViewTests(TestCase):
     """Collection of tests for :view:`allauth.Login`."""
@@ -1199,9 +1223,33 @@ class SignupViewTests(TestCase):
         response = self.client.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "account/signup.html")
+        self.assertContains(response, 'class="auth-challenge-page auth-journey-page"')
+        self.assertContains(response, 'class="auth-challenge-card auth-journey-card"')
+        self.assertContains(response, 'class="signup auth-journey-form"')
+        self.assertContains(response, "Create your account")
+        self.assertContains(response, "Create account")
+        self.assertNotContains(response, "btn btn-primary col-md-6")
 
         settings.ACCOUNT_ALLOW_REGISTRATION = False
         self.assertFalse(settings.ACCOUNT_ALLOW_REGISTRATION)
         response = self.client.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "account/signup_closed.html")
+        self.assertContains(response, 'class="auth-journey-status auth-journey-status-warning"')
+        self.assertContains(response, "Registration unavailable")
+
+
+class AccountRecoveryViewTests(TestCase):
+    """Checks for the standalone password recovery surface."""
+
+    def test_password_reset_uses_the_shared_account_journey_surface(self):
+        response = self.client.get(reverse("account_reset_password"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "account/password_reset.html")
+        self.assertContains(response, 'class="auth-challenge-page auth-journey-page"')
+        self.assertContains(response, 'class="password_reset auth-journey-form"')
+        self.assertContains(response, 'id="password-reset-heading">Reset your password</h1>')
+        self.assertContains(response, "Send reset link")
+        self.assertContains(response, "Contact your administrator")
+        self.assertNotContains(response, "btn btn-primary col-md-6")

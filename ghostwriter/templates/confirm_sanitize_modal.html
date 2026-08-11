@@ -1,4 +1,4 @@
-<div class="modal fade sanitize-modal" id="confirm-sanitize-modal" tabindex="-1" role="dialog"
+<div class="modal fade destructive-confirmation-modal sanitize-modal" id="confirm-sanitize-modal" tabindex="-1" role="dialog"
      data-bs-backdrop="static" data-bs-keyboard="false"
      aria-labelledby="confirm-sanitize-modal-label" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" role="document">
@@ -8,13 +8,13 @@
           <span class="detail-eyebrow">Permanent action</span>
           <h5 class="modal-title" id="confirm-sanitize-modal-label">Sanitize log entries?</h5>
         </div>
-        <button type="button" class="close ms-auto align-self-start" data-bs-dismiss="modal" aria-label="Close">
+        <button type="button" class="close destructive-confirmation-close" data-bs-dismiss="modal" aria-label="Close">
           <span aria-hidden="true">&times;</span>
         </button>
       </div>
       <div class="modal-body">
-        <p class="sanitize-modal-intro">Clear selected data from every entry in this activity log.</p>
-        <div class="sanitize-modal-warning" role="note">
+        <p class="destructive-confirmation-copy">Clear selected data from every entry in this activity log.</p>
+        <div class="destructive-confirmation-warning" role="note">
           <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
           <p><strong>This cannot be undone.</strong> Sanitized entry data cannot be recovered from Ghostwriter.</p>
         </div>

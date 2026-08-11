@@ -5,10 +5,17 @@
 {% block title %}{% trans "Sign Up Unavailable" %}{% endblock %}
 
 {% block inner %}
-    <h2>{% trans "Sign Up Unavailable" %}</h2>
+    <div class="auth-challenge-heading">
+      <span class="auth-challenge-icon auth-journey-icon-warning" aria-hidden="true"><i class="fas fa-user-lock"></i></span>
+      <div>
+        <span class="auth-challenge-eyebrow">{% trans "Operator onboarding" %}</span>
+        <h1>{% trans "Registration unavailable" %}</h1>
+        <p>{% trans "Self-service registration is not available for this Ghostwriter deployment." %}</p>
+      </div>
+    </div>
 
-    <div class="alert alert-warning col-12 mt-1" role="alert">
-      <p>{% trans "We are sorry, but registration is currently unavailable. Contact your administrator for an account." %}</p>
-      <p>{% trans "Registration may be closed or your account's email domain may not be allowed." %}</p>
+    <div class="auth-journey-status auth-journey-status-warning" role="alert">
+      <i class="fas fa-info-circle" aria-hidden="true"></i>
+      <p>{% trans "Contact your administrator for an account. Registration may be closed or your email domain may not be allowed." %}</p>
     </div>
 {% endblock %}

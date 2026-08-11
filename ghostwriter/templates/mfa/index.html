@@ -1,115 +1,121 @@
 {% extends "base_generic.html" %}
 {% load i18n %}
-{% load allauth %}
-{% load crispy_forms_tags %}
 
-{% block pagetitle %}
-    {% trans "Multi-Factor Authentication" %}
-{% endblock pagetitle %}
-
+{% block pagetitle %}{% trans "Multi-factor authentication" %}{% endblock %}
 
 {% block content %}
-    <h1 class="mt-4 mb-4">{% trans "Multi-Factor Authentication" %}</h1>
+  <div class="resource-form-shell account-profile-editor account-mfa-management">
+    <header class="resource-edit-heading account-mfa-management-heading">
+      <span class="detail-eyebrow">{% trans "Account security" %}</span>
+      <h1>{% trans "Multi-factor authentication" %}</h1>
+      <p>{% trans "Manage the checks that protect your Ghostwriter account when you sign in." %}</p>
+    </header>
 
-    {% if "totp" in MFA_SUPPORTED_TYPES %}
-        <div class="d-flex justify-content-center">
-            <div class="mfa-card-container">
-                <div class="card mb-3">
-                    <div class="card-body pb-0">
-                        <h5 class="card-title mb-2">{% translate "Authenticator App" %}</h5>
-                        {% if authenticators.totp %}
-                            <p>{% translate "Authentication using an authenticator app is active." %}</p>
-                        {% else %}
-                            <p>{% translate "An authenticator app is not active." %}</p>
-                        {% endif %}
-                    </div>
-                    <div class="card-footer mfa-actions">
-                        {% if authenticators.totp %}
-                            <a href="{% url 'mfa_deactivate_totp' %}" class="btn btn-danger mfa-action-button">
-                                {% translate "Deactivate" %}
-                            </a>
-                        {% else %}
-                            <a href="{% url 'mfa_activate_totp' %}" class="btn btn-primary mfa-action-button">
-                                {% translate "Activate" %}
-                            </a>
-                        {% endif %}
-                    </div>
-                </div>
+    <section class="account-mfa-management-status" aria-label="Multi-factor authentication status">
+      <span class="account-mfa-management-status-icon{% if is_mfa_enabled %} account-mfa-management-status-icon-active{% endif %}" aria-hidden="true">
+        <i class="fas fa-shield-alt"></i>
+      </span>
+      <div>
+        <span>{% trans "Sign-in protection" %}</span>
+        {% if is_mfa_enabled %}
+          <strong>{% trans "Multi-factor authentication is active" %}</strong>
+          <p>{% trans "Keep at least one recovery method available before changing an active method." %}</p>
+        {% else %}
+          <strong>{% trans "No multi-factor method is active" %}</strong>
+          <p>{% trans "Add an authenticator app or security key to protect your account." %}</p>
+        {% endif %}
+      </div>
+    </section>
+
+    <div class="account-mfa-method-grid">
+      {% if "totp" in MFA_SUPPORTED_TYPES %}
+        <article class="account-mfa-method-card">
+          <div class="account-mfa-method-heading">
+            <span class="account-mfa-method-icon" aria-hidden="true"><i class="fas fa-mobile-alt"></i></span>
+            <div>
+              <h2>{% translate "Authenticator app" %}</h2>
+              <p>{% trans "Use a time-based code from an app such as 1Password, Authy, or Google Authenticator." %}</p>
             </div>
-        </div>
-    {% endif %}
-
-    {% if "webauthn" in MFA_SUPPORTED_TYPES %}
-        <div class="d-flex justify-content-center">
-            <div class="mfa-card-container">
-                <div class="card mb-3">
-                    <div class="card-body pb-0">
-                        <h5 class="card-title mb-2">{% translate "Security Keys" %}</h5>
-                        {% if authenticators.webauthn|length %}
-                            <p>
-                                {% blocktranslate count count=authenticators.webauthn|length %}
-                                    You have added {{ count }} security key.
-                                {% plural %}
-                                    You have added {{ count }} security keys.
-                                {% endblocktranslate %}
-                            </p>
-                        {% else %}
-                            <p>{% translate "No security keys have been added." %}</p>
-                        {% endif %}
-                    </div>
-                    <div class="card-footer mfa-actions">
-                        {% if authenticators.webauthn|length %}
-                            <a href="{% url 'mfa_list_webauthn' %}" class="btn btn-primary mfa-action-button">
-                                {% translate "Manage" %}
-                            </a>
-                        {% else %}
-                            <a href="{% url 'mfa_add_webauthn' %}" class="btn btn-primary mfa-action-button">
-                                {% translate "Add" %}
-                            </a>
-                        {% endif %}
-                    </div>
-                </div>
+          </div>
+          {% if authenticators.totp %}
+            <span class="account-mfa-method-state account-mfa-method-state-active"><i class="fas fa-check-circle" aria-hidden="true"></i> {% translate "Active" %}</span>
+            <p class="account-mfa-method-detail">{% translate "Authenticator-app verification is required when this method is selected at sign-in." %}</p>
+            <div class="account-mfa-method-actions">
+              <a href="{% url 'mfa_deactivate_totp' %}" class="btn btn-outline-danger">
+                <i class="fas fa-shield-alt" aria-hidden="true"></i> {% translate "Disable" %}
+              </a>
             </div>
-        </div>
-    {% endif %}
+          {% else %}
+            <span class="account-mfa-method-state"><i class="fas fa-minus-circle" aria-hidden="true"></i> {% translate "Not configured" %}</span>
+            <p class="account-mfa-method-detail">{% translate "Set up an app to receive a fresh six-digit verification code whenever you sign in." %}</p>
+            <div class="account-mfa-method-actions">
+              <a href="{% url 'mfa_activate_totp' %}" class="btn btn-primary">
+                <i class="fas fa-plus" aria-hidden="true"></i> {% translate "Set up app" %}
+              </a>
+            </div>
+          {% endif %}
+        </article>
+      {% endif %}
 
-    {% if "recovery_codes" in MFA_SUPPORTED_TYPES %}
+      {% if "webauthn" in MFA_SUPPORTED_TYPES %}
+        <article class="account-mfa-method-card">
+          <div class="account-mfa-method-heading">
+            <span class="account-mfa-method-icon account-mfa-method-icon-key" aria-hidden="true"><i class="fas fa-key"></i></span>
+            <div>
+              <h2>{% translate "Security keys and passkeys" %}</h2>
+              <p>{% trans "Use a physical security key or a passkey protected by your device." %}</p>
+            </div>
+          </div>
+          {% if authenticators.webauthn|length %}
+            <span class="account-mfa-method-state account-mfa-method-state-active"><i class="fas fa-check-circle" aria-hidden="true"></i>
+              {% blocktranslate count count=authenticators.webauthn|length %}{{ count }} key registered{% plural %}{{ count }} keys registered{% endblocktranslate %}
+            </span>
+            <p class="account-mfa-method-detail">{% trans "Review registered credentials and remove keys you no longer possess." %}</p>
+            <div class="account-mfa-method-actions">
+              <a href="{% url 'mfa_list_webauthn' %}" class="btn btn-outline-secondary"><i class="fas fa-cog" aria-hidden="true"></i> {% translate "Manage keys" %}</a>
+              <a href="{% url 'mfa_add_webauthn' %}" class="btn btn-outline-secondary"><i class="fas fa-plus" aria-hidden="true"></i> {% translate "Add key" %}</a>
+            </div>
+          {% else %}
+            <span class="account-mfa-method-state"><i class="fas fa-minus-circle" aria-hidden="true"></i> {% translate "No keys registered" %}</span>
+            <p class="account-mfa-method-detail">{% trans "Add a security key or device passkey as another secure sign-in method." %}</p>
+            <div class="account-mfa-method-actions">
+              <a href="{% url 'mfa_add_webauthn' %}" class="btn btn-primary"><i class="fas fa-plus" aria-hidden="true"></i> {% translate "Add security key" %}</a>
+            </div>
+          {% endif %}
+        </article>
+      {% endif %}
+
+      {% if "recovery_codes" in MFA_SUPPORTED_TYPES %}
         {% with total_count=authenticators.recovery_codes.generate_codes|length unused_count=authenticators.recovery_codes.get_unused_codes|length %}
-            <div class="d-flex justify-content-center">
-                <div class="mfa-card-container">
-                    <div class="card mb-3">
-                        <div class="card-body pb-0">
-                            <h5 class="card-title mb-2">{% translate "Recovery Codes" %}</h5>
-                            {% if authenticators.recovery_codes %}
-                                <p>
-                                    {% blocktranslate count unused_count=unused_count %}
-                                        There is {{ unused_count }} out of {{ total_count }} recovery codes available.
-                                    {% plural %}
-                                        There are {{ unused_count }} out of {{ total_count }} recovery codes available.
-                                    {% endblocktranslate %}
-                                </p>
-                            {% else %}
-                                <p>{% translate "No recovery codes set up." %}</p>
-                            {% endif %}
-                        </div>
-                        {% if is_mfa_enabled %}
-                            <div class="card-footer mfa-actions">
-                                {% if authenticators.recovery_codes and unused_count > 0 %}
-                                    <a href="{% url 'mfa_view_recovery_codes' %}" class="btn btn-primary mfa-action-button">
-                                        {% translate "View" %}
-                                    </a>
-                                    <a href="{% url 'mfa_download_recovery_codes' %}" class="btn btn-info mfa-action-button">
-                                        {% translate "Download" %}
-                                    </a>
-                                {% endif %}
-                                <a href="{% url 'mfa_view_recovery_codes' %}" class="btn btn-secondary mfa-action-button">
-                                    {% translate "Generate" %}
-                                </a>
-                            </div>
-                        {% endif %}
-                    </div>
-                </div>
+          <article class="account-mfa-method-card">
+            <div class="account-mfa-method-heading">
+              <span class="account-mfa-method-icon account-mfa-method-icon-recovery" aria-hidden="true"><i class="fas fa-life-ring"></i></span>
+              <div>
+                <h2>{% translate "Recovery codes" %}</h2>
+                <p>{% trans "Keep single-use codes somewhere safe for when your usual sign-in method is unavailable." %}</p>
+              </div>
             </div>
+            {% if authenticators.recovery_codes and unused_count > 0 %}
+              <span class="account-mfa-method-state account-mfa-method-state-active"><i class="fas fa-check-circle" aria-hidden="true"></i>
+                {% blocktranslate with unused=unused_count total=total_count %}{{ unused }} of {{ total }} codes remaining{% endblocktranslate %}
+              </span>
+              <p class="account-mfa-method-detail">{% trans "Viewing, downloading, or replacing codes is managed from the recovery-codes workspace." %}</p>
+            {% else %}
+              <span class="account-mfa-method-state account-mfa-method-state-warning"><i class="fas fa-exclamation-circle" aria-hidden="true"></i> {% translate "No recovery codes available" %}</span>
+              <p class="account-mfa-method-detail">{% trans "Generate a replacement set before you need emergency sign-in access." %}</p>
+            {% endif %}
+            {% if is_mfa_enabled %}
+              <div class="account-mfa-method-actions">
+                {% if authenticators.recovery_codes and unused_count > 0 %}
+                  <a href="{% url 'mfa_view_recovery_codes' %}" class="btn btn-outline-secondary"><i class="fas fa-eye" aria-hidden="true"></i> {% translate "View codes" %}</a>
+                  <a href="{% url 'mfa_download_recovery_codes' %}" class="btn btn-outline-secondary"><i class="fas fa-download" aria-hidden="true"></i> {% translate "Download" %}</a>
+                {% endif %}
+                <a href="{% url 'mfa_view_recovery_codes' %}" class="btn btn-primary"><i class="fas fa-sync-alt" aria-hidden="true"></i> {% translate "Generate codes" %}</a>
+              </div>
+            {% endif %}
+          </article>
         {% endwith %}
-    {% endif %}
+      {% endif %}
+    </div>
+  </div>
 {% endblock content %}

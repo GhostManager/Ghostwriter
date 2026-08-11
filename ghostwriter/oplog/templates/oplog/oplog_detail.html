@@ -278,7 +278,7 @@
       </div>
   </div>
 
-  <div id="oplog-entry-delete-modal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="oplog-entry-delete-title" aria-hidden="true">
+  <div id="oplog-entry-delete-modal" class="modal fade destructive-confirmation-modal" tabindex="-1" role="dialog" aria-labelledby="oplog-entry-delete-title" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered" role="document">
           <div class="modal-content">
               <div class="modal-header">
@@ -286,14 +286,18 @@
                       <span class="detail-eyebrow">Permanent action</span>
                       <h5 class="modal-title" id="oplog-entry-delete-title">Delete log entry?</h5>
                   </div>
-                  <button type="button" class="close ms-auto align-self-start" data-bs-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                  <button type="button" class="close destructive-confirmation-close" data-bs-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
               </div>
-              <div class="modal-body text-start">
-                  This entry and its linked activity record will be permanently removed. This cannot be undone.
+              <div class="modal-body">
+                  <p class="destructive-confirmation-copy">This entry and its linked activity record will be permanently removed.</p>
+                  <div class="destructive-confirmation-warning" role="note">
+                      <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+                      <p><strong>This cannot be undone.</strong> The activity record cannot be restored after deletion.</p>
+                  </div>
               </div>
               <div class="modal-footer">
                   <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                  <button id="confirmOplogEntryDelete" type="button" class="btn btn-danger">Delete Entry</button>
+                  <button id="confirmOplogEntryDelete" type="button" class="btn btn-danger">Delete permanently</button>
               </div>
           </div>
       </div>
