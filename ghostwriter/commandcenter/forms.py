@@ -8,9 +8,6 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
-from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Layout, Field, ButtonHolder, Submit, HTML
-
 # Ghostwriter Libraries
 from ghostwriter.commandcenter.models import ReportConfiguration, ExtraFieldSpec
 from ghostwriter.modules.reportwriter.project.base import ExportProjectBase
@@ -245,36 +242,3 @@ class ExtraFieldsField(forms.Field):
         self.validate(clean_data)
         self.run_validators(clean_data)
         return clean_data
-
-
-class SingleExtraFieldForm(forms.Form):
-    extra_field_spec: ExtraFieldSpec
-
-    def __init__(self, field_spec: ExtraFieldSpec, *args, create_crispy_field=None, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.extra_field_spec = field_spec
-
-        field = field_spec.form_field(initial=field_spec.initial_value())
-        field.widget = field_spec.form_widget()
-        self.fields[field_spec.internal_name] = field
-
-        self.helper = FormHelper()
-        self.helper.form_show_labels = True
-        self.helper.form_method = "post"
-
-        if create_crispy_field is not None:
-            crispy_field = create_crispy_field(field_spec)
-        else:
-            crispy_field = Field(field_spec.internal_name)
-
-        self.helper.layout = Layout(
-            crispy_field,
-            ButtonHolder(
-                Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
-                HTML(
-                    """
-                    <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
-                    """
-                ),
-            ),
-        )

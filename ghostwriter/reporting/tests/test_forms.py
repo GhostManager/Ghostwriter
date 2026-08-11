@@ -15,7 +15,6 @@ from ghostwriter.factories import (
     ProjectAssignmentFactory,
     ProjectFactory,
     ReportFactory,
-    ReportObservationLinkFactory,
     ReportDocxTemplateFactory,
     ReportPptxTemplateFactory,
     SeverityFactory,
@@ -27,7 +26,6 @@ from ghostwriter.reporting.forms import (
     FindingNoteForm,
     LocalFindingNoteForm,
     ReportForm,
-    ReportObservationLinkUpdateForm,
     ReportTemplateForm,
     SelectReportTemplateForm,
     SeverityForm,
@@ -210,37 +208,6 @@ class ReportFormTests(TestCase):
 
         self.assertFalse(form.is_valid())
         self.assertEqual(form["project"].errors.as_data()[0].code, "invalid_choice")
-
-
-class ReportObservationLinkUpdateFormTests(TestCase):
-    """Collection of tests for :form:`reporting.ReportObservationLinkForm`."""
-
-    @classmethod
-    def setUpTestData(cls):
-        cls.observation = ReportObservationLinkFactory()
-        cls.blank_observation = ReportObservationLinkFactory(added_as_blank=True)
-
-    def test_valid_data(self):
-        data = self.observation.__dict__.copy()
-        data["instance"] = self.observation
-        form = ReportObservationLinkUpdateForm(data=data)
-        self.assertTrue(form.is_valid())
-
-    def test_blank_assigned_to(self):
-        self.observation.assigned_to = None
-
-        data = self.observation.__dict__.copy()
-        data["instance"] = self.observation
-        form = ReportObservationLinkUpdateForm(data)
-        self.assertTrue(form.is_valid())
-
-    def test_added_as_blank_field(self):
-        data = self.observation.__dict__.copy()
-        data["instance"] = self.blank_observation
-        form = ReportObservationLinkUpdateForm(data=data)
-        self.assertTrue(form.is_valid())
-        form.save()
-        self.assertTrue(self.blank_observation.added_as_blank)
 
 
 class BaseEvidenceFormTests:
