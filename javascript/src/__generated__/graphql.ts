@@ -15506,7 +15506,12 @@ export type Mutation_RootUpdate_Template_ManyArgs = {
 
 /** mutation root */
 export type Mutation_RootUpdate_UserArgs = {
+  _append?: InputMaybe<User_Append_Input>;
+  _delete_at_path?: InputMaybe<User_Delete_At_Path_Input>;
+  _delete_elem?: InputMaybe<User_Delete_Elem_Input>;
+  _delete_key?: InputMaybe<User_Delete_Key_Input>;
   _inc?: InputMaybe<User_Inc_Input>;
+  _prepend?: InputMaybe<User_Prepend_Input>;
   _set?: InputMaybe<User_Set_Input>;
   where: User_Bool_Exp;
 };
@@ -15580,7 +15585,12 @@ export type Mutation_RootUpdate_UserProfile_ManyArgs = {
 
 /** mutation root */
 export type Mutation_RootUpdate_User_By_PkArgs = {
+  _append?: InputMaybe<User_Append_Input>;
+  _delete_at_path?: InputMaybe<User_Delete_At_Path_Input>;
+  _delete_elem?: InputMaybe<User_Delete_Elem_Input>;
+  _delete_key?: InputMaybe<User_Delete_Key_Input>;
   _inc?: InputMaybe<User_Inc_Input>;
+  _prepend?: InputMaybe<User_Prepend_Input>;
   _set?: InputMaybe<User_Set_Input>;
   pk_columns: User_Pk_Columns_Input;
 };
@@ -36767,8 +36777,10 @@ export type User = {
   serviceTokenUserAccesses: Array<ServiceTokenUserAccess>;
   /** An aggregate relationship */
   serviceTokenUserAccesses_aggregate: ServiceTokenUserAccess_Aggregate;
+  sidebar_preferences: Scalars['jsonb']['output'];
   timezone: Scalars['String']['output'];
   username: Scalars['String']['output'];
+  workspace_preferences: Scalars['jsonb']['output'];
 };
 
 
@@ -37209,6 +37221,18 @@ export type UserServiceTokenUserAccesses_AggregateArgs = {
   offset?: InputMaybe<Scalars['Int']['input']>;
   order_by?: InputMaybe<Array<ServiceTokenUserAccess_Order_By>>;
   where?: InputMaybe<ServiceTokenUserAccess_Bool_Exp>;
+};
+
+
+/** columns and relationships of "users_user" */
+export type UserSidebar_PreferencesArgs = {
+  path?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+/** columns and relationships of "users_user" */
+export type UserWorkspace_PreferencesArgs = {
+  path?: InputMaybe<Scalars['String']['input']>;
 };
 
 /** columns and relationships of "users_user_groups" */
@@ -38157,6 +38181,12 @@ export type User_Aggregate_FieldsCountArgs = {
   distinct?: InputMaybe<Scalars['Boolean']['input']>;
 };
 
+/** append existing jsonb value of filtered columns with new jsonb value */
+export type User_Append_Input = {
+  sidebar_preferences?: InputMaybe<Scalars['jsonb']['input']>;
+  workspace_preferences?: InputMaybe<Scalars['jsonb']['input']>;
+};
+
 /** aggregate avg on columns */
 export type User_Avg_Fields = {
   __typename?: 'user_avg_fields';
@@ -38232,8 +38262,10 @@ export type User_Bool_Exp = {
   servers_aggregate?: InputMaybe<StaticServer_Aggregate_Bool_Exp>;
   serviceTokenUserAccesses?: InputMaybe<ServiceTokenUserAccess_Bool_Exp>;
   serviceTokenUserAccesses_aggregate?: InputMaybe<ServiceTokenUserAccess_Aggregate_Bool_Exp>;
+  sidebar_preferences?: InputMaybe<Jsonb_Comparison_Exp>;
   timezone?: InputMaybe<String_Comparison_Exp>;
   username?: InputMaybe<String_Comparison_Exp>;
+  workspace_preferences?: InputMaybe<Jsonb_Comparison_Exp>;
 };
 
 /** unique or primary key constraints on table "users_user" */
@@ -38243,6 +38275,24 @@ export enum User_Constraint {
   /** unique or primary key constraint on columns "username" */
   UsersUserUsernameKey = 'users_user_username_key'
 }
+
+/** delete the field or element with specified path (for JSON arrays, negative integers count from the end) */
+export type User_Delete_At_Path_Input = {
+  sidebar_preferences?: InputMaybe<Array<Scalars['String']['input']>>;
+  workspace_preferences?: InputMaybe<Array<Scalars['String']['input']>>;
+};
+
+/** delete the array element with specified index (negative integers count from the end). throws an error if top level container is not an array */
+export type User_Delete_Elem_Input = {
+  sidebar_preferences?: InputMaybe<Scalars['Int']['input']>;
+  workspace_preferences?: InputMaybe<Scalars['Int']['input']>;
+};
+
+/** delete key/value pair or string element. key/value pairs are matched based on their key value */
+export type User_Delete_Key_Input = {
+  sidebar_preferences?: InputMaybe<Scalars['String']['input']>;
+  workspace_preferences?: InputMaybe<Scalars['String']['input']>;
+};
 
 /** input type for incrementing numeric columns in table "users_user" */
 export type User_Inc_Input = {
@@ -38293,8 +38343,10 @@ export type User_Insert_Input = {
   serverNotes?: InputMaybe<ServerNote_Arr_Rel_Insert_Input>;
   servers?: InputMaybe<StaticServer_Arr_Rel_Insert_Input>;
   serviceTokenUserAccesses?: InputMaybe<ServiceTokenUserAccess_Arr_Rel_Insert_Input>;
+  sidebar_preferences?: InputMaybe<Scalars['jsonb']['input']>;
   timezone?: InputMaybe<Scalars['String']['input']>;
   username?: InputMaybe<Scalars['String']['input']>;
+  workspace_preferences?: InputMaybe<Scalars['jsonb']['input']>;
 };
 
 /** aggregate max on columns */
@@ -38394,13 +38446,21 @@ export type User_Order_By = {
   serverNotes_aggregate?: InputMaybe<ServerNote_Aggregate_Order_By>;
   servers_aggregate?: InputMaybe<StaticServer_Aggregate_Order_By>;
   serviceTokenUserAccesses_aggregate?: InputMaybe<ServiceTokenUserAccess_Aggregate_Order_By>;
+  sidebar_preferences?: InputMaybe<Order_By>;
   timezone?: InputMaybe<Order_By>;
   username?: InputMaybe<Order_By>;
+  workspace_preferences?: InputMaybe<Order_By>;
 };
 
 /** primary key columns input for table: users_user */
 export type User_Pk_Columns_Input = {
   id: Scalars['bigint']['input'];
+};
+
+/** prepend existing jsonb value of filtered columns with new jsonb value */
+export type User_Prepend_Input = {
+  sidebar_preferences?: InputMaybe<Scalars['jsonb']['input']>;
+  workspace_preferences?: InputMaybe<Scalars['jsonb']['input']>;
 };
 
 /** select columns of table "users_user" */
@@ -38444,9 +38504,13 @@ export enum User_Select_Column {
   /** column name */
   Role = 'role',
   /** column name */
+  SidebarPreferences = 'sidebar_preferences',
+  /** column name */
   Timezone = 'timezone',
   /** column name */
-  Username = 'username'
+  Username = 'username',
+  /** column name */
+  WorkspacePreferences = 'workspace_preferences'
 }
 
 /** input type for updating data in table "users_user" */
@@ -38470,8 +38534,10 @@ export type User_Set_Input = {
   phone?: InputMaybe<Scalars['String']['input']>;
   require_2fa?: InputMaybe<Scalars['Boolean']['input']>;
   role?: InputMaybe<Scalars['String']['input']>;
+  sidebar_preferences?: InputMaybe<Scalars['jsonb']['input']>;
   timezone?: InputMaybe<Scalars['String']['input']>;
   username?: InputMaybe<Scalars['String']['input']>;
+  workspace_preferences?: InputMaybe<Scalars['jsonb']['input']>;
 };
 
 /** aggregate stddev on columns */
@@ -38521,8 +38587,10 @@ export type User_Stream_Cursor_Value_Input = {
   phone?: InputMaybe<Scalars['String']['input']>;
   require_2fa?: InputMaybe<Scalars['Boolean']['input']>;
   role?: InputMaybe<Scalars['String']['input']>;
+  sidebar_preferences?: InputMaybe<Scalars['jsonb']['input']>;
   timezone?: InputMaybe<Scalars['String']['input']>;
   username?: InputMaybe<Scalars['String']['input']>;
+  workspace_preferences?: InputMaybe<Scalars['jsonb']['input']>;
 };
 
 /** aggregate sum on columns */
@@ -38572,14 +38640,28 @@ export enum User_Update_Column {
   /** column name */
   Role = 'role',
   /** column name */
+  SidebarPreferences = 'sidebar_preferences',
+  /** column name */
   Timezone = 'timezone',
   /** column name */
-  Username = 'username'
+  Username = 'username',
+  /** column name */
+  WorkspacePreferences = 'workspace_preferences'
 }
 
 export type User_Updates = {
+  /** append existing jsonb value of filtered columns with new jsonb value */
+  _append?: InputMaybe<User_Append_Input>;
+  /** delete the field or element with specified path (for JSON arrays, negative integers count from the end) */
+  _delete_at_path?: InputMaybe<User_Delete_At_Path_Input>;
+  /** delete the array element with specified index (negative integers count from the end). throws an error if top level container is not an array */
+  _delete_elem?: InputMaybe<User_Delete_Elem_Input>;
+  /** delete key/value pair or string element. key/value pairs are matched based on their key value */
+  _delete_key?: InputMaybe<User_Delete_Key_Input>;
   /** increments the numeric columns with given value of the filtered values */
   _inc?: InputMaybe<User_Inc_Input>;
+  /** prepend existing jsonb value of filtered columns with new jsonb value */
+  _prepend?: InputMaybe<User_Prepend_Input>;
   /** sets the columns of the filtered rows to the given values */
   _set?: InputMaybe<User_Set_Input>;
   /** filter the rows which have to be updated */
