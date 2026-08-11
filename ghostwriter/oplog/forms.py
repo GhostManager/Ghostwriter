@@ -8,7 +8,7 @@ from django.utils import timezone
 # 3rd Party Libraries
 from crispy_forms.bootstrap import FieldWithButtons, StrictButton, TabHolder
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import ButtonHolder, Column, Div, Field, HTML, Layout, Row, Submit
+from crispy_forms.layout import Column, Div, Field, HTML, Layout, Row, Submit
 
 # Ghostwriter Libraries
 from ghostwriter.api.utils import get_project_list

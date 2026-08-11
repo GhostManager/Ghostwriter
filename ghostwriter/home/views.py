@@ -37,7 +37,6 @@ from ghostwriter.home.navigation import (
     OPTIONAL_NAVIGATION_BY_ID,
     SIDEBAR_PREFERENCES_VERSION,
     get_allowed_optional_ids,
-    get_sidebar_navigation,
     normalize_sidebar_preferences,
 )
 from ghostwriter.home.working_context import (

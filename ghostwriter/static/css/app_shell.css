@@ -2237,7 +2237,7 @@
     box-shadow: 0.5rem 0 1.5rem rgba(0, 0, 0, 0.22);
   }
 
-  #sidebar.active {
+  body.sidebar-open #sidebar.active {
     transform: translateX(0);
   }
 

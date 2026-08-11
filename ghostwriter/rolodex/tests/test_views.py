@@ -37,7 +37,6 @@ from ghostwriter.factories import (
     ProjectNoteFactory,
     ProjectAssignmentFactory,
     ProjectObjectiveFactory,
-    ProjectSubtaskFactory,
     ProjectScopeFactory,
     ProjectTargetFactory,
     ProjectSubtaskFactory,
@@ -385,19 +384,6 @@ class ProjectScopeExportViewTests(TestCase):
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
-
-    def test_report_archive_action_uses_the_confirmation_modal(self):
-        report = ReportFactory(project=self.project)
-
-        response = self.client_mgr.get(self.uri)
-
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'id="confirm-archive-modal"')
-        self.assertContains(response, 'data-bs-target="#confirm-archive-modal"')
-        self.assertContains(
-            response,
-            f'data-archive-url="{reverse("reporting:archive", kwargs={"pk": report.pk})}"',
-        )
 
     def test_view_requires_login_and_permissions(self):
         response = self.client.get(self.uri)
@@ -1044,10 +1030,10 @@ class ClientUpdateViewTests(TestCase):
         response = self.client_mgr.get(self.uri)
         soup = BeautifulSoup(response.content, "html.parser")
         contact_card = soup.select_one(
-            f'details.collection-form-card[data-collection-item="contact"]'
+            'details.collection-form-card[data-collection-item="contact"]'
         )
         access_card = soup.select_one(
-            f'details.collection-form-card[data-collection-item="access"]'
+            'details.collection-form-card[data-collection-item="access"]'
         )
 
         self.assertIsNotNone(contact_card)
@@ -1554,6 +1540,19 @@ class ProjectDetailViewTests(TestCase):
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
+
+    def test_report_archive_action_uses_the_confirmation_modal(self):
+        report = ReportFactory(project=self.project)
+
+        response = self.client_mgr.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="confirm-archive-modal"')
+        self.assertContains(response, 'data-bs-target="#confirm-archive-modal"')
+        self.assertContains(
+            response,
+            f'data-archive-url="{reverse("reporting:archive", kwargs={"pk": report.pk})}"',
+        )
 
     def test_report_activation_treats_report_title_as_text(self):
         response = self.client_mgr.get(self.uri)

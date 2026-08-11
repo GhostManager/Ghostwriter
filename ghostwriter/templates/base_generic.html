@@ -458,6 +458,9 @@
 
   {% comment %} Open and close the sidebar {% endcomment %}
 
+  const sidebarElement = document.getElementById('sidebar');
+  const narrowSidebarMedia = window.matchMedia('(max-width: 767.98px)');
+  let desktopSidebarOpen = sidebarElement ? sidebarElement.classList.contains('active') : false;
   let sidebarTransitionTimer = null;
 
   function syncSidebarState() {
@@ -481,7 +484,12 @@
   }
 
   function sidebarOpen() {
-    const sidebar = document.getElementById('sidebar');
+    const sidebar = sidebarElement;
+    if (!sidebar) {
+      return;
+    }
+
+    const isNarrowSidebar = narrowSidebarMedia.matches;
     const isOpening = !sidebar.classList.contains('active');
 
     window.clearTimeout(sidebarTransitionTimer);
@@ -493,20 +501,47 @@
     $('.sidebar-toggle-btn').toggleClass('fa-flip-horizontal');
     syncSidebarState();
 
+    if (!isNarrowSidebar) {
+      desktopSidebarOpen = sidebar.classList.contains('active');
+    }
+
     sidebarTransitionTimer = window.setTimeout(function () {
       sidebar.classList.remove('sidebar-transition-opening', 'sidebar-transition-closing');
     }, 360);
 
-    {% comment %} Send AJAX POST request to update session {% endcomment %}
-    $.ajax({
-      url: '/home/ajax/session/update',
-      type: 'POST',
-      dataType: 'json',
-      data: {
-        'session_data': 'sidebar',
-      },
-    });
+    if (!isNarrowSidebar) {
+      {% comment %} Persist only the desktop sidebar preference. Narrow overlays are ephemeral. {% endcomment %}
+      $.ajax({
+        url: '/home/ajax/session/update',
+        type: 'POST',
+        dataType: 'json',
+        data: {
+          'session_data': 'sidebar',
+        },
+      });
+    }
   }
+
+  function syncSidebarViewport(event) {
+    if (!sidebarElement) {
+      return;
+    }
+
+    if (event.matches) {
+      desktopSidebarOpen = sidebarElement.classList.contains('active');
+      sidebarElement.classList.remove('active');
+    } else {
+      sidebarElement.classList.toggle('active', desktopSidebarOpen);
+    }
+
+    $('.sidebar-toggle-btn').toggleClass(
+      'fa-flip-horizontal',
+      sidebarElement.classList.contains('active'),
+    );
+    syncSidebarState();
+  }
+
+  narrowSidebarMedia.addEventListener('change', syncSidebarViewport);
 
   {% comment %} Open the sidebar {% endcomment %}
   $('.sidebar-toggle-control').click(function () {
@@ -587,7 +622,7 @@
     }
   })();
 
-  syncSidebarState();
+  syncSidebarViewport(narrowSidebarMedia);
 
   {% comment %} Activate Bootstrap hover tooltips {% endcomment %}
   document.addEventListener('DOMContentLoaded', function () {

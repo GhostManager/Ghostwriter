@@ -17,7 +17,7 @@ from allauth.mfa.base.internal.flows import check_rate_limit
 from allauth.mfa.models import Authenticator
 from allauth.mfa.totp.forms import ActivateTOTPForm, DeactivateTOTPForm
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Div, HTML, ButtonHolder, Column, Layout, Row, Submit
+from crispy_forms.layout import Div, HTML, Column, Layout, Row, Submit
 
 User = get_user_model()
 
