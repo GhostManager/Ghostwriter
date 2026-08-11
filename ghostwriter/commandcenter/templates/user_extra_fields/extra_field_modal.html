@@ -14,7 +14,7 @@
               </p>
             {% endif %}
           </div>
-          <button type="button" class="close extra-field-preview-close" data-bs-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+          <button type="button" class="btn-close extra-field-preview-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body extra-field-modal-content"{% if field_spec.type == "json" and lazy_json_url %} data-lazy-json-url="{{ lazy_json_url }}" data-json-field-name="{{ field_spec.display_name }}"{% elif field_spec.type == "rich_text" and lazy_richtext_url %} data-lazy-richtext-url="{{ lazy_richtext_url }}"{% endif %}>
           {% if field_spec.type == "json" and lazy_json_url %}

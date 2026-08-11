@@ -12,7 +12,7 @@
 </li>
 <li class="nav-item">
     <a id="id_whitecards" class="nav-link tab-icon whitecard-icon" data-bs-toggle="tab" href="#whitecards">
-        White Cards <span class="badge rounded-pill badge-light">{{ project.whitecard_set.all.count }}</span>
+        White Cards <span class="tab-count-badge">{{ project.whitecard_set.all.count }}</span>
     </a>
 </li>
 <li class="nav-item">
@@ -22,7 +22,7 @@
 </li>
 <li class="nav-item">
     <a id="id_objectives" class="nav-link tab-icon tasks-icon" data-bs-toggle="tab" href="#objectives">
-        Objectives <span class="badge rounded-pill badge-light">{{ project.projectobjective_set.all|count_incomplete_objectives }}</span>
+        Objectives <span class="tab-count-badge">{{ project.projectobjective_set.all|count_incomplete_objectives }}</span>
     </a>
 </li>
 <li class="nav-item">
@@ -42,7 +42,7 @@
 </li>
 <li class="nav-item">
     <a id="id_deconflictions" class="nav-link tab-icon comment-icon" data-bs-toggle="tab" href="#deconflictions">
-        Deconflictions <span class="badge rounded-pill badge-light">{{ project.deconfliction_set.all.count }}</span>
+        Deconflictions <span class="tab-count-badge">{{ project.deconfliction_set.all.count }}</span>
     </a>
 </li>
 <li class="nav-item">
@@ -73,7 +73,7 @@
 {% if project.projectnote_set.all %}
     <li class="nav-item">
         <a id="id_legacy_comments" class="nav-link tab-icon comment-icon" data-bs-toggle="tab" href="#legacy_comments">
-            Legacy Comments <span class="badge rounded-pill badge-light">{{ project.projectnote_set.all.count }}</span>
+            Legacy Comments <span class="tab-count-badge">{{ project.projectnote_set.all.count }}</span>
         </a>
     </li>
 {% endif %}

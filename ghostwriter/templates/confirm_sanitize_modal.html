@@ -8,9 +8,7 @@
           <span class="detail-eyebrow">Permanent action</span>
           <h5 class="modal-title" id="confirm-sanitize-modal-label">Sanitize log entries?</h5>
         </div>
-        <button type="button" class="close destructive-confirmation-close" data-bs-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
+        <button type="button" class="btn-close destructive-confirmation-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
         <p class="destructive-confirmation-copy">Clear selected data from every entry in this activity log.</p>
@@ -34,7 +32,7 @@
         </details>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
         <button type="button" class="btn btn-danger" id="confirm-sanitize-button-modal">Sanitize selected fields</button>
       </div>
     </div>
@@ -102,7 +100,7 @@
       let time = sanitizedAt.toLocaleTimeString(undefined, { timeStyle: 'short' });
       let $fieldList = $('#oplog-sanitization-details-fields');
 
-      $('#oplog-sanitization-status-button').removeClass('badge-warning').addClass('badge-info');
+      $('#oplog-sanitization-status-button').removeClass('is-warning').addClass('is-information');
       $('#oplog-sanitization-status-icon').removeClass('fa-exclamation-triangle').addClass('fa-shield-alt');
       $('#oplog-sanitization-status-text').text('Sanitized');
       $('#oplog-sanitization-details-time').text(date + ' at ' + time);
@@ -110,7 +108,7 @@
       $('#oplog-sanitization-stale-message').addClass('d-none');
       $fieldList.empty();
       fields.forEach(function (field) {
-        $fieldList.append($('<span>', { class: 'badge badge-light border me-1 mb-1', text: field }));
+        $fieldList.append($('<span>', { class: 'oplog-sanitization-field', text: field }));
       });
       $status.show();
     }

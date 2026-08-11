@@ -35,7 +35,7 @@
             <span>{{ finding.finding_type.finding_type }}</span>
           </span>
           {% for tag in finding.tags.names %}
-            <span class="badge badge-secondary">{{ tag|bleach }}</span>
+            <span class="library-tag library-tag-neutral">{{ tag|bleach }}</span>
           {% endfor %}
         </div>
       </div>
@@ -86,7 +86,7 @@
             <a id="id_extra_fields" class="nav-link" href="#extra-fields" data-tab-hash="#extra-fields"
                data-bs-toggle="tab" role="tab" aria-controls="extra-fields" aria-selected="false">
               <i class="fas fa-puzzle-piece" aria-hidden="true"></i>Extra Fields
-              <span class="badge">{{ finding_extra_fields_spec|length }}</span>
+              <span class="tab-count-badge">{{ finding_extra_fields_spec|length }}</span>
             </a>
           </li>
         {% endif %}
@@ -94,7 +94,7 @@
           <a id="id_notes" class="nav-link" href="#notes" data-tab-hash="#notes"
              data-bs-toggle="tab" role="tab" aria-controls="notes" aria-selected="false">
             <i class="fas fa-comment-alt" aria-hidden="true"></i>Notes
-            {% if finding.findingnote_set.all %}<span class="badge">{{ finding.findingnote_set.all|length }}</span>{% endif %}
+            {% if finding.findingnote_set.all %}<span class="tab-count-badge">{{ finding.findingnote_set.all|length }}</span>{% endif %}
           </a>
         </li>
       </ul>

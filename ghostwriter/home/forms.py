@@ -19,7 +19,7 @@ class UserProfileForm(forms.ModelForm):
         model = UserProfile
         exclude = ("user", "hide_quickstart")
         widgets = {
-            "avatar": forms.FileInput(attrs={"class": "custom-file-input"}),
+            "avatar": forms.FileInput(attrs={"class": "resource-file-input"}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -52,9 +52,9 @@ class UserProfileForm(forms.ModelForm):
                         HTML(
                             """
                             {% if form.avatar.errors %}<div class="invalid-feedback d-block">{{ form.avatar.errors }}</div>{% endif %}
-                            <div class="custom-file">
+                            <div class="resource-file-dropzone profile-avatar-dropzone">
                                 {{ form.avatar }}
-                                <label class="custom-file-label" for="id_avatar" id="filename">
+                                <label class="resource-file-label" for="id_avatar" id="filename">
                                     Click here or drag and drop...</label>
                                 <script type="text/javascript" id="script-id_avatar">
                                     (function() {
@@ -80,7 +80,7 @@ class UserProfileForm(forms.ModelForm):
                         ),
                         css_class="col-12",
                     ),
-                    css_class="form-row",
+                    css_class="row g-3",
                 ),
                 HTML("""<div id="avatarPreview" class="profile-avatar-preview"></div>"""),
                 css_class="resource-form-card profile-avatar-card",

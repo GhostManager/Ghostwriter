@@ -679,6 +679,9 @@ class DashboardTests(TestCase):
         response = self.client_auth.get(self.uri)
 
         self.assertContains(response, 'class="operator-dashboard"')
+        self.assertContains(response, 'class="operator-dashboard-panel operator-work-panel"')
+        self.assertContains(response, 'class="operator-dashboard-panel operator-runway-panel"')
+        self.assertNotContains(response, 'class="card operator-dashboard-panel')
         self.assertContains(response, ">Operator Brief<")
         self.assertContains(response, ">Your work<")
         self.assertContains(response, ">Engagement runway<")

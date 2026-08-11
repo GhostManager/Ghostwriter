@@ -10,9 +10,9 @@
         </header>
         <div id="bh_domains_accordion" class="finding-accordion bh-domain-accordion">
             {% for domain in res.domains %}
-            <article class="card bh-domain-card">
+            <article class="bh-domain-card">
                 <button type="button"
-                        class="card-header bh-domain-summary"
+                        class="bh-domain-summary"
                         data-bs-toggle="collapse"
                         data-bs-target="#bh_domain_{{ forloop.counter }}"
                         aria-expanded="false"
@@ -20,7 +20,7 @@
                     <span class="bh-domain-identity">
                         <strong class="bh-domain-name">{{ domain.name }}</strong>
                         <span
-                            class="badge badge-secondary functional-lvl-badge"
+                            class="bh-functional-level-badge"
                             data-bs-toggle="tooltip"
                             data-bs-placement="top"
                             title="Domain's functional level as reported by BloodHound."
@@ -63,7 +63,7 @@
                     <span class="bh-collapse-indicator" aria-hidden="true"><span class="bh-collapse-glyph"></span></span>
                 </button>
                 <div id="bh_domain_{{ forloop.counter }}" class="collapse bh-domain-collapse" data-bs-parent="#bh_domains_accordion">
-                    <div class="card-body bh-domain-body">
+                    <div class="bh-domain-body">
                         <div class="row g-3">
                             <section class="col-md-7 bh-detail-panel">
                                 <h6 class="bh-detail-heading">Domain information</h6>
@@ -83,7 +83,7 @@
                                 <ul class="list-unstyled mb-0 text-start">
                                     {% for os, count in domain.computers.operating_systems.items %}
                                     {% if os != "null" %}
-                                    <li><span class="badge badge-secondary">{{ os|title }}</span> <span class="text-muted">({{ count }})</span></li>
+                                    <li><span class="bh-os-badge">{{ os|title }}</span> <span class="text-muted">({{ count }})</span></li>
                                     {% endif %}
                                     {% endfor %}
                                 </ul>
@@ -96,7 +96,7 @@
                                     <dt class="col-sm-6 text-start">Inbound Trusts:</dt>
                                     <dd class="col-sm-6 text-start">
                                         {% for trust in domain.inbound_trusts %}
-                                        <span class="badge badge-primary">{{ trust.name }}</span>{% if not forloop.last %} {% endif %}
+                                        <span class="bh-trust-badge is-inbound">{{ trust.name }}</span>{% if not forloop.last %} {% endif %}
                                         {% endfor %}
                                     </dd>
                                     {% endif %}
@@ -105,7 +105,7 @@
                                     <dt class="col-sm-6 text-start">Outbound Trusts:</dt>
                                     <dd class="col-sm-6 text-start">
                                         {% for trust in domain.outbound_trusts %}
-                                        <span class="badge badge-warning">{{ trust.name }}</span>{% if not forloop.last %} {% endif %}
+                                        <span class="bh-trust-badge is-outbound">{{ trust.name }}</span>{% if not forloop.last %} {% endif %}
                                         {% endfor %}
                                     </dd>
                                     {% endif %}
@@ -239,7 +239,7 @@
                     <input id="bheTierZeroFilter" class="form-check-input" type="checkbox">
                     <span>Tier Zero only</span>
                 </label>
-                <button id="bheClearFilters" type="button" class="btn btn-secondary btn-sm" disabled>Clear filters</button>
+                <button id="bheClearFilters" type="button" class="btn btn-outline-secondary btn-sm" disabled>Clear filters</button>
             </div>
 
             <div class="bhe-results-status" aria-live="polite">
@@ -447,7 +447,7 @@
                             {% endif %}
                         </div>
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
                         </div>
                     </div>
                 </div>

@@ -390,9 +390,9 @@ $(document).ready(function () {
             let checked = visible ? 'checked' : '';
             let html = `
             <div class="form-check-inline">
-              <div class="custom-control custom-switch">
-                <input type="checkbox" id="${col.checkBoxID}" class="form-check-input custom-control-input" ${checked}/>
-                <label class="form-check-label custom-control-label" for="${col.checkBoxID}">${col.prettyName}</label>
+              <div class="form-check form-switch">
+                <input type="checkbox" id="${col.checkBoxID}" class="form-check-input" ${checked}/>
+                <label class="form-check-label" for="${col.checkBoxID}">${col.prettyName}</label>
               </div>
             </div>`;
             $checkboxList.append(html);
@@ -907,8 +907,8 @@ $(document).ready(function () {
 
     function showPendingFileIndicator(modalSelector, formSelector, file) {
         let $fileInput = $(formSelector + ' #id_document');
-        // Update the Bootstrap 4 custom-file-label to show the filename in-place of "---"
-        let $label = $fileInput.next('label.custom-file-label');
+        // Update the upload-card label to show the selected filename.
+        let $label = $fileInput.next('label.resource-file-label');
         if ($label.length) {
             $label.text(file.name);
         }

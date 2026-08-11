@@ -1,17 +1,19 @@
 {% load bleach_tags shepherd_tags %}
 
-<div id="domain_detail_{{ domain.id }}" class="modal fade" tabindex="-1" role="dialog">
+<div id="domain_detail_{{ domain.id }}" class="modal fade detail-preview-modal" tabindex="-1" role="dialog">
   <div class="modal-dialog modal-super-sized modal-dialog-scrollable modal-dialog-centered" role="document">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">Additional Details for {{ domain.name }}</h5>
-        <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
+        <div>
+          <span class="detail-preview-modal-eyebrow">Domain preview</span>
+          <h2 class="modal-title">{{ domain.name }}</h2>
+        </div>
+        <button type="button" class="btn-close detail-preview-modal-close" data-bs-dismiss="modal" aria-label="Close">
         </button>
       </div>
       <div class="modal-body">
 
-        {%  for tag in domain.tags.all %}<span class="badge badge-secondary mb-3">{{ tag.name }}</span>{% endfor %}
+        {% if domain.tags.all %}<div class="detail-preview-modal-tags">{% for tag in domain.tags.all %}<span class="detail-preview-modal-tag">{{ tag.name }}</span>{% endfor %}</div>{% endif %}
 
         <p>Health Status:
         {% if domain.health_status.health_status == "Healthy" %}
@@ -36,8 +38,8 @@
         </p>
 
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary col-3" data-bs-dismiss="modal">Close</button>
+      <div class="modal-footer detail-preview-modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
       </div>
     </div>
   </div>

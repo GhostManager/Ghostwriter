@@ -2,9 +2,7 @@
 
 <div class="modal-header">
   <h5 class="modal-title" id="service-token-details-modal-label">{{ key.name|bleach }} Access Details</h5>
-  <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-    <span aria-hidden="true">&times;</span>
-  </button>
+  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 </div>
 <div class="modal-body text-start">
   <div class="row">
@@ -23,9 +21,9 @@
   {% if client_access %}
     <h6 class="bold">Client Read Access</h6>
     <p class="text-muted">This token dynamically reads accessible projects for the selected clients below.</p>
-    <div class="list-group mb-3">
+    <div class="token-access-list mb-3">
       {% for client in client_access %}
-        <div class="list-group-item">
+        <div class="token-access-list-item">
           {% if client.short_name %}
             <a class="bold" href="{{ client.get_absolute_url }}">{{ client.short_name|bleach|upper }}</a>
           {% else %}
@@ -56,9 +54,9 @@
   {% endif %}
 
   {% if project_access %}
-    <div class="list-group mb-3">
+    <div class="token-access-list mb-3">
       {% for project in project_access %}
-        <div class="list-group-item">
+        <div class="token-access-list-item">
           {% if project.codename %}
             <a class="bold" href="{{ project.get_absolute_url }}">{{ project.codename|bleach|upper }}</a>
           {% elif project.client.short_name %}
@@ -83,16 +81,16 @@
 
   <h6 class="bold mt-4">Oplog Access</h6>
   {% if oplog_access %}
-    <div class="list-group mb-3">
+    <div class="token-access-list mb-3">
       {% for access in oplog_access %}
-        <div class="list-group-item">
+        <div class="token-access-list-item">
           <a class="bold" href="{{ access.oplog.get_absolute_url }}">{{ access.oplog.name|bleach }}</a>
           <div class="text-muted small">
             Project: {{ access.oplog.project.codename|bleach }} ({{ access.oplog.project.client.name|bleach }})
           </div>
           <div class="mt-2">
             {% for action in access.actions %}
-              <span class="badge badge-secondary">{{ action }}</span>
+              <span class="library-tag library-tag-neutral">{{ action }}</span>
             {% endfor %}
           </div>
         </div>
@@ -105,5 +103,5 @@
   {% endif %}
 </div>
 <div class="modal-footer">
-  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+  <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
 </div>

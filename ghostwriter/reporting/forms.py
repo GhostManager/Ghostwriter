@@ -223,9 +223,9 @@ class ReportForm(forms.ModelForm):
                         """
                     ),
                     Row(
-                        Column("title", css_class="form-group col-md-7"),
-                        Column("tags", css_class="form-group col-md-5"),
-                        css_class="form-row",
+                        Column("title", css_class="col-md-7"),
+                        Column("tags", css_class="col-md-5"),
+                        css_class="row g-3",
                     ),
                     "project",
                     css_class="resource-form-card",
@@ -243,9 +243,9 @@ class ReportForm(forms.ModelForm):
                         """
                     ),
                     Row(
-                        Column("docx_template", css_class="form-group col-md-6"),
-                        Column("pptx_template", css_class="form-group col-md-6"),
-                        css_class="form-row",
+                        Column("docx_template", css_class="col-md-6"),
+                        Column("pptx_template", css_class="col-md-6"),
+                        css_class="row g-3",
                     ),
                     css_class="resource-form-card",
                 ),
@@ -336,9 +336,9 @@ class EvidenceForm(forms.ModelForm):
                         """
                     ),
                     Row(
-                        Column("friendly_name", css_class="form-group col-md-6"),
-                        Column("tags", css_class="form-group col-md-6"),
-                        css_class="form-row",
+                        Column("friendly_name", css_class="col-md-6"),
+                        Column("tags", css_class="col-md-6"),
+                        css_class="row g-3",
                     ),
                     "caption",
                     "description",
@@ -364,17 +364,17 @@ class EvidenceForm(forms.ModelForm):
                         Field(
                             "document",
                             id="id_document",
-                            css_class="custom-file-input",
+                            css_class="resource-file-input",
                         ),
                         HTML(
                             """
-                            <label id="filename" class="custom-file-label" for="id_document">
+                            <label id="filename" class="resource-file-label" for="id_document">
                               <i class="fas fa-cloud-upload-alt" aria-hidden="true"></i>
                               <span>Choose a file or drag it here</span>
                             </label>
                             """
                         ),
-                        css_class="custom-file resource-file-dropzone",
+                        css_class="resource-file-dropzone",
                     ),
                     css_class="resource-form-card resource-upload-card",
                 ),
@@ -557,7 +557,7 @@ class ReportTemplateForm(forms.ModelForm):
             ].help_text += ". Changing this will unset this template as the global default template and the default templates on reports."
 
         self.fields["document"].label = ""
-        self.fields["document"].widget.attrs["class"] = "custom-file-input"
+        self.fields["document"].widget.attrs["class"] = "resource-file-input"
         self.fields["name"].widget.attrs["placeholder"] = "Default Red Team Report"
         self.fields["description"].widget.attrs["placeholder"] = "Use this template for any red team work unless ..."
         self.fields["changelog"].widget.attrs["placeholder"] = "Track Template Modifications"
@@ -579,9 +579,9 @@ class ReportTemplateForm(forms.ModelForm):
         )
 
         flag_column_class = (
-            "form-group col-md-4 mb-0"
+            "col-md-4 mb-0"
             if user_can_manage_templates
-            else "form-group col-md-6 mb-0"
+            else "col-md-6 mb-0"
         )
         flag_columns = []
         if user_can_manage_templates:
@@ -627,14 +627,14 @@ class ReportTemplateForm(forms.ModelForm):
                         """
                     ),
                     Row(
-                        Column("name", css_class="form-group col-md-6"),
-                        Column("client", css_class="form-group col-md-6"),
-                        css_class="form-row",
+                        Column("name", css_class="col-md-6"),
+                        Column("client", css_class="col-md-6"),
+                        css_class="row g-3",
                     ),
                     Row(
-                        Column("doc_type", css_class="form-group col-md-6"),
-                        Column("tags", css_class="form-group col-md-6"),
-                        css_class="form-row",
+                        Column("doc_type", css_class="col-md-6"),
+                        Column("tags", css_class="col-md-6"),
+                        css_class="row g-3",
                     ),
                     Div(
                         Div(SwitchToggle("protected"), css_class="resource-toggle-item"),
@@ -657,14 +657,14 @@ class ReportTemplateForm(forms.ModelForm):
                         """
                     ),
                     Row(
-                        Column("p_style", css_class="form-group col-md-6"),
-                        Column("filename_override", css_class="form-group col-md-6"),
-                        css_class="form-row",
+                        Column("p_style", css_class="col-md-6"),
+                        Column("filename_override", css_class="col-md-6"),
+                        css_class="row g-3",
                     ),
                     Row(
-                        Column("evidence_image_alignment", css_class="form-group col-md-6"),
-                        Column("evidence_image_width", css_class="form-group col-md-6"),
-                        css_class="form-row",
+                        Column("evidence_image_alignment", css_class="col-md-6"),
+                        Column("evidence_image_width", css_class="col-md-6"),
+                        css_class="row g-3",
                     ),
                     "bloodhound_heading_offset",
                     css_class="resource-form-card",
@@ -685,13 +685,13 @@ class ReportTemplateForm(forms.ModelForm):
                         "document",
                         HTML(
                             """
-                            <label id="filename" class="custom-file-label" for="id_document">
+                            <label id="filename" class="resource-file-label" for="id_document">
                               <i class="fas fa-cloud-upload-alt" aria-hidden="true"></i>
                               <span>Choose a template file or drag it here</span>
                             </label>
                             """
                         ),
-                        css_class="custom-file resource-file-dropzone",
+                        css_class="resource-file-dropzone",
                     ),
                     css_class="resource-form-card resource-upload-card",
                 ),

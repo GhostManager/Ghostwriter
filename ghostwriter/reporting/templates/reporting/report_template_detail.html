@@ -28,7 +28,7 @@
             {% if reporttemplate.landscape %}Landscape{% else %}Portrait{% endif %}
           </span>
           {% for tag in reporttemplate.tags.names %}
-            <span class="badge badge-secondary">{{ tag|bleach }}</span>
+            <span class="library-tag library-tag-neutral">{{ tag|bleach }}</span>
           {% endfor %}
         </div>
       </div>

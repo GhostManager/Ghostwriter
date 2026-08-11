@@ -575,9 +575,9 @@ class ProjectAssignmentForm(forms.ModelForm):
                         """
                     ),
                     Row(
-                        Column("operator", css_class="form-group col-md-6 mb-0"),
-                        Column("role", css_class="form-group col-md-6 mb-0"),
-                        css_class="form-row",
+                        Column("operator", css_class="col-md-6 mb-0"),
+                        Column("role", css_class="col-md-6 mb-0"),
+                        css_class="row g-3",
                     ),
                     Row(
                         Column(
@@ -589,7 +589,7 @@ class ProjectAssignmentForm(forms.ModelForm):
                                     css_class="btn btn-secondary",
                                 ),
                             ),
-                            css_class="form-group col-md-6 mb-0",
+                            css_class="col-md-6 mb-0",
                         ),
                         Column(
                             FieldWithButtons(
@@ -600,7 +600,7 @@ class ProjectAssignmentForm(forms.ModelForm):
                                     css_class="btn btn-secondary",
                                 ),
                             ),
-                            css_class="form-group col-md-6 mb-0",
+                            css_class="col-md-6 mb-0",
                         ),
                     ),
                     "description",
@@ -803,8 +803,8 @@ class ProjectScopeForm(forms.ModelForm):
                         Column(
                             StrictButton(
                                 "Split Scope to Newlines",
-                                onclick="formatScope($(this).closest('div').parent().nextAll('.form-group').first().find('textarea'))",
-                                data_toggle="tooltip",
+                                onclick="formatScope($(this).closest('div').parent().nextAll('.mb-3').first().find('textarea'))",
+                                data_bs_toggle="tooltip",
                                 title="Split a comma-delimited scope list to newlines",
                                 css_class="btn btn-outline-secondary col-6",
                             ),
@@ -1060,15 +1060,15 @@ class ProjectContactForm(forms.ModelForm):
                         """
                     ),
                     Row(
-                        Column("name", css_class="form-group col-md-6 mb-0"),
-                        Column("job_title", css_class="form-group col-md-6 mb-0"),
-                        css_class="form-row",
+                        Column("name", css_class="col-md-6 mb-0"),
+                        Column("job_title", css_class="col-md-6 mb-0"),
+                        css_class="row g-3",
                     ),
                     Row(
-                        Column("email", css_class="form-group col-md-4 mb-0"),
-                        Column("phone", css_class="form-group col-md-4 mb-0"),
-                        Column("timezone", css_class="form-group col-md-4 mb-0"),
-                        css_class="form-row",
+                        Column("email", css_class="col-md-4 mb-0"),
+                        Column("phone", css_class="col-md-4 mb-0"),
+                        Column("timezone", css_class="col-md-4 mb-0"),
+                        css_class="row g-3",
                     ),
                     SwitchToggle("primary", onchange="cbChange(this)", css_class="js-cb-toggle"),
                     "description",
@@ -1128,8 +1128,8 @@ class ProjectInviteForm(forms.ModelForm):
                 ),
                 Div(
                     Row(
-                        Column("user", css_class="form-group col-md-12"),
-                        css_class="form-row",
+                        Column("user", css_class="col-md-12"),
+                        css_class="row g-3",
                     ),
                     "comment",
                     Field(
@@ -1336,21 +1336,21 @@ class ProjectForm(forms.ModelForm):
                         ),
                     ),
                     Row(
-                        Column("start_date", css_class="form-group col-md-6 mb-0"),
-                        Column("end_date", css_class="form-group col-md-6 mb-0"),
-                        css_class="form-row",
+                        Column("start_date", css_class="col-md-6 mb-0"),
+                        Column("end_date", css_class="col-md-6 mb-0"),
+                        css_class="row g-3",
                     ),
                     Row(
-                        Column(Field("start_time", step=1), css_class="form-group col-md-4 mb-0"),
-                        Column(Field("end_time", step=1), css_class="form-group col-md-4 mb-0"),
-                        Column("timezone", css_class="form-group col-md-4 mb-0"),
-                        css_class="form-row",
+                        Column(Field("start_time", step=1), css_class="col-md-4 mb-0"),
+                        Column(Field("end_time", step=1), css_class="col-md-4 mb-0"),
+                        Column("timezone", css_class="col-md-4 mb-0"),
+                        css_class="row g-3",
                     ),
                     Row(
-                        Column("project_type", css_class="form-group col-md-4 mb-0"),
-                        Column("slack_channel", css_class="form-group col-md-4 mb-0"),
-                        Column("tags", css_class="form-group col-md-4 mb-0"),
-                        css_class="form-row",
+                        Column("project_type", css_class="col-md-4 mb-0"),
+                        Column("slack_channel", css_class="col-md-4 mb-0"),
+                        Column("tags", css_class="col-md-4 mb-0"),
+                        css_class="row g-3",
                     ),
                     SwitchToggle("update_checkouts"),
                     "description",
@@ -1591,9 +1591,9 @@ class DeconflictionForm(forms.ModelForm):
                 ),
                 "title",
                 Row(
-                    Column("status", css_class="form-group col-md-6"),
-                    Column("alert_source", css_class="form-group col-md-6"),
-                    css_class="form-row",
+                    Column("status", css_class="col-md-6"),
+                    Column("alert_source", css_class="col-md-6"),
+                    css_class="row g-3",
                 ),
                 css_class="resource-form-card deconfliction-form-card",
             ),
@@ -1610,10 +1610,10 @@ class DeconflictionForm(forms.ModelForm):
                     """
                 ),
                 Row(
-                    Column(Field("alert_timestamp", step=1), css_class="form-group col-md-4"),
-                    Column(Field("report_timestamp", step=1), css_class="form-group col-md-4"),
-                    Column(Field("response_timestamp", step=1), css_class="form-group col-md-4"),
-                    css_class="form-row",
+                    Column(Field("alert_timestamp", step=1), css_class="col-md-4"),
+                    Column(Field("report_timestamp", step=1), css_class="col-md-4"),
+                    Column(Field("response_timestamp", step=1), css_class="col-md-4"),
+                    css_class="row g-3",
                 ),
                 "description",
                 css_class="resource-form-card deconfliction-form-card",

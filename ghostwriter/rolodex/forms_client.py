@@ -206,15 +206,15 @@ class ClientContactForm(forms.ModelForm):
                         """
                     ),
                     Row(
-                        Column("name", css_class="form-group col-md-6 mb-0"),
-                        Column("job_title", css_class="form-group col-md-6 mb-0"),
-                        css_class="form-row",
+                        Column("name", css_class="col-md-6 mb-0"),
+                        Column("job_title", css_class="col-md-6 mb-0"),
+                        css_class="row g-3",
                     ),
                     Row(
-                        Column("email", css_class="form-group col-md-4 mb-0"),
-                        Column("phone", css_class="form-group col-md-4 mb-0"),
-                        Column("timezone", css_class="form-group col-md-4 mb-0"),
-                        css_class="form-row",
+                        Column("email", css_class="col-md-4 mb-0"),
+                        Column("phone", css_class="col-md-4 mb-0"),
+                        Column("timezone", css_class="col-md-4 mb-0"),
+                        css_class="row g-3",
                     ),
                     SwitchToggle("primary", onchange="cbChange(this)", css_class="js-cb-toggle"),
                     "description",
@@ -316,8 +316,8 @@ class ClientInviteForm(forms.ModelForm):
                         """
                     ),
                     Row(
-                        Column("user", css_class="form-group col-md-12"),
-                        css_class="form-row",
+                        Column("user", css_class="col-md-12"),
+                        css_class="row g-3",
                     ),
                     "comment",
                     Field("DELETE", style="display: none;", visibility="hidden", template="delete_checkbox.html"),
@@ -423,9 +423,9 @@ class ClientForm(forms.ModelForm):
                     """
                 ),
                 Row(
-                    Column("name", css_class="form-group col-md-6 mb-0"),
-                    Column("short_name", css_class="form-group col-md-6 mb-0"),
-                    css_class="form-row",
+                    Column("name", css_class="col-md-6 mb-0"),
+                    Column("short_name", css_class="col-md-6 mb-0"),
+                    css_class="row g-3",
                 ),
                 Row(
                     Column(
@@ -445,7 +445,7 @@ class ClientForm(forms.ModelForm):
                         ),
                         css_class="col-md-6",
                     ),
-                    Column("timezone", css_class="form-group col-md-6 mb-0"),
+                    Column("timezone", css_class="col-md-6 mb-0"),
                 ),
                 "tags",
                 HTML(

@@ -76,7 +76,7 @@
     {% endif %}
 
     <div class="operator-dashboard-grid">
-      <section class="card operator-dashboard-panel operator-work-panel" aria-labelledby="operator-work-title">
+      <section class="operator-dashboard-panel operator-work-panel" aria-labelledby="operator-work-title">
         <header class="operator-panel-header">
           <div>
             <span class="operator-panel-kicker">Priority queue</span>
@@ -157,7 +157,7 @@
         {% endif %}
       </section>
 
-      <section class="card operator-dashboard-panel operator-runway-panel" aria-labelledby="operator-runway-title">
+      <section class="operator-dashboard-panel operator-runway-panel" aria-labelledby="operator-runway-title">
         <header class="operator-panel-header">
           <div>
             <span class="operator-panel-kicker">Schedule</span>
@@ -230,7 +230,7 @@
     </div>
 
     {% if calendar_events %}
-      <section class="card operator-schedule-panel">
+      <section class="operator-schedule-panel">
         <button class="operator-schedule-toggle"
                 type="button"
                 data-bs-toggle="collapse"
@@ -261,7 +261,7 @@
 
     {% if request.user|is_privileged %}
       {% if failed_tasks or system_health != "OK" %}
-        <section class="card operator-exceptions-panel" aria-labelledby="operator-exceptions-title">
+        <section class="operator-exceptions-panel" aria-labelledby="operator-exceptions-title">
           <header class="operator-panel-header">
             <div>
               <span class="operator-panel-kicker">Admin attention</span>

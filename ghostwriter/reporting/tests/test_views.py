@@ -1752,6 +1752,18 @@ class ReportDetailViewTests(TestCase):
         )
         self.assertNotContains(response, payload)
 
+    def test_preview_modals_use_shared_semantic_components(self):
+        EvidenceFactory(report=self.report)
+
+        response = self.client_mgr.get(self.uri)
+
+        self.assertContains(response, 'class="modal fade report-preview-modal"')
+        self.assertContains(response, 'class="modal-footer report-preview-modal-footer"')
+        self.assertContains(response, 'class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>')
+        self.assertContains(response, 'class="table evidence-detail-metadata"')
+        self.assertContains(response, 'class="evidence-detail-metadata-label"')
+        self.assertNotContains(response, 'class="btn btn-secondary col-3"')
+
     def test_library_searches_use_bounded_responsive_layout(self):
         response = self.client_mgr.get(self.uri)
 
@@ -4167,6 +4179,21 @@ class ReportTemplateListViewTests(TestCase):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "reporting/report_templates_list.html")
+
+    def test_template_preview_uses_shared_detail_modal_layout(self):
+        response = self.client_auth.get(self.uri)
+
+        self.assertContains(response, 'class="modal fade detail-preview-modal"')
+        self.assertContains(response, 'class="modal-footer detail-preview-modal-footer"')
+        self.assertNotContains(response, "btn btn-secondary col-3")
+
+    def test_filters_use_shared_filter_accordion(self):
+        response = self.client_auth.get(self.uri)
+
+        self.assertContains(response, 'class="filter-accordion-group library-filter"')
+        self.assertContains(response, 'class="filter-accordion-toggle"')
+        self.assertContains(response, 'class="filter-accordion-body"')
+        self.assertNotContains(response, 'class="card-header library-filter"')
 
     def test_delete_controls_require_privileged_user(self):
         delete_uri = reverse(

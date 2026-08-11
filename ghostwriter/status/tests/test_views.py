@@ -80,6 +80,9 @@ class HealthCheckCustomViewTests(TestCase):  # pragma: no cover
         response = self.client.get(self.uri)
 
         self.assertContains(response, 'class="status-page"')
+        self.assertContains(response, 'class="status-section"')
+        self.assertContains(response, 'class="status-section status-service-section"')
+        self.assertNotContains(response, 'class="card status-section')
         self.assertContains(response, "Current readout")
         self.assertContains(response, "Return home")
         self.assertContains(response, "Refresh checks")

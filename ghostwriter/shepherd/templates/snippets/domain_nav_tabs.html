@@ -5,9 +5,9 @@
         General
         <span class=
             {% if domain.is_expired %}
-                "badge rounded-pill badge-danger">EXPIRED
+                "domain-tab-status is-expired">EXPIRED
             {% else %}
-                "badge rounded-pill badge-light">{{ domain.get_domain_age_display }} old
+                "domain-tab-status">{{ domain.get_domain_age_display }} old
             {% endif %}
         </span>
     </a>
@@ -19,19 +19,19 @@
 <li class="nav-item">
     <a class="nav-link icon heartbeat-icon" data-bs-toggle="tab" href="#health">
         Health
-        <span class="badge rounded-pill {% if domain.health_status.health_status == "Healthy" %}badge-light{% else %} badge-danger{% endif %}">{{ domain.health_status }}</span>
+        <span class="domain-tab-status {% if domain.health_status.health_status == "Healthy" %}is-healthy{% else %}is-unhealthy{% endif %}">{{ domain.health_status }}</span>
     </a>
 </li>
 <li class="nav-item">
     <a class="nav-link icon history-icon" data-bs-toggle="tab" href="#history">
         Project History
-        <span class="badge rounded-pill badge-light">{{ domain.history_set.all.count }}</span>
+        <span class="tab-count-badge">{{ domain.history_set.all.count }}</span>
     </a>
 </li>
 <li class="nav-item">
     <a class="nav-link icon comment-icon" data-bs-toggle="tab" href="#notes">
         Notes
-        <span class="badge rounded-pill badge-light">{{ domain.domainnote_set.all.count }}</span>
+        <span class="tab-count-badge">{{ domain.domainnote_set.all.count }}</span>
     </a>
 </li>
 {% if domain_extra_fields_spec %}

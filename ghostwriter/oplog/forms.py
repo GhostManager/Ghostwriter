@@ -183,7 +183,7 @@ class OplogEntryForm(forms.ModelForm):
                 Row(
                     Column(
                         Field("start_date", step=1),
-                        css_class="form-group col-md-6 mb-0",
+                        css_class="col-md-6 mb-0",
                     ),
                     Column(
                         FieldWithButtons(
@@ -194,25 +194,25 @@ class OplogEntryForm(forms.ModelForm):
                                 title="Set end date and time to now",
                             ),
                         ),
-                        css_class="form-group col-md-6 mb-0",
+                        css_class="col-md-6 mb-0",
                     ),
-                    css_class="form-row",
+                    css_class="row g-3",
                 ),
                 Row(
-                    Column("source_ip", css_class="form-group col-md-6 mb-0"),
-                    Column("dest_ip", css_class="form-group col-md-6 mb-0"),
-                    css_class="form-row",
+                    Column("source_ip", css_class="col-md-6 mb-0"),
+                    Column("dest_ip", css_class="col-md-6 mb-0"),
+                    css_class="row g-3",
                 ),
                 Row(
-                    Column("tool", css_class="form-group col-md-6 mb-0"),
-                    Column("user_context", css_class="form-group col-md-6 mb-0"),
-                    css_class="form-row",
+                    Column("tool", css_class="col-md-6 mb-0"),
+                    Column("user_context", css_class="col-md-6 mb-0"),
+                    css_class="row g-3",
                 ),
                 Div("command", css_class="empty-form"),
                 Row(
-                    Column("operator_name", css_class="form-group col-md-6 mb-0"),
-                    Column("entry_identifier", css_class="form-group col-md-6 mb-0"),
-                    css_class="form-row",
+                    Column("operator_name", css_class="col-md-6 mb-0"),
+                    Column("entry_identifier", css_class="col-md-6 mb-0"),
+                    css_class="row g-3",
                 ),
                 css_id="activity",
             ),
@@ -228,9 +228,9 @@ class OplogEntryForm(forms.ModelForm):
                 ),
                 "output",
                 Row(
-                    Column("description", css_class="form-group col-md-6 mb-0"),
-                    Column("comments", css_class="form-group col-md-6 mb-0"),
-                    css_class="form-row",
+                    Column("description", css_class="col-md-6 mb-0"),
+                    Column("comments", css_class="col-md-6 mb-0"),
+                    css_class="row g-3",
                 ),
                 "tags",
                 css_id="notes-output",
@@ -305,7 +305,7 @@ class OplogEvidenceForm(forms.ModelForm):
             "tags",
         )
         widgets = {
-            "document": forms.FileInput(attrs={"class": "custom-file-input"}),
+            "document": forms.FileInput(attrs={"class": "resource-file-input"}),
             "description": forms.Textarea(attrs={"rows": 1}),
         }
 

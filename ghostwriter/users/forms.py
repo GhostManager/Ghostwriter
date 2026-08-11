@@ -80,9 +80,9 @@ class UserChangeForm(UserChangeForm):
                 ),
                 "name",
                 Row(
-                    Column("phone", css_class="form-group col-md-6"),
-                    Column("timezone", css_class="form-group col-md-6"),
-                    css_class="form-row",
+                    Column("phone", css_class="col-md-6"),
+                    Column("timezone", css_class="col-md-6"),
+                    css_class="row g-3",
                 ),
                 css_class="resource-form-card",
             ),
@@ -175,16 +175,16 @@ class UserLoginForm(LoginForm):
         self.helper.form_show_errors = False
         self.helper.layout = Layout(
             Row(
-                Column("login", css_class="form-group col-12 mb-0"),
-                css_class="form-row mt-4",
+                Column("login", css_class="col-12 mb-0"),
+                css_class="row g-3 mt-4",
             ),
             Row(
-                Column("password", css_class="form-group col-12 mb-0"),
-                css_class="form-row",
+                Column("password", css_class="col-12 mb-0"),
+                css_class="row g-3",
             ),
             Row(
-                Column("remember", css_class="form-group col-12 mb-0"),
-                css_class="form-row",
+                Column("remember", css_class="col-12 mb-0"),
+                css_class="row g-3",
             ),
         )
 
@@ -210,24 +210,24 @@ class UserSignupForm(SignupForm):
         self.helper.form_show_errors = False
         self.helper.layout = Layout(
             Row(
-                Column("name", css_class="form-group col-12 mb-0"),
-                css_class="form-row",
+                Column("name", css_class="col-12 mb-0"),
+                css_class="row g-3",
             ),
             Row(
-                Column("email", css_class="form-group col-12 mb-0"),
-                css_class="form-row mt-4",
+                Column("email", css_class="col-12 mb-0"),
+                css_class="row g-3 mt-4",
             ),
             Row(
-                Column("username", css_class="form-group col-12 mb-0"),
-                css_class="form-row",
+                Column("username", css_class="col-12 mb-0"),
+                css_class="row g-3",
             ),
             Row(
-                Column("password1", css_class="form-group col-12 mb-0"),
-                css_class="form-row",
+                Column("password1", css_class="col-12 mb-0"),
+                css_class="row g-3",
             ),
             Row(
-                Column("password2", css_class="form-group col-12 mb-0"),
-                css_class="form-row",
+                Column("password2", css_class="col-12 mb-0"),
+                css_class="row g-3",
             ),
         )
 

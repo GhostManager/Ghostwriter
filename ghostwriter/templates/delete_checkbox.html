@@ -6,7 +6,7 @@
   {{ field }}
 {% else %}
   {% if field|is_checkbox %}
-    <div class="form-group mb-0">
+    <div class="mb-0">
       {% if label_class %}
         <div class="{% for offset in bootstrap_checkbox_offsets %}{{ offset }} {% endfor %}{{ field_class }}">
       {% endif %}

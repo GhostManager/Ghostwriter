@@ -1216,7 +1216,7 @@ class ClientDetailViewTest(TestCase):
             'class="modal fade destructive-confirmation-modal" id="confirm-delete-modal"',
         )
         self.assertContains(response, 'id="confirm-delete-modal-label">Delete item?</h5>')
-        self.assertContains(response, 'class="close destructive-confirmation-close"')
+        self.assertContains(response, 'class="btn-close destructive-confirmation-close"')
         self.assertContains(response, 'id="delete-object-preview-content"')
         self.assertContains(response, "Delete permanently")
         self.assertContains(response, "$modalPreview.empty().addClass('d-none');")
@@ -1252,7 +1252,7 @@ class ClientDetailViewTest(TestCase):
         self.assertContains(response, 'class="extra-field-value-label"', count=2)
         self.assertContains(response, "Edit Extra Fields", count=1)
         self.assertContains(response, "client.extra_fields.tracking_reference")
-        self.assertContains(response, 'class="btn-close flex-shrink-0 align-self-start"', count=1)
+        self.assertContains(response, 'class="btn-close extra-field-preview-close"', count=1)
         self.assertNotContains(response, 'title="Edit Tracking Reference"')
 
     def test_client_tabs_distinguish_empty_collections(self):
@@ -1267,6 +1267,15 @@ class ClientDetailViewTest(TestCase):
         self.assertContains(response, "No infrastructure used")
         self.assertContains(response, "No notes yet")
         self.assertNotContains(response, "There is nothing to see here yet")
+
+    def test_infrastructure_history_tab_has_no_empty_count_badge(self):
+        response = self.client_mgr.get(self.uri)
+        soup = BeautifulSoup(response.content, "html.parser")
+
+        infrastructure_tab = soup.select_one("#id_infrastructure")
+
+        self.assertIsNotNone(infrastructure_tab)
+        self.assertIsNone(infrastructure_tab.select_one(".tab-count-badge"))
 
 
 class ProjectListViewTests(TestCase):
@@ -1680,6 +1689,35 @@ class ProjectDetailViewTests(TestCase):
         self.assertContains(response, "Attribution is still in progress.")
         self.assertContains(response, "No related activity")
         self.assertContains(response, "Update record")
+
+    def test_project_scope_and_deconfliction_previews_use_shared_modal_treatment(self):
+        scope = ProjectScopeFactory(
+            project=self.project,
+            name="Approved assessment scope",
+            scope="10.10.10.0/24\napp.example.test",
+        )
+        deconfliction = DeconflictionFactory(
+            project=self.project,
+            title="Suspicious PowerShell activity",
+        )
+
+        response = self.client_mgr.get(self.uri)
+        soup = BeautifulSoup(response.content, "html.parser")
+        scope_modal = soup.select_one(f"#id_scope_{scope.id}")
+        deconfliction_modal = soup.select_one(f"#id_deconfliction_{deconfliction.id}")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("detail-preview-modal", scope_modal.get("class", []))
+        self.assertIsNotNone(scope_modal.select_one(".detail-preview-modal-eyebrow"))
+        self.assertIsNotNone(scope_modal.select_one(".project-scope-preview-content"))
+        self.assertIsNotNone(scope_modal.select_one(".detail-preview-modal-footer .js-copy-scope"))
+        self.assertIsNotNone(scope_modal.select_one(".btn-close.detail-preview-modal-close"))
+        self.assertIn("detail-preview-modal", deconfliction_modal.get("class", []))
+        self.assertIsNotNone(deconfliction_modal.select_one(".project-deconfliction-log-table-frame"))
+        self.assertIsNotNone(deconfliction_modal.select_one(".detail-preview-modal-footer"))
+        self.assertIsNotNone(deconfliction_modal.select_one(".btn-close.detail-preview-modal-close"))
+        self.assertNotIn("scope-modal-body", response.content.decode())
+        self.assertNotIn("oplog-modal-body", response.content.decode())
 
     def test_project_tables_use_modern_right_aligned_actions(self):
         ProjectAssignmentFactory(project=self.project, operator=self.user)
@@ -2114,7 +2152,10 @@ class ProjectDetailViewTests(TestCase):
                     "distinguished_name": "DC=EXAMPLE,DC=LOCAL",
                     "domain_sid": "S-1-5-21-1",
                     "users": {"count": 125, "with_old_pw": 12},
-                    "computers": {"count": 48, "operating_systems": {}},
+                    "computers": {
+                        "count": 48,
+                        "operating_systems": {"Windows Server 2022": 8},
+                    },
                     "data_quality": {
                         "groups": 32,
                         "sessions": 8,
@@ -2124,8 +2165,8 @@ class ProjectDetailViewTests(TestCase):
                         "session_completeness": 85,
                         "local_group_completeness": 70,
                     },
-                    "inbound_trusts": [],
-                    "outbound_trusts": [],
+                    "inbound_trusts": [{"name": "INBOUND.LOCAL"}],
+                    "outbound_trusts": [{"name": "OUTBOUND.LOCAL"}],
                 }
             ],
             "findings": [],
@@ -2147,6 +2188,11 @@ class ProjectDetailViewTests(TestCase):
             ["125", "48", "32"],
         )
         self.assertIsNotNone(soup.select_one(".bh-collapse-indicator"))
+        self.assertIsNotNone(soup.select_one(".bh-functional-level-badge"))
+        self.assertIsNotNone(soup.select_one(".bh-os-badge"))
+        self.assertIsNotNone(soup.select_one(".bh-trust-badge.is-inbound"))
+        self.assertIsNotNone(soup.select_one(".bh-trust-badge.is-outbound"))
+        self.assertIsNone(soup.select_one(".badge"))
         self.assertEqual(
             [
                 metric.get_text(" ", strip=True)

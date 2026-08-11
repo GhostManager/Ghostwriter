@@ -22,7 +22,7 @@
         <h2 class="mb-0">{{ client.name }}</h2>
         {% if client.tags.names %}
           <div class="detail-tag-list" aria-label="Client tags">
-            {% for tag in client.tags.names %}<span class="badge badge-secondary">{{ tag|bleach }}</span>{% endfor %}
+            {% for tag in client.tags.names %}<span class="library-tag library-tag-neutral">{{ tag|bleach }}</span>{% endfor %}
           </div>
         {% endif %}
       </div>

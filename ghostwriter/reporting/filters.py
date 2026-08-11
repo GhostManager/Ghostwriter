@@ -131,21 +131,21 @@ class FindingFilter(django_filters.FilterSet):
                                 PrependedText("tags", TAG_ICON),
                                 css_class="col-md-6 mb-3",
                             ),
-                            css_class="form-row",
+                            css_class="row g-3",
                         ),
                         Row(
                             Column(
                                 InlineCheckboxes("severity"),
                                 css_class="col-md-12 mb-3",
                             ),
-                            css_class="form-row",
+                            css_class="row g-3",
                         ),
                         Row(
                             Column(
                                 InlineCheckboxes("finding_type"),
                                 css_class="col-md-12 mb-3",
                             ),
-                            css_class="form-row",
+                            css_class="row g-3",
                         ),
                         Row(
                             Column(
@@ -153,7 +153,7 @@ class FindingFilter(django_filters.FilterSet):
                                 css_class="col-md-12 mb-3 tooltip-label-only library-filter-boolean",
                                 data_tooltip_text="Return results from reports instead of the library",
                             ),
-                            css_class="form-row",
+                            css_class="row g-3",
                         ),
                         Row(
                             Column(
@@ -161,7 +161,7 @@ class FindingFilter(django_filters.FilterSet):
                                 css_class="col-md-12 mb-3 tooltip-label-only library-filter-boolean",
                                 data_tooltip_text="Return only findings attached to reports and not in the library (based on title)",
                             ),
-                            css_class="form-row",
+                            css_class="row g-3",
                         ),
                         ButtonHolder(
                             Submit("submit_btn", "Filter"),
@@ -248,7 +248,7 @@ class ObservationFilter(django_filters.FilterSet):
                                 PrependedText("tags", TAG_ICON),
                                 css_class="col-md-6 mb-3",
                             ),
-                            css_class="form-row",
+                            css_class="row g-3",
                         ),
                         ButtonHolder(
                             Submit("submit_btn", "Filter"),
@@ -359,14 +359,14 @@ class ReportFilter(django_filters.FilterSet):
                                 ),
                                 css_class="col-md-4 mb-0",
                             ),
-                            css_class="form-row",
+                            css_class="row g-3",
                         ),
                         Row(
                             Column(
                                 SwitchToggle("exclude_archived"),
                                 css_class="col-md-12 mb-3 library-filter-boolean",
                             ),
-                            css_class="form-row",
+                            css_class="row g-3",
                         ),
                         ButtonHolder(
                             Submit("submit_btn", "Filter", css_class="btn btn-primary"),
@@ -553,7 +553,7 @@ class ReportTemplateFilter(django_filters.FilterSet):
                                 ),
                                 css_class="col-md-6 mb-0",
                             ),
-                            css_class="form-row",
+                            css_class="row g-3",
                         ),
                         Row(
                             Column(
@@ -564,7 +564,7 @@ class ReportTemplateFilter(django_filters.FilterSet):
                                 PrependedText("tags", TAG_ICON),
                                 css_class="col-md-6 mb-0",
                             ),
-                            css_class="form-row",
+                            css_class="row g-3",
                         ),
                         ButtonHolder(
                             Submit("submit_btn", "Filter", css_class="btn btn-primary"),

@@ -56,7 +56,7 @@
   </header>
   {% if project.tags.all %}
     <div class="detail-tag-list" aria-label="Project tags">
-      {% for tag in project.tags.names %}<span class="badge badge-secondary">{{ tag|bleach }}</span>{% endfor %}
+      {% for tag in project.tags.names %}<span class="library-tag library-tag-neutral">{{ tag|bleach }}</span>{% endfor %}
     </div>
   {% endif %}
   <hr class="w-100 my-3"/>
@@ -589,7 +589,7 @@
           <p class="detail-prose">Generate JSON project data or select a project template for documents such as a statement of work or rules of engagement. Report data is not available in this export.</p>
           <div class="input-group project-export-control">
             <span class="input-group-text" id="projectExportFilename">Format</span>
-            <select class="form-select custom-select" id="projectExportSelector" data-url="{% url 'rolodex:ajax_project_generate_report' project.pk 'replaceme' %}">
+            <select class="form-select" id="projectExportSelector" data-url="{% url 'rolodex:ajax_project_generate_report' project.pk 'replaceme' %}">
               <option value="json">JSON</option>
               {% for template in export_templates %}
                 <option value="{{ template.pk }}">{{ template.name }} ({{ template.doc_type.extension }})</option>
@@ -803,9 +803,7 @@
         <div class="search inline-search-bar mb-3">
           <form action="{% url 'shepherd:domains' %}" method="GET">
             <div class="input-group">
-              <div class="input-group-prepend">
-                <span class="input-group-text" id="inner-domain-search-addon"><span class="fa fa-search"></span></span>
-              </div>
+              <span class="input-group-text" id="inner-domain-search-addon"><i class="fas fa-search" aria-hidden="true"></i></span>
               <input autocomplete="off" type="text" class="form-control" name="domain"
                      placeholder="Search domains by name or category..." aria-label="domains"
                      aria-describedby="inner-domain-search-addon">
@@ -891,9 +889,7 @@
         <div class="search inline-search-bar mb-3">
           <form action="{% url 'shepherd:servers' %}" method="GET">
             <div class="input-group">
-              <div class="input-group-prepend">
-                <span class="fa fa-search input-group-text" id="inner-server-search-addon"></span>
-              </div>
+              <span class="input-group-text" id="inner-server-search-addon"><i class="fas fa-search" aria-hidden="true"></i></span>
               <input autocomplete="off" type="text" class="form-control" name="server"
                      placeholder="Search servers by hostname or IP..." aria-label="servers"
                      aria-describedby="inner-server-search-addon">
@@ -2330,24 +2326,27 @@
 
   {% comment %} Generate modals for displaying the scope lists {% endcomment %}
   {% for list in project.projectscope_set.all %}
-    <div class="modal" id="id_scope_{{ list.id }}" tabindex="-1" role="dialog"
-         aria-labelledby="scope_modal_{{ list.id }}" aria-hidden="true">
-      <div class="modal-dialog scope-modal-dialog modal-dialog-centered" role="document">
+    <div class="modal fade detail-preview-modal project-scope-preview-modal" id="id_scope_{{ list.id }}" tabindex="-1" role="dialog"
+         aria-labelledby="scopeModal_{{ list.id }}" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" role="document">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title" id="scopeModal_{{ list.id }}">{{ list.name }} – {{ list.count_lines_str }}</h5>
-            <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-              <span aria-hidden="true">&times;</span>
-            </button>
+            <div>
+              <span class="detail-preview-modal-eyebrow">Project scope</span>
+              <h5 class="modal-title" id="scopeModal_{{ list.id }}">{{ list.name }}</h5>
+              <p class="project-inline-preview-intro">{{ list.count_lines_str }} available to review or copy.</p>
+            </div>
+            <button type="button" class="btn-close detail-preview-modal-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
-          <div id="modal_scope_{{ list.id }}" class="modal-body scope-modal-body">
-            {{ list.scope|bleach|linebreaks }}
+          <div class="modal-body">
+            <div id="modal_scope_{{ list.id }}" class="project-scope-preview-content">
+              {{ list.scope|bleach|linebreaks }}
+            </div>
           </div>
-          <div class="modal-footer">
+          <div class="modal-footer detail-preview-modal-footer">
             <button type="button" class="btn btn-primary js-copy-scope"
-                    data-clipboard-target="#modal_scope_{{ list.id }}">Copy to Clipboard
-            </button>
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    data-clipboard-target="#modal_scope_{{ list.id }}"><i class="fas fa-copy" aria-hidden="true"></i> Copy scope</button>
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
           </div>
         </div>
       </div>
@@ -2356,50 +2355,53 @@
 
   {% comment %} Generate modals for displaying log entries for deconfliction events {% endcomment %}
   {% for event in project.deconfliction_set.all %}
-    <div class="modal" id="id_deconfliction_{{ event.id }}" tabindex="-1" role="dialog"
-         aria-labelledby="deconfliction_modal_{{ event.id }}" aria-hidden="true">
-      <div class="modal-dialog modal-super-sized oplog-modal-dialog modal-dialog-centered" role="document">
+    <div class="modal fade detail-preview-modal project-deconfliction-preview-modal" id="id_deconfliction_{{ event.id }}" tabindex="-1" role="dialog"
+         aria-labelledby="deconflictionModal_{{ event.id }}" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" role="document">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title" id="deconflictionModal_{{ event.id }}">Related Log Entries</h5>
-            <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-              <span aria-hidden="true">&times;</span>
-            </button>
+            <div>
+              <span class="detail-preview-modal-eyebrow">Deconfliction activity</span>
+              <h5 class="modal-title" id="deconflictionModal_{{ event.id }}">Related log entries</h5>
+              <p class="project-inline-preview-intro">Activity from the hour before the client detection.</p>
+            </div>
+            <button type="button" class="btn-close detail-preview-modal-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
 
-          <div id="modal_deconfliction_{{ event.id }}" class="modal-body oplog-modal-body">
-            <p>Log entries from the hour prior to the alert timestamp, sorted from most recent to oldest.</p>
-            <table id="projectTable" class="tablesorter table table-sm table-hover">
-              <thead>
-              <tr>
-                <th class="align-middle text-start">Start Date</th>
-                <th class="align-middle text-start">Destination</th>
-                <th class="align-middle text-start">Tool</th>
-                <th class="align-middle text-start">User</th>
-                <th class="align-middle text-start">Command</th>
-                <th class="align-middle text-start">Description</th>
-                <th class="align-middle text-start">Comments</th>
-                <th class="align-middle text-start">Operator</th>
-              </tr>
-              </thead>
-              {% for entry in event.log_entries %}
+          <div id="modal_deconfliction_{{ event.id }}" class="modal-body">
+            <div class="table-responsive data-table-frame project-deconfliction-log-table-frame">
+              <table class="table table-sm table-hover project-deconfliction-log-table">
+                <thead>
                 <tr>
-                  <td class="align-middle text-start">
-                    {% if entry.start_date %}{{ entry.start_date|date:"d M Y @ H:i:s e" }}{% endif %}</td>
-                  <td class="align-middle text-start">{% if entry.dest_ip %}{{ entry.dest_ip }}{% endif %}</td>
-                  <td class="align-middle text-start">{% if entry.tool %}{{ entry.tool }}{% endif %}</td>
-                  <td class="align-middle text-start">{% if entry.user_context %}{{ entry.user_context }}{% endif %}</td>
-                  <td class="align-middle text-start">{% if entry.command %}{{ entry.command }}{% endif %}</td>
-                  <td class="align-middle text-start">{% if entry.description %}{{ entry.description }}{% endif %}</td>
-                  <td class="align-middle text-start">{% if entry.comments %}{{ entry.comments }}{% endif %}</td>
-                  <td class="align-middle text-start">{% if entry.operator_name %}{{ entry.operator_name }}{% endif %}</td>
+                  <th class="align-middle text-start">Start Date</th>
+                  <th class="align-middle text-start">Destination</th>
+                  <th class="align-middle text-start">Tool</th>
+                  <th class="align-middle text-start">User</th>
+                  <th class="align-middle text-start">Command</th>
+                  <th class="align-middle text-start">Description</th>
+                  <th class="align-middle text-start">Comments</th>
+                  <th class="align-middle text-start">Operator</th>
                 </tr>
-              {% endfor %}
-            </table>
+                </thead>
+                {% for entry in event.log_entries %}
+                  <tr>
+                    <td class="align-middle text-start">
+                      {% if entry.start_date %}{{ entry.start_date|date:"d M Y @ H:i:s e" }}{% endif %}</td>
+                    <td class="align-middle text-start">{% if entry.dest_ip %}{{ entry.dest_ip }}{% endif %}</td>
+                    <td class="align-middle text-start">{% if entry.tool %}{{ entry.tool }}{% endif %}</td>
+                    <td class="align-middle text-start">{% if entry.user_context %}{{ entry.user_context }}{% endif %}</td>
+                    <td class="align-middle text-start">{% if entry.command %}{{ entry.command }}{% endif %}</td>
+                    <td class="align-middle text-start">{% if entry.description %}{{ entry.description }}{% endif %}</td>
+                    <td class="align-middle text-start">{% if entry.comments %}{{ entry.comments }}{% endif %}</td>
+                    <td class="align-middle text-start">{% if entry.operator_name %}{{ entry.operator_name }}{% endif %}</td>
+                  </tr>
+                {% endfor %}
+              </table>
+            </div>
           </div>
 
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <div class="modal-footer detail-preview-modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
           </div>
         </div>
       </div>

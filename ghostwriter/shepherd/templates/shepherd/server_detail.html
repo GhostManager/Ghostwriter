@@ -15,7 +15,7 @@
         <div class="detail-tag-list" aria-label="Server status and tags">
           {% if staticserver.name %}<span class="library-tag library-tag-info">{{ staticserver.name }}</span>{% endif %}
           <span class="library-tag {% if staticserver.server_status.server_status == 'Available' %}library-tag-success{% else %}library-tag-danger{% endif %}">{{ staticserver.server_status }}</span>
-          {% for tag in staticserver.tags.names %}<span class="badge badge-secondary">{{ tag|bleach }}</span>{% endfor %}
+          {% for tag in staticserver.tags.names %}<span class="library-tag library-tag-neutral">{{ tag|bleach }}</span>{% endfor %}
         </div>
       </div>
       <div class="dropdown detail-page-heading-actions">

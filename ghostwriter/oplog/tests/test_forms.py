@@ -197,6 +197,14 @@ class OplogEvidenceFormTests(TestCase):
         self.assertIn(self.report, qs)
         self.assertNotIn(other_report, qs)
 
+    def test_document_uses_resource_upload_input(self):
+        form = OplogEvidenceForm(project=self.project)
+
+        self.assertEqual(
+            form.fields["document"].widget.attrs["class"],
+            "resource-file-input",
+        )
+
     def test_report_auto_selected_first_when_no_active(self):
         form = OplogEvidenceForm(project=self.project)
         self.assertEqual(form.fields["report"].initial, self.report)

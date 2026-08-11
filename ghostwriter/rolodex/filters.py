@@ -85,13 +85,13 @@ class ClientFilter(django_filters.FilterSet):
                         Row(
                             Column(
                                 PrependedText("name", FILTER_ICON),
-                                css_class="form-group col-md-6 mb-0",
+                                css_class="col-md-6 mb-0",
                             ),
                             Column(
                                 PrependedText("tags", TAG_ICON),
-                                css_class="form-group col-md-6 mb-0",
+                                css_class="col-md-6 mb-0",
                             ),
-                            css_class="form-row",
+                            css_class="row g-3",
                         ),
                         ButtonHolder(
                             Submit("submit_btn", "Filter", css_class="btn btn-primary"),
@@ -234,11 +234,11 @@ class ProjectFilter(django_filters.FilterSet):
                         Row(
                             Column(
                                 PrependedText("client", FILTER_ICON),
-                                css_class="form-group col-md-6 mb-0",
+                                css_class="col-md-6 mb-0",
                             ),
                             Column(
                                 PrependedText("codename", FILTER_ICON),
-                                css_class="form-group col-md-6 mb-0",
+                                css_class="col-md-6 mb-0",
                             ),
                         ),
                         Row(
@@ -247,20 +247,20 @@ class ProjectFilter(django_filters.FilterSet):
                                     "project_type",
                                     FILTER_ICON,
                                 ),
-                                css_class="form-group col-md-4 mb-0",
+                                css_class="col-md-4 mb-0",
                             ),
                             Column(
                                 PrependedText(
                                     "complete",
                                     TOGGLE_ICON,
                                 ),
-                                css_class="form-group col-md-4 mb-0",
+                                css_class="col-md-4 mb-0",
                             ),
                             Column(
                                 PrependedText("tags", TAG_ICON),
-                                css_class="form-group col-md-4 mb-0",
+                                css_class="col-md-4 mb-0",
                             ),
-                            css_class="form-row",
+                            css_class="row g-3",
                         ),
                         Row(
                             Column(
@@ -268,20 +268,20 @@ class ProjectFilter(django_filters.FilterSet):
                                     "start_date_range",
                                     CALENDAR_ICON,
                                 ),
-                                css_class="form-group col-md-4 mb-0",
+                                css_class="col-md-4 mb-0",
                             ),
                             Column(
                                 PrependedText("start_date", HOURGLASS_START_ICON),
-                                css_class="form-group col-md-4 mb-0",
+                                css_class="col-md-4 mb-0",
                             ),
                             Column(
                                 PrependedText(
                                     "end_date",
                                     HOURGLASS_END_ICON,
                                 ),
-                                css_class="form-group col-md-4 mb-0",
+                                css_class="col-md-4 mb-0",
                             ),
-                            css_class="form-row",
+                            css_class="row g-3",
                         ),
                         ButtonHolder(
                             Submit("submit_btn", "Filter", css_class="btn btn-primary"),

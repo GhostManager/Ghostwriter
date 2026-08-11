@@ -16,7 +16,7 @@
         <div class="detail-tag-list" aria-label="Domain status and tags">
           <span class="library-tag {% if domain.domain_status.domain_status == 'Available' %}library-tag-success{% else %}library-tag-danger{% endif %}">{{ domain.domain_status }}</span>
           <span class="library-tag {% if domain.health_status.health_status == 'Healthy' %}library-tag-success{% else %}library-tag-danger{% endif %}">{{ domain.health_status }}</span>
-          {% for tag in domain.tags.names %}<span class="badge badge-secondary">{{ tag|bleach }}</span>{% endfor %}
+          {% for tag in domain.tags.names %}<span class="library-tag library-tag-neutral">{{ tag|bleach }}</span>{% endfor %}
         </div>
       </div>
       <div class="dropdown detail-page-heading-actions">

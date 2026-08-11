@@ -69,7 +69,7 @@
         method="POST">
     <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
     <div class="project-contact-assign-form">
-      <select id="id_client_contact" class="form-select custom-select" aria-label="Assign project contact">
+      <select id="id_client_contact" class="form-select" aria-label="Assign project contact">
         {% if client_contacts %}
           <option value="-1" selected>Choose a client contact</option>
           {% for contact in client_contacts %}

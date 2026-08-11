@@ -126,12 +126,12 @@ class ApiKeyForm(forms.Form):
                     """
                 ),
                 Row(
-                    Column("name", css_class="form-group col-md-6"),
+                    Column("name", css_class="col-md-6"),
                     Column(
                         Field("expiry_date", step=1),
-                        css_class="form-group col-md-6",
+                        css_class="col-md-6",
                     ),
-                    css_class="form-row",
+                    css_class="row g-3",
                 ),
                 HTML(
                     """
@@ -349,16 +349,16 @@ class ServiceTokenForm(forms.Form):
                     """
                 ),
                 Row(
-                    Column("token_preset", css_class="form-group col-12"),
-                    css_class="form-row",
+                    Column("token_preset", css_class="col-12"),
+                    css_class="row g-3",
                 ),
                 Row(
-                    Column("name", css_class="form-group col-md-6"),
+                    Column("name", css_class="col-md-6"),
                     Column(
                         Field("expiry_date", step=1),
-                        css_class="form-group col-md-6",
+                        css_class="col-md-6",
                     ),
-                    css_class="form-row",
+                    css_class="row g-3",
                 ),
                 css_class="resource-form-card",
             ),
@@ -375,12 +375,12 @@ class ServiceTokenForm(forms.Form):
                     """
                 ),
                 Row(
-                    Column("service_principal", css_class="form-group col-md-6"),
+                    Column("service_principal", css_class="col-md-6"),
                     Column(
                         "new_service_principal_name",
-                        css_class="form-group col-md-6",
+                        css_class="col-md-6",
                     ),
-                    css_class="form-row",
+                    css_class="row g-3",
                 ),
                 css_class="resource-form-card",
             ),
@@ -397,23 +397,23 @@ class ServiceTokenForm(forms.Form):
                     """
                 ),
                 Row(
-                    Column("oplog", css_class="form-group col-12"),
-                    css_class="form-row",
+                    Column("oplog", css_class="col-12"),
+                    css_class="row g-3",
                     css_id="service-token-oplog-row",
                 ),
                 Row(
-                    Column("project_scope", css_class="form-group col-12"),
-                    css_class="form-row",
+                    Column("project_scope", css_class="col-12"),
+                    css_class="row g-3",
                     css_id="service-token-project-scope-row",
                 ),
                 Row(
-                    Column("clients", css_class="form-group col-12"),
-                    css_class="form-row",
+                    Column("clients", css_class="col-12"),
+                    css_class="row g-3",
                     css_id="service-token-clients-row",
                 ),
                 Row(
-                    Column("projects", css_class="form-group col-12"),
-                    css_class="form-row",
+                    Column("projects", css_class="col-12"),
+                    css_class="row g-3",
                     css_id="service-token-projects-row",
                 ),
                 css_class="resource-form-card",

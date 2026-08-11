@@ -1,12 +1,14 @@
 {% load extra_fields bleach_tags %}
 
-<div id="domain_history_detail_{{ checkout.id }}" class="modal fade" tabindex="-1" role="dialog">
+<div id="domain_history_detail_{{ checkout.id }}" class="modal fade detail-preview-modal" tabindex="-1" role="dialog">
   <div class="modal-dialog modal-super-sized modal-dialog-scrollable modal-dialog-centered" role="document">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">Additional Details for Domain History</h5>
-        <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
+        <div>
+          <span class="detail-preview-modal-eyebrow">Domain checkout</span>
+          <h2 class="modal-title">Checkout notes</h2>
+        </div>
+        <button type="button" class="btn-close detail-preview-modal-close" data-bs-dismiss="modal" aria-label="Close">
         </button>
       </div>
       <div class="modal-body extra-field-modal-content">
@@ -18,8 +20,8 @@
       {% endif %}
 
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary col-3" data-bs-dismiss="modal">Close</button>
+      <div class="modal-footer detail-preview-modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
       </div>
     </div>
   </div>

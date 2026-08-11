@@ -291,6 +291,9 @@ class UserProfileTokenDisplayTests(TestCase):
         )
         self.assertContains(response, "ALPHA PROJECT")
         self.assertContains(response, "BRAVO PROJECT")
+        self.assertContains(response, 'class="token-access-list mb-3"')
+        self.assertContains(response, 'class="token-access-list-item"')
+        self.assertNotContains(response, 'class="list-group')
 
     def test_api_token_details_view_rejects_tokens_owned_by_other_users(self):
         other_user = UserFactory(password=PASSWORD)
@@ -343,6 +346,8 @@ class UserProfileTokenDisplayTests(TestCase):
             response,
             "This token has no direct oplog assignment. It can access logs under the above projects.",
         )
+        self.assertContains(response, 'class="token-access-list mb-3"')
+        self.assertNotContains(response, 'class="list-group')
 
     def test_service_token_details_view_lists_oplog_access(self):
         project = ProjectFactory(codename="Alpha Project")
@@ -378,6 +383,8 @@ class UserProfileTokenDisplayTests(TestCase):
         self.assertContains(response, "Operator Activity")
         self.assertContains(response, "Read oplog and entries")
         self.assertContains(response, "Create entries")
+        self.assertContains(response, 'class="token-access-list mb-3"')
+        self.assertNotContains(response, 'class="list-group')
         self.assertContains(response, "Update entries")
         self.assertContains(response, "Delete entries")
 

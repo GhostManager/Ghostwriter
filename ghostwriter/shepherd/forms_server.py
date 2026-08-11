@@ -148,16 +148,16 @@ class AuxServerAddressForm(forms.ModelForm):
                         """
                     ),
                     Row(
-                        Column("ip_address", css_class="form-group col-md-6 mb-0"),
+                        Column("ip_address", css_class="col-md-6 mb-0"),
                         Column(
                             SwitchToggle(
                                 "primary",
                                 css_class="primary-checkbox",
                                 onchange="checkboxUpdate(this)",
                             ),
-                            css_class="form-group col-md-6 mb-0 pt-5",
+                            css_class="col-md-6 mb-0 pt-5",
                         ),
-                        css_class="form-row",
+                        css_class="row g-3",
                     ),
                     Row(
                         Column(
@@ -166,15 +166,15 @@ class AuxServerAddressForm(forms.ModelForm):
                                 "Delete Address",
                                 css_class="btn-outline-danger formset-del-button col-8",
                             ),
-                            css_class="form-group col-6 offset-3",
+                            css_class="col-6 offset-3",
                         ),
                         Column(
                             Field(
                                 "DELETE", style="display: none;", visibility="hidden", template="delete_checkbox.html"
                             ),
-                            css_class="form-group col-3 text-center",
+                            css_class="col-3 text-center",
                         ),
-                        css_class="form-row",
+                        css_class="row g-3",
                     ),
                     css_class="formset",
                 ),
@@ -241,14 +241,14 @@ class ServerForm(forms.ModelForm):
                         """
                     ),
                     Row(
-                        Column("ip_address", css_class="form-group col-md-6 mb-0"),
-                        Column("name", css_class="form-group col-md-6 mb-0"),
-                        css_class="form-row",
+                        Column("ip_address", css_class="col-md-6 mb-0"),
+                        Column("name", css_class="col-md-6 mb-0"),
+                        css_class="row g-3",
                     ),
                     Row(
-                        Column("server_status", css_class="form-group col-md-6 mb-0"),
-                        Column("server_provider", css_class="form-group col-md-6 mb-0"),
-                        css_class="form-row",
+                        Column("server_status", css_class="col-md-6 mb-0"),
+                        Column("server_provider", css_class="col-md-6 mb-0"),
+                        css_class="row g-3",
                     ),
                     "tags",
                     "description",
@@ -369,15 +369,15 @@ class TransientServerForm(forms.ModelForm):
                         """
                     ),
                     Row(
-                        Column("name", css_class="form-group col-md-6"),
-                        Column("ip_address", css_class="form-group col-md-6"),
-                        css_class="form-row",
+                        Column("name", css_class="col-md-6"),
+                        Column("ip_address", css_class="col-md-6"),
+                        css_class="row g-3",
                     ),
                     Row(
-                        Column("activity_type", css_class="form-group col-md-4"),
-                        Column("server_role", css_class="form-group col-md-4"),
-                        Column("server_provider", css_class="form-group col-md-4"),
-                        css_class="form-row",
+                        Column("activity_type", css_class="col-md-4"),
+                        Column("server_role", css_class="col-md-4"),
+                        Column("server_provider", css_class="col-md-4"),
+                        css_class="row g-3",
                     ),
                     "aux_address",
                     css_class="resource-form-card",
@@ -519,9 +519,9 @@ class ServerCheckoutForm(forms.ModelForm):
             "client",
             "project",
             Row(
-                Column("start_date", css_class="form-group col-md-6 mb-0"),
-                Column("end_date", css_class="form-group col-md-6 mb-0"),
-                css_class="form-row",
+                Column("start_date", css_class="col-md-6 mb-0"),
+                Column("end_date", css_class="col-md-6 mb-0"),
+                        css_class="row g-3",
             ),
             "activity_type",
             "server_role",

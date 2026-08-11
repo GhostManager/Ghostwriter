@@ -188,6 +188,16 @@ class OplogListEntriesTests(TestCase):
         self.assertContains(response, "They do not overwrite existing or copied entries")
         self.assertNotContains(response, "data-user-id=")
 
+    def test_view_uses_refreshed_quick_reference_modal(self):
+        response = self.client_mgr.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'class="modal fade oplog-help-modal"')
+        self.assertContains(response, 'class="oplog-help-topic-grid"')
+        self.assertContains(response, 'class="oplog-help-status is-connected"')
+        self.assertContains(response, 'class="oplog-help-status is-disconnected"')
+        self.assertContains(response, 'class="modal-footer oplog-help-modal-footer"')
+
     def test_view_uses_accessible_split_view_controls_and_states(self):
         response = self.client_mgr.get(self.uri)
 
@@ -220,10 +230,16 @@ class OplogListEntriesTests(TestCase):
         self.assertNotContains(response, 'data-bs-target="#confirm-sanitize-modal"')
         self.assertContains(
             response,
-            'class="close destructive-confirmation-close"',
+            'class="btn-close destructive-confirmation-close"',
             count=2,
         )
-        self.assertContains(response, 'class="modal fade destructive-confirmation-modal" id="confirm-sanitize-modal"')
+        self.assertNotContains(response, 'class="close')
+        self.assertNotContains(response, 'input-group-prepend')
+        self.assertNotContains(response, 'input-group-append')
+        self.assertContains(
+            response,
+            'class="modal fade destructive-confirmation-modal sanitize-modal" id="confirm-sanitize-modal"',
+        )
         self.assertContains(response, 'class="modal fade destructive-confirmation-modal"')
         self.assertContains(response, "Delete permanently")
         self.assertContains(response, "Ctrl+N")
@@ -424,6 +440,10 @@ class OplogEntriesImportTests(TestCase):
         self.assertContains(manager_response, 'id="oplog_log"')
         self.assertContains(manager_response, 'id="csv_file"')
         self.assertContains(manager_response, 'id="oplog-import-file-name"')
+        self.assertContains(manager_response, 'class="resource-file-input"')
+        self.assertContains(manager_response, 'class="resource-file-label"')
+        self.assertNotContains(manager_response, 'custom-file-input')
+        self.assertNotContains(manager_response, 'custom-file-label')
         self.assertContains(manager_response, "What happens next")
         self.assertContains(manager_response, "Import safely")
         self.assertNotContains(manager_response, "No operation logs available")

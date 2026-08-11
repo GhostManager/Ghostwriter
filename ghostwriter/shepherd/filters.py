@@ -115,9 +115,9 @@ class DomainFilter(django_filters.FilterSet):
                             ),
                             Column(
                                 PrependedText("tags", TAG_ICON),
-                                css_class="form-group col-md-6 mb-0",
+                                css_class="col-md-6 mb-0",
                             ),
-                            css_class="form-row",
+                            css_class="row g-3",
                         ),
                         HTML(
                             """
@@ -128,14 +128,14 @@ class DomainFilter(django_filters.FilterSet):
                              Column(
                                  InlineCheckboxes("domain_status"),
                              ),
-                            css_class="form-row",
+                            css_class="row g-3",
                         ),
                         Row(
                           Column(
                               SwitchToggle("exclude_expired"),
                               css_class="col-md-12 mb-3 library-filter-boolean",
                           ),
-                            css_class="form-row",
+                            css_class="row g-3",
                         ),
                         HTML(
                           """
@@ -146,7 +146,7 @@ class DomainFilter(django_filters.FilterSet):
                             Column(
                                 InlineCheckboxes("health_status"),
                             ),
-                            css_class="form-row",
+                            css_class="row g-3",
                         ),
                         ButtonHolder(
                             Submit("submit_btn", "Filter", css_class="btn btn-primary"),
@@ -252,13 +252,13 @@ class ServerFilter(django_filters.FilterSet):
                         Row(
                             Column(
                                 PrependedText("server", FILTER_ICON),
-                                css_class="form-group col-md-6 mb-0",
+                                css_class="col-md-6 mb-0",
                             ),
                             Column(
                                 PrependedText("tags", TAG_ICON),
-                                css_class="form-group col-md-6 mb-0",
+                                css_class="col-md-6 mb-0",
                             ),
-                            css_class="form-row",
+                            css_class="row g-3",
                         ),
                         HTML(
                             """
@@ -269,7 +269,7 @@ class ServerFilter(django_filters.FilterSet):
                             Column(
                                 InlineCheckboxes("server_status"),
                             ),
-                            css_class="form-row",
+                            css_class="row g-3",
                         ),
                         ButtonHolder(
                             Submit("submit_btn", "Filter", css_class="btn btn-primary"),

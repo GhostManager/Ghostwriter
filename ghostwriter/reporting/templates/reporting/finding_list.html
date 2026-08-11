@@ -134,7 +134,7 @@
                   </td>
                   <td class="align-middle text-start" data-label="Tags">
                     {% for tag in finding.tags.all %}
-                      <span class="badge badge-secondary mb-1">{{ tag.name }}</span>
+                      <span class="library-tag library-tag-neutral mb-1">{{ tag.name }}</span>
                     {% empty %}
                       <span class="text-muted">None</span>
                     {% endfor %}

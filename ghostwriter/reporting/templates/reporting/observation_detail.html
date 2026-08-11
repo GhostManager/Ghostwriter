@@ -13,7 +13,7 @@
         <h2>{{ observation.display_title }}</h2>
         {% if observation.tags.names %}
           <div class="detail-tag-list" aria-label="Observation tags">
-            {% for tag in observation.tags.names %}<span class="badge badge-secondary">{{ tag|bleach }}</span>{% endfor %}
+            {% for tag in observation.tags.names %}<span class="library-tag library-tag-neutral">{{ tag|bleach }}</span>{% endfor %}
           </div>
         {% endif %}
       </div>
@@ -49,7 +49,7 @@
           <li class="nav-item" role="presentation">
             <a id="id_extra-fields" class="nav-link" href="#extra-fields" data-tab-hash="#extra-fields"
                data-bs-toggle="tab" role="tab" aria-controls="extra-fields" aria-selected="false">
-              <i class="fas fa-puzzle-piece" aria-hidden="true"></i>Extra Fields <span class="badge">{{ observation_extra_fields_spec|length }}</span>
+              <i class="fas fa-puzzle-piece" aria-hidden="true"></i>Extra Fields <span class="tab-count-badge">{{ observation_extra_fields_spec|length }}</span>
             </a>
           </li>
         </ul>

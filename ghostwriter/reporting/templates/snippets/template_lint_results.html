@@ -18,7 +18,7 @@
                 class="alert alert-danger"
             {% endif %}
         role="alert">
-            <h4 style="margin-top: 0;" class="alert-heading">{{ lint_result.result|capfirst }}</h4>
+            <h4 class="alert-heading template-lint-alert-heading">{{ lint_result.result|capfirst }}</h4>
             {% if lint_result.result == "success" %}
               <p>Template passed all linter checks, but try using it for a report to test it with findings and custom fields.</p>
             {% else %}
@@ -35,7 +35,7 @@
             <div class="template-lint-list">
                 {% for warning in lint_result.warnings %}
                     <div class="template-lint-item">
-                        <span class="badge badge-warning">Warning</span>
+                        <span class="template-lint-status is-warning">Warning</span>
                         <span>{{ warning }}</span>
                     </div>
                 {% endfor %}
@@ -46,7 +46,7 @@
             <div class="template-lint-list">
                 {% for error in lint_result.errors %}
                     <div class="template-lint-item">
-                        <span class="badge badge-danger">Error</span>
+                        <span class="template-lint-status is-error">Error</span>
                         <span>{{ error }}</span>
                     </div>
                 {% endfor %}

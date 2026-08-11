@@ -26,7 +26,7 @@
               <span>{{ file_type|capfirst }}</span>
             </span>
             {% for tag in evidence.tags.names %}
-              <span class="badge badge-secondary">{{ tag|bleach }}</span>
+              <span class="library-tag library-tag-neutral">{{ tag|bleach }}</span>
             {% endfor %}
           </div>
         </div>
@@ -117,13 +117,13 @@
                     <i class="fas fa-list-alt" aria-hidden="true"></i>
                     {{ group.grouper.name }}
                   </h5>
-                  <ul class="list-group">
+                  <ul class="evidence-log-entry-list">
                     {% for link in group.list %}
                       {% with entry=link.oplog_entry %}
-                        <li class="list-group-item evidence-log-entry">
+                        <li class="evidence-log-entry">
                           <div>
                             <span class="operator-data text-muted small">{{ entry.start_date|date:"Y-m-d H:i" }}</span>
-                            {% if entry.tool %}<span class="badge badge-secondary">{{ entry.tool|truncatechars:25 }}</span>{% endif %}
+                            {% if entry.tool %}<span class="library-tag library-tag-neutral">{{ entry.tool|truncatechars:25 }}</span>{% endif %}
                             {% if entry.operator_name %}<span class="small">{{ entry.operator_name }}</span>{% endif %}
                           </div>
                           <a href="{% url 'oplog:oplog_entries' group.grouper.id %}?entry={{ entry.id }}#entry-{{ entry.id }}"

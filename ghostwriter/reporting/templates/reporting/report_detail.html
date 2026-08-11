@@ -11,17 +11,17 @@
       <h2 class="mb-0">{{ report.title }}</h2>
       <div class="detail-tag-list report-detail-tags" aria-label="Report status and tags">
         <span id="js-report-header-status"
-              class="badge report-status-tag {% if report.complete %}report-status-tag-positive{% else %}report-status-tag-pending{% endif %}">
+              class="report-status-tag {% if report.complete %}report-status-tag-positive{% else %}report-status-tag-pending{% endif %}">
           <i class="fas {% if report.complete %}fa-check-circle{% else %}fa-pencil-alt{% endif %}" aria-hidden="true"></i>
           <span class="report-header-status-text">{% if report.complete %}Complete{% else %}Draft{% endif %}</span>
         </span>
         <span id="js-report-header-delivery"
-              class="badge report-status-tag {% if report.delivered %}report-status-tag-positive{% else %}report-status-tag-neutral{% endif %}">
+              class="report-status-tag {% if report.delivered %}report-status-tag-positive{% else %}report-status-tag-neutral{% endif %}">
           <i class="fas {% if report.delivered %}fa-paper-plane{% else %}fa-clock{% endif %}" aria-hidden="true"></i>
           <span class="report-header-status-text">{% if report.delivered %}Delivered{% else %}Not Delivered{% endif %}</span>
         </span>
         {% for tag in report.tags.names %}
-          <span class="badge badge-secondary">{{ tag|bleach }}</span>
+          <span class="library-tag library-tag-neutral">{{ tag|bleach }}</span>
         {% endfor %}
       </div>
     </div>
@@ -997,8 +997,8 @@
   {% endif %}
 
   {% comment %} Finding preview modal {% endcomment %}
-  <div id="finding-preview-modal" class="modal fade" tabindex="-1" role="dialog">
-    <div class="modal-dialog modal-super-sized modal-dialog-scrollable" role="document">
+  <div id="finding-preview-modal" class="modal fade report-preview-modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-super-sized modal-dialog-centered modal-dialog-scrollable" role="document">
       <div class="modal-content report-preview-modal-content">
         <div class="modal-header report-preview-modal-header">
           <div>
@@ -1008,15 +1008,13 @@
               Styled for quick review while preserving the content that will flow into the report.
             </p>
           </div>
-          <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-          </button>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body report-preview-modal-body" id="finding-preview-modal-body">
           <p class="text-muted mb-0">Finding preview will load when opened.</p>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary col-3" data-bs-dismiss="modal">Close</button>
+        <div class="modal-footer report-preview-modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
         </div>
       </div>
     </div>
@@ -1079,8 +1077,8 @@
   </script>
 
   {% comment %} Observation preview modal {% endcomment %}
-  <div id="observation-preview-modal" class="modal fade" tabindex="-1" role="dialog">
-    <div class="modal-dialog modal-super-sized modal-dialog-scrollable" role="document">
+  <div id="observation-preview-modal" class="modal fade report-preview-modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-super-sized modal-dialog-centered modal-dialog-scrollable" role="document">
       <div class="modal-content report-preview-modal-content">
         <div class="modal-header report-preview-modal-header">
           <div>
@@ -1090,15 +1088,13 @@
               Styled for quick review while preserving the content that will flow into the report.
             </p>
           </div>
-          <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-          </button>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body report-preview-modal-body" id="observation-preview-modal-body">
           <p class="text-muted mb-0">Observation preview will load when opened.</p>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary col-3" data-bs-dismiss="modal">Close</button>
+        <div class="modal-footer report-preview-modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
         </div>
       </div>
     </div>

@@ -93,9 +93,9 @@ class CheckoutForm(forms.ModelForm):
             "client",
             "project",
             Row(
-                Column("start_date", css_class="form-group col-md-6 mb-0"),
-                Column("end_date", css_class="form-group col-md-6 mb-0"),
-                css_class="form-row",
+                Column("start_date", css_class="col-md-6 mb-0"),
+                Column("end_date", css_class="col-md-6 mb-0"),
+                css_class="row g-3",
             ),
             "activity_type",
             HTML(
@@ -222,19 +222,19 @@ class DomainForm(forms.ModelForm):
                         """
                     ),
                     Row(
-                        Column("name", css_class="form-group col-md-6 mb-0"),
-                        Column("registrar", css_class="form-group col-md-6 mb-0"),
-                        css_class="form-row",
+                        Column("name", css_class="col-md-6 mb-0"),
+                        Column("registrar", css_class="col-md-6 mb-0"),
+                        css_class="row g-3",
                     ),
                     Row(
-                        Column("domain_status", css_class="form-group col-md-6 mb-0"),
-                        Column("tags", css_class="form-group col-md-6 mb-0"),
-                        css_class="form-row",
+                        Column("domain_status", css_class="col-md-6 mb-0"),
+                        Column("tags", css_class="col-md-6 mb-0"),
+                        css_class="row g-3",
                     ),
                     Row(
-                        Column("creation", css_class="form-group col-md-6 mb-0"),
-                        Column("expiration", css_class="form-group col-md-6 mb-0"),
-                        css_class="form-row",
+                        Column("creation", css_class="col-md-6 mb-0"),
+                        Column("expiration", css_class="col-md-6 mb-0"),
+                        css_class="row g-3",
                     ),
                     Div(
                         Div(SwitchToggle("auto_renew"), css_class="resource-toggle-item"),
@@ -256,9 +256,9 @@ class DomainForm(forms.ModelForm):
                         """
                     ),
                     Row(
-                        Column("whois_status", css_class="form-group col-md-6 mb-0"),
-                        Column("health_status", css_class="form-group col-md-6 mb-0"),
-                        css_class="form-row",
+                        Column("whois_status", css_class="col-md-6 mb-0"),
+                        Column("health_status", css_class="col-md-6 mb-0"),
+                        css_class="row g-3",
                     ),
                     link_css_class="icon heartbeat-icon",
                     css_id="health",
@@ -387,9 +387,9 @@ class DomainLinkForm(forms.ModelForm):
                 """
             ),
             Row(
-                Column("static_server", css_class="form-group col-md-6 mb-0"),
-                Column("transient_server", css_class="form-group col-md-6 mb-0"),
-                css_class="form-row",
+                Column("static_server", css_class="col-md-6 mb-0"),
+                Column("transient_server", css_class="col-md-6 mb-0"),
+                css_class="row g-3",
             ),
             "project",
             ButtonHolder(
