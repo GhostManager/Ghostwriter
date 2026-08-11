@@ -12,6 +12,7 @@ from django.contrib.auth import SESSION_KEY
 from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import InMemoryUploadedFile, SimpleUploadedFile
+from django.template.loader import get_template
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
@@ -31,6 +32,64 @@ from ghostwriter.home.models import UserProfile
 logging.disable(logging.CRITICAL)
 
 PASSWORD = "SuperNaturalReporting!"
+
+
+class SocialAccountViewTests(TestCase):
+    """Checks Ghostwriter's social-account entry and management surfaces."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+
+    def setUp(self):
+        self.client_auth = Client()
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    def test_social_account_journey_templates_compile(self):
+        for template_name in (
+            "socialaccount/login.html",
+            "socialaccount/signup.html",
+            "socialaccount/login_cancelled.html",
+            "socialaccount/authentication_error.html",
+            "socialaccount/connections.html",
+        ):
+            self.assertIsNotNone(get_template(template_name))
+
+    def test_login_cancelled_uses_refreshed_journey_card(self):
+        response = self.client.get(reverse("socialaccount_login_cancelled"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "socialaccount/login_cancelled.html")
+        self.assertContains(response, 'class="auth-challenge-card auth-journey-card"')
+        self.assertContains(response, "No changes were made to your Ghostwriter account.")
+        self.assertContains(response, "Return to sign in")
+
+    def test_login_error_uses_refreshed_journey_card(self):
+        response = self.client.get(reverse("socialaccount_login_error"))
+
+        self.assertEqual(response.status_code, 401)
+        self.assertTemplateUsed(response, "socialaccount/authentication_error.html")
+        self.assertContains(
+            response,
+            'class="auth-journey-status auth-journey-status-danger"',
+            status_code=401,
+        )
+        self.assertContains(
+            response,
+            "Unable to sign in with your organization",
+            status_code=401,
+        )
+
+    def test_connections_uses_refreshed_empty_state(self):
+        response = self.client_auth.get(reverse("socialaccount_connections"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "socialaccount/connections.html")
+        self.assertContains(response, 'class="auth-social-empty"')
+        self.assertContains(response, "No linked accounts")
+        self.assertNotContains(response, "You currently have no third-party accounts connected")
 
 
 class UserDetailViewTests(TestCase):

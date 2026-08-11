@@ -54,59 +54,66 @@
     <!-- General Tab -->
     <div class="tab-content">
       <div id="details" class="tab-pane in active">
-        <h4>Domain Details</h4>
-        <hr>
-
-        {% if domain.is_expired %}
-          <div class="alert alert-danger" role="alert">
-            This domain is <strong>Expired</strong>, so it cannot be checked out, and the data is now read-only. Managers and admins can edit this domain to update the expiration date.
+        <header class="content-section-header">
+          <div class="content-section-heading">
+            <h4 id="domain-details-heading">Domain Details</h4>
           </div>
-        {% endif %}
+        </header>
 
-
-        {% if domain.description %}
-          <div id="domainDescription" class="d-flex justify-content-center description-block">
-            <div>
-              {{ domain.description|strip_empty_tags|bleach }}
+        <div class="detail-layout">
+          {% if domain.is_expired %}
+            <div class="context-note infrastructure-status-note infrastructure-status-note-danger" role="alert">
+              <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+              <div><strong>Domain expired.</strong> It cannot be checked out and its data is read-only. Managers and admins can update the expiration date.</div>
             </div>
-          </div>
-        {% else %}
-          <div class="empty-state mb-3">
-            <p class="empty-state-title">No domain description yet</p>
-            <p class="empty-state-description">Add purchasing or operational context to help operators choose and use this domain.</p>
-          </div>
-        {% endif %}
+          {% endif %}
 
-        <table class="table">
-          <tr>
-            <th class="align-middle text-start">Status</th>
-            <th class="align-middle text-start">Registrar</th>
-            <th class="align-middle text-start">Purchase Date</th>
-            <th class="align-middle text-start">Expiration Date</th>
-            <th class="align-middle">Auto Renew Status</th>
-            <th class="align-middle">Domain Age</th>
-          </tr>
-          <tr>
-            {% if domain.domain_status.domain_status == "Available" %}
-              <td class="healthy align-middle text-start">{{ domain.domain_status }}</td>
+          <section class="detail-panel" aria-labelledby="domain-details-heading">
+            <dl class="detail-grid">
+              <div class="detail-field">
+                <dt>Status</dt>
+                <dd><span class="library-tag {% if domain.domain_status.domain_status == 'Available' %}library-tag-success{% else %}library-tag-danger{% endif %}">{{ domain.domain_status }}</span></dd>
+              </div>
+              <div class="detail-field">
+                <dt>Registrar</dt>
+                <dd>{% if domain.registrar %}{{ domain.registrar }}{% else %}<span class="detail-empty">Unavailable</span>{% endif %}</dd>
+              </div>
+              <div class="detail-field">
+                <dt>Purchase date</dt>
+                <dd class="operator-data">{{ domain.creation }}</dd>
+              </div>
+              <div class="detail-field">
+                <dt>Expiration date</dt>
+                <dd class="operator-data{% if domain.is_expired %} high{% endif %}">{{ domain.expiration }}</dd>
+              </div>
+              <div class="detail-field">
+                <dt>Auto renew</dt>
+                <dd><span class="library-tag {% if domain.auto_renew %}library-tag-success{% else %}library-tag-danger{% endif %}"><i class="fas {% if domain.auto_renew %}fa-check-circle{% else %}fa-times-circle{% endif %}" aria-hidden="true"></i> {% if domain.auto_renew %}Enabled{% else %}Disabled{% endif %}</span></dd>
+              </div>
+              <div class="detail-field">
+                <dt>Domain age</dt>
+                <dd class="operator-data">{{ domain.get_domain_age_display }}</dd>
+              </div>
+            </dl>
+          </section>
+
+          <section class="detail-panel infrastructure-description-panel" aria-labelledby="domain-description-heading">
+            <div class="detail-panel-header">
+              <div>
+                <span class="detail-eyebrow">Operator context</span>
+                <h5 id="domain-description-heading">Description</h5>
+              </div>
+            </div>
+            {% if domain.description %}
+              <div id="domainDescription" class="detail-prose">{{ domain.description|strip_empty_tags|bleach }}</div>
             {% else %}
-              <td class="burned align-middle text-start">{{ domain.domain_status }}</td>
+              <div class="empty-state">
+                <p class="empty-state-title">No domain description yet</p>
+                <p class="empty-state-description">Add purchasing or operational context to help operators choose and use this domain.</p>
+              </div>
             {% endif %}
-            <td class="align-middle text-start">{% if domain.registrar %}{{ domain.registrar }}{% else %}Unavailable{% endif %}</td>
-            <td class="align-middle text-start">{{ domain.creation }}</td>
-            {% if domain.is_expired %}
-              <td class="high align-middle text-start">{{ domain.expiration }}</td>
-            {% else %}
-              <td class="align-middle text-start">{{ domain.expiration }}</td>
-            {% endif %}
-            {% if domain.auto_renew %}
-              <td class="icon check-icon healthy"></td>
-            {% else %}
-              <td class="icon cross-icon burned"></td>
-            {% endif %}
-            <td class="align-middle">{{ domain.get_domain_age_display }}</td>
-          </tr>
-        </table>
+          </section>
+        </div>
       </div>
 
       <!-- DNS Records Tab -->
@@ -129,37 +136,30 @@
             <div><strong>Automatic DNS reset enabled.</strong> Ghostwriter will reset records after use when the registrar supports it.</div>
           </div>
         {% else %}
-          <div class="alert alert-warning" role="alert">
-            Domain is NOT configured to reset DNS records after use, so operators should manually clean-up records.
+          <div class="context-note infrastructure-status-note infrastructure-status-note-warning mb-3" role="note">
+            <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+            <div><strong>Automatic DNS reset is not configured.</strong> Operators should manually clean up records after use.</div>
           </div>
         {% endif %}
 
         {% if domain.dns %}
-          <table class="table">
-            <tr>
-              <th class="align-middle text-start">Record</th>
-              <th class="align-middle text-start">Value</th>
-            </tr>
-            {% if domain.dns.items %}
-              {% for record, value in domain.dns.items %}
-                <tr>
-                  <td class="align-middle text-start">{{ record|upper }}</td>
-                  <td class="align-middle text-justify table-note">
-                    {% if value != "NoAnswer" and value != "NXDOMAIN" %}
-                      {{ value }}
-                    {% else %}
-                      --
-                    {% endif %}
-                  </td>
-                </tr>
-              {% endfor %}
-            {% else %}
-              <tr>
-                <td class="align-middle text-start">Record Dictionary</td>
-                <td class="align-middle text-justify table-note">{{ domain.dns }}</td>
-              </tr>
-            {% endif %}
-          </table>
+          <div class="table-responsive data-table-frame">
+            <table class="table">
+              <thead><tr><th class="align-middle text-start">Record</th><th class="align-middle text-start">Value</th></tr></thead>
+              <tbody>
+                {% if domain.dns.items %}
+                  {% for record, value in domain.dns.items %}
+                    <tr>
+                      <td class="align-middle text-start operator-data" data-label="Record">{{ record|upper }}</td>
+                      <td class="align-middle text-start table-note" data-label="Value">{% if value != "NoAnswer" and value != "NXDOMAIN" %}{{ value }}{% else %}--{% endif %}</td>
+                    </tr>
+                  {% endfor %}
+                {% else %}
+                  <tr><td class="align-middle text-start" data-label="Record">Record dictionary</td><td class="align-middle text-start table-note" data-label="Value">{{ domain.dns }}</td></tr>
+                {% endif %}
+              </tbody>
+            </table>
+          </div>
         {% else %}
           <div class="empty-state">
             <p class="empty-state-title">No DNS records yet</p>
@@ -183,104 +183,85 @@
         </header>
 
         {% if domain.is_expired or not vt_config.enable %}
-          <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">VirusTotal integration is disabled or the domain is expired; categorization cannot be refreshed.</div>
+          <div class="context-note infrastructure-status-note infrastructure-status-note-warning mb-3" role="note">
+            <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+            <div><strong>Categorization refresh is unavailable.</strong> VirusTotal integration is disabled or the domain is expired.</div>
+          </div>
         {% endif %}
 
-        <p>
-          The health of a domain changes if a third-party labels the domain with an undesirable category or the domain
-          has positive detections in VirusTotal.
-        </p>
+        <div class="detail-layout">
+          <section class="detail-panel" aria-labelledby="domain-health-heading">
+            <p class="detail-prose">Domain health changes when a third party applies an undesirable category or VirusTotal reports positive detections.</p>
+            <dl class="detail-grid mt-3">
+              <div class="detail-field"><dt>Status</dt><dd><span class="library-tag {% if domain.domain_status.domain_status == 'Available' %}library-tag-success{% else %}library-tag-danger{% endif %}">{{ domain.domain_status }}</span></dd></div>
+              <div class="detail-field"><dt>Health</dt><dd><span class="library-tag {% if domain.health_status.health_status == 'Healthy' %}library-tag-success{% else %}library-tag-danger{% endif %}">{{ domain.health_status }}</span></dd></div>
+              <div class="detail-field"><dt>Whois privacy</dt><dd><span class="library-tag {% if domain.whois_status.whois_status == 'Enabled' %}library-tag-success{% else %}library-tag-danger{% endif %}">{{ domain.whois_status }}</span></dd></div>
+              <div class="detail-field"><dt>Last update</dt><dd class="operator-data">{% if domain.last_health_check %}{{ domain.last_health_check|naturalday:"DATE_FORMAT" }}{% else %}<span class="detail-empty">No record</span>{% endif %}</dd></div>
+            </dl>
+          </section>
 
           {% if domain.health_status.health_status == "Burned" %}
-            {% if domain.burned_explanation %}
-              <h4>Domain Flagged as <em class="burned">Burned</em> for the Following Reason(s):</h4>
-              <hr>
-              <p>{{ domain.burned_explanation|bleach|linebreaks }}</p>
-
-            {% else %}
-              <p>This domain has been flagged as <em>Burned</em> with no explanation. <a class="clickable"
-                                                                                         href="{% url 'shepherd:burn' domain.id %}">Click
-                here</a> to provide one.</p>
-            {% endif %}
+            <section class="detail-panel" aria-labelledby="domain-burned-heading">
+              <div class="detail-panel-header">
+                <div><span class="detail-eyebrow">Health review</span><h5 id="domain-burned-heading">Why this domain is burned</h5></div>
+              </div>
+              <div class="detail-prose">
+                {% if domain.burned_explanation %}
+                  {{ domain.burned_explanation|bleach|linebreaks }}
+                {% else %}
+                  <p class="mb-0">No explanation has been recorded. <a class="clickable" href="{% url 'shepherd:burn' domain.id %}">Add one now</a>.</p>
+                {% endif %}
+              </div>
+            </section>
           {% endif %}
 
-        <table class="table">
-          <tr>
-            <th class="align-middle text-start">Status</th>
-            <th class="align-middle text-start">Health</th>
-            <th class="align-middle text-start">Whois Privacy</th>
-            <th class="align-middle text-start">Last Update</th>
-          </tr>
-          <tr>
-            {% if domain.domain_status.domain_status == "Available" %}
-              <td class="healthy align-middle text-start">{{ domain.domain_status }}</td>
-            {% else %}
-              <td class="burned align-middle text-start">{{ domain.domain_status }}</td>
-            {% endif %}
-
-            {% if domain.health_status.health_status == "Healthy" %}
-              <td class="healthy align-middle text-start">{{ domain.health_status }}</td>
-            {% else %}
-              <td class="burned align-middle text-start">{{ domain.health_status }}</td>
-            {% endif %}
-
-            {% if domain.whois_status.whois_status == "Enabled" %}
-              <td class="healthy align-middle text-start">{{ domain.whois_status }}</td>
-            {% else %}
-              <td class="burned align-middle text-start">{{ domain.whois_status }}</td>
-            {% endif %}
-
-            <td class="align-middle text-start">
-              {% if domain.last_health_check %}
-                {{ domain.last_health_check|naturalday:"DATE_FORMAT" }}
-              {% else %}
-                No Record
-              {% endif %}
-            </td>
-          </tr>
-        </table>
-
-        <!-- Health Tab -->
-        <p>The following third-parties have categorized this domain:</p>
-        <table class="table">
-          <tr>
-            <th class="align-middle text-start">Categorizer</th>
-            <th class="align-middle text-start">Category</th>
-          </tr>
-          <tr>
-            {% if domain.categorization.items %}
-              {% for source, cat in domain.categorization.items %}
-                <tr>
-                  <td class="align-middle text-start">{{ source }}</td>
-                  <td class="align-middle text-start">{{ cat|category_value|bleach|title }}</td>
-                </tr>
-              {% endfor %}
-            {% else %}
-              <td class="align-middle text-start">No Results</td>
-              <td class="align-middle text-start">Refresh categories to poll VirusTotal</td>
-            {% endif %}
-          </tr>
-        </table>
+          <section class="detail-panel" aria-labelledby="domain-categorization-heading">
+            <div class="detail-panel-header">
+              <div>
+                <span class="detail-eyebrow">Third-party review</span>
+                <h5 id="domain-categorization-heading">Categorization</h5>
+              </div>
+            </div>
+            <div class="table-responsive data-table-frame mb-0">
+              <table class="table">
+                <thead><tr><th class="align-middle text-start">Categorizer</th><th class="align-middle text-start">Category</th></tr></thead>
+                <tbody>
+                  {% if domain.categorization.items %}
+                    {% for source, cat in domain.categorization.items %}
+                      <tr><td class="align-middle text-start" data-label="Categorizer">{{ source }}</td><td class="align-middle text-start" data-label="Category">{{ cat|category_value|bleach|title }}</td></tr>
+                    {% endfor %}
+                  {% else %}
+                    <tr><td class="align-middle text-start" data-label="Categorizer">No results</td><td class="align-middle text-start" data-label="Category">Refresh categorization to poll VirusTotal</td></tr>
+                  {% endif %}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
       </div>
 
       <!-- History Tab -->
       <div id="history" class="tab-pane">
-        <h4>Domain History</h4>
-        <hr/>
-
-        <p>If you do not have access to the related client or project, the history entry will be partially redacted.</p>
+        <header class="content-section-header">
+          <div class="content-section-heading">
+            <h4 id="domain-history-heading">Domain History</h4>
+            <p class="content-section-intro">Entries are partially redacted when you cannot access the related client or project.</p>
+          </div>
+        </header>
 
         {% if domain.history_set.all %}
-          <table id="project-table" class="tablesorter table table-striped">
+          <div class="table-responsive data-table-frame">
+          <table id="domain-history-table" class="tablesorter table">
             <thead>
             <tr>
               <th class="align-middle pe-4 text-start">Project</th>
               <th class="align-middle pe-4 text-start">Activity Type</th>
               <th class="align-middle sorter-date-range-dMMMyyyy pe-4 text-start">Execution Window</th>
               <th class="align-middle pe-4 text-start">Checked Out By</th>
-              <th class="align-middle sorter-false pe-4">Options</th>
+              <th class="align-middle sorter-false pe-4 text-end">Options</th>
             </tr>
             </thead>
+            <tbody>
             {% for checkout in domain.history_set.all %}
               <tr>
                 <td class="align-middle text-start">
@@ -305,22 +286,24 @@
                     Unknown/Deleted user
                   {% endif %}
                 </td>
-                <td class="align-middle text-start">
+                <td class="align-middle text-end">
                   {% if checkout.project|has_access:request.user %}
-                    <div class="d-flex justify-content-center">
-                      <span
-                        class="icon preview-icon clickable-link"
+                    <div class="table-row-actions">
+                      <button type="button" class="table-row-action"
+                        data-bs-toggle="modal"
+                        data-bs-target="#domain_history_detail_{{ checkout.id }}"
                         title="View additional information"
-                        onclick="openModal('#domain_history_detail_{{ checkout.id }}')"
-                      ></span>
-                      <a class="icon edit-icon" href="{% url 'shepherd:history_update' checkout.id %}"></a>
-                      <a class="icon trash-icon" href="{% url 'shepherd:history_delete' checkout.id %}"></a>
+                        aria-label="View additional information"><i class="fas fa-eye" aria-hidden="true"></i></button>
+                      <a class="table-row-action" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit this history entry" aria-label="Edit this history entry" href="{% url 'shepherd:history_update' checkout.id %}"><i class="fas fa-pencil-alt" aria-hidden="true"></i></a>
+                      <a class="table-row-action table-row-action-danger" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete this history entry" aria-label="Delete this history entry" href="{% url 'shepherd:history_delete' checkout.id %}"><i class="fas fa-trash-alt" aria-hidden="true"></i></a>
                     </div>
                   {% endif %}
                 </td>
               </tr>
             {% endfor %}
+            </tbody>
           </table>
+          </div>
         {% else %}
           <div class="empty-state">
             <p class="empty-state-title">No project history yet</p>
@@ -332,46 +315,50 @@
       <!-- Extra Fields Tab -->
       {% if domain_extra_fields_spec %}
         <div id="extra-fields" class="tab-pane">
-          <h4>Extra Fields</h4>
-          <hr/>
+          <header class="content-section-header">
+            <div class="content-section-heading">
+              <h4 id="domain-extra-fields-heading">Extra Fields</h4>
+              <p class="content-section-intro">Jinja2 template syntax is not rendered in these previews because a project and report context is required.</p>
+            </div>
+            <a class="icon edit-icon btn btn-primary btn-sm" href="{% url 'shepherd:domain_update' domain.id %}#extra-fields">Edit Extra Fields</a>
+          </header>
 
-          <p class="text-muted small">Jinja2 template syntax will not be rendered in these previews because a project and report context is needed. Rich text previews with rendered Jinja2 are available on report and project detail pages where these fields are referenced.</p>
-
-          <div class="extra-fields-grid">
+          <div class="extra-fields-grid client-extra-fields-grid infrastructure-extra-fields-grid">
             {% for field_spec in domain_extra_fields_spec %}
-              <section class="extra-field-card">
-                <h5 class="extra-field-name">{{ field_spec.display_name }}</h5>
-                <div class="extra-field-type">
-                  {% if field_spec.type == "rich_text" %}
-                    Rich Text Field
-                  {% else %}
-                    {{ field_spec.get_type_display }} Field
-                  {% endif %}
+              <section class="extra-field-card" aria-labelledby="domain-extra-field-{{ field_spec.internal_name }}">
+                <div class="extra-field-card-header">
+                  <h5 id="domain-extra-field-{{ field_spec.internal_name }}" class="extra-field-name">{{ field_spec.display_name }}</h5>
+                  <span class="extra-field-type-badge">
+                    {% if field_spec.type == "rich_text" %}Rich Text{% else %}{{ field_spec.get_type_display }}{% endif %}
+                  </span>
                 </div>
-                <div class="extra-field-type">Loop and reference as <code>object.extra_fields.{{ field_spec.internal_name }}</code></div>
+                <div class="extra-field-reference">
+                  <span>Template reference</span>
+                  <code>domain.extra_fields.{{ field_spec.internal_name }}</code>
+                </div>
                 <div class="extra-field-value">
-                  {% if field_spec.type == "rich_text" %}
-                    <span class="extra-field-summary">Use Preview to view formatted content.</span>
-                  {% elif field_spec.type == "json" %}
-                    <span class="extra-field-summary">Use View JSON to inspect structured content.</span>
-                  {% else %}
-                    {% include "user_extra_fields/field.html" with extra_fields=domain.extra_fields field_spec=field_spec preview_report=False %}
-                  {% endif %}
+                  <span class="extra-field-value-label">Current value</span>
+                  <div class="extra-field-value-content">
+                    {% if field_spec.type == "rich_text" %}
+                      <span class="extra-field-summary">Formatted content is available in Preview.</span>
+                    {% elif field_spec.type == "json" %}
+                      <span class="extra-field-summary">Structured content is available in View JSON.</span>
+                    {% else %}
+                      {% include "user_extra_fields/field.html" with extra_fields=domain.extra_fields field_spec=field_spec preview_report=False %}
+                    {% endif %}
+                  </div>
                 </div>
-                <div class="extra-field-actions">
-                  {% if field_spec.type == "rich_text" %}
-                    <button type="button" class="btn btn-primary btn-sm icon view-icon" data-bs-toggle="modal"
-                            data-bs-target="#field_spec_{{ field_spec.internal_name }}">Preview
-                    </button>
-                  {% elif field_spec.type == "json" %}
-                    <button type="button" class="btn btn-primary btn-sm icon code-icon" data-bs-toggle="modal"
-                            data-bs-target="#field_spec_{{ field_spec.internal_name }}">View JSON
-                    </button>
-                  {% endif %}
-                  <a class="btn btn-outline-primary btn-sm icon edit-icon"
-                     href="{% url 'shepherd:domain_update' domain.id %}#extra-fields"
-                     title="Edit {{ field_spec.display_name }}">Edit</a>
-                </div>
+                {% if field_spec.type == "rich_text" or field_spec.type == "json" %}
+                  <footer class="extra-field-actions">
+                    {% if field_spec.type == "rich_text" %}
+                      <button type="button" class="btn btn-primary btn-sm icon view-icon" data-bs-toggle="modal"
+                              data-bs-target="#field_spec_{{ field_spec.internal_name }}">Preview</button>
+                    {% else %}
+                      <button type="button" class="btn btn-primary btn-sm icon code-icon" data-bs-toggle="modal"
+                              data-bs-target="#field_spec_{{ field_spec.internal_name }}">View JSON</button>
+                    {% endif %}
+                  </footer>
+                {% endif %}
               </section>
             {% endfor %}
           </div>
@@ -388,33 +375,30 @@
              href="{% url 'shepherd:domain_note_add' domain.id %}">Add a Note</a>
         </header>
         {% if domain.domainnote_set.all %}
-          {% for note in domain.domainnote_set.all reversed %}
-            <div id="note-container-{{ note.id }}">
-              <div class="container note-container {% if forloop.counter|divisibleby:2 %}darker{% endif %}">
-                <div class="float-start col-10 col-md-10 col-sm-8">
-                  {{ note.note|bleach }}
-                </div>
-
-                <div class="float-end col-2 col-md-2 col-sm-4">
-                  <div>{% if note.operator %}<a class="note-link"
-                                                href="{% url 'users:user_detail' note.operator.username %}">{{ note.operator.username }}</a>{% else %}
-                    <span class="note-link">Deleted</span>{% endif %}</div>
-                  <div><p class="note-time">{{ note.timestamp }}</p></div>
-                </div>
-              </div>
-            </div>
-
-            {% if request.user == note.operator or request.user|is_privileged %}
-              <div class="pb-3">
-                <a class="note-link" href="{% url 'shepherd:domain_note_edit' note.id %}">Edit</a> |
-                <a id="note-delete-button-{{ note.id }}" class="js-confirm-delete note-link" data-bs-toggle="modal"
-                   data-bs-target="#confirm-delete-modal" href="javascript:void(0);"
-                   delete-target-csrftoken="{{ csrf_token }}"
-                   delete-target-url="{% url 'shepherd:ajax_delete_domain_note' note.id %}"
-                   delete-target-id="{{ note.id }}" delete-target-type="note">Delete</a>
-              </div>
-            {% endif %}
-          {% endfor %}
+          <div class="note-card-list">
+            {% for note in domain.domainnote_set.all reversed %}
+              <article id="note-container-{{ note.id }}" class="note-card">
+                <div class="note-card-body">{{ note.note|bleach }}</div>
+                <footer class="note-card-footer">
+                  {% if request.user == note.operator or request.user|is_privileged %}
+                    <div class="note-card-actions" aria-label="Note actions">
+                      <a class="btn btn-outline-primary btn-sm icon edit-icon" href="{% url 'shepherd:domain_note_edit' note.id %}">Edit</a>
+                      <a id="note-delete-button-{{ note.id }}" class="btn btn-outline-danger btn-sm js-confirm-delete"
+                         data-bs-toggle="modal" data-bs-target="#confirm-delete-modal" href="javascript:void(0);"
+                         delete-target-csrftoken="{{ csrf_token }}"
+                         delete-target-url="{% url 'shepherd:ajax_delete_domain_note' note.id %}"
+                         delete-target-id="{{ note.id }}" delete-target-type="note"><i class="fas fa-trash-alt" aria-hidden="true"></i> Delete</a>
+                    </div>
+                  {% endif %}
+                  <div class="note-card-meta">
+                    {% if note.operator %}<a class="note-card-author" href="{% url 'users:user_detail' note.operator.username %}">{{ note.operator.username }}</a>{% else %}<span class="note-card-author">Deleted user</span>{% endif %}
+                    <span aria-hidden="true">&middot;</span>
+                    <time class="note-card-time" datetime="{{ note.timestamp|date:'c' }}">{{ note.timestamp }}</time>
+                  </div>
+                </footer>
+              </article>
+            {% endfor %}
+          </div>
         {% else %}
           <div class="empty-state">
             <p class="empty-state-title">No notes yet</p>
@@ -435,7 +419,7 @@
   <!-- jQuery Tablesorter Script -->
   <script>
     $(document).ready(function () {
-      $("#project-table").tablesorter(
+      $("#domain-history-table").tablesorter(
         {
           cssAsc: 'down',
           cssDesc: 'up',

@@ -432,17 +432,17 @@ class ArchiveFilter(django_filters.FilterSet):
                         Row(
                             Column(
                                 PrependedText("client", FILTER_ICON),
-                                css_class="col-md-4 offset-md-4 mb-0",
+                                css_class="col-md-6 mb-0",
                             ),
                         ),
                         ButtonHolder(
-                            Submit("submit_btn", "Filter", css_class="btn btn-primary col-1"),
+                            Submit("submit_btn", "Filter", css_class="btn btn-primary"),
                             HTML(
                                 """
-                                <a class="btn btn-outline-secondary col-1" role="button" href="{%  url 'reporting:archived_reports' %}">Reset</a>
+                                <a class="btn btn-outline-secondary" role="button" href="{%  url 'reporting:archived_reports' %}">Reset</a>
                                 """
                             ),
-                            css_class="mt-3",
+                            css_class="library-filter-actions mt-1",
                         ),
                     ),
                     active=False,

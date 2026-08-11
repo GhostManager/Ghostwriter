@@ -610,7 +610,7 @@
         </header>
 
         {% if project.complete %}
-          <div class="context-note access-note" role="note">This project is complete, so additional reports cannot be created.</div>
+          <div class="context-note access-note mb-3" role="note">This project is complete, so additional reports cannot be created.</div>
         {% endif %}
 
         {% if project.report_set.all %}
@@ -663,11 +663,14 @@
                          aria-label="Make a copy of this report on this project"
                          href="{% url 'reporting:report_clone' report.id %}"><i class="fas fa-clone" aria-hidden="true"></i></a>
                       <a class="table-row-action"
-                         data-bs-toggle="tooltip"
-                         data-bs-placement="top"
                          title="Archive this report"
+                         data-archive-tooltip="true"
                          aria-label="Archive this report"
-                         href="{% url 'reporting:archive' report.id %}"><i class="fas fa-archive" aria-hidden="true"></i></a>
+                         href="{% url 'reporting:archive' report.id %}"
+                         data-bs-toggle="modal"
+                         data-bs-target="#confirm-archive-modal"
+                         data-archive-url="{% url 'reporting:archive' report.id %}"
+                         data-archive-title="{{ report.title }}"><i class="fas fa-archive" aria-hidden="true"></i></a>
                       <a class="table-row-action table-row-action-danger"
                          data-bs-toggle="tooltip"
                          data-bs-placement="top"
@@ -2405,6 +2408,7 @@
 
   {% comment %} Include the reusable delete confirmation modal and related scripts {% endcomment %}
   {% include "confirm_delete_modal.html" %}
+  {% include "confirm_archive_modal.html" %}
 
   {% comment %} Insert modals for RichText previews on extra fields {% endcomment %}
   {% if project_extra_fields_spec %}

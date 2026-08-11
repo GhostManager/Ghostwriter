@@ -62,7 +62,12 @@
         <a class="dropdown-item icon project-icon" href="{% url 'rolodex:project_detail' report.project.id %}">View project</a>
         <a class="dropdown-item icon company-icon" href="{% url 'rolodex:client_detail' report.project.client.id %}">View client</a>
         <div class="dropdown-divider"></div>
-        <a class="dropdown-item icon archive-icon" href="{% url 'reporting:archive' report.id %}">Archive report</a>
+        <a class="dropdown-item icon archive-icon"
+           href="{% url 'reporting:archive' report.id %}"
+           data-bs-toggle="modal"
+           data-bs-target="#confirm-archive-modal"
+           data-archive-url="{% url 'reporting:archive' report.id %}"
+           data-archive-title="{{ report.title }}">Archive report</a>
         <a class="dropdown-item icon trash-icon text-danger" href="{% url 'reporting:report_delete' report.id %}">Delete report</a>
       </div>
     </div>
@@ -969,6 +974,7 @@
 
   {% comment %} Include the reusable delete confirmation modal and related scripts {% endcomment %}
   {% include "confirm_delete_modal.html" %}
+  {% include "confirm_archive_modal.html" %}
 
   {% comment %} Insert modals for rich text and JSON extra field previews {% endcomment %}
   {% if report_extra_fields_spec %}

@@ -29,6 +29,7 @@ from ghostwriter.commandcenter.models import (
     ReportConfiguration,
 )
 from ghostwriter.factories import (
+    ArchiveFactory,
     ClientFactory,
     DocTypeFactory,
     EvidenceFactory,
@@ -121,6 +122,71 @@ class IndexViewTests(TestCase):
     def test_view_requires_login(self):
         response = self.client.get(self.uri)
         self.assertEqual(response.status_code, 302)
+
+
+class ArchiveConfirmationViewTests(TestCase):
+    """Checks for the report archive confirmation surface."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD, role="manager")
+        cls.report = ReportFactory()
+        cls.uri = reverse("reporting:archive", kwargs={"pk": cls.report.pk})
+
+    def setUp(self):
+        self.client_auth = Client()
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    def test_get_uses_refreshed_archive_confirmation(self):
+        response = self.client_auth.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "confirm_archive.html")
+        self.assertContains(response, 'class="resource-form-shell archive-confirmation-page"')
+        self.assertContains(response, "Evidence files are deleted off the disk.")
+        self.assertContains(response, "Archive report")
+        self.assertNotContains(response, 'class="alert alert-danger mt-5"')
+
+
+class ArchiveListViewTests(TestCase):
+    """Checks for the report archive library."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD, role="manager")
+        cls.archive = ArchiveFactory()
+        cls.uri = reverse("reporting:archived_reports")
+
+    def setUp(self):
+        self.client_auth = Client()
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    def test_archive_library_uses_the_shared_library_layout(self):
+        response = self.client_auth.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "reporting/archives.html")
+        self.assertContains(response, 'class="library-page archive-library-page d-grid gap-4"')
+        self.assertContains(response, '<h2>Report Archive</h2>')
+        self.assertContains(response, 'class="filter-form library-filters archive-library-filters"')
+        self.assertContains(response, 'class="library-results archive-library-results"')
+        self.assertContains(response, "Archive packages:")
+        self.assertContains(response, "library-table")
+        self.assertContains(response, "library-primary-link")
+        self.assertNotContains(response, "roundedCorners table table-sm table-hover")
+
+    def test_archive_library_has_a_designed_empty_state(self):
+        self.archive.delete()
+
+        response = self.client_auth.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "No archived reports yet")
+        self.assertContains(response, "Close out a report to create a downloadable package")
 
 
 # Tests related to custom template tags and filters
@@ -1600,6 +1666,17 @@ class ReportDetailViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "reporting/report_detail.html")
 
+    def test_archive_action_uses_the_confirmation_modal(self):
+        response = self.client_mgr.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="confirm-archive-modal"')
+        self.assertContains(response, 'data-bs-target="#confirm-archive-modal"')
+        self.assertContains(
+            response,
+            f'data-archive-url="{reverse("reporting:archive", kwargs={"pk": self.report.pk})}"',
+        )
+
     def test_status_actions_render_as_switch_controls(self):
         Report.objects.filter(pk=self.report.pk).update(
             complete=True,
@@ -2788,6 +2865,15 @@ class ReportFindingLinkUpdateViewTests(TestCase):
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "reporting/report_finding_link_update.html")
+
+    def test_view_uses_refreshed_finding_guidance_disclosure(self):
+        response = self.client_mgr.get(self.uri)
+
+        self.assertContains(response, 'class="report-finding-guidance mb-3"')
+        self.assertContains(response, 'class="report-finding-guidance-toggle"')
+        self.assertContains(response, "Library context")
+        self.assertContains(response, "Finding Guidance")
+        self.assertNotContains(response, 'class="finding-accordion mb-3"')
 
     def test_view_uses_versioned_collaboration_assets(self):
         response = self.client_mgr.get(self.uri)
@@ -6014,6 +6100,11 @@ class LocalFindingNoteUpdateTests(TestCase):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
 
+    def test_view_includes_finding_note_subject(self):
+        response = self.client_auth.get(self.uri)
+
+        self.assertEqual(response.context["note_object"], self.note.finding.title)
+
     def test_view_permissions(self):
         response = self.client_auth.get(self.other_user_uri)
         self.assertEqual(response.status_code, 302)
@@ -6100,6 +6191,11 @@ class FindingNoteUpdateTests(TestCase):
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
+
+    def test_view_includes_finding_note_subject(self):
+        response = self.client_auth.get(self.uri)
+
+        self.assertEqual(response.context["note_object"], self.note.finding.title)
 
     def test_view_permissions(self):
         response = self.client_auth.get(self.other_user_uri)

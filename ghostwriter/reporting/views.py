@@ -943,6 +943,7 @@ class LocalFindingNoteCreate(RoleBasedAccessControlMixin, CreateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
+        ctx["note_object"] = self.finding_instance.title
         ctx["cancel_link"] = reverse("reporting:local_edit", kwargs={"pk": self.finding_instance.pk})
         return ctx
 
@@ -991,6 +992,7 @@ class LocalFindingNoteUpdate(RoleBasedAccessControlMixin, UpdateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         note_instance = get_object_or_404(LocalFindingNote, pk=self.kwargs.get("pk"))
+        ctx["note_object"] = note_instance.finding.title
         ctx["cancel_link"] = reverse("reporting:local_edit", kwargs={"pk": note_instance.finding.id})
         return ctx
 

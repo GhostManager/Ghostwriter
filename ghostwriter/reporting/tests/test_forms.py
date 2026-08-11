@@ -398,6 +398,16 @@ class FindingNoteFormTests(TestCase):
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0].code, "required")
 
+    def test_refreshed_layout(self):
+        form = self.form_data()
+
+        self.assertTrue(form.helper.form_show_labels)
+        self.assertEqual(form.helper.layout.fields[0].css_class, "resource-note-field")
+        self.assertEqual(
+            form.helper.layout.fields[1].css_class,
+            "resource-form-actions resource-note-actions",
+        )
+
 
 class LocalFindingNoteFormTests(TestCase):
     """Collection of tests for :form:`reporting.LocalFindingNoteForm`."""
@@ -435,6 +445,16 @@ class LocalFindingNoteFormTests(TestCase):
         errors = form["note"].errors.as_data()
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0].code, "required")
+
+    def test_refreshed_layout(self):
+        form = self.form_data()
+
+        self.assertTrue(form.helper.form_show_labels)
+        self.assertEqual(form.helper.layout.fields[0].css_class, "resource-note-field")
+        self.assertEqual(
+            form.helper.layout.fields[1].css_class,
+            "resource-form-actions resource-note-actions",
+        )
 
 
 class ReportTemplateFormTests(TestCase):

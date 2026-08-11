@@ -4,9 +4,11 @@ from pathlib import Path
 
 # Django Imports
 from django.conf import settings
+from django.contrib.auth.models import AnonymousUser
 from django.http import HttpResponse
-from django.test import RequestFactory, SimpleTestCase, TestCase
+from django.test import RequestFactory, SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
+from django.views import defaults as default_views
 
 # Ghostwriter Libraries
 from ghostwriter.factories import UserFactory
@@ -115,6 +117,7 @@ class ContentSecurityPolicyResponseTests(TestCase):
             settings.CONTENT_SECURITY_POLICY_REPORT_ONLY,
         )
 
+
     def test_admin_page_has_report_only_policy(self):
         self.client.login(username=self.admin.username, password=PASSWORD)
 
@@ -134,6 +137,45 @@ class ContentSecurityPolicyResponseTests(TestCase):
             response.headers[CSP_REPORT_ONLY_HEADER],
             settings.CONTENT_SECURITY_POLICY_REPORT_ONLY,
         )
+
+
+class ErrorStateTemplateTests(TestCase):
+    """Confirm production-style error handlers use the shared recovery card."""
+
+    @override_settings(DEBUG=False)
+    def test_error_handlers_render_refreshed_recovery_cards(self):
+        request_factory = RequestFactory()
+        error_views = {
+            400: default_views.bad_request,
+            403: default_views.permission_denied,
+            404: default_views.page_not_found,
+            500: default_views.server_error,
+        }
+
+        for status_code, view in error_views.items():
+            request = request_factory.get(f"/{status_code}/")
+            request.user = AnonymousUser()
+            if status_code == 500:
+                response = view(request)
+            else:
+                response = view(request, Exception("Test error"))
+
+            self.assertEqual(response.status_code, status_code)
+            self.assertContains(
+                response,
+                'class="error-state-card"',
+                status_code=status_code,
+            )
+            self.assertContains(
+                response,
+                f'aria-label="Status code {status_code}"',
+                status_code=status_code,
+            )
+            self.assertContains(
+                response,
+                "Return to dashboard",
+                status_code=status_code,
+            )
 
 
 class NginxContentSecurityPolicyTests(SimpleTestCase):

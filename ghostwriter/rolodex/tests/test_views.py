@@ -386,6 +386,19 @@ class ProjectScopeExportViewTests(TestCase):
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
 
+    def test_report_archive_action_uses_the_confirmation_modal(self):
+        report = ReportFactory(project=self.project)
+
+        response = self.client_mgr.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="confirm-archive-modal"')
+        self.assertContains(response, 'data-bs-target="#confirm-archive-modal"')
+        self.assertContains(
+            response,
+            f'data-archive-url="{reverse("reporting:archive", kwargs={"pk": report.pk})}"',
+        )
+
     def test_view_requires_login_and_permissions(self):
         response = self.client.get(self.uri)
         self.assertEqual(response.status_code, 302)

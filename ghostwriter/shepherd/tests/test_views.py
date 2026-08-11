@@ -25,6 +25,8 @@ from ghostwriter.factories import (
     DomainNoteFactory,
     DomainServerConnectionFactory,
     DomainStatusFactory,
+    ExtraFieldModelFactory,
+    ExtraFieldSpecFactory,
     HistoryFactory,
     NamecheapConfigurationFactory,
     ProjectAssignmentFactory,
@@ -388,6 +390,18 @@ class DomainDetailViewTests(TestCase):
     def setUpTestData(cls):
         cls.domain = DomainFactory()
         cls.user = UserFactory(password=PASSWORD)
+        cls.extra_field_model = ExtraFieldModelFactory(
+            model_internal_name="shepherd.Domain",
+            model_display_name="Domains",
+        )
+        cls.extra_field = ExtraFieldSpecFactory(
+            internal_name="operator_context",
+            display_name="Operator Context",
+            type="single_line_text",
+            target_model=cls.extra_field_model,
+        )
+        cls.domain.extra_fields = {"operator_context": "Domain extra field value"}
+        cls.domain.save(update_fields=["extra_fields"])
 
         cls.uri = reverse("shepherd:domain_detail", kwargs={"pk": cls.domain.pk})
 
@@ -411,14 +425,25 @@ class DomainDetailViewTests(TestCase):
         self.assertTemplateUsed(response, "shepherd/domain_detail.html")
         self.assertContains(response, 'class="infrastructure-detail-page"')
         self.assertContains(response, 'id="domain-actions-button"')
+        self.assertContains(response, 'id="domain-details-heading"')
+        self.assertContains(response, 'id="domain-history-heading"')
         self.assertContains(response, 'id="domain-notes-heading"')
         self.assertContains(response, 'id="domain-dns-heading"')
         self.assertContains(response, 'id="domain-health-heading"')
+        self.assertContains(response, 'id="domain-extra-fields-heading"')
+        self.assertContains(response, 'class="detail-layout"')
+        self.assertContains(response, "data-table-frame")
         self.assertContains(response, "Refresh DNS Records")
         self.assertContains(response, "No project history yet")
         self.assertContains(response, "No notes yet")
         self.assertNotContains(response, "This domain has no history.")
         self.assertNotContains(response, "There are no notes for this domain.")
+        self.assertNotContains(response, 'onclick="openModal(')
+        self.assertNotContains(response, "table-striped")
+        self.assertContains(response, "client-extra-fields-grid infrastructure-extra-fields-grid")
+        self.assertContains(response, "Template reference")
+        self.assertContains(response, "domain.extra_fields.operator_context")
+        self.assertContains(response, "Edit Extra Fields")
         self.assertContains(
             response,
             reverse("shepherd:domain_note_add", kwargs={"pk": self.domain.pk}),
@@ -433,6 +458,18 @@ class DomainDetailViewTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Business, Technology")
+
+    def test_domain_history_uses_compact_table_actions(self):
+        checkout = HistoryFactory(domain=self.domain)
+        ProjectAssignmentFactory(project=checkout.project, operator=self.user)
+
+        response = self.client_auth.get(self.uri)
+
+        self.assertContains(response, 'id="domain-history-table"')
+        self.assertContains(response, 'class="table-row-actions"')
+        self.assertContains(response, f'data-bs-target="#domain_history_detail_{checkout.id}"')
+        self.assertContains(response, "Edit this history entry")
+        self.assertContains(response, "Delete this history entry")
 
 
 class DomainCreateViewTests(TestCase):
@@ -1003,6 +1040,18 @@ class ServerDetailViewTests(TestCase):
     def setUpTestData(cls):
         cls.server = StaticServerFactory()
         cls.user = UserFactory(password=PASSWORD)
+        cls.extra_field_model = ExtraFieldModelFactory(
+            model_internal_name="shepherd.StaticServer",
+            model_display_name="Reusable Servers",
+        )
+        cls.extra_field = ExtraFieldSpecFactory(
+            internal_name="network_role",
+            display_name="Network Role",
+            type="single_line_text",
+            target_model=cls.extra_field_model,
+        )
+        cls.server.extra_fields = {"network_role": "Redirector"}
+        cls.server.save(update_fields=["extra_fields"])
 
         cls.uri = reverse("shepherd:server_detail", kwargs={"pk": cls.server.pk})
 
@@ -1026,16 +1075,47 @@ class ServerDetailViewTests(TestCase):
         self.assertTemplateUsed(response, "shepherd/server_detail.html")
         self.assertContains(response, 'class="infrastructure-detail-page"')
         self.assertContains(response, 'id="server-actions-button"')
+        self.assertContains(response, 'id="server-details-heading"')
+        self.assertContains(response, 'id="server-history-heading"')
         self.assertContains(response, 'id="server-notes-heading"')
+        self.assertContains(response, 'id="server-extra-fields-heading"')
+        self.assertContains(response, 'class="detail-layout"')
+        self.assertContains(response, "data-table-frame")
         self.assertContains(response, "No project history yet")
         self.assertContains(response, "No notes yet")
         self.assertNotContains(response, "This server has no history.")
         self.assertNotContains(response, "There are no notes for this server.")
+        self.assertNotContains(response, "project-details-table offset-2 col-8")
+        self.assertNotContains(response, "serverDescriptionDropdown")
+        self.assertNotContains(response, "table-striped")
+        self.assertContains(response, "client-extra-fields-grid infrastructure-extra-fields-grid")
+        self.assertContains(response, "Template reference")
+        self.assertContains(response, "staticserver.extra_fields.network_role")
+        self.assertContains(response, "Edit Extra Fields")
         self.assertContains(
             response,
             reverse("shepherd:server_note_add", kwargs={"pk": self.server.pk}),
         )
         self.assertNotContains(response, 'class="dropdown-menu-btn"')
+
+    def test_server_details_display_the_saved_description(self):
+        self.server.description = "Server detail context"
+        self.server.save(update_fields=["description"])
+
+        response = self.client_auth.get(self.uri)
+
+        self.assertContains(response, "Server detail context")
+
+    def test_server_history_uses_compact_table_actions(self):
+        checkout = ServerHistoryFactory(server=self.server)
+        ProjectAssignmentFactory(project=checkout.project, operator=self.user)
+
+        response = self.client_auth.get(self.uri)
+
+        self.assertContains(response, 'id="server-history-table"')
+        self.assertContains(response, 'class="table-row-actions"')
+        self.assertContains(response, "Edit this history entry")
+        self.assertContains(response, "Delete this history entry")
 
 
 class ServerCreateViewTests(TestCase):

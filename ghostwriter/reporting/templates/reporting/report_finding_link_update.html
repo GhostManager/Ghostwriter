@@ -12,25 +12,28 @@
         <p>Tailor this finding for {{ object.report }}. Changes save automatically while collaboration is connected.</p>
     </header>
 
-    <div id="accordion" class="finding-accordion mb-3">
-        <div class="card">
-            <div class="card-header" id="guidance" data-bs-toggle="collapse" data-bs-target="#collapseGuidance">
-                <a class="accordion-toggle btn btn-link icon guidance-icon" data-bs-toggle="collapse"
-                    data-bs-target="#collapseGuidance" aria-expanded="false" aria-controls="collapseGuidance">
-                    Finding Guidance
-                </a>
-            </div>
-            <div id="collapseGuidance" class="collapse" aria-labelledby="guidance" data-bs-parent="#accordion">
-                <div class="card-body">
-                    {% if reportfindinglink.finding_guidance and reportfindinglink.finding_guidance != "<p></p>" %}
-                        <div class="rich-text-field-preview">{{ reportfindinglink.finding_guidance|bleach }}</div>
-                    {% else %}
-                        <p>No guidance was provided for this finding in the library.</p>
-                    {% endif %}
-                </div>
+    <section class="report-finding-guidance mb-3" aria-labelledby="finding-guidance-title">
+        <button id="finding-guidance-toggle" class="report-finding-guidance-toggle" type="button"
+                data-bs-toggle="collapse" data-bs-target="#collapseGuidance" aria-expanded="false"
+                aria-controls="collapseGuidance">
+            <span class="report-finding-guidance-icon" aria-hidden="true"><i class="fas fa-compass"></i></span>
+            <span class="report-finding-guidance-copy">
+                <span class="detail-eyebrow">Library context</span>
+                <span id="finding-guidance-title" class="report-finding-guidance-title">Finding Guidance</span>
+                <span class="report-finding-guidance-description">Reference notes carried over from the finding library</span>
+            </span>
+            <i class="fas fa-chevron-down report-finding-guidance-chevron" aria-hidden="true"></i>
+        </button>
+        <div id="collapseGuidance" class="collapse" aria-labelledby="finding-guidance-toggle">
+            <div class="report-finding-guidance-body">
+                {% if reportfindinglink.finding_guidance and reportfindinglink.finding_guidance != "<p></p>" %}
+                    <div class="detail-prose rich-text-field-preview">{{ reportfindinglink.finding_guidance|bleach }}</div>
+                {% else %}
+                    <p class="report-finding-guidance-empty">No guidance was provided for this finding in the library.</p>
+                {% endif %}
             </div>
         </div>
-    </div>
+    </section>
 
     <div class="resource-form-shell">
         {{ block.super }}

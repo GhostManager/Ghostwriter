@@ -3,32 +3,70 @@
 
 {% block pagetitle %}Archived Reports{% endblock %}
 
-
 {% block content %}
-    <!-- Filter Section -->
-    <div class="filter-form">
-        {% crispy filter.form filter.helper %}
+  <div class="library-page archive-library-page d-grid gap-4">
+    <header class="library-page-heading">
+      <div class="library-page-heading-main">
+        <span class="detail-eyebrow">Report closeout</span>
+        <div class="library-page-title-row">
+          <h2>Report Archive</h2>
+          <span class="library-result-count">{{ filter.qs|length }} archive{{ filter.qs|length|pluralize }}</span>
+        </div>
+        <p>Download the closeout packages created when reports are archived.</p>
+      </div>
+      <div class="library-page-actions">
+        <a class="btn btn-outline-secondary icon report-icon" href="{% url 'reporting:reports' %}">Browse Reports</a>
+      </div>
+    </header>
+
+    <div class="filter-form library-filters archive-library-filters">
+      {% crispy filter.form filter.helper %}
     </div>
 
-    <!-- Archive Files Section -->
-    {% if filter.qs|length == 0 %}
-        <p class="mt-3">There are no archived reports to see here.</p>
-    {% else %}
-        <p class="mt-3">The following reports have been closed out, archived, and are now available below for download.</p>
-
-        <table class="roundedCorners table table-sm table-hover">
-            <tr>
+    <section class="library-results archive-library-results" aria-label="Archived report packages">
+      {% if filter.qs|length == 0 %}
+        <div class="empty-state m-3">
+          {% if request.GET %}
+            <p class="empty-state-title">No matching archive packages</p>
+            <p class="empty-state-description">Try broadening the client filter or reset it to view every accessible archive.</p>
+            <a class="btn btn-outline-secondary btn-sm mt-3" href="{% url 'reporting:archived_reports' %}">Reset filters</a>
+          {% else %}
+            <p class="empty-state-title">No archived reports yet</p>
+            <p class="empty-state-description">Close out a report to create a downloadable package containing its generated files and evidence.</p>
+            <a class="btn btn-outline-secondary btn-sm icon report-icon mt-3" href="{% url 'reporting:reports' %}">Browse Reports</a>
+          {% endif %}
+        </div>
+      {% else %}
+        <div class="library-guidance" role="note">
+          <i class="fas fa-archive" aria-hidden="true"></i>
+          <p><strong>Archive packages:</strong> each download contains the generated closeout files and evidence saved when the report was archived.</p>
+        </div>
+        <div class="table-responsive data-table-frame library-table-frame">
+          <table class="table table-hover library-table">
+            <thead>
+              <tr>
                 <th class="align-middle text-start">Client</th>
                 <th class="align-middle text-start">Project</th>
-                <th class="align-middle text-start">Zip Archive</th>
-            </tr>
-            {% for zip in filter.qs %}
+                <th class="align-middle text-start">Archive package</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for zip in filter.qs %}
                 <tr>
-                    <td class="align-middle text-start">{{ zip.project.client.name }}</td>
-                    <td class="align-middle text-start">{{ zip.project.start_date }} {{ zip.project.project_type }}</td>
-                    <td class="align-middle text-start"><a class="table-primary-link icon download-icon" href="{% url 'reporting:download_archive' zip.pk %}">{{ zip.filename }}</a></td>
+                  <td class="align-middle text-start" data-label="Client">{{ zip.project.client.name }}</td>
+                  <td class="align-middle text-start" data-label="Project">{{ zip.project.start_date }} {{ zip.project.project_type }}</td>
+                  <td class="align-middle text-start library-primary-cell" data-label="Archive package">
+                    <a class="table-primary-link library-primary-link" href="{% url 'reporting:download_archive' zip.pk %}">
+                      <span>{{ zip.filename }}</span>
+                      <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                    </a>
+                  </td>
                 </tr>
-            {% endfor %}
-        </table>
-    {% endif %}
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+    </section>
+  </div>
 {% endblock %}

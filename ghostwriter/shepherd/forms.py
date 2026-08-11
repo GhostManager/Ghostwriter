@@ -428,18 +428,19 @@ class DomainNoteForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "post"
-        self.helper.form_show_labels = False
-        self.helper.form_show_errors = False
+        self.helper.form_show_labels = True
         self.helper.layout = Layout(
-            Div("note"),
-            ButtonHolder(
-                Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
+            Div("note", css_class="resource-note-field"),
+            Div(
                 HTML(
-                    """
-                    <button onclick="window.location.href='{{ cancel_link }}'"
-                    class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
-                    """
+                    """<span class="resource-form-actions-context">{% if object.pk %}Editing note{% else %}Adding note{% endif %}</span>"""
                 ),
+                Div(
+                    HTML("""<a href="{{ cancel_link }}" class="btn btn-outline-secondary">Cancel</a>"""),
+                    Submit("submit", "Save Note", css_class="btn btn-primary"),
+                    css_class="resource-form-actions-buttons",
+                ),
+                css_class="resource-form-actions resource-note-actions",
             ),
         )
 
