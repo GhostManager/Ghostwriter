@@ -46,8 +46,8 @@ from ghostwriter.home.working_context import (
     toggle_pinned_work,
 )
 from ghostwriter.modules.health_utils import DjangoHealthChecks
-from ghostwriter.reporting.models import ReportFindingLink, ReportObservationLink
-from ghostwriter.rolodex.models import ProjectAssignment
+from ghostwriter.reporting.models import Report, ReportFindingLink, ReportObservationLink
+from ghostwriter.rolodex.models import Client, Project, ProjectAssignment
 
 User = get_user_model()
 
@@ -392,10 +392,6 @@ def toggle_workspace_pin(request):
             },
             status=400,
         )
-
-    # Import here to keep application startup and migration discovery lightweight.
-    from ghostwriter.reporting.models import Report
-    from ghostwriter.rolodex.models import Client, Project
 
     model = {
         "client": Client,

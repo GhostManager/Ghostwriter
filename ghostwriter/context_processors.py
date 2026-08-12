@@ -5,6 +5,8 @@ from django.conf import settings
 from ghostwriter.home.editor_shortcuts import get_editor_shortcuts_date_config
 from ghostwriter.home.navigation import get_sidebar_navigation
 from ghostwriter.home.working_context import get_pinned_work
+from ghostwriter.oplog.models import Oplog
+from ghostwriter.reporting.models import Report
 
 
 def get_active_engagement(request):
@@ -17,11 +19,6 @@ def get_active_engagement(request):
         report_id = int(active_report.get("id"))
     except (TypeError, ValueError):
         return None
-
-    # Import here to keep application startup and migration discovery lightweight.
-    # Ghostwriter Libraries
-    from ghostwriter.oplog.models import Oplog
-    from ghostwriter.reporting.models import Report
 
     report = (
         Report.user_viewable(request.user)

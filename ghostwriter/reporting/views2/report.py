@@ -524,9 +524,6 @@ class ReportUpdate(RoleBasedAccessControlMixin, UpdateView):
         ctx["cancel_link"] = reverse("reporting:report_detail", kwargs={"pk": self.object.pk})
         return ctx
 
-    def form_valid(self, form):
-        return super().form_valid(form)
-
     def get_success_url(self):
         messages.success(self.request, "Successfully updated the report", extra_tags="alert-success")
         return reverse("reporting:report_detail", kwargs={"pk": self.object.pk})

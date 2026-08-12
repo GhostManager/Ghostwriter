@@ -352,7 +352,6 @@
   padding: 0.4rem 0.5rem;
   border-radius: 0.375rem;
   color: var(--gw-text);
-  place-items: unset;
   font-size: 0.82rem;
 }
 
