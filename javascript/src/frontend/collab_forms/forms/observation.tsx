@@ -170,6 +170,10 @@ function ObservationForm() {
                                     mapKey="title"
                                     setEditing={setEditing}
                                 />
+                                <small className="form-text text-muted">
+                                    Use a concise, report-ready summary of the
+                                    observation.
+                                </small>
                             </div>
                         </div>
                         <div className="form-group col-md-6 mb-0">
@@ -197,6 +201,10 @@ function ObservationForm() {
                                     "description"
                                 )}
                             />
+                            <small className="form-text text-muted">
+                                Describe the activity, relevant context, and why
+                                it matters.
+                            </small>
                         </div>
                     </div>
                 </ObservationFormSection>
