@@ -10616,6 +10616,50 @@ a.report-item-title {
   color: color-mix(in srgb, var(--main-txt-color) 76%, transparent);
 }
 
+.finding-severity-badge {
+  --finding-severity-color: var(--gw-information-slate);
+
+  color: color-mix(in srgb, var(--finding-severity-color) 78%, var(--gw-text-strong));
+  background: color-mix(in srgb, var(--finding-severity-color) 11%, var(--gw-surface));
+  border-color: color-mix(in srgb, var(--finding-severity-color) 32%, var(--gw-border));
+}
+
+.finding-severity-critical {
+  --finding-severity-color: var(--crit-rating-color);
+}
+
+.finding-severity-high {
+  --finding-severity-color: var(--high-rating-color);
+}
+
+.finding-severity-medium,
+.finding-severity-moderate {
+  --finding-severity-color: var(--med-rating-color);
+}
+
+.finding-severity-low {
+  --finding-severity-color: var(--low-rating-color);
+}
+
+.finding-severity-informational,
+.finding-severity-info {
+  --finding-severity-color: var(--info-rating-color);
+}
+
+.finding-cvss-vector {
+  display: inline-block;
+  max-width: 100%;
+  padding: 0.22rem 0.38rem;
+  overflow-wrap: anywhere;
+  color: var(--gw-text-strong);
+  background: var(--gw-surface-muted);
+  border: 1px solid var(--gw-border);
+  border-radius: var(--gw-radius-sm);
+  font-family: var(--gw-font-data);
+  font-size: 0.76rem;
+  line-height: 1.3;
+}
+
 .library-tag-date {
   font-variant-numeric: tabular-nums;
 }

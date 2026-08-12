@@ -12,17 +12,13 @@
         <span class="detail-eyebrow">Finding</span>
         <h2 class="mb-0">{{ finding.display_title }}</h2>
         <div class="detail-tag-list finding-detail-tags" aria-label="Finding severity, type, and tags">
-          <span class="library-tag
-            {% if finding.severity.weight <= 2 %}library-tag-danger
-            {% elif finding.severity.weight == 3 %}library-tag-warning
-            {% elif finding.severity.weight == 4 %}library-tag-success
-            {% else %}library-tag-info{% endif %}"
+          <span class="library-tag finding-severity-badge finding-severity-{{ finding.severity.severity|slugify }}"
             {% if finding.cvss_vector %}data-bs-toggle="tooltip" data-bs-placement="bottom"
               title="CVSS Vector: {{ finding.cvss_vector }}"{% endif %}>
             <i class="fas fa-shield-alt" aria-hidden="true"></i>
             <span>{{ finding.severity.severity }}{% if finding.cvss_score %} · {{ finding.cvss_score }}{% endif %}</span>
           </span>
-          <span class="library-tag library-tag-info" title="Finding type">
+          <span class="library-tag library-tag-neutral" title="Finding type">
             <i class="fas
               {% if finding.finding_type.finding_type == 'Cloud' %}fa-cloud
               {% elif finding.finding_type.finding_type == 'Host' %}fa-desktop

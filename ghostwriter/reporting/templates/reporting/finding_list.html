@@ -95,17 +95,13 @@
                 <tr>
                   <td class="align-middle text-start" data-label="Severity">
                     <span class="visually-hidden">{{ finding.severity.weight }}{{ finding.cvss_score }}</span>
-                    <span class="library-tag
-                      {% if finding.severity.weight <= 2 %}library-tag-danger
-                      {% elif finding.severity.weight == 3 %}library-tag-warning
-                      {% elif finding.severity.weight == 4 %}library-tag-success
-                      {% else %}library-tag-info{% endif %}">
+                    <span class="library-tag finding-severity-badge finding-severity-{{ finding.severity.severity|slugify }}">
                       <i class="fas fa-shield-alt" aria-hidden="true"></i>
                       {{ finding.severity.severity }}{% if finding.cvss_score %} · {{ finding.cvss_score }}{% endif %}
                     </span>
                   </td>
                   <td class="align-middle text-start" data-label="Type">
-                    <span class="library-tag library-tag-info">
+                    <span class="library-tag library-tag-neutral">
                       <i class="fas
                         {% if finding.finding_type.finding_type == 'Cloud' %}fa-cloud
                         {% elif finding.finding_type.finding_type == 'Host' %}fa-desktop
@@ -130,7 +126,7 @@
                     </td>
                   {% endif %}
                   <td class="align-middle text-start" data-label="CVSS Vector">
-                    {% if finding.cvss_vector %}{{ finding.cvss_vector }}{% else %}<span class="text-muted">Not set</span>{% endif %}
+                    {% if finding.cvss_vector %}<code class="finding-cvss-vector">{{ finding.cvss_vector }}</code>{% else %}<span class="text-muted">Not set</span>{% endif %}
                   </td>
                   <td class="align-middle text-start" data-label="Tags">
                     {% for tag in finding.tags.all %}

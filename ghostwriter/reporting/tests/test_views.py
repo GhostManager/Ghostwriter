@@ -1078,6 +1078,20 @@ class FindingsListViewTests(TestCase):
 
         self.assertNotContains(response, '<span class="text-muted">None</span>')
 
+    def test_finding_metadata_uses_neutral_types_and_severity_colors(self):
+        severity = SeverityFactory(severity="Informational", weight=5)
+        FindingFactory(
+            severity=severity,
+            cvss_vector="CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+        )
+
+        response = self.client_auth.get(self.uri)
+
+        self.assertContains(response, "library-tag library-tag-neutral")
+        self.assertContains(response, "finding-severity-badge")
+        self.assertContains(response, "finding-severity-informational")
+        self.assertContains(response, '<code class="finding-cvss-vector">')
+
     def test_finding_titles_are_left_aligned(self):
         response = self.client_auth.get(self.uri)
 
@@ -1247,6 +1261,18 @@ class FindingDetailViewTests(TestCase):
         self.assertContains(response, 'class="extra-field-card-header"')
         self.assertContains(response, 'class="note-card-list"')
         self.assertContains(response, 'class="note-card"')
+
+    def test_finding_detail_uses_neutral_type_and_severity_color_classes(self):
+        self.finding.severity = SeverityFactory(
+            severity="Low", weight=4, color="A8D08D"
+        )
+        self.finding.save(update_fields=["severity"])
+
+        response = self.client_auth.get(self.uri)
+
+        self.assertContains(response, "finding-severity-badge")
+        self.assertContains(response, "finding-severity-low")
+        self.assertContains(response, 'library-tag library-tag-neutral" title="Finding type"')
 
 
 class FindingCreateViewTests(TestCase):
