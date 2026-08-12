@@ -84,27 +84,23 @@
             <dl class="detail-grid detail-grid-three">
               <div class="detail-field">
                 <dt>Project Status</dt>
-                <dd>
-                  <span data-bs-toggle="tooltip"
-                    title="Toggle the project's status between executing and complete">
-                    {% if project.complete %}
-                      <a href="javascript:void(0)" class="clickable-link js-toggle-project-status status-indicator"
-                         toggle-project-status-csrftoken="{{ csrf_token }}"
-                         toggle-project-status-url="{% url 'rolodex:ajax_toggle_project' project.id %}"
-                         toggle-project-status-id="{{ project.id }}">
-                          <i id="js-toggle-project-status-icon" class="fas fa-toggle-on"></i> <span
-                        id="js-project-status">Complete</span>
-                      </a>
-                    {% else %}
-                      <a href="javascript:void(0)" class="clickable-link js-toggle-project-status status-indicator"
-                         toggle-project-status-csrftoken="{{ csrf_token }}"
-                         toggle-project-status-url="{% url 'rolodex:ajax_toggle_project' project.id %}"
-                         toggle-project-status-id="{{ project.id }}">
-                          <i id="js-toggle-project-status-icon" class="fas fa-toggle-off"></i> <span
-                        id="js-project-status">In Progress</span>
-                      </a>
-                    {% endif %}
-                  </span>
+                <dd class="report-state-control">
+                  <div class="report-state-copy">
+                    <span id="js-project-status" class="report-state-value">{% if project.complete %}Complete{% else %}In Progress{% endif %}</span>
+                    <span id="project-status-help" class="report-state-help">Controls whether the project is still active.</span>
+                  </div>
+                  <div class="form-check form-switch report-state-switch">
+                    <input id="js-project-status-switch"
+                           class="form-check-input js-toggle-project-status"
+                           type="checkbox"
+                           role="switch"
+                           aria-describedby="project-status-help"
+                           aria-label="{% if project.complete %}Mark project as in progress{% else %}Mark project as complete{% endif %}"
+                           toggle-project-status-csrftoken="{{ csrf_token }}"
+                           toggle-project-status-url="{% url 'rolodex:ajax_toggle_project' project.id %}"
+                           toggle-project-status-id="{{ project.id }}"
+                           {% if project.complete %}checked{% endif %}>
+                  </div>
                 </dd>
               </div>
               <div class="detail-field">
@@ -1797,12 +1793,14 @@
     }
 
     {% comment %} Toggle Project Status with AJAX {% endcomment %}
-    $('.js-toggle-project-status').click(function () {
+    $('.js-toggle-project-status').change(function () {
+      let statusSwitch = $(this);
+      let previousState = !statusSwitch.prop('checked');
       let url = $(this).attr('toggle-project-status-url');
       let projectId = $(this).attr('toggle-project-status-id');
       let csrftoken = $(this).attr('toggle-project-status-csrftoken');
-      let statusIcon = $('#js-toggle-project-status-icon');
-      let statusText = $('#js-project-status')
+      let statusText = $('#js-project-status');
+      statusSwitch.prop('disabled', true);
       $.ajaxSetup({
         beforeSend: function (xhr, settings) {
           if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
@@ -1818,17 +1816,31 @@
           'project': projectId
         },
         success: function (data) {
-          statusText.html(data['status']);
-          if (data['toggle']) {
-            statusIcon.removeClass('fa-toggle-off')
-            statusIcon.addClass('fa-toggle-on')
-          } else {
-            statusIcon.removeClass('fa-toggle-on')
-            statusIcon.addClass('fa-toggle-off')
+          if (data['result'] !== 'success') {
+            statusSwitch.prop('checked', previousState);
+            displayToastTop({
+              type: 'error',
+              string: data['message'] || 'Could not update project status.',
+              title: 'Project Update'
+            });
+            return;
           }
+          statusSwitch.prop('checked', Boolean(data['toggle']));
+          statusSwitch.attr(
+            'aria-label',
+            data['toggle'] ? 'Mark project as in progress' : 'Mark project as complete'
+          );
+          statusText.text(data['status']);
           if (data['message']) {
             displayToastTop({type: data['result'], string: data['message'], title: 'Project Update'});
           }
+        },
+        error: function () {
+          statusSwitch.prop('checked', previousState);
+          displayToastTop({type: 'error', string: 'Could not update project status.', title: 'Project Update'});
+        },
+        complete: function () {
+          statusSwitch.prop('disabled', false);
         }
       });
     });

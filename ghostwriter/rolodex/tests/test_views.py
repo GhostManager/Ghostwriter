@@ -1546,6 +1546,42 @@ class ProjectDetailViewTests(TestCase):
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
 
+    def test_project_status_uses_report_style_switch(self):
+        response = self.client_mgr.get(self.uri)
+        soup = BeautifulSoup(response.content, "html.parser")
+
+        status_switch = soup.select_one(
+            '#js-project-status-switch.form-check-input.js-toggle-project-status[role="switch"]'
+        )
+
+        self.assertIsNotNone(status_switch)
+        self.assertEqual(status_switch.get("aria-describedby"), "project-status-help")
+        self.assertEqual(status_switch.get("aria-label"), "Mark project as complete")
+        self.assertIsNone(status_switch.get("checked"))
+        self.assertContains(
+            response, 'class="form-check form-switch report-state-switch"'
+        )
+        self.assertContains(
+            response,
+            'id="js-project-status" class="report-state-value">In Progress</span>',
+        )
+        self.assertNotContains(response, "fa-toggle-on")
+        self.assertNotContains(response, "fa-toggle-off")
+
+        self.project.complete = True
+        self.project.save(update_fields=["complete"])
+
+        response = self.client_mgr.get(self.uri)
+        soup = BeautifulSoup(response.content, "html.parser")
+        status_switch = soup.select_one("#js-project-status-switch")
+
+        self.assertIsNotNone(status_switch.get("checked"))
+        self.assertEqual(status_switch.get("aria-label"), "Mark project as in progress")
+        self.assertContains(
+            response,
+            'id="js-project-status" class="report-state-value">Complete</span>',
+        )
+
     def test_report_archive_action_uses_the_confirmation_modal(self):
         report = ReportFactory(project=self.project)
 
