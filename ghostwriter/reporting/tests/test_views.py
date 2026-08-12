@@ -1718,6 +1718,82 @@ class ReportDetailViewTests(TestCase):
         self.assertNotIn("fa-toggle-on", content)
         self.assertNotIn("fa-toggle-off", content)
 
+    def test_draft_status_uses_a_neutral_header_tag(self):
+        Report.objects.filter(pk=self.report.pk).update(complete=False)
+
+        response = self.client_mgr.get(self.uri)
+
+        self.assertContains(
+            response, 'report-status-tag report-status-tag-neutral'
+        )
+
+    def test_past_due_date_warns_until_report_is_delivered(self):
+        report_config = ReportConfiguration.get_solo()
+        report_config.target_delivery_date = 0
+        report_config.save(update_fields=["target_delivery_date"])
+        self.report.project.end_date = datetime.now().date() - timedelta(days=1)
+        self.report.project.save(update_fields=["end_date"])
+        for complete, delivered in ((False, False), (True, False)):
+            with self.subTest(complete=complete, delivered=delivered):
+                Report.objects.filter(pk=self.report.pk).update(
+                    complete=complete,
+                    delivered=delivered,
+                )
+
+                response = self.client_mgr.get(self.uri)
+
+                self.assertContains(response, 'id="js-target-due-date"')
+                self.assertContains(
+                    response, 'class="operator-data report-due-overdue"'
+                )
+                self.assertContains(
+                    response, 'report-status-tag report-status-tag-overdue'
+                )
+                self.assertContains(response, 'data-past-due="true"')
+
+        Report.objects.filter(pk=self.report.pk).update(delivered=True)
+
+        response = self.client_mgr.get(self.uri)
+
+        self.assertContains(response, 'class="operator-data task-future"')
+        self.assertNotContains(response, 'class="operator-data report-due-overdue"')
+
+    def test_upcoming_due_date_is_green_when_report_is_delivered(self):
+        report_config = ReportConfiguration.get_solo()
+        report_config.target_delivery_date = 2
+        report_config.save(update_fields=["target_delivery_date"])
+        self.report.project.end_date = datetime.now().date()
+        self.report.project.save(update_fields=["end_date"])
+        Report.objects.filter(pk=self.report.pk).update(
+            complete=False,
+            delivered=False,
+        )
+
+        response = self.client_mgr.get(self.uri)
+
+        self.assertContains(response, 'class="operator-data task-due-soon"')
+        self.assertContains(response, 'report-status-tag report-status-tag-due-soon')
+
+        Report.objects.filter(pk=self.report.pk).update(delivered=True)
+
+        response = self.client_mgr.get(self.uri)
+
+        self.assertContains(response, 'class="operator-data task-future"')
+        self.assertNotContains(response, 'class="operator-data task-due-soon"')
+        self.assertContains(response, 'report-status-tag report-status-tag-positive')
+
+    def test_target_due_date_uses_warning_state_updates_after_status_changes(self):
+        response = self.client_mgr.get(self.uri)
+        content = force_str(response.content)
+
+        self.assertIn("function updateTargetDueDateState()", content)
+        self.assertEqual(content.count("updateTargetDueDateState();"), 2)
+        self.assertIn("let reportNeedsAttention = !$('#js-delivery-status-switch').prop('checked');", content)
+        self.assertIn("if (data['complete']) {", content)
+        self.assertIn("let deliveryStatus = $('#js-report-header-delivery');", content)
+        self.assertIn("report-status-tag-due-soon", content)
+        self.assertIn(".text(data['status'])", content)
+
     def test_report_caption_configuration_is_safe_in_javascript_html(self):
         report_config = ReportConfiguration.get_solo()
         ReportConfiguration.objects.filter(pk=report_config.pk).update(
@@ -2732,9 +2808,11 @@ class ReportDeliveryToggleViewTests(TestCase):
     def test_view_uri_toggles_value(self):
         response = self.client_mgr.post(self.uri)
         self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["complete"])
 
         self.report.refresh_from_db()
         self.assertEqual(self.report.delivered, True)
+        self.assertEqual(self.report.complete, True)
 
         response = self.client_mgr.post(self.uri)
         self.report.refresh_from_db()

@@ -11,12 +11,12 @@
       <h2 class="mb-0">{{ report.title }}</h2>
       <div class="detail-tag-list report-detail-tags" aria-label="Report status and tags">
         <span id="js-report-header-status"
-              class="report-status-tag {% if report.complete %}report-status-tag-positive{% else %}report-status-tag-pending{% endif %}">
+              class="report-status-tag {% if report.complete %}report-status-tag-positive{% else %}report-status-tag-neutral{% endif %}">
           <i class="fas {% if report.complete %}fa-check-circle{% else %}fa-pencil-alt{% endif %}" aria-hidden="true"></i>
           <span class="report-header-status-text">{% if report.complete %}Complete{% else %}Draft{% endif %}</span>
         </span>
         <span id="js-report-header-delivery"
-              class="report-status-tag {% if report.delivered %}report-status-tag-positive{% else %}report-status-tag-neutral{% endif %}">
+              class="report-status-tag {% if report.delivered %}report-status-tag-positive{% else %}{% with report.project.end_date|add_days:report_config.target_delivery_date as delivery_date %}{% with delivery_date|days_left as delivery_days_left %}{% if delivery_days_left < 0 %}report-status-tag-overdue{% elif delivery_days_left <= 1 %}report-status-tag-imminent{% elif delivery_days_left <= 5 %}report-status-tag-due-soon{% else %}report-status-tag-neutral{% endif %}{% endwith %}{% endwith %}{% endif %}">
           <i class="fas {% if report.delivered %}fa-paper-plane{% else %}fa-clock{% endif %}" aria-hidden="true"></i>
           <span class="report-header-status-text">{% if report.delivered %}Delivered{% else %}Not Delivered{% endif %}</span>
         </span>
@@ -90,13 +90,18 @@
               </div>
             </div>
             <dl class="detail-grid detail-grid-three">
-              {% with report.project.end_date|add_days:report_config.target_delivery_date|date:"DATE_FORMAT" as delivery_date %}
-                <div class="detail-field">
-                  <dt>Target Due Date</dt>
-                  <dd class="operator-data {% if delivery_date|days_left <= 1 %}task-imminent{% elif delivery_date|days_left <= 5 %}task-due-soon{% else %}task-future{% endif %}">
-                    {{ delivery_date }}
-                  </dd>
-                </div>
+              {% with report.project.end_date|add_days:report_config.target_delivery_date as delivery_date %}
+                {% with delivery_date|days_left as delivery_days_left %}
+                  <div class="detail-field">
+                    <dt>Target Due Date</dt>
+                    <dd id="js-target-due-date"
+                        class="operator-data {% if not report.delivered %}{% if delivery_days_left < 0 %}report-due-overdue{% elif delivery_days_left <= 1 %}task-imminent{% elif delivery_days_left <= 5 %}task-due-soon{% else %}task-future{% endif %}{% else %}task-future{% endif %}"
+                        data-past-due="{% if delivery_days_left < 0 %}true{% else %}false{% endif %}"
+                        data-pending-state="{% if delivery_days_left <= 1 %}task-imminent{% elif delivery_days_left <= 5 %}task-due-soon{% else %}task-future{% endif %}">
+                      {{ delivery_date|date:"DATE_FORMAT" }}
+                    </dd>
+                  </div>
+                {% endwith %}
               {% endwith %}
               <div class="detail-field">
                 <dt>Report Status</dt>
@@ -545,6 +550,40 @@
       }, 20000);
     });
 
+    function updateTargetDueDateState() {
+      let targetDueDate = $('#js-target-due-date');
+      let deliveryStatus = $('#js-report-header-delivery');
+      let pastDue = targetDueDate.attr('data-past-due') === 'true';
+      let reportNeedsAttention = !$('#js-delivery-status-switch').prop('checked');
+      let pendingState = targetDueDate.attr('data-pending-state');
+
+      targetDueDate.removeClass(
+        'report-due-overdue task-imminent task-due-soon task-future'
+      );
+      if (pastDue && reportNeedsAttention) {
+        targetDueDate.addClass('report-due-overdue');
+      } else if (reportNeedsAttention) {
+        targetDueDate.addClass(pendingState);
+      } else {
+        targetDueDate.addClass('task-future');
+      }
+
+      deliveryStatus.removeClass(
+        'report-status-tag-positive report-status-tag-neutral report-status-tag-due-soon report-status-tag-imminent report-status-tag-overdue'
+      );
+      if (!reportNeedsAttention) {
+        deliveryStatus.addClass('report-status-tag-positive');
+      } else if (pastDue) {
+        deliveryStatus.addClass('report-status-tag-overdue');
+      } else if (pendingState === 'task-imminent') {
+        deliveryStatus.addClass('report-status-tag-imminent');
+      } else if (pendingState === 'task-due-soon') {
+        deliveryStatus.addClass('report-status-tag-due-soon');
+      } else {
+        deliveryStatus.addClass('report-status-tag-neutral');
+      }
+    }
+
     {% comment %} Toggle Report Status with AJAX {% endcomment %}
     $('.js-toggle-report-status').change(function () {
       let statusSwitch = $(this);
@@ -589,10 +628,11 @@
           statusText.text(data['status']);
           headerStatus.find('.report-header-status-text').text(data['status']);
           headerStatus.toggleClass('report-status-tag-positive', data['toggle']);
-          headerStatus.toggleClass('report-status-tag-pending', !data['toggle']);
+          headerStatus.toggleClass('report-status-tag-neutral', !data['toggle']);
           headerStatus.find('i')
             .toggleClass('fa-check-circle', data['toggle'])
             .toggleClass('fa-pencil-alt', !data['toggle']);
+          updateTargetDueDateState();
           if ($('.engagement-context').attr('data-active-report-id') === String(reportId)) {
             $('.engagement-context-report-status').text(data['toggle'] ? 'Complete' : 'Draft');
           }
@@ -652,10 +692,28 @@
           statusText.text(data['status']);
           headerStatus.find('.report-header-status-text').text(data['status']);
           headerStatus.toggleClass('report-status-tag-positive', data['toggle']);
-          headerStatus.toggleClass('report-status-tag-neutral', !data['toggle']);
           headerStatus.find('i')
             .toggleClass('fa-paper-plane', data['toggle'])
             .toggleClass('fa-clock', !data['toggle']);
+          if (data['complete']) {
+            let reportSwitch = $('#js-report-status-switch');
+            let reportStatus = $('#js-report-status');
+            let reportHeaderStatus = $('#js-report-header-status');
+            reportSwitch.prop('checked', true);
+            reportSwitch.attr('aria-label', 'Mark report as draft');
+            reportStatus.text('Complete');
+            reportHeaderStatus.find('.report-header-status-text').text('Complete');
+            reportHeaderStatus
+              .addClass('report-status-tag-positive')
+              .removeClass('report-status-tag-neutral');
+            reportHeaderStatus.find('i')
+              .addClass('fa-check-circle')
+              .removeClass('fa-pencil-alt');
+            if ($('.engagement-context').attr('data-active-report-id') === String(reportId)) {
+              $('.engagement-context-report-status').text('Complete');
+            }
+          }
+          updateTargetDueDateState();
           if ($('.engagement-context').attr('data-active-report-id') === String(reportId)) {
             $('.engagement-context-delivery-status').text(data['toggle'] ? 'Delivered' : 'Not delivered');
           }

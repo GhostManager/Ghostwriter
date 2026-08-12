@@ -1,7 +1,7 @@
 # Standard Libraries
 import logging
 import os
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 # 3rd Party Libraries
 import factory
@@ -138,6 +138,12 @@ class TemplateTagTests(TestCase):
         future_date = date.today() + timedelta(days=10)
         self.assertEqual(determine_primary.plus_days(date.today(), 10), future_date)
         self.assertEqual(determine_primary.days_left(future_date), 10)
+        self.assertEqual(
+            determine_primary.days_left(
+                datetime.combine(future_date, datetime.min.time())
+            ),
+            10,
+        )
 
         self.assertEqual(determine_primary.get_primary_address(self.server), "1.1.1.1")
 

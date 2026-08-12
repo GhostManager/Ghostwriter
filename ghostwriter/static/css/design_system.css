@@ -571,10 +571,22 @@ a.project-context-badge:focus-visible {
   border-color: color-mix(in srgb, var(--primary-color) 30%, var(--gw-border));
 }
 
-.report-status-tag-pending {
-  color: color-mix(in srgb, #d89a3d 78%, var(--gw-text-strong));
-  background: color-mix(in srgb, #d89a3d 11%, var(--gw-surface));
-  border-color: color-mix(in srgb, #d89a3d 28%, var(--gw-border));
+.report-status-tag-due-soon {
+  color: color-mix(in srgb, var(--warning-color) 78%, var(--gw-text-strong));
+  background: color-mix(in srgb, var(--warning-color) 11%, var(--gw-surface));
+  border-color: color-mix(in srgb, var(--warning-color) 28%, var(--gw-border));
+}
+
+.report-status-tag-imminent {
+  color: color-mix(in srgb, var(--blocked-color) 78%, var(--gw-text-strong));
+  background: color-mix(in srgb, var(--blocked-color) 11%, var(--gw-surface));
+  border-color: color-mix(in srgb, var(--blocked-color) 28%, var(--gw-border));
+}
+
+.report-status-tag-overdue {
+  color: color-mix(in srgb, var(--gw-signal-amber) 78%, var(--gw-text-strong));
+  background: color-mix(in srgb, var(--gw-signal-amber) 11%, var(--gw-surface));
+  border-color: color-mix(in srgb, var(--gw-signal-amber) 28%, var(--gw-border));
 }
 
 .report-status-tag-neutral {
@@ -1258,6 +1270,10 @@ textarea.form-control {
 .report-state-switch.form-switch .form-check-input:disabled {
   cursor: wait;
   opacity: 0.65;
+}
+
+.report-due-overdue {
+  color: var(--gw-signal-amber) !important;
 }
 
 .report-preview-modal-content {

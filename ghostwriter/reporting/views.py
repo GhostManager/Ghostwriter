@@ -277,13 +277,18 @@ class ReportDeliveryToggle(RoleBasedAccessControlMixin, SingleObjectMixin, View)
                 }
             else:
                 report.delivered = True
+                report.complete = True
                 data = {
                     "result": "success",
                     "message": "Report successfully marked as delivered.",
                     "status": "Delivered",
                     "toggle": 1,
+                    "complete": True,
                 }
-            report.save()
+            if report.delivered:
+                report.save(update_fields=["delivered", "complete"])
+            else:
+                report.save(update_fields=["delivered"])
             logger.info(
                 "Toggled delivery status of %s %s by request of %s",
                 report.__class__.__name__,
