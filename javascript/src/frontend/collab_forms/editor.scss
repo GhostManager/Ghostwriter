@@ -586,6 +586,18 @@ ul.collab-focused-users {
         text-align: left;
     }
 
+    .form-row {
+        display: flex;
+        flex-wrap: wrap;
+        margin-right: calc(-0.5 * var(--bs-gutter-x, 1.5rem));
+        margin-left: calc(-0.5 * var(--bs-gutter-x, 1.5rem));
+    }
+
+    .form-row > [class*="col-"] {
+        padding-right: calc(0.5 * var(--bs-gutter-x, 1.5rem));
+        padding-left: calc(0.5 * var(--bs-gutter-x, 1.5rem));
+    }
+
     .form-row > .form-group {
         margin-bottom: 1rem;
     }

@@ -157,7 +157,7 @@ function ObservationForm() {
                     <hr />
 
                     <div className="form-row">
-                        <div className="form-group col-md-6 mb-0">
+                        <div className="form-group col-md-6">
                             <div className="form-group">
                                 <label htmlFor="id_title">Title</label>
                                 <PlainTextInput
@@ -176,7 +176,7 @@ function ObservationForm() {
                                 </small>
                             </div>
                         </div>
-                        <div className="form-group col-md-6 mb-0">
+                        <div className="form-group col-md-6">
                             <div className="form-group">
                                 <label htmlFor="id_tags">Tags</label>
                                 <TagEditor

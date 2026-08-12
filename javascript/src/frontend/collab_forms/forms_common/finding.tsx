@@ -219,7 +219,7 @@ export function FindingFormFields({
                     <hr />
 
                     <div className="form-row">
-                        <div className="form-group col-md-6 mb-0">
+                        <div className="form-group col-md-6">
                             <div className="form-group">
                                 <label htmlFor="id_title">Title</label>
                                 <div>
@@ -240,7 +240,7 @@ export function FindingFormFields({
                                 </div>
                             </div>
                         </div>
-                        <div className="form-group col-md-6 mb-0">
+                        <div className="form-group col-md-6">
                             <div className="form-group">
                                 <label htmlFor="id_tags">Tags</label>
                                 <div>
@@ -260,7 +260,7 @@ export function FindingFormFields({
                     </div>
 
                     <div className="form-row">
-                        <div className="form-group col-md-6 mb-0">
+                        <div className="form-group col-md-6">
                             <div className="form-group">
                                 <label htmlFor="collab-form-finding-type">
                                     Finding Type
@@ -283,7 +283,7 @@ export function FindingFormFields({
                             </div>
                         </div>
 
-                        <div className="form-group col-md-6 mb-0">
+                        <div className="form-group col-md-6">
                             <div className="form-group">
                                 <label htmlFor="collab-form-severity">
                                     Severity
@@ -310,7 +310,7 @@ export function FindingFormFields({
                     </div>
 
                     <div className="form-row">
-                        <div className="form-group col-md-6 mb-0">
+                        <div className="form-group col-md-6">
                             <label htmlFor="collab-form-cvss-score">
                                 CVSS Score
                             </label>
@@ -332,7 +332,7 @@ export function FindingFormFields({
                             </div>
                         </div>
 
-                        <div className="form-group col-md-6 mb-0">
+                        <div className="form-group col-md-6">
                             <label htmlFor="collab-form-cvss-vector">
                                 CVSS Vector
                             </label>
