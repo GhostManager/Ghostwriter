@@ -140,7 +140,7 @@
                   <td class="align-middle text-start" data-label="Registrar">{{ domain.registrar }}</td>
                   <td class="align-middle text-start" data-label="Details">{{ domain.note|bleach }}</td>
                   <td class="align-middle text-start" data-label="Tags">
-                    {% for tag in domain.tags.all %}<span class="library-tag library-tag-neutral mb-1">{{ tag.name }}</span>{% empty %}<span class="text-muted">None</span>{% endfor %}
+                    {% for tag in domain.tags.all %}<span class="library-tag library-tag-neutral mb-1">{{ tag.name }}</span>{% endfor %}
                   </td>
                   <td class="align-middle text-end" data-label="Actions">
                     <div class="library-row-actions">

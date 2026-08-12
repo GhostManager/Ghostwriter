@@ -284,6 +284,11 @@ class DomainListViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "shepherd/domain_list.html")
 
+    def test_empty_tag_cells_do_not_show_none(self):
+        response = self.client_auth.get(self.uri)
+
+        self.assertNotContains(response, '<span class="text-muted">None</span>')
+
     def test_domain_library_uses_shared_library_layout(self):
         response = self.client_auth.get(self.uri)
 
@@ -956,6 +961,11 @@ class ServerListViewTests(TestCase):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "shepherd/server_list.html")
+
+    def test_empty_tag_cells_do_not_show_none(self):
+        response = self.client_auth.get(self.uri)
+
+        self.assertNotContains(response, '<span class="text-muted">None</span>')
 
     def test_server_library_uses_shared_library_layout(self):
         response = self.client_auth.get(self.uri)

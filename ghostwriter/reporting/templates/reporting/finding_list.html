@@ -135,8 +135,6 @@
                   <td class="align-middle text-start" data-label="Tags">
                     {% for tag in finding.tags.all %}
                       <span class="library-tag library-tag-neutral mb-1">{{ tag.name }}</span>
-                    {% empty %}
-                      <span class="text-muted">None</span>
                     {% endfor %}
                   </td>
                   <td class="align-middle text-end" data-label="Actions">

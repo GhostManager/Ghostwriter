@@ -1073,6 +1073,11 @@ class FindingsListViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "reporting/finding_list.html")
 
+    def test_empty_tag_cells_do_not_show_none(self):
+        response = self.client_auth.get(self.uri)
+
+        self.assertNotContains(response, '<span class="text-muted">None</span>')
+
     def test_finding_titles_are_left_aligned(self):
         response = self.client_auth.get(self.uri)
 
@@ -6495,6 +6500,13 @@ class ObservationListViewTests(TestCase):
         self.assertContains(response, 'class="fas fa-plus"')
         self.assertContains(response, 'class="fas fa-pen"')
         self.assertNotContains(response, "report-row-action icon preview-icon")
+
+    def test_empty_tag_cells_do_not_show_none(self):
+        ObservationFactory(title="Untagged Observation")
+
+        response = self.client_auth.get(self.uri)
+
+        self.assertNotContains(response, '<span class="text-muted">None</span>')
 
     def test_tags_are_scoped_to_observations(self):
         hidden_report = ReportFactory(title="Hidden Tagged Report")

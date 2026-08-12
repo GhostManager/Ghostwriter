@@ -89,8 +89,6 @@
                     <div class="library-cell-tags mt-0">
                       {% for tag in observation.tags.all %}
                         <span class="library-tag library-tag-neutral">{{ tag.name }}</span>
-                      {% empty %}
-                        <span class="text-muted">None</span>
                       {% endfor %}
                     </div>
                   </td>
