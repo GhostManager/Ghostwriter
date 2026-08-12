@@ -521,9 +521,20 @@ ul.collab-focused-users {
     right: 1rem;
     z-index: 100;
 
-    width: 400px;
-    max-width: 100%;
+    display: flex;
+    align-items: center;
+    width: fit-content;
+    max-width: min(24rem, calc(100vw - 2rem));
     margin: 0;
+    padding: 0.7rem 1rem;
+
+    .collab-connection-status-message {
+        display: block;
+        margin: 0;
+        font-size: 0.78rem;
+        line-height: 1.2;
+        transform: translateY(-0.04em);
+    }
 }
 
 #collab-form-container {

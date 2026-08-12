@@ -4471,9 +4471,26 @@ a.report-item-title {
 }
 
 #tab-bar .nav-link .tab-count-badge {
-  color: inherit;
-  background: color-mix(in srgb, currentColor 12%, transparent);
-  font-size: 0.7rem;
+  --tab-count-color: color-mix(
+    in srgb,
+    var(--gw-information-slate) 55%,
+    var(--gw-text-strong)
+  );
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  min-width: 1.35rem;
+  height: 1.35rem;
+  padding: 0 0.3rem;
+  color: var(--tab-count-color);
+  background: color-mix(in srgb, var(--tab-count-color) 12%, var(--gw-surface));
+  border-color: color-mix(in srgb, var(--tab-count-color) 48%, var(--gw-border));
+  border-radius: 999px;
+  font-family: var(--gw-font-data);
+  font-size: 0.68rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  line-height: 1;
 }
 
 .tab-content {
