@@ -586,6 +586,10 @@ ul.collab-focused-users {
         text-align: left;
     }
 
+    .form-row > .form-group {
+        margin-bottom: 1rem;
+    }
+
     label {
         display: block;
         margin: 0 0 0.4rem;
@@ -652,7 +656,12 @@ ul.collab-focused-users {
         --input-color: var(--gw-text-strong, #202428);
         --placeholder-color: color-mix(
             in srgb,
-            var(--main-txt-color, #202428) 54%,
+            var(--gw-text-strong, #202428) 58%,
+            transparent
+        );
+        --placeholder-color-focus: color-mix(
+            in srgb,
+            var(--gw-text-strong, #202428) 48%,
             transparent
         );
         align-items: center;
