@@ -670,9 +670,7 @@ class ApiReportTemplateForm(forms.ModelForm):
             return EvidenceImageAlignmentOverride.USE_GLOBAL
         return value
 
-    def clean(self):
-        cleaned_data = super().clean()
-
+    def _validate_filename_override(self, cleaned_data):
         filename_override = cleaned_data.get("filename_override")
         doc_type = cleaned_data.get("doc_type")
         if filename_override and doc_type:
@@ -681,10 +679,10 @@ class ApiReportTemplateForm(forms.ModelForm):
             except ValidationError as exc:
                 self.add_error("filename_override", exc)
 
+    def _validate_template_scope(self, cleaned_data):
         client = cleaned_data.get("client")
-        if (
-            "client" not in self.errors
-            and not ReportTemplate.user_can_create(self.user_obj, client)
+        if "client" not in self.errors and not ReportTemplate.user_can_create(
+            self.user_obj, client
         ):
             self.add_error(
                 "client",
@@ -696,13 +694,12 @@ class ApiReportTemplateForm(forms.ModelForm):
                 ),
             )
 
-        # Validate the file extension is allowed for support templates
+    def _validate_file_extension(self, cleaned_data):
+        """Validate and return the normalized template file extension."""
         filename = cleaned_data.get("filename", "")
         ext = splitext(filename)[1]
-        if (
-            not ext.startswith(".")
-            or ext[1:].lower() not in TEMPLATE_ALLOWED_EXTENSIONS
-        ):
+        normalized_ext = ext[1:].lower() if ext.startswith(".") else ""
+        if normalized_ext not in TEMPLATE_ALLOWED_EXTENSIONS:
             self.add_error(
                 "filename",
                 ValidationError(
@@ -710,66 +707,69 @@ class ApiReportTemplateForm(forms.ModelForm):
                     code="invalid",
                 ),
             )
+        return normalized_ext
 
-        # Check if the file extension matches the selected document type
-        if "doc_type" in cleaned_data:
-            doc_type = cleaned_data["doc_type"]
-            if (
-                ext[1:].lower() in DOCX_ALLOWED_EXTENSIONS
-                and doc_type.extension not in DOCX_ALLOWED_EXTENSIONS
-            ) or (
-                ext[1:].lower() in PPTX_ALLOWED_EXTENSIONS
-                and doc_type.extension not in PPTX_ALLOWED_EXTENSIONS
-            ):
-                self.add_error(
-                    "filename",
-                    ValidationError(
-                        f"File extension '{ext}' does not match the selected document type '{doc_type.name}'",
-                        code="mismatch",
-                    ),
-                )
+    def _validate_document_type(self, cleaned_data, extension):
+        """Ensure the uploaded file type matches the selected document type."""
+        doc_type = cleaned_data.get("doc_type")
+        if not doc_type:
+            return
 
-        # Check if the file is a valid Microsoft Word or PowerPoint document
-        if "filename" in cleaned_data:
-            if ext[1:].lower() in DOCX_ALLOWED_EXTENSIONS:
-                try:
-                    Document(
-                        ContentFile(self.cleaned_data["file_base64"], name=filename)
-                    )
-                except ValueError as e:
-                    logger.error(
-                        "Could not open this template. %s, from %s as a Microsoft Word document: %s",
-                        filename,
-                        self.user_obj,
-                        e,
-                    )
-                    self.add_error(
-                        "file_base64",
-                        ValidationError(
-                            "Could not open this template as a Microsoft Word document",
-                            code="invalid",
-                        ),
-                    )
+        extension_mismatch = (
+            extension in DOCX_ALLOWED_EXTENSIONS
+            and doc_type.extension not in DOCX_ALLOWED_EXTENSIONS
+        ) or (
+            extension in PPTX_ALLOWED_EXTENSIONS
+            and doc_type.extension not in PPTX_ALLOWED_EXTENSIONS
+        )
+        if extension_mismatch:
+            self.add_error(
+                "filename",
+                ValidationError(
+                    f"File extension '.{extension}' does not match the selected document type '{doc_type.name}'",
+                    code="mismatch",
+                ),
+            )
 
-            if ext[1:].lower() in PPTX_ALLOWED_EXTENSIONS:
-                try:
-                    Presentation(
-                        ContentFile(self.cleaned_data["file_base64"], name=filename)
-                    )
-                except ValueError as e:
-                    logger.error(
-                        "Could not open this template. %s, from %s as a Microsoft PowerPoint document: %s",
-                        filename,
-                        self.user_obj,
-                        e,
-                    )
-                    self.add_error(
-                        "file_base64",
-                        ValidationError(
-                            "Could not open this template as a Microsoft PowerPoint document",
-                            code="invalid",
-                        ),
-                    )
+    def _validate_office_document(
+        self, cleaned_data, extension, allowed_extensions, document_class, label
+    ):
+        """Ensure an uploaded Office template can be opened by its parser."""
+        filename = cleaned_data.get("filename")
+        file_data = cleaned_data.get("file_base64")
+        if not filename or file_data is None or extension not in allowed_extensions:
+            return
+
+        try:
+            document_class(ContentFile(file_data, name=filename))
+        except ValueError as exc:
+            logger.error(
+                "Could not open this template. %s, from %s as a Microsoft %s document: %s",
+                filename,
+                self.user_obj,
+                label,
+                exc,
+            )
+            self.add_error(
+                "file_base64",
+                ValidationError(
+                    f"Could not open this template as a Microsoft {label} document",
+                    code="invalid",
+                ),
+            )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        self._validate_filename_override(cleaned_data)
+        self._validate_template_scope(cleaned_data)
+        extension = self._validate_file_extension(cleaned_data)
+        self._validate_document_type(cleaned_data, extension)
+        self._validate_office_document(
+            cleaned_data, extension, DOCX_ALLOWED_EXTENSIONS, Document, "Word"
+        )
+        self._validate_office_document(
+            cleaned_data, extension, PPTX_ALLOWED_EXTENSIONS, Presentation, "PowerPoint"
+        )
         return cleaned_data
 
     def save(self, commit=True):
