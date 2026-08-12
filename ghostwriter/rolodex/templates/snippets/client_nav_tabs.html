@@ -34,7 +34,7 @@
 {% if client_extra_fields_spec %}
     <li class="nav-item">
         <a id="id_extra_fields" class="nav-link tab-icon custom-field-icon" data-bs-toggle="tab" role="tab" aria-controls="extra-fields" href="#extra-fields">
-            Extra Fields
+            Extra Fields <span class="tab-count-badge">{{ client_extra_fields_spec|length }}</span>
         </a>
     </li>
 {% endif %}

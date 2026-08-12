@@ -1668,6 +1668,18 @@ class ReportDetailViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "reporting/report_detail.html")
 
+    def test_extra_fields_tab_shows_spec_count(self):
+        extra_field_model = ExtraFieldModelFactory(
+            model_internal_name="reporting.Report",
+            model_display_name="Reports",
+        )
+        ExtraFieldSpecFactory(target_model=extra_field_model)
+        ExtraFieldSpecFactory(target_model=extra_field_model)
+
+        response = self.client_mgr.get(self.uri)
+
+        self.assertContains(response, '<span class="tab-count-badge">2</span>')
+
     def test_archive_action_uses_the_confirmation_modal(self):
         response = self.client_mgr.get(self.uri)
 

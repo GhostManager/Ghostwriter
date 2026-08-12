@@ -897,6 +897,10 @@ class ClientCreateViewTests(TestCase):
 
         self.assertIsNotNone(extra_fields_link)
         self.assertIsNotNone(extra_fields_pane)
+        self.assertEqual(
+            extra_fields_link.select_one(".tab-count-badge").get_text(strip=True),
+            "1",
+        )
         self.assertIsNone(client_pane.select_one("#div_id_extra_fields"))
         self.assertIsNotNone(extra_fields_pane.select_one("#div_id_extra_fields"))
         self.assertIsNotNone(extra_fields_pane.select_one(".extra-fields-form-grid"))
@@ -1231,6 +1235,7 @@ class ClientDetailViewTest(TestCase):
     def test_client_extra_fields_use_shared_card_hierarchy(self):
         response = self.client_mgr.get(self.uri)
 
+        self.assertContains(response, '<span class="tab-count-badge">2</span>')
         self.assertContains(response, "client-extra-fields-grid")
         self.assertContains(response, 'class="extra-field-card-header"', count=2)
         self.assertContains(response, 'class="extra-field-type-badge"', count=2)
@@ -1877,6 +1882,7 @@ class ProjectDetailViewTests(TestCase):
     def test_project_extra_fields_use_client_card_hierarchy(self):
         response = self.client_mgr.get(self.uri)
 
+        self.assertContains(response, '<span class="tab-count-badge">3</span>')
         self.assertContains(response, "project-extra-fields-grid")
         self.assertContains(response, 'class="extra-field-card-header"', count=3)
         self.assertContains(response, 'class="extra-field-type-badge"', count=3)

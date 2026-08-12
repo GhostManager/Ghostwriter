@@ -444,6 +444,7 @@ class DomainDetailViewTests(TestCase):
         self.assertContains(response, "Template reference")
         self.assertContains(response, "domain.extra_fields.operator_context")
         self.assertContains(response, "Edit Extra Fields")
+        self.assertContains(response, '<span class="tab-count-badge">1</span>')
         self.assertContains(
             response,
             reverse("shepherd:domain_note_add", kwargs={"pk": self.domain.pk}),
@@ -1092,6 +1093,7 @@ class ServerDetailViewTests(TestCase):
         self.assertContains(response, "Template reference")
         self.assertContains(response, "staticserver.extra_fields.network_role")
         self.assertContains(response, "Edit Extra Fields")
+        self.assertContains(response, '<span class="tab-count-badge">1</span>')
         self.assertContains(
             response,
             reverse("shepherd:server_note_add", kwargs={"pk": self.server.pk}),
