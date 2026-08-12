@@ -195,7 +195,7 @@ export function FindingFormFields({
                                 />
                                 <span>{tab.label}</span>
                                 {tab.id === "extra-fields" && (
-                                    <span className="badge">
+                                    <span className="tab-count-badge">
                                         {extraFieldSpecs.length}
                                     </span>
                                 )}

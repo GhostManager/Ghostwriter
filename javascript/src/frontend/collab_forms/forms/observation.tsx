@@ -142,7 +142,7 @@ function ObservationForm() {
                             />
                             <span>{tab.label}</span>
                             {tab.id === "extra-fields" && (
-                                <span className="badge">
+                                <span className="tab-count-badge">
                                     {extraFieldSpecs.length}
                                 </span>
                             )}
