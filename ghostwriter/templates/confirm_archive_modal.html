@@ -27,16 +27,32 @@
 </div>
 
 <script>
-  $('#confirm-archive-modal').on('show.bs.modal', function (event) {
-    const $trigger = $(event.relatedTarget);
-    const archiveUrl = $trigger.attr('data-archive-url');
+  document.getElementById('confirm-archive-modal').addEventListener('show.bs.modal', function (event) {
+    const archiveForm = document.getElementById('confirm-archive-form');
+    const archiveTitle = document.getElementById('confirm-archive-report-title');
+    const trigger = event.relatedTarget;
+    archiveForm.removeAttribute('action');
 
-    if (!archiveUrl) {
+    if (!(trigger instanceof HTMLElement) || !trigger.dataset.archiveUrl) {
+      event.preventDefault();
       return;
     }
 
-    $('#confirm-archive-form').attr('action', archiveUrl);
-    $('#confirm-archive-report-title').text($trigger.attr('data-archive-title') || 'this report');
+    let archiveUrl;
+    try {
+      archiveUrl = new URL(trigger.dataset.archiveUrl, window.location.origin);
+    } catch {
+      event.preventDefault();
+      return;
+    }
+
+    if (archiveUrl.origin !== window.location.origin) {
+      event.preventDefault();
+      return;
+    }
+
+    archiveForm.action = `${archiveUrl.pathname}${archiveUrl.search}`;
+    archiveTitle.textContent = trigger.dataset.archiveTitle || 'this report';
   });
 
   $('[data-archive-tooltip]').each(function () {
