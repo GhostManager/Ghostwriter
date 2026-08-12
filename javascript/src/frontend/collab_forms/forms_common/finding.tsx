@@ -137,7 +137,7 @@ export function FindingFormFields({
         event: KeyboardEvent<HTMLButtonElement>,
         currentIndex: number
     ) => {
-        let nextIndex = currentIndex;
+        let nextIndex: number;
         if (event.key === "ArrowRight") {
             nextIndex = (currentIndex + 1) % visibleTabs.length;
         } else if (event.key === "ArrowLeft") {

@@ -1012,7 +1012,7 @@
       $('#tab-bar').on('keydown', 'a[data-bs-toggle="tab"]', function (event) {
         const tabs = Array.from(this.closest('#tab-bar').querySelectorAll('a[data-bs-toggle="tab"]'));
         const currentIndex = tabs.indexOf(this);
-        let nextIndex = currentIndex;
+        let nextIndex;
 
         if (event.key === 'ArrowRight') {
           nextIndex = (currentIndex + 1) % tabs.length;
