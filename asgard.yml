@@ -1,0 +1,212 @@
+name: ghostwriter
+
+services:
+  django:
+    build:
+      context: .
+      dockerfile: compose/production/django/Dockerfile
+    command: /start
+    depends_on: [postgres, redis]
+    environment:
+      USE_DOCKER: "1"
+      SPACY_MODEL: "en_core_web_sm"
+      SPACY_DOWNLOAD_MISSING_MODEL: "0"
+      DATABASE_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}"
+      DJANGO_MFA_ALWAYS_REVEAL_BACKUP_TOKENS: "false"
+      DJANGO_MFA_PASSKEY_LOGIN_ENABLED: "true"
+      DJANGO_ACCOUNT_ALLOW_REGISTRATION: "false"
+      DJANGO_ACCOUNT_EMAIL_VERIFICATION: "mandatory"
+      DJANGO_ADMIN_URL: "admin/"
+      DJANGO_ALLOWED_HOSTS: "${DJANGO_ALLOWED_HOSTS}"
+      DJANGO_CSRF_COOKIE_SECURE: "true"
+      DJANGO_CSRF_TRUSTED_ORIGINS: "${DJANGO_CSRF_TRUSTED_ORIGINS}"
+      DJANGO_DATE_FORMAT: "N j, Y"
+      DJANGO_JWT_SECRET_KEY: "${DJANGO_JWT_SECRET_KEY}"
+      DJANGO_QCLUSTER_NAME: "ghostwriter"
+      DJANGO_SECRET_KEY: "${DJANGO_SECRET_KEY}"
+      DJANGO_SECURE_SSL_REDIRECT: "false"
+      DJANGO_SESSION_COOKIE_AGE: "1209600"
+      DJANGO_SESSION_COOKIE_SECURE: "true"
+      DJANGO_SESSION_EXPIRE_AT_BROWSER_CLOSE: "false"
+      DJANGO_SESSION_SAVE_EVERY_REQUEST: "false"
+      DJANGO_SETTINGS_MODULE: "config.settings.production"
+      DJANGO_SOCIAL_ACCOUNT_ALLOW_REGISTRATION: "false"
+      DJANGO_SOCIAL_ACCOUNT_DOMAIN_ALLOWLIST: ""
+      DJANGO_SOCIAL_ACCOUNT_LOGIN_ON_GET: "false"
+      DJANGO_SUPERUSER_EMAIL: "${DJANGO_SUPERUSER_EMAIL}"
+      DJANGO_SUPERUSER_PASSWORD: "${DJANGO_SUPERUSER_PASSWORD}"
+      DJANGO_SUPERUSER_USERNAME: "${DJANGO_SUPERUSER_USERNAME}"
+      HASURA_ACTION_SECRET: "${HASURA_GRAPHQL_ACTION_SECRET}"
+      HASURA_GRAPHQL_SERVER_HOSTNAME: "graphql_engine"
+      HEALTHCHECK_DISK_USAGE_MAX: "95"
+      HEALTHCHECK_MEM_MIN: "0"
+      MAILGUN_API_KEY: ""
+      MAILGUN_DOMAIN: ""
+      NO_PROXY: "graphql_engine"
+      POSTGRES_DB: "${POSTGRES_DB}"
+      POSTGRES_HOST: "postgres"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: "${POSTGRES_USER}"
+      REDIS_URL: "redis://redis:6379/0"
+      WEB_CONCURRENCY: "2"
+      GHOSTWRITER_MAX_FILE_SIZE: "10485760"
+    restart: unless-stopped
+    volumes:
+      - staticfiles:/app/staticfiles
+      - data:/app/ghostwriter/media
+
+  postgres:
+    build:
+      context: .
+      dockerfile: compose/production/postgres/Dockerfile
+    environment:
+      POSTGRES_DB: "${POSTGRES_DB}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      POSTGRES_USER: "${POSTGRES_USER}"
+    restart: unless-stopped
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - postgres_backups:/backups
+
+  nginx:
+    build:
+      context: .
+      dockerfile: compose/asgard/nginx/Dockerfile
+    depends_on: [django, graphql_engine, collab-server]
+    expose: [8080]
+    restart: unless-stopped
+    volumes:
+      - data:/app/media
+      - staticfiles:/app/staticfiles
+
+  redis:
+    build:
+      context: .
+      dockerfile: compose/production/redis/Dockerfile
+    restart: unless-stopped
+
+  queue:
+    build:
+      context: .
+      dockerfile: compose/production/django/Dockerfile
+    command: /start-queue
+    depends_on: [postgres, redis]
+    environment:
+      USE_DOCKER: "1"
+      SPACY_MODEL: "en_core_web_sm"
+      SPACY_DOWNLOAD_MISSING_MODEL: "0"
+      DATABASE_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}"
+      DJANGO_MFA_ALWAYS_REVEAL_BACKUP_TOKENS: "false"
+      DJANGO_MFA_PASSKEY_LOGIN_ENABLED: "true"
+      DJANGO_ACCOUNT_ALLOW_REGISTRATION: "false"
+      DJANGO_ACCOUNT_EMAIL_VERIFICATION: "mandatory"
+      DJANGO_ADMIN_URL: "admin/"
+      DJANGO_ALLOWED_HOSTS: "${DJANGO_ALLOWED_HOSTS}"
+      DJANGO_CSRF_COOKIE_SECURE: "true"
+      DJANGO_CSRF_TRUSTED_ORIGINS: "${DJANGO_CSRF_TRUSTED_ORIGINS}"
+      DJANGO_DATE_FORMAT: "N j, Y"
+      DJANGO_JWT_SECRET_KEY: "${DJANGO_JWT_SECRET_KEY}"
+      DJANGO_QCLUSTER_NAME: "ghostwriter"
+      DJANGO_SECRET_KEY: "${DJANGO_SECRET_KEY}"
+      DJANGO_SECURE_SSL_REDIRECT: "false"
+      DJANGO_SESSION_COOKIE_AGE: "1209600"
+      DJANGO_SESSION_COOKIE_SECURE: "true"
+      DJANGO_SESSION_EXPIRE_AT_BROWSER_CLOSE: "false"
+      DJANGO_SESSION_SAVE_EVERY_REQUEST: "false"
+      DJANGO_SETTINGS_MODULE: "config.settings.production"
+      DJANGO_SOCIAL_ACCOUNT_ALLOW_REGISTRATION: "false"
+      DJANGO_SOCIAL_ACCOUNT_DOMAIN_ALLOWLIST: ""
+      DJANGO_SOCIAL_ACCOUNT_LOGIN_ON_GET: "false"
+      DJANGO_SUPERUSER_EMAIL: "${DJANGO_SUPERUSER_EMAIL}"
+      DJANGO_SUPERUSER_PASSWORD: "${DJANGO_SUPERUSER_PASSWORD}"
+      DJANGO_SUPERUSER_USERNAME: "${DJANGO_SUPERUSER_USERNAME}"
+      HASURA_ACTION_SECRET: "${HASURA_GRAPHQL_ACTION_SECRET}"
+      HASURA_GRAPHQL_SERVER_HOSTNAME: "graphql_engine"
+      HEALTHCHECK_DISK_USAGE_MAX: "95"
+      HEALTHCHECK_MEM_MIN: "0"
+      MAILGUN_API_KEY: ""
+      MAILGUN_DOMAIN: ""
+      NO_PROXY: "graphql_engine"
+      POSTGRES_DB: "${POSTGRES_DB}"
+      POSTGRES_HOST: "postgres"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: "${POSTGRES_USER}"
+      REDIS_URL: "redis://redis:6379/0"
+      WEB_CONCURRENCY: "2"
+      GHOSTWRITER_MAX_FILE_SIZE: "10485760"
+    restart: unless-stopped
+    volumes:
+      - staticfiles:/app/staticfiles
+      - data:/app/ghostwriter/media
+
+  graphql_engine:
+    build:
+      context: .
+      dockerfile: compose/production/hasura/Dockerfile
+    depends_on: [postgres, django]
+    environment:
+      ACTIONS_URL_BASE: "http://django:8000/api"
+      HASURA_ACTION_SECRET: "${HASURA_GRAPHQL_ACTION_SECRET}"
+      HASURA_GRAPHQL_ADMIN_SECRET: "${HASURA_GRAPHQL_ADMIN_SECRET}"
+      HASURA_GRAPHQL_AUTH_HOOK: "http://django:8000/api/webhook"
+      HASURA_GRAPHQL_CONSOLE_ASSETS_DIR: "/srv/console-assets"
+      HASURA_GRAPHQL_DATABASE_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}"
+      HASURA_GRAPHQL_DEV_MODE: "false"
+      HASURA_GRAPHQL_ENABLE_CONSOLE: "false"
+      HASURA_GRAPHQL_ENABLED_LOG_TYPES: "startup, http-log, webhook-log, websocket-log, query-log"
+      HASURA_GRAPHQL_ENABLE_TELEMETRY: "false"
+      HASURA_GRAPHQL_INSECURE_SKIP_TLS_VERIFY: "false"
+      HASURA_GRAPHQL_LOG_LEVEL: "warn"
+      HASURA_GRAPHQL_METADATA_DIR: "/metadata"
+      HASURA_GRAPHQL_MIGRATIONS_DIR: "/migrations"
+      HASURA_GRAPHQL_SERVER_PORT: "8080"
+      NO_PROXY: "django"
+    restart: unless-stopped
+
+  collab-server:
+    build:
+      context: .
+      dockerfile: compose/production/collab-server/Dockerfile
+    depends_on: [django, graphql_engine]
+    environment:
+      HASURA_ACTION_SECRET: "${HASURA_GRAPHQL_ACTION_SECRET}"
+      HASURA_GRAPHQL_ADMIN_SECRET: "${HASURA_GRAPHQL_ADMIN_SECRET}"
+      HASURA_GRAPHQL_SERVER_HOSTNAME: "graphql_engine"
+    restart: unless-stopped
+
+volumes:
+  data: {}
+  postgres_backups: {}
+  postgres_data: {}
+  staticfiles: {}
+
+x-asgard:
+  primary-service: nginx
+  services:
+    collab-server:
+      role: worker
+      public: false
+    django:
+      role: web
+      public: false
+      port: 8000
+    graphql_engine:
+      role: web
+      public: false
+      port: 8080
+    nginx:
+      role: web
+      public: true
+      port: 8080
+      health-path: /healthz
+    postgres:
+      role: stateful
+      public: false
+    queue:
+      role: worker
+      public: false
+    redis:
+      role: stateful
+      public: false
