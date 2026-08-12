@@ -42,9 +42,13 @@ from ghostwriter.home.navigation import (
     SIDEBAR_PREFERENCES_VERSION,
 )
 from ghostwriter.home.models import DashboardExceptionDismissal
-from ghostwriter.home.working_context import WORKSPACE_PREFERENCES_VERSION
+from ghostwriter.home.working_context import (
+    WORKSPACE_PREFERENCES_VERSION,
+    build_working_context_catalog,
+)
 from ghostwriter.home.templatetags import custom_tags
-from ghostwriter.reporting.models import ReportTemplate
+from ghostwriter.reporting.models import Report, ReportTemplate
+from ghostwriter.rolodex.models import Project
 
 logging.disable(logging.CRITICAL)
 
@@ -1278,6 +1282,35 @@ class WorkingContextTests(TestCase):
 
         self.assertIn(self.report.id, report_ids)
         self.assertNotIn(self.other_report.id, report_ids)
+
+    def test_catalog_uses_reports_the_user_can_edit(self):
+        with patch(
+            "ghostwriter.home.working_context.Project.user_editable",
+            return_value=Project.objects.filter(pk=self.other_report.project_id),
+        ) as user_editable:
+            response = self.client_mgr.get(self.catalog_uri)
+
+        user_editable.assert_called_once_with(self.manager)
+        report_ids = [
+            report["id"]
+            for group in response.json()["groups"]
+            for report in group["reports"]
+        ]
+        self.assertNotIn(self.report.id, report_ids)
+        self.assertIn(self.other_report.id, report_ids)
+
+    def test_catalog_query_count_does_not_grow_with_report_count(self):
+        reports = [self.report, self.other_report, *ReportFactory.create_batch(5)]
+        for report in reports:
+            ProjectAssignmentFactory(project=report.project, operator=self.user)
+
+        with self.assertNumQueries(1):
+            catalog = build_working_context_catalog(self.user)
+
+        self.assertEqual(
+            sum(len(group["reports"]) for group in catalog["groups"]),
+            len(reports),
+        )
 
     def test_catalog_marks_the_working_report(self):
         session = self.client_mgr.session

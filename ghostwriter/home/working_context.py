@@ -1,9 +1,14 @@
 """Helpers for a user's working report and pinned workspace objects."""
 
+# Standard Libraries
 from collections import OrderedDict
 
 # Django Imports
 from django.urls import reverse
+
+# Ghostwriter Libraries
+from ghostwriter.reporting.models import Report
+from ghostwriter.rolodex.models import Client, Project
 
 WORKSPACE_PREFERENCES_VERSION = 1
 PINNABLE_WORK_TYPES = ("client", "project", "report")
@@ -135,10 +140,6 @@ def _serialize_report(report, active_report_id=None):
 
 def get_pinned_work(user, active_report_id=None):
     """Return visible pinned work in the user's chosen order."""
-    # Import here to avoid loading application models during migration discovery.
-    from ghostwriter.reporting.models import Report
-    from ghostwriter.rolodex.models import Client, Project
-
     preferences = get_workspace_preferences(user)
     pinned = preferences["pinned"]
     ids_by_type = {
@@ -185,9 +186,6 @@ def get_pinned_work(user, active_report_id=None):
 
 def build_working_context_catalog(user, active_report_id=None):
     """Return report choices grouped by client and project for the switcher."""
-    # Import here to avoid loading application models during migration discovery.
-    from ghostwriter.reporting.models import Report
-
     preferences = get_workspace_preferences(user)
     pinned_keys = {(item["type"], item["id"]) for item in preferences["pinned"]}
     recent_positions = {
@@ -196,7 +194,7 @@ def build_working_context_catalog(user, active_report_id=None):
     }
 
     reports = list(
-        Report.user_viewable(user)
+        Report.objects.filter(project__in=Project.user_editable(user))
         .select_related("project", "project__client", "project__project_type")
         .filter(archived=False)
     )
