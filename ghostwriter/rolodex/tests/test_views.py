@@ -30,6 +30,7 @@ from ghostwriter.factories import (
     HistoryFactory,
     ObjectivePriorityFactory,
     ObjectiveStatusFactory,
+    OplogFactory,
     ProjectContactFactory,
     ProjectRoleFactory,
     ProjectFactory,
@@ -390,6 +391,27 @@ class ProjectScopeExportViewTests(TestCase):
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
+
+    def test_project_collection_tabs_show_item_counts(self):
+        for _ in range(2):
+            ProjectScopeFactory(project=self.project)
+        for _ in range(3):
+            ProjectTargetFactory(project=self.project)
+        for _ in range(4):
+            OplogFactory(project=self.project)
+
+        response = self.client_mgr.get(self.uri)
+        soup = BeautifulSoup(response.content, "html.parser")
+
+        for tab_id, count in {
+            "id_scopes": "2",
+            "id_targets": "3",
+            "id_activity": "4",
+        }.items():
+            self.assertEqual(
+                soup.select_one(f"#{tab_id} .tab-count-badge").get_text(strip=True),
+                count,
+            )
 
     def test_view_requires_login_and_permissions(self):
         response = self.client.get(self.uri)

@@ -1711,6 +1711,30 @@ class ReportDetailViewTests(TestCase):
 
         self.assertContains(response, '<span class="tab-count-badge">2</span>')
 
+    def test_report_content_tabs_show_item_counts(self):
+        for _ in range(2):
+            ReportFindingLinkFactory(report=self.report)
+        for _ in range(3):
+            ReportObservationLinkFactory(report=self.report)
+        for _ in range(4):
+            EvidenceFactory(report=self.report)
+
+        response = self.client_mgr.get(self.uri)
+        content = force_str(response.content)
+
+        self.assertIn(
+            'id="id_findings" class="nav-link active tab-icon tasks-icon" data-bs-toggle="tab" role="tab" aria-controls="findings" href="#findings">\n        Findings <span class="tab-count-badge">2</span>',
+            content,
+        )
+        self.assertIn(
+            'id="id_observations" class="nav-link tab-icon tasks-icon" data-bs-toggle="tab" role="tab" aria-controls="observations" href="#observations">\n        Observations <span class="tab-count-badge">3</span>',
+            content,
+        )
+        self.assertIn(
+            'id="id_evidence" class="nav-link tab-icon whitecard-icon" data-bs-toggle="tab" role="tab" aria-controls="evidence" href="#evidence">\n        Report Evidence <span class="tab-count-badge">4</span>',
+            content,
+        )
+
     def test_archive_action_uses_the_confirmation_modal(self):
         response = self.client_mgr.get(self.uri)
 

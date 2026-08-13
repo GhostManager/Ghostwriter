@@ -7,17 +7,17 @@
 </li>
 <li class="nav-item">
     <a id="id_findings" class="nav-link active tab-icon tasks-icon" data-bs-toggle="tab" role="tab" aria-controls="findings" href="#findings">
-        Findings
+        Findings <span class="tab-count-badge">{{ report.reportfindinglink_set.all.count }}</span>
     </a>
 </li>
 <li class="nav-item">
     <a id="id_observations" class="nav-link tab-icon tasks-icon" data-bs-toggle="tab" role="tab" aria-controls="observations" href="#observations">
-        Observations
+        Observations <span class="tab-count-badge">{{ report.reportobservationlink_set.all.count }}</span>
     </a>
 </li>
 <li class="nav-item">
     <a id="id_evidence" class="nav-link tab-icon whitecard-icon" data-bs-toggle="tab" role="tab" aria-controls="evidence" href="#evidence">
-        Report Evidence
+        Report Evidence <span class="tab-count-badge">{{ report.evidence_set.all.count }}</span>
     </a>
 </li>
 {% if report_extra_fields_spec %}

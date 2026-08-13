@@ -17,7 +17,7 @@
 </li>
 <li class="nav-item">
     <a id="id_scopes" class="nav-link tab-icon bullseye-icon" data-bs-toggle="tab" href="#scopes">
-        Scope
+        Scope <span class="tab-count-badge">{{ project.projectscope_set.all.count }}</span>
     </a>
 </li>
 <li class="nav-item">
@@ -27,12 +27,12 @@
 </li>
 <li class="nav-item">
     <a id="id_targets" class="nav-link tab-icon objective-icon" data-bs-toggle="tab" href="#targets">
-        Targets
+        Targets <span class="tab-count-badge">{{ project.projecttarget_set.all.count }}</span>
     </a>
 </li>
 <li class="nav-item">
     <a id="id_activity" class="nav-link tab-icon history-icon" data-bs-toggle="tab" href="#activity">
-        Logs
+        Logs <span class="tab-count-badge">{{ project.oplog_set.all.count }}</span>
     </a>
 </li>
 <li class="nav-item">
