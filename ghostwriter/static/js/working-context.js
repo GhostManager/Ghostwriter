@@ -230,8 +230,9 @@
       projectCopy.appendChild(createElement('strong', '', group.project.label));
       projectCopy.appendChild(
         createElement(
-          'small',
-          '',
+          'span',
+          'working-context-project-report-count'
+            + (group.project.complete ? ' is-complete' : ''),
           group.project.complete ? 'Completed project' : reports.length + ' report' + (reports.length === 1 ? '' : 's')
         )
       );
