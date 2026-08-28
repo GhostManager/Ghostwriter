@@ -38,12 +38,17 @@ def create_app():
 
         return wrapper
 
-    def graphql_request(query, variables):
+    # Report generation Actions (generateDocReport) run for minutes; ordinary
+    # queries should still fail fast.
+    graphql_timeout = int(os.environ.get("GRAPHQL_TIMEOUT", "30"))
+    graphql_report_timeout = int(os.environ.get("GRAPHQL_REPORT_TIMEOUT", "600"))
+
+    def graphql_request(query, variables, timeout=None):
         try:
             response = session.post(
                 graphql_url,
                 json={"query": query, "variables": variables},
-                timeout=30,
+                timeout=timeout or graphql_timeout,
             )
         except requests.RequestException as exc:
             return None, {"message": "graphql request failed", "detail": str(exc)}
@@ -900,6 +905,7 @@ def create_app():
             doc_data, doc_error = graphql_request(
                 generate_doc_mutation,
                 {"id": report_id, "templateId": template_id},
+                timeout=graphql_report_timeout,
             )
             if doc_error:
                 results.append({
