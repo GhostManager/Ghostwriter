@@ -119,11 +119,6 @@ urlpatterns += [
         views.ServerHistoryCreate.as_view(),
         name="server_checkout",
     ),
-    path(
-        "servers/search/all",
-        views.infrastructure_search,
-        name="infrastructure_search",
-    ),
 ]
 
 # URLs for creating, updating, and deleting domains

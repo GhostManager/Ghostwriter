@@ -3,6 +3,7 @@ import json
 import logging
 import re
 from datetime import date, timedelta
+from uuid import uuid4
 
 # Django Imports
 from django.contrib.messages import get_messages
@@ -10,6 +11,9 @@ from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import force_str
+
+# 3rd Party Libraries
+from django_q.models import Failure, Task
 
 # Ghostwriter Libraries
 from ghostwriter.factories import (
@@ -21,6 +25,8 @@ from ghostwriter.factories import (
     DomainNoteFactory,
     DomainServerConnectionFactory,
     DomainStatusFactory,
+    ExtraFieldModelFactory,
+    ExtraFieldSpecFactory,
     HistoryFactory,
     NamecheapConfigurationFactory,
     ProjectAssignmentFactory,
@@ -97,6 +103,16 @@ class UpdateViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "shepherd/update.html")
 
+    def test_view_uses_operational_task_cards(self):
+        response = self.client_auth.get(self.uri)
+
+        self.assertContains(response, 'class="operations-task-card"', count=4)
+        self.assertContains(response, "Start DNS Update")
+        self.assertContains(response, "Pull Domains")
+        self.assertContains(response, "Start Health Update")
+        self.assertContains(response, "Start Cloud Review")
+        self.assertNotContains(response, 'class="container pb-2"')
+
     def test_custom_context_exists(self):
         response = self.client_auth.get(self.uri)
         self.assertIn("total_domains", response.context)
@@ -121,6 +137,32 @@ class UpdateViewTests(TestCase):
         self.assertIn("cloud_last_update_completed", response.context)
         self.assertIn("cloud_last_update_time", response.context)
         self.assertIn("cloud_last_result", response.context)
+
+    def test_view_displays_failed_domain_health_task(self):
+        error_message = "VirusTotal rejected the API request (HTTP 401)."
+        task = Task.objects.create(
+            id=uuid4().hex,
+            name="failed-domain-health-update",
+            func="ghostwriter.shepherd.tasks.check_domains",
+            hook="",
+            args=(),
+            kwargs={},
+            result=f"{error_message} : Traceback (most recent call last):\\nSensitive details",
+            group="Domain Updates",
+            started=timezone.now(),
+            stopped=timezone.now(),
+            success=False,
+        )
+
+        self.assertTrue(Failure.objects.filter(pk=task.pk).exists())
+        self.assertIn("Traceback", Failure.objects.get(pk=task.pk).result)
+
+        response = self.client_auth.get(self.uri)
+
+        self.assertContains(response, "Failed")
+        self.assertContains(response, error_message)
+        self.assertNotContains(response, "Traceback")
+        self.assertNotContains(response, "Sensitive details")
 
     def test_view_with_zero_sleep_time(self):
         self.vt_config.sleep_time = 0
@@ -242,6 +284,29 @@ class DomainListViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "shepherd/domain_list.html")
 
+    def test_empty_tag_cells_do_not_show_none(self):
+        response = self.client_auth.get(self.uri)
+
+        self.assertNotContains(response, '<span class="text-muted">None</span>')
+
+    def test_domain_library_uses_shared_library_layout(self):
+        response = self.client_auth.get(self.uri)
+
+        self.assertContains(response, 'class="library-page domain-library-page d-grid gap-4"')
+        self.assertContains(response, '<h2>Domain Library</h2>')
+        self.assertContains(response, 'class="filter-form library-filters domain-library-filters"')
+        self.assertContains(response, 'class="library-results domain-library-results"')
+        self.assertContains(response, "library-table library-table-wide")
+        self.assertContains(response, 'data-internal-name="health">Health</th>')
+        self.assertContains(response, "library-tag library-tag-success")
+        self.assertContains(response, "library-tag library-tag-neutral library-tag-date")
+        self.assertContains(response, 'class="fas fa-hourglass-start"')
+        self.assertContains(response, 'class="column-picker-toggle collapsed"')
+        self.assertContains(response, "library-filter-boolean")
+        self.assertContains(response, 'data-1p-ignore="true"', count=2)
+        self.assertNotContains(response, "btn btn-info col-2")
+        self.assertNotContains(response, 'id="domain-library-results-title"')
+
     def test_custom_context_exists(self):
         response = self.client_auth.get(self.uri)
         self.assertIn("filter", response.context)
@@ -330,6 +395,18 @@ class DomainDetailViewTests(TestCase):
     def setUpTestData(cls):
         cls.domain = DomainFactory()
         cls.user = UserFactory(password=PASSWORD)
+        cls.extra_field_model = ExtraFieldModelFactory(
+            model_internal_name="shepherd.Domain",
+            model_display_name="Domains",
+        )
+        cls.extra_field = ExtraFieldSpecFactory(
+            internal_name="operator_context",
+            display_name="Operator Context",
+            type="single_line_text",
+            target_model=cls.extra_field_model,
+        )
+        cls.domain.extra_fields = {"operator_context": "Domain extra field value"}
+        cls.domain.save(update_fields=["extra_fields"])
 
         cls.uri = reverse("shepherd:domain_detail", kwargs={"pk": cls.domain.pk})
 
@@ -351,6 +428,33 @@ class DomainDetailViewTests(TestCase):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "shepherd/domain_detail.html")
+        self.assertContains(response, 'class="infrastructure-detail-page"')
+        self.assertContains(response, 'id="domain-actions-button"')
+        self.assertContains(response, 'id="domain-details-heading"')
+        self.assertContains(response, 'id="domain-history-heading"')
+        self.assertContains(response, 'id="domain-notes-heading"')
+        self.assertContains(response, 'id="domain-dns-heading"')
+        self.assertContains(response, 'id="domain-health-heading"')
+        self.assertContains(response, 'id="domain-extra-fields-heading"')
+        self.assertContains(response, 'class="detail-layout"')
+        self.assertContains(response, "data-table-frame")
+        self.assertContains(response, "Refresh DNS Records")
+        self.assertContains(response, "No project history yet")
+        self.assertContains(response, "No notes yet")
+        self.assertNotContains(response, "This domain has no history.")
+        self.assertNotContains(response, "There are no notes for this domain.")
+        self.assertNotContains(response, 'onclick="openModal(')
+        self.assertNotContains(response, "table-striped")
+        self.assertContains(response, "client-extra-fields-grid infrastructure-extra-fields-grid")
+        self.assertContains(response, "Template reference")
+        self.assertContains(response, "domain.extra_fields.operator_context")
+        self.assertContains(response, "Edit Extra Fields")
+        self.assertContains(response, '<span class="tab-count-badge">1</span>')
+        self.assertContains(
+            response,
+            reverse("shepherd:domain_note_add", kwargs={"pk": self.domain.pk}),
+        )
+        self.assertNotContains(response, 'class="dropdown-menu-btn"')
 
     def test_view_handles_list_category_values(self):
         self.domain.categorization = {"source": "demo", "categories": ["business", "technology"]}
@@ -360,6 +464,18 @@ class DomainDetailViewTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Business, Technology")
+
+    def test_domain_history_uses_compact_table_actions(self):
+        checkout = HistoryFactory(domain=self.domain)
+        ProjectAssignmentFactory(project=checkout.project, operator=self.user)
+
+        response = self.client_auth.get(self.uri)
+
+        self.assertContains(response, 'id="domain-history-table"')
+        self.assertContains(response, 'class="table-row-actions"')
+        self.assertContains(response, f'data-bs-target="#domain_history_detail_{checkout.id}"')
+        self.assertContains(response, "Edit this history entry")
+        self.assertContains(response, "Delete this history entry")
 
 
 class DomainCreateViewTests(TestCase):
@@ -388,6 +504,8 @@ class DomainCreateViewTests(TestCase):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "shepherd/domain_form.html")
+        self.assertContains(response, 'id="id_description"')
+        self.assertNotContains(response, "Operator context")
 
     def test_custom_context_exists(self):
         response = self.client_auth.get(self.uri)
@@ -844,6 +962,25 @@ class ServerListViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "shepherd/server_list.html")
 
+    def test_empty_tag_cells_do_not_show_none(self):
+        response = self.client_auth.get(self.uri)
+
+        self.assertNotContains(response, '<span class="text-muted">None</span>')
+
+    def test_server_library_uses_shared_library_layout(self):
+        response = self.client_auth.get(self.uri)
+
+        self.assertContains(response, 'class="library-page server-library-page d-grid gap-4"')
+        self.assertContains(response, '<h2>Server Library</h2>')
+        self.assertContains(response, 'class="filter-form library-filters server-library-filters"')
+        self.assertContains(response, 'class="library-results server-library-results"')
+        self.assertContains(response, "library-table library-table-wide")
+        self.assertContains(response, "library-tag library-tag-success")
+        self.assertContains(response, 'class="fas fa-cloud"')
+        self.assertContains(response, 'data-1p-ignore="true"', count=2)
+        self.assertNotContains(response, "btn btn-info col-2")
+        self.assertNotContains(response, 'id="server-library-results-title"')
+
     def test_custom_context_exists(self):
         response = self.client_auth.get(self.uri)
         self.assertIn("filter", response.context)
@@ -914,6 +1051,18 @@ class ServerDetailViewTests(TestCase):
     def setUpTestData(cls):
         cls.server = StaticServerFactory()
         cls.user = UserFactory(password=PASSWORD)
+        cls.extra_field_model = ExtraFieldModelFactory(
+            model_internal_name="shepherd.StaticServer",
+            model_display_name="Reusable Servers",
+        )
+        cls.extra_field = ExtraFieldSpecFactory(
+            internal_name="network_role",
+            display_name="Network Role",
+            type="single_line_text",
+            target_model=cls.extra_field_model,
+        )
+        cls.server.extra_fields = {"network_role": "Redirector"}
+        cls.server.save(update_fields=["extra_fields"])
 
         cls.uri = reverse("shepherd:server_detail", kwargs={"pk": cls.server.pk})
 
@@ -935,6 +1084,50 @@ class ServerDetailViewTests(TestCase):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "shepherd/server_detail.html")
+        self.assertContains(response, 'class="infrastructure-detail-page"')
+        self.assertContains(response, 'id="server-actions-button"')
+        self.assertContains(response, 'id="server-details-heading"')
+        self.assertContains(response, 'id="server-history-heading"')
+        self.assertContains(response, 'id="server-notes-heading"')
+        self.assertContains(response, 'id="server-extra-fields-heading"')
+        self.assertContains(response, 'class="detail-layout"')
+        self.assertContains(response, "data-table-frame")
+        self.assertContains(response, "No project history yet")
+        self.assertContains(response, "No notes yet")
+        self.assertNotContains(response, "This server has no history.")
+        self.assertNotContains(response, "There are no notes for this server.")
+        self.assertNotContains(response, "project-details-table offset-2 col-8")
+        self.assertNotContains(response, "serverDescriptionDropdown")
+        self.assertNotContains(response, "table-striped")
+        self.assertContains(response, "client-extra-fields-grid infrastructure-extra-fields-grid")
+        self.assertContains(response, "Template reference")
+        self.assertContains(response, "staticserver.extra_fields.network_role")
+        self.assertContains(response, "Edit Extra Fields")
+        self.assertContains(response, '<span class="tab-count-badge">1</span>')
+        self.assertContains(
+            response,
+            reverse("shepherd:server_note_add", kwargs={"pk": self.server.pk}),
+        )
+        self.assertNotContains(response, 'class="dropdown-menu-btn"')
+
+    def test_server_details_display_the_saved_description(self):
+        self.server.description = "Server detail context"
+        self.server.save(update_fields=["description"])
+
+        response = self.client_auth.get(self.uri)
+
+        self.assertContains(response, "Server detail context")
+
+    def test_server_history_uses_compact_table_actions(self):
+        checkout = ServerHistoryFactory(server=self.server)
+        ProjectAssignmentFactory(project=checkout.project, operator=self.user)
+
+        response = self.client_auth.get(self.uri)
+
+        self.assertContains(response, 'id="server-history-table"')
+        self.assertContains(response, 'class="table-row-actions"')
+        self.assertContains(response, "Edit this history entry")
+        self.assertContains(response, "Delete this history entry")
 
 
 class ServerCreateViewTests(TestCase):
@@ -963,6 +1156,8 @@ class ServerCreateViewTests(TestCase):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "shepherd/server_form.html")
+        self.assertContains(response, 'id="id_description"')
+        self.assertNotContains(response, "Operator context")
 
     def test_custom_context_exists(self):
         response = self.client_auth.get(self.uri)
@@ -1714,6 +1909,10 @@ class UserAssetsViewTests(TestCase):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "shepherd/checkouts_for_user.html")
+        self.assertContains(response, 'class="active-assets-page"')
+        self.assertContains(response, 'class="table-row-actions"', count=6)
+        self.assertContains(response, "table-primary-link", count=12)
+        self.assertNotContains(response, 'class="dropdown-menu-btn-table"')
 
     def test_custom_context_exists(self):
         response = self.client_auth.get(self.uri)
@@ -1722,94 +1921,6 @@ class UserAssetsViewTests(TestCase):
 
         self.assertEqual(len(response.context["domains"]), len(self.domains_qs))
         self.assertEqual(len(response.context["servers"]), len(self.servers_qs))
-
-
-class InfrastructureSearchViewTests(TestCase):
-    """Collection of tests for :view:`shepherd.infrastructure_search`."""
-
-    @classmethod
-    def setUpTestData(cls):
-        cls.user = UserFactory(password=PASSWORD)
-
-        cls.servers = []
-        cls.addresses = []
-        cls.cloud_servers = []
-        for x in range(3):
-            server = StaticServerFactory(ip_address=f"192.168.1.{x}")
-            addy = AuxServerAddressFactory(ip_address=f"192.168.2.{x}", static_server=server)
-            vps = TransientServerFactory(ip_address=f"192.168.3.{x}")
-            cls.servers.append(server)
-            cls.addresses.append(addy)
-            cls.cloud_servers.append(vps)
-
-        cls.total = len(cls.servers) + len(cls.addresses) + len(cls.cloud_servers)
-
-        cls.uri = reverse("shepherd:infrastructure_search")
-
-    def setUp(self):
-        self.client = Client()
-        self.client_auth = Client()
-        self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
-
-    def test_view_uri_exists_at_desired_location(self):
-        post_data = {"query": "192.168.1.1"}
-        response = self.client_auth.get(self.uri, post_data)
-        self.assertEqual(response.status_code, 200)
-
-    def test_view_requires_login(self):
-        post_data = {"query": "192.168.1.1"}
-        response = self.client.get(self.uri, post_data)
-        self.assertEqual(response.status_code, 302)
-
-    def test_custom_context_exists(self):
-        post_data = {"query": "192.168"}
-        response = self.client_auth.get(self.uri, post_data)
-        self.assertEqual(response.status_code, 200)
-
-        self.assertIn("servers", response.context)
-        self.assertIn("vps", response.context)
-        self.assertIn("addresses", response.context)
-        self.assertIn("total_result", response.context)
-
-        self.assertEqual(len(response.context["servers"]), len(self.servers))
-        self.assertEqual(len(response.context["vps"]), len(self.cloud_servers))
-        self.assertEqual(len(response.context["addresses"]), len(self.addresses))
-        self.assertEqual(response.context["total_result"], self.total)
-
-    def test_custom_context_with_few_results(self):
-        post_data = {"query": "192.168.2"}
-        response = self.client_auth.get(self.uri, post_data)
-        self.assertEqual(response.status_code, 200)
-
-        self.assertIn("servers", response.context)
-        self.assertIn("vps", response.context)
-        self.assertIn("addresses", response.context)
-        self.assertIn("total_result", response.context)
-
-        self.assertEqual(len(response.context["servers"]), 0)
-        self.assertEqual(len(response.context["vps"]), 0)
-        self.assertEqual(len(response.context["addresses"]), len(self.addresses))
-        self.assertEqual(response.context["total_result"], 3)
-
-    def test_blank_search(self):
-        response = self.client_auth.get(self.uri + "?query=")
-        self.assertEqual(response.status_code, 200)
-
-    def test_search_with_zero_results(self):
-        post_data = {"query": "1.1.1.1"}
-        response = self.client_auth.get(self.uri, post_data)
-        self.assertEqual(response.status_code, 200)
-
-        self.assertIn("servers", response.context)
-        self.assertIn("vps", response.context)
-        self.assertIn("addresses", response.context)
-        self.assertIn("total_result", response.context)
-
-        self.assertEqual(len(response.context["servers"]), 0)
-        self.assertEqual(len(response.context["vps"]), 0)
-        self.assertEqual(len(response.context["addresses"]), 0)
-        self.assertEqual(response.context["total_result"], 0)
 
 
 class UpdateDomainBadgesViewTests(TestCase):

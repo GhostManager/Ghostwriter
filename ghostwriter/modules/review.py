@@ -9,7 +9,6 @@ properly categorized, has not been flagged in VirusTotal, or tagged with a bad c
 # Standard Libraries
 import logging
 import sys
-import traceback
 from time import sleep
 
 # 3rd Party Libraries
@@ -23,6 +22,10 @@ requests.packages.urllib3.disable_warnings()
 
 # Using __name__ resolves to ghostwriter.modules.review
 logger = logging.getLogger(__name__)
+
+
+class VirusTotalRequestError(RuntimeError):
+    """Raised when a VirusTotal request prevents a health update from completing."""
 
 
 class DomainReview:
@@ -116,29 +119,31 @@ class DomainReview:
             virustotal_endpoint_uri = "/domains/{domain}".format(domain=domain)
 
         url = self.VIRUSTOTAL_BASE_API_URL + virustotal_endpoint_uri
-        results = {"result": "success"}
-        if self.virustotal_config.enable:
-            try:
-                headers = {
-                    "x-apikey": self.virustotal_config.api_key,
-                }
-                req = self.session.get(url, headers=headers)
-                if req.ok:
-                    vt_data = req.json()
-                    results["data"] = vt_data["data"]["attributes"]
-                else:
-                    results["result"] = "error"
-                    results["error"] = "VirusTotal rejected the API key in settings"
-            except Exception:
-                trace = traceback.format_exc()
-                logger.exception("Failed to contact VirusTotal")
-                results["result"] = "error"
-                results["error"] = "{exception}".format(exception=trace)
-        else:
-            results["result"] = "error"
-            results["error"] = "VirusTotal is disabled in settings"
+        if not self.virustotal_config.enable:
+            raise VirusTotalRequestError("VirusTotal is disabled in settings")
 
-        return results
+        try:
+            headers = {
+                "x-apikey": self.virustotal_config.api_key,
+            }
+            req = self.session.get(url, headers=headers)
+            if not req.ok:
+                message = (
+                    f"VirusTotal rejected the API request for {domain} "
+                    f"(HTTP {req.status_code}). Check the configured API key and permissions."
+                )
+                logger.error(message)
+                raise VirusTotalRequestError(message)
+
+            vt_data = req.json()
+            return {"result": "success", "data": vt_data["data"]["attributes"]}
+        except VirusTotalRequestError:
+            raise
+        except Exception as err:
+            logger.exception("Failed to contact VirusTotal")
+            raise VirusTotalRequestError(
+                f"VirusTotal request for {domain} failed: {err.__class__.__name__}"
+            ) from err
 
     def check_domain_status(self):
         """

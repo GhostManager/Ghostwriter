@@ -11,9 +11,9 @@ from django.contrib.messages import constants as messages
 # 3rd Party Libraries
 import environ
 
-__version__ = "7.2.6"
+__version__ = "7.3.0"
 VERSION = __version__
-RELEASE_DATE = "10 August 2026"
+RELEASE_DATE = "TBD"
 
 ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
 APPS_DIR = ROOT_DIR / "ghostwriter"
@@ -95,7 +95,7 @@ DJANGO_APPS = [
 
 THIRD_PARTY_APPS = [
     "crispy_forms",
-    "crispy_bootstrap4",
+    "crispy_bootstrap5",
     "allauth",
     "allauth.mfa",
     "allauth.account",
@@ -186,6 +186,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # https://docs.djangoproject.com/en/dev/ref/settings/#middleware
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "ghostwriter.middleware.ContentSecurityPolicyMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -197,6 +198,25 @@ MIDDLEWARE = [
     "ghostwriter.middleware.RequireMFAMiddleware",
     "allauth.account.middleware.AccountMiddleware",
 ]
+
+# CONTENT SECURITY POLICY
+# ------------------------------------------------------------------------------
+# Keep this policy in sync with compose/production/nginx/nginx_common.conf. It is
+# report-only while inline scripts, styles, and event handlers are migrated to
+# nonce-aware or static resources.
+CONTENT_SECURITY_POLICY_REPORT_ONLY = (
+    "default-src 'self'; "
+    "base-uri 'self'; "
+    "connect-src 'self' ws: wss:; "
+    "font-src 'self' data:; "
+    "form-action 'self'; "
+    "frame-ancestors 'self'; "
+    "img-src 'self' data: blob:; "
+    "object-src 'none'; "
+    "script-src 'self'; "
+    "style-src 'self'; "
+    "worker-src 'self' blob:"
+)
 
 # STATIC
 # ------------------------------------------------------------------------------
@@ -251,8 +271,8 @@ TEMPLATES = [
     }
 ]
 # http://django-crispy-forms.readthedocs.io/en/latest/install.html#template-packs
-CRISPY_ALLOWED_TEMPLATE_PACKS = ("bootstrap4",)
-CRISPY_TEMPLATE_PACK = "bootstrap4"
+CRISPY_ALLOWED_TEMPLATE_PACKS = ("bootstrap5",)
+CRISPY_TEMPLATE_PACK = "bootstrap5"
 
 # FIXTURES
 # ------------------------------------------------------------------------------

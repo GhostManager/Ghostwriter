@@ -29,14 +29,28 @@ $(document).ready(function () {
     const $detailContent = $('#oplogDetailContent');
     const $checkboxList = $('#checkboxList');
     const $connectionStatus = $('#connectionStatus');
-    const $sanitizeCheckboxList = $('#sanitize-checklist-form');
+    const $sanitizeCheckboxList = $('#sanitize-checklist-fields');
     const $searchInput = $('#searchInput');
     const $oplogTableNoEntries = $('#oplogTableNoEntries');
     const $oplogTableLoading = $('#oplogTableLoading');
+    const $oplogEmptyTitle = $('#oplogEmptyTitle');
+    const $oplogEmptyDescription = $('#oplogEmptyDescription');
+    const $oplogEmptyAction = $('#oplogEmptyAction');
     const $clearSearchBtn = $('#clearSearchBtn');
     const $defaultSourceInput = $('#defaultSourceInput');
-    const $clearDefaultSourceBtn = $('#clearDefaultSourceBtn');
+    const $defaultDestinationInput = $('#defaultDestinationInput');
+    const $defaultUserContextInput = $('#defaultUserContextInput');
+    const $entryDefaultsButton = $('#entryDefaultsButton');
+    const $entryDefaultsCount = $('#entryDefaultsCount');
+    const $clearEntryDefaultsBtn = $('#clearEntryDefaultsBtn');
+    const $entryDefaultInputs = $('.js-oplog-entry-default');
     const $createEntryButton = $('#createNewEntryButton');
+
+    const entryDefaultFields = [
+        { input: $defaultSourceInput, formName: 'source_ip' },
+        { input: $defaultDestinationInput, formName: 'dest_ip' },
+        { input: $defaultUserContextInput, formName: 'user_context' },
+    ];
 
     // Track columns hidden by the user (overrides showByDefault: true)
     let hiddenLogTblColumns = JSON.parse(localStorage.getItem('hiddenLogTblColumns') || '[]');
@@ -56,6 +70,7 @@ $(document).ready(function () {
     let errorDisplayed = false;
     let pendingOperation = null;
     let selectedEntryId = null;
+    let pendingDeleteEntryId = null;
     let pendingCreateModalRequestId = null;
 
     // Prevent deselecting the entry when a modal is open or in the process of closing.
@@ -225,9 +240,29 @@ $(document).ready(function () {
     }
 
     function truncateText(text, maxLen) {
-        if (!text) return '';
+        if (text === undefined || text === null || text === '') return '';
         let str = String(text);
         return str.length > maxLen ? str.slice(0, maxLen) + '\u2026' : str;
+    }
+
+    function stringifyStructuredValue(value, pretty) {
+        if (typeof value !== 'object' || value === null) {
+            return String(value ?? '');
+        }
+
+        try {
+            return JSON.stringify(value, null, pretty ? 2 : 0);
+        } catch (error) {
+            return '';
+        }
+    }
+
+    function formatExtraFieldSummary(value, type) {
+        if (value === undefined || value === null) return '';
+        if (type === 'json' || typeof value === 'object') {
+            return `<span class="operator-data">${jsEscape(truncateText(stringifyStructuredValue(value, false), 100))}</span>`;
+        }
+        return jsEscape(truncateText(value, 100));
     }
 
     function stylizeTags(tagString) {
@@ -237,19 +272,19 @@ $(document).ready(function () {
             if (tag === '') continue;
             let upper = tag.toUpperCase();
             if (upper.includes('ATT&AMP;CK') || upper.includes('ATTACK') || upper.includes('MITRE') || upper.includes('TTP')) {
-                tagHtml += `<span class="badge badge-danger">${tag}</span>`;
+                tagHtml += `<span class="badge oplog-tag oplog-tag-technique">${tag}</span>`;
             } else if (upper.includes('CREDS') || upper.includes('CREDENTIALS')) {
-                tagHtml += `<span class="badge badge-warning">${tag}</span>`;
+                tagHtml += `<span class="badge oplog-tag oplog-tag-credential">${tag}</span>`;
             } else if (upper.includes('VULN') || upper.includes('VULNERABILITY') || upper.includes('EXPLOIT')) {
-                tagHtml += `<span class="badge badge-success">${tag}</span>`;
+                tagHtml += `<span class="badge oplog-tag oplog-tag-attention">${tag}</span>`;
             } else if (upper.includes('DETECT') || upper.includes('DETECTION')) {
-                tagHtml += `<span class="badge badge-info">${tag}</span>`;
+                tagHtml += `<span class="badge oplog-tag oplog-tag-detection">${tag}</span>`;
             } else if (upper.includes('OBJECTIVE') || upper.includes('EVIDENCE')) {
-                tagHtml += `<span class="badge badge-primary">${tag}</span>`;
+                tagHtml += `<span class="badge oplog-tag oplog-tag-evidence">${tag}</span>`;
             } else if (upper.includes('RECORDING')) {
-                tagHtml += `<span class="badge badge-dark">${tag}</span>`;
+                tagHtml += `<span class="badge oplog-tag oplog-tag-recording">${tag}</span>`;
             } else {
-                tagHtml += `<span class="badge badge-secondary">${tag}</span>`;
+                tagHtml += `<span class="badge oplog-tag">${tag}</span>`;
             }
         }
         return tagHtml;
@@ -263,7 +298,14 @@ $(document).ready(function () {
             return;
         }
         $oplogTableLoading.hide();
-        $oplogTableNoEntries.toggle($tableBody.find('> tr').length === 0);
+        let isEmpty = $tableBody.find('> tr').length === 0;
+        let hasFilter = String($searchInput.val() || '').trim() !== '';
+        $oplogEmptyTitle.text(hasFilter ? 'No matching entries' : 'No entries yet');
+        $oplogEmptyDescription.text(
+            hasFilter ? 'Try another search or clear the current filter.' : 'Create an entry to begin recording activity.'
+        );
+        $oplogEmptyAction.text(hasFilter ? 'Clear Filter' : 'Create Entry').attr('data-empty-action', hasFilter ? 'clear-filter' : 'create');
+        $oplogTableNoEntries.toggle(isEmpty);
     }
 
     // --- Column management ---
@@ -279,7 +321,7 @@ $(document).ready(function () {
                     return jsEscape(truncateText($('<div>').html(safe).text(), 100));
                 };
             } else {
-                toHtmlFunc = jsEscape;
+                toHtmlFunc = v => formatExtraFieldSummary(v, spec.type);
             }
 
             summaryColumns.push({
@@ -288,7 +330,8 @@ $(document).ready(function () {
                 prettyName: jsEscape(spec.display_name),
                 internalName: jsEscape(spec.internal_name),
                 toHtml: toHtmlFunc,
-                getValue: entry => entry.extra_fields[spec.internal_name],
+                getValue: entry => (entry.extra_fields || {})[spec.internal_name],
+                showByDefault: false,
             });
         });
     }
@@ -296,7 +339,7 @@ $(document).ready(function () {
     function generateTableHeaders() {
         let out = '<tr>';
         summaryColumns.forEach((col, idx) => {
-            out += `<th class="${col.columnClass} text-left none" data-sorter="text" data-col-index="${idx}" style="cursor:pointer;">${col.prettyName}</th>`;
+            out += `<th class="${col.columnClass} text-start none" data-sorter="text" data-col-index="${idx}" tabindex="0" aria-sort="none">${col.prettyName}</th>`;
         });
         out += '</tr>';
         return out;
@@ -347,9 +390,9 @@ $(document).ready(function () {
             let checked = visible ? 'checked' : '';
             let html = `
             <div class="form-check-inline">
-              <div class="custom-control custom-switch">
-                <input type="checkbox" id="${col.checkBoxID}" class="form-check-input custom-control-input" ${checked}/>
-                <label class="form-check-label custom-control-label" for="${col.checkBoxID}">${col.prettyName}</label>
+              <div class="form-check form-switch">
+                <input type="checkbox" id="${col.checkBoxID}" class="form-check-input" ${checked}/>
+                <label class="form-check-label" for="${col.checkBoxID}">${col.prettyName}</label>
               </div>
             </div>`;
             $checkboxList.append(html);
@@ -364,11 +407,9 @@ $(document).ready(function () {
             coveredNames.add(col.internalName);
             let checked = (col.sanitizeByDefault === undefined || col.sanitizeByDefault) ? 'checked' : '';
             $sanitizeCheckboxList.append(`
-            <div class="form-check-inline">
-              <div class="custom-control custom-switch">
-                <input type="checkbox" name="${col.internalName}" id="sanitize_${col.checkBoxID}" class="form-check-input custom-control-input" ${checked}/>
-                <label class="form-check-label custom-control-label" for="sanitize_${col.checkBoxID}">${col.prettyName}</label>
-              </div>
+            <div class="form-check form-switch sanitize-field-choice">
+              <input type="checkbox" name="${col.internalName}" id="sanitize_${col.checkBoxID}" class="form-check-input" ${checked}/>
+              <label class="form-check-label" for="sanitize_${col.checkBoxID}">${col.prettyName}</label>
             </div>`);
         });
         // Detail fields - skip any already added via summaryColumns
@@ -377,11 +418,9 @@ $(document).ready(function () {
             coveredNames.add(f.internalName);
             let checked = (f.sanitizeByDefault === undefined || f.sanitizeByDefault) ? 'checked' : '';
             $sanitizeCheckboxList.append(`
-            <div class="form-check-inline">
-              <div class="custom-control custom-switch">
-                <input type="checkbox" name="${f.internalName}" id="sanitize_${f.internalName}Checkbox" class="form-check-input custom-control-input" ${checked}/>
-                <label class="form-check-label custom-control-label" for="sanitize_${f.internalName}Checkbox">${f.prettyName}</label>
-              </div>
+            <div class="form-check form-switch sanitize-field-choice">
+              <input type="checkbox" name="${f.internalName}" id="sanitize_${f.internalName}Checkbox" class="form-check-input" ${checked}/>
+              <label class="form-check-label" for="sanitize_${f.internalName}Checkbox">${f.prettyName}</label>
             </div>`);
         });
         // Meta fields - skip any already covered
@@ -389,20 +428,19 @@ $(document).ready(function () {
             if (coveredNames.has(f.internalName)) return;
             let checked = (f.sanitizeByDefault === undefined || f.sanitizeByDefault) ? 'checked' : '';
             $sanitizeCheckboxList.append(`
-            <div class="form-check-inline">
-              <div class="custom-control custom-switch">
-                <input type="checkbox" name="${f.internalName}" id="sanitize_${f.internalName}Checkbox" class="form-check-input custom-control-input" ${checked}/>
-                <label class="form-check-label custom-control-label" for="sanitize_${f.internalName}Checkbox">${f.prettyName}</label>
-              </div>
+            <div class="form-check form-switch sanitize-field-choice">
+              <input type="checkbox" name="${f.internalName}" id="sanitize_${f.internalName}Checkbox" class="form-check-input" ${checked}/>
+              <label class="form-check-label" for="sanitize_${f.internalName}Checkbox">${f.prettyName}</label>
             </div>`);
         });
         // Recordings — separate option: deletes recording files from disk
         $sanitizeCheckboxList.append(`
-        <div class="form-check-inline">
-          <div class="custom-control custom-switch">
-            <input type="checkbox" name="recordings" id="sanitize_recordingsCheckbox" class="form-check-input custom-control-input"/>
-            <label class="form-check-label custom-control-label" for="sanitize_recordingsCheckbox">Recordings <span class="badge badge-danger">Deletes Files</span></label>
-          </div>
+        <div class="form-check form-switch sanitize-field-choice sanitize-field-choice-recordings">
+          <input type="checkbox" name="recordings" id="sanitize_recordingsCheckbox" class="form-check-input"/>
+          <label class="form-check-label" for="sanitize_recordingsCheckbox">
+            Recordings
+            <span>Delete terminal recording files from disk.</span>
+          </label>
         </div>`);
     }
 
@@ -420,11 +458,11 @@ $(document).ready(function () {
         let safeId = sanitizeEntryId(entry.id);
         if (safeId === null) return '';
         entryDataStore[safeId] = entry;
-        let out = `<tr id="entry-${safeId}" data-entry-id="${safeId}">`;
+        let out = `<tr id="entry-${safeId}" data-entry-id="${safeId}" tabindex="0" aria-selected="false">`;
         summaryColumns.forEach(col => {
             let value = col.getValue ? col.getValue(entry) : entry[col.internalName];
             let toHtml = col.toHtml ?? jsEscape;
-            out += `<td class="${col.columnClass} text-left">${toHtml(value)}</td>`;
+            out += `<td class="${col.columnClass} text-start">${toHtml(value)}</td>`;
         });
         out += '</tr>';
         return out;
@@ -450,12 +488,12 @@ $(document).ready(function () {
             html += `<span class="oplog-detail-id">${jsEscape(entry.entry_identifier)}</span>`;
         }
         html += `<div class="oplog-detail-actions">
-            <button class="btn btn-sm btn-outline-secondary" data-toggle="tooltip" title="Edit entry" onclick="editEntry(${safeId})"><i class="fas fa-edit"></i></button>
-            <button class="btn btn-sm btn-outline-secondary" data-toggle="tooltip" title="Copy entry" onclick="copyEntry(this)" entry-id="${safeId}"><i class="fa fa-copy"></i></button>
-            <button class="btn btn-sm btn-outline-secondary" data-toggle="tooltip" title="Copy as JSON" onclick="convertRowToJSON(${safeId})"><i class="fas fa-clipboard"></i></button>
-            <button class="btn btn-sm btn-outline-secondary" data-toggle="tooltip" title="Copy deep link" onclick="copyDeepLink(${safeId})"><i class="fas fa-link"></i></button>
-            <button class="btn btn-sm btn-outline-danger danger" data-toggle="tooltip" title="Delete entry" onclick="deleteEntry(this)" entry-id="${safeId}"><i class="fa fa-trash"></i></button>
-            <button class="btn btn-sm btn-outline-secondary" data-toggle="tooltip" title="Close details (ESC)" onclick="deselectEntry()"><i class="fas fa-times"></i></button>
+            <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit entry" aria-label="Edit entry" onclick="editEntry(${safeId})"><i class="fas fa-edit"></i></button>
+            <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" data-bs-placement="top" title="Copy entry" aria-label="Copy entry" onclick="copyEntry(this)" entry-id="${safeId}"><i class="fa fa-copy"></i></button>
+            <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" data-bs-placement="top" title="Copy as JSON" aria-label="Copy entry as JSON" onclick="convertRowToJSON(${safeId})"><i class="fas fa-clipboard"></i></button>
+            <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" data-bs-placement="top" title="Copy deep link" aria-label="Copy deep link" onclick="copyDeepLink(${safeId})"><i class="fas fa-link"></i></button>
+            <button class="btn btn-sm btn-outline-danger danger" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete entry" aria-label="Delete entry" onclick="requestDeleteEntry(this)" entry-id="${safeId}"><i class="fa fa-trash"></i></button>
+            <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" data-bs-placement="top" title="Close details (ESC)" aria-label="Close details" onclick="deselectEntry()"><i class="fas fa-times"></i></button>
         </div>`;
         html += `</div>`;
         if (tags) {
@@ -487,7 +525,7 @@ $(document).ready(function () {
 
             html += `<div class="oplog-detail-section">`;
             html += `<div class="oplog-detail-label">${f.prettyName}
-                <i class="fas fa-copy copy-btn" onclick="copyFieldToClipboard(${safeId}, '${f.internalName}')" title="Copy to clipboard"></i>
+                <button type="button" class="copy-btn" onclick="copyFieldToClipboard(${safeId}, '${f.internalName}')" title="Copy ${f.prettyName}" aria-label="Copy ${f.prettyName}"><i class="fas fa-copy" aria-hidden="true"></i></button>
             </div>`;
 
             if (f.type === 'code') {
@@ -505,8 +543,7 @@ $(document).ready(function () {
         if (entry.extra_fields && oplog_entry_extra_fields_spec.length > 0) {
             oplog_entry_extra_fields_spec.forEach(spec => {
                 let val = entry.extra_fields[spec.internal_name];
-                if (val === undefined || val === null || val.toString().trim() === '') return;
-                if ((spec.type === 'integer' || spec.type === 'float') && val === 0) return;
+                if (val === undefined || val === null || stringifyStructuredValue(val, false).trim() === '') return;
 
                 html += `<div class="oplog-detail-section">`;
                 html += `<div class="oplog-detail-label">${jsEscape(spec.display_name)}</div>`;
@@ -517,6 +554,8 @@ $(document).ready(function () {
                 } else if (spec.type === 'rich_text') {
                     let safeVal = (typeof DOMPurify !== 'undefined') ? DOMPurify.sanitize(val) : jsEscape(val);
                     html += `<div class="oplog-rich-content">${safeVal}</div>`;
+                } else if (spec.type === 'json' || typeof val === 'object') {
+                    html += `<pre class="oplog-code-block">${jsEscape(stringifyStructuredValue(val, true))}</pre>`;
                 } else if (spec.type === 'integer') {
                     html += `<div class="oplog-rich-content">${jsEscape(val)}</div>`;
                 } else if (spec.type === 'float') {
@@ -537,16 +576,16 @@ $(document).ready(function () {
         html += `<div class="oplog-attachment-label"><i class="fas fa-file-image"></i> Evidence</div>`;
         html += `<div id="evidence-list-${safeId}" class="oplog-evidence-list"></div>`;
         if (projectHasReports) {
-            html += `<div class="oplog-attachment-dropzone" id="evidence-dropzone-${safeId}" onclick="uploadEvidence(${safeId})">
+            html += `<button type="button" class="oplog-attachment-dropzone" id="evidence-dropzone-${safeId}" onclick="uploadEvidence(${safeId})">
                 <div class="dropzone-icon"><i class="fas fa-cloud-upload-alt"></i></div>
                 <div class="dropzone-text">Drag & drop a file or click to upload evidence</div>
                 <div class="dropzone-hint">Allowed: txt, md, log, jpg, jpeg, png</div>
-            </div>`;
+            </button>`;
         } else {
             let projectUrl = jsEscape($splitContainer.attr('data-project-url') || '#');
             html += `<div class="alert alert-info mb-0 d-flex align-items-center" role="alert">
-                <i class="fas fa-info-circle fa-lg flex-shrink-0 mr-3"></i>
-                <p class="mb-0 text-left mb-0">No reports exist for this project. <a class="clickable" href="${projectUrl}#documents">Create a report</a> to upload evidence.</p>
+                <i class="fas fa-info-circle fa-lg flex-shrink-0 me-3"></i>
+                <p class="mb-0 text-start mb-0">No reports exist for this project. <a class="clickable" href="${projectUrl}#documents">Create a report</a> to upload evidence.</p>
             </div>`;
         }
         html += `</div>`;
@@ -567,18 +606,20 @@ $(document).ready(function () {
                 </button>
             </div>`;
         } else {
-            html += `<div class="oplog-attachment-dropzone" id="recording-dropzone-${safeId}" onclick="uploadRecording(${safeId})">
+            html += `<button type="button" class="oplog-attachment-dropzone" id="recording-dropzone-${safeId}" onclick="uploadRecording(${safeId})">
                 <div class="dropzone-icon"><i class="fas fa-play-circle"></i></div>
                 <div class="dropzone-text">No terminal recording attached</div>
                 <div class="dropzone-hint">Drag & drop a .cast or .cast.gz file or click to upload</div>
-            </div>`;
+            </button>`;
         }
         html += `</div>`;
 
         html += `</div>`; // end body
         $detailContent.html(html).show();
         $detailEmpty.hide();
-        $('[data-toggle="tooltip"]').tooltip();
+        $detailContent[0].querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (tooltip) {
+            bootstrap.Tooltip.getOrCreateInstance(tooltip);
+        });
 
         // Initialize asciinema player if recording data is available
         if (typeof AsciinemaPlayer !== 'undefined') {
@@ -639,8 +680,8 @@ $(document).ready(function () {
         let safeId = sanitizeEntryId(entryId);
         if (safeId === null) return;
         selectedEntryId = safeId;
-        $tableBody.find('tr').removeClass('oplog-entry-selected');
-        $(`#entry-${safeId}`).addClass('oplog-entry-selected');
+        $tableBody.find('tr').removeClass('oplog-entry-selected').attr('aria-selected', 'false');
+        $(`#entry-${safeId}`).addClass('oplog-entry-selected').attr('aria-selected', 'true');
         $splitContainer.addClass('oplog-has-selection');
         renderDetail(entryDataStore[safeId]);
     }
@@ -656,7 +697,7 @@ $(document).ready(function () {
     function deselectEntry() {
         if (modalShield) return;
         if (selectedEntryId !== null) {
-            $tableBody.find('tr').removeClass('oplog-entry-selected');
+            $tableBody.find('tr').removeClass('oplog-entry-selected').attr('aria-selected', 'false');
             selectedEntryId = null;
             $splitContainer.removeClass('oplog-has-selection');
             renderDetail(null);
@@ -697,10 +738,11 @@ $(document).ready(function () {
         }
     };
 
-    window.deleteEntry = function ($ele) {
-        let id = $($ele).attr('entry-id');
-        socket.send(JSON.stringify({ action: 'delete', oplogEntryId: id }));
-        displayToastTop({ type: 'success', string: 'Successfully deleted a log entry.', title: 'Oplog Update' });
+    window.requestDeleteEntry = function ($ele) {
+        let safeId = sanitizeEntryId($($ele).attr('entry-id'));
+        if (safeId === null) return;
+        pendingDeleteEntryId = safeId;
+        $('#oplog-entry-delete-modal').modal('show');
     };
 
     window.copyEntry = function ($ele) {
@@ -709,16 +751,20 @@ $(document).ready(function () {
         displayToastTop({ type: 'success', string: 'Successfully cloned a log entry.', title: 'Oplog Update' });
     };
 
-    window.editEntry = function (entryId, applyDefaultSource = false) {
+    window.editEntry = function (entryId, applyDefaults = false) {
         let safeId = sanitizeEntryId(entryId);
         if (safeId === null) return;
         let url = window.location.origin + '/oplog/entry/update/' + safeId;
         $('.oplog-form-div').load(url, function () {
             const $editModal = $('#edit-modal');
-            const defaultSource = String($defaultSourceInput.val() || '').trim();
-            const $sourceField = $editModal.find('input[name="source_ip"]');
-            if (applyDefaultSource && defaultSource && !$sourceField.val()) {
-                $sourceField.val(defaultSource).trigger('change');
+            if (applyDefaults) {
+                entryDefaultFields.forEach(function (field) {
+                    let defaultValue = String(field.input.val() || '').trim();
+                    let $formField = $editModal.find(`[name="${field.formName}"]`);
+                    if (defaultValue && !$formField.val()) {
+                        $formField.val(defaultValue).trigger('change');
+                    }
+                });
             }
             $editModal.find('.modal-body').scrollTop(0);
             $editModal.modal('show');
@@ -861,8 +907,8 @@ $(document).ready(function () {
 
     function showPendingFileIndicator(modalSelector, formSelector, file) {
         let $fileInput = $(formSelector + ' #id_document');
-        // Update the Bootstrap 4 custom-file-label to show the filename in-place of "---"
-        let $label = $fileInput.next('label.custom-file-label');
+        // Update the upload-card label to show the selected filename.
+        let $label = $fileInput.next('label.resource-file-label');
         if ($label.length) {
             $label.text(file.name);
         }
@@ -973,7 +1019,7 @@ $(document).ready(function () {
                     preview = `<img src="${jsEscape('/reporting/evidence/download/' + ev.id)}" alt="${jsEscape(ev.friendly_name)}" class="oplog-evidence-thumb text-center" onclick="openLightbox('${jsEscape('/reporting/evidence/download/' + ev.id)}')" loading="lazy">`;
                 }
                 let detailUrl = window.location.origin + '/reporting/reports/evidence/' + ev.id;
-                html += `<div class="oplog-evidence-item text-left mt-2">
+                html += `<div class="oplog-evidence-item text-start mt-2">
                     <div class="oplog-evidence-item-header">
                         <i class="fas ${icon}"></i>
                         <a href="${jsEscape(detailUrl)}" target="_blank" title="View">${jsEscape(ev.friendly_name)} (${jsEscape(ev.uploaded_by_user)})</a>
@@ -1065,6 +1111,7 @@ $(document).ready(function () {
             entryDataStore = {};
             if (selectedEntryId) {
                 selectedEntryId = null;
+                $splitContainer.removeClass('oplog-has-selection');
                 $detailContent.hide();
                 $detailEmpty.show();
             }
@@ -1126,8 +1173,14 @@ $(document).ready(function () {
                         // Entry not yet in this page — load the next page and keep checking
                         fetch(false);
                     }
-                } else if (!deepLinkEntryId && !selectedEntryId && $tableBody.find('tr').length > 0) {
-                    // No deep-link: auto-select the first entry
+                } else if (
+                    !deepLinkEntryId &&
+                    !selectedEntryId &&
+                    $tableBody.find('tr').length > 0 &&
+                    window.matchMedia('(min-width: 721px)').matches
+                ) {
+                    // At two-pane widths, populate the viewer immediately. Narrow
+                    // workspaces start on the list so the user can choose an entry.
                     let firstId = $tableBody.find('tr').first().data('entry-id');
                     selectEntry(firstId);
                 }
@@ -1292,9 +1345,13 @@ $(document).ready(function () {
             let $vis = $(this);
             let $hid = $hiddenThs.eq(i);
             $vis.removeClass('up down none');
-            if ($hid.hasClass('up')) $vis.addClass('up');
-            else if ($hid.hasClass('down')) $vis.addClass('down');
-            else $vis.addClass('none');
+            if ($hid.hasClass('up')) {
+                $vis.addClass('up').attr('aria-sort', 'descending');
+            } else if ($hid.hasClass('down')) {
+                $vis.addClass('down').attr('aria-sort', 'ascending');
+            } else {
+                $vis.addClass('none').attr('aria-sort', 'none');
+            }
         });
     }
 
@@ -1318,6 +1375,13 @@ $(document).ready(function () {
         }
 
         $table.trigger('sorton', [newSortList]);
+    });
+
+    $tableHeader.on('keydown', 'th', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            $(this).trigger('click');
+        }
     });
 
     // After every sort, copy indicators to visible header
@@ -1350,34 +1414,39 @@ $(document).ready(function () {
     });
 
     $('#columnSelectDropdown').click(function () {
-        $('#columnSelect').slideToggle('slow');
-        $(this).toggleClass('open');
+        let $button = $(this);
+        let $columnSelect = $('#columnSelect').stop(true, true);
+        let isOpen = !$columnSelect.is(':visible');
+        $button.toggleClass('open', isOpen).attr('aria-expanded', String(isOpen));
+        $columnSelect.slideToggle(120);
     });
 
     // --- Click handlers ---
-    let clickTimer = null;
-    let clickedEntryId = null;
-
-    $tableBody.on('click', 'tr', function (e) {
+    $tableBody.on('click', 'tr', function () {
         let entryId = $(this).data('entry-id');
         if (!entryId) return;
+        selectEntry(entryId);
+    });
 
-        if (clickTimer !== null && clickedEntryId === entryId) {
-            // Double-click: select entry and open edit modal
-            clearTimeout(clickTimer);
-            clickTimer = null;
-            clickedEntryId = null;
+    $tableBody.on('dblclick', 'tr', function () {
+        let entryId = $(this).data('entry-id');
+        if (!entryId) return;
+        selectEntry(entryId);
+        editEntry(entryId);
+    });
+
+    $tableBody.on('keydown', 'tr', function (e) {
+        let entryId = $(this).data('entry-id');
+        if (!entryId) return;
+        if (e.key === ' ') {
+            e.preventDefault();
+            e.stopPropagation();
+            selectEntry(entryId);
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            e.stopPropagation();
             selectEntry(entryId);
             editEntry(entryId);
-        } else {
-            // Single-click: select entry
-            clickedEntryId = entryId;
-            if (clickTimer) clearTimeout(clickTimer);
-            clickTimer = setTimeout(function () {
-                clickTimer = null;
-                clickedEntryId = null;
-                selectEntry(entryId);
-            }, 220);
         }
     });
 
@@ -1395,6 +1464,14 @@ $(document).ready(function () {
     let startX, startWidth;
     const $resizeHandle = $('#oplogResizeHandle');
 
+    function resizeListPane(newWidth) {
+        let containerWidth = $splitContainer.width();
+        let minLeft = Math.min(280, containerWidth);
+        let minRight = containerWidth > 580 ? 300 : 0;
+        newWidth = Math.max(minLeft, Math.min(newWidth, containerWidth - minRight));
+        $listPane.css('width', newWidth + 'px');
+    }
+
     $resizeHandle.on('mousedown', function (e) {
         isResizing = true;
         startX = e.clientX;
@@ -1408,11 +1485,7 @@ $(document).ready(function () {
     $(document).on('mousemove', function (e) {
         if (!isResizing) return;
         let newWidth = startWidth + (e.clientX - startX);
-        let containerWidth = $splitContainer.width();
-        let minLeft = 280;
-        let minRight = 300;
-        newWidth = Math.max(minLeft, Math.min(newWidth, containerWidth - minRight));
-        $listPane.css('width', newWidth + 'px');
+        resizeListPane(newWidth);
     });
 
     $(document).on('mouseup', function () {
@@ -1422,6 +1495,12 @@ $(document).ready(function () {
             $('body').css('cursor', '');
             $('body').css('user-select', '');
         }
+    });
+
+    $resizeHandle.on('keydown', function (e) {
+        if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+        e.preventDefault();
+        resizeListPane($listPane.width() + (e.key === 'ArrowLeft' ? -24 : 24));
     });
 
     // --- AJAX form submit ---
@@ -1438,12 +1517,17 @@ $(document).ready(function () {
                 success: function (xhr) {
                     if ($(xhr).find('.has-error').length > 0) {
                         submissionPending = false;
+                        if (window.gwDestroyTiptapEditors) {
+                            window.gwDestroyTiptapEditors(modal);
+                        }
                         $(modal).find('.oplog-form-div').html(xhr);
-                        formAjaxSubmit(form, modal);
+                        if (window.gwInitTiptapTextareas) {
+                            window.gwInitTiptapTextareas(modal);
+                        }
+                        formAjaxSubmit($(modal).find('form').first(), modal);
                     } else {
                         $(modal).modal('hide');
                     }
-                    tinymceRemove();
                 },
                 error: function () {
                     submissionPending = false;
@@ -1453,8 +1537,27 @@ $(document).ready(function () {
     };
 
     $('#edit-modal').on('hide.bs.modal', function () {
-        tinymceRemove();
+        if (window.gwDestroyTiptapEditors) {
+            window.gwDestroyTiptapEditors(this);
+        }
     });
+
+    $('#edit-modal').on('hidden.bs.modal', function () {
+        let selectedRow = selectedEntryId === null ? null : document.getElementById(`entry-${selectedEntryId}`);
+        if (selectedRow) {
+            selectedRow.focus({ preventScroll: true });
+        }
+    });
+
+    // Give the edit modal sole ownership of Escape. Capturing the key before
+    // form controls and rich-text editors prevents the same keystroke from
+    // reaching the timeline handler and deselecting the active row.
+    document.getElementById('edit-modal').addEventListener('keydown', function (event) {
+        if (event.key !== 'Escape' || !this.classList.contains('show')) return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        $(this).modal('hide');
+    }, true);
 
     $('#edit-modal').on('keydown', function (event) {
         if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
@@ -1506,21 +1609,71 @@ $(document).ready(function () {
 
     // --- Search ---
     let filter_debounce_timeout_id = null;
-    $searchInput.on('keyup', function (ev) {
+    $searchInput.on('input', function () {
+        $clearSearchBtn.prop('disabled', String($searchInput.val() || '').length === 0);
         if (filter_debounce_timeout_id !== null) clearTimeout(filter_debounce_timeout_id);
         filter_debounce_timeout_id = setTimeout(function () {
             filter_debounce_timeout_id = null;
             fetch(true);
-        }, ev.key === 'Enter' ? 0 : 500);
+        }, 500);
+    });
+
+    $searchInput.on('keydown', function (ev) {
+        if (ev.key !== 'Enter') return;
+        ev.preventDefault();
+        if (filter_debounce_timeout_id !== null) clearTimeout(filter_debounce_timeout_id);
+        filter_debounce_timeout_id = null;
+        fetch(true);
     });
 
     $clearSearchBtn.click(function () {
         $searchInput.val('');
+        $clearSearchBtn.prop('disabled', true);
         fetch(true);
     });
 
-    $clearDefaultSourceBtn.click(function () {
-        $defaultSourceInput.val('').focus();
+    function updateEntryDefaultsState() {
+        let configuredCount = entryDefaultFields.filter(function (field) {
+            return String(field.input.val() || '').trim() !== '';
+        }).length;
+        let hasDefaults = configuredCount > 0;
+        $entryDefaultsCount.text(hasDefaults ? `${configuredCount} set` : '').toggleClass('d-none', !hasDefaults);
+        $entryDefaultsButton.toggleClass('has-defaults', hasDefaults);
+        $clearEntryDefaultsBtn.prop('disabled', !hasDefaults);
+    }
+
+    $entryDefaultInputs.on('input', updateEntryDefaultsState);
+
+    $clearEntryDefaultsBtn.click(function () {
+        $entryDefaultInputs.val('');
+        updateEntryDefaultsState();
+        $defaultSourceInput.focus();
+    });
+
+    $('#oplog-entry-defaults-modal').on('shown.bs.modal', function () {
+        $defaultSourceInput.focus();
+    });
+
+    updateEntryDefaultsState();
+
+    $oplogEmptyAction.click(function () {
+        if ($(this).attr('data-empty-action') === 'clear-filter') {
+            $clearSearchBtn.trigger('click');
+        } else {
+            createEntry(oplog_id);
+        }
+    });
+
+    $('#confirmOplogEntryDelete').click(function () {
+        if (pendingDeleteEntryId === null) return;
+        socket.send(JSON.stringify({ action: 'delete', oplogEntryId: pendingDeleteEntryId }));
+        pendingDeleteEntryId = null;
+        $('#oplog-entry-delete-modal').modal('hide');
+        displayToastTop({ type: 'success', string: 'Successfully deleted a log entry.', title: 'Oplog Update' });
+    });
+
+    $('#oplog-entry-delete-modal').on('hidden.bs.modal', function () {
+        pendingDeleteEntryId = null;
     });
 
     // --- Mute toggle ---
@@ -1559,15 +1712,9 @@ $(document).ready(function () {
 
     // --- Keyboard shortcuts ---
     $(window).keydown(function (event) {
-        if (event.ctrlKey && event.keyCode === 78) {
+        if ((event.ctrlKey || event.metaKey) && !event.altKey && event.key.toLowerCase() === 'n') {
             event.preventDefault();
             createEntry(oplog_id);
-        }
-        if (event.ctrlKey && event.keyCode === 83) {
-            event.preventDefault();
-            let filename = generateDownloadName(oplog_name + '-log-export-' + oplog_id.toString() + '.csv');
-            let export_url = $splitContainer.attr('data-oplog-export-url');
-            download(export_url, filename);
         }
     });
 
@@ -1591,6 +1738,7 @@ $(document).ready(function () {
                 if ($firstRow.length > 0) {
                     e.preventDefault();
                     selectEntry($firstRow.data('entry-id'));
+                    $firstRow.trigger('focus');
                 }
             }
             return;
@@ -1615,6 +1763,7 @@ $(document).ready(function () {
             let nextId = $next.data('entry-id');
             if (nextId) {
                 selectEntry(nextId);
+                $next.trigger('focus');
                 // Scroll into view
                 let scrollContainer = $listScroll[0];
                 let rowEl = $next[0];

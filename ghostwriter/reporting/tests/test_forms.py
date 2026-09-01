@@ -15,7 +15,6 @@ from ghostwriter.factories import (
     ProjectAssignmentFactory,
     ProjectFactory,
     ReportFactory,
-    ReportObservationLinkFactory,
     ReportDocxTemplateFactory,
     ReportPptxTemplateFactory,
     SeverityFactory,
@@ -27,7 +26,6 @@ from ghostwriter.reporting.forms import (
     FindingNoteForm,
     LocalFindingNoteForm,
     ReportForm,
-    ReportObservationLinkUpdateForm,
     ReportTemplateForm,
     SelectReportTemplateForm,
     SeverityForm,
@@ -212,37 +210,6 @@ class ReportFormTests(TestCase):
         self.assertEqual(form["project"].errors.as_data()[0].code, "invalid_choice")
 
 
-class ReportObservationLinkUpdateFormTests(TestCase):
-    """Collection of tests for :form:`reporting.ReportObservationLinkForm`."""
-
-    @classmethod
-    def setUpTestData(cls):
-        cls.observation = ReportObservationLinkFactory()
-        cls.blank_observation = ReportObservationLinkFactory(added_as_blank=True)
-
-    def test_valid_data(self):
-        data = self.observation.__dict__.copy()
-        data["instance"] = self.observation
-        form = ReportObservationLinkUpdateForm(data=data)
-        self.assertTrue(form.is_valid())
-
-    def test_blank_assigned_to(self):
-        self.observation.assigned_to = None
-
-        data = self.observation.__dict__.copy()
-        data["instance"] = self.observation
-        form = ReportObservationLinkUpdateForm(data)
-        self.assertTrue(form.is_valid())
-
-    def test_added_as_blank_field(self):
-        data = self.observation.__dict__.copy()
-        data["instance"] = self.blank_observation
-        form = ReportObservationLinkUpdateForm(data=data)
-        self.assertTrue(form.is_valid())
-        form.save()
-        self.assertTrue(self.blank_observation.added_as_blank)
-
-
 class BaseEvidenceFormTests:
     """Collection of tests for :form:`reporting.EvidenceForm`."""
 
@@ -282,7 +249,6 @@ class BaseEvidenceFormTests:
         caption=None,
         description=None,
         evidence_queryset=None,
-        modal=False,
         **kwargs,
     ):
         if not evidence_queryset:
@@ -298,7 +264,6 @@ class BaseEvidenceFormTests:
                 "document": document,
             },
             evidence_queryset=evidence_queryset,
-            is_modal=modal,
         )
 
     def test_valid_data(self):
@@ -344,13 +309,6 @@ class BaseEvidenceFormTests:
         errors = form["friendly_name"].errors.as_data()
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0].code, "duplicate")
-
-    def test_modal_argument(self):
-        modal_evidence = self.evidence_dict.copy()
-        modal_evidence["friendly_name"] = "Modal Evidence"
-
-        form = self.form_data(**modal_evidence, is_modal=True)
-        self.assertTrue(form.is_valid())
 
     def test_null_evidence_queryset_argument(self):
         evidence = self.evidence_dict.copy()
@@ -407,6 +365,16 @@ class FindingNoteFormTests(TestCase):
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0].code, "required")
 
+    def test_refreshed_layout(self):
+        form = self.form_data()
+
+        self.assertTrue(form.helper.form_show_labels)
+        self.assertEqual(form.helper.layout.fields[0].css_class, "resource-note-field")
+        self.assertEqual(
+            form.helper.layout.fields[1].css_class,
+            "resource-form-actions resource-note-actions",
+        )
+
 
 class LocalFindingNoteFormTests(TestCase):
     """Collection of tests for :form:`reporting.LocalFindingNoteForm`."""
@@ -444,6 +412,16 @@ class LocalFindingNoteFormTests(TestCase):
         errors = form["note"].errors.as_data()
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0].code, "required")
+
+    def test_refreshed_layout(self):
+        form = self.form_data()
+
+        self.assertTrue(form.helper.form_show_labels)
+        self.assertEqual(form.helper.layout.fields[0].css_class, "resource-note-field")
+        self.assertEqual(
+            form.helper.layout.fields[1].css_class,
+            "resource-form-actions resource-note-actions",
+        )
 
 
 class ReportTemplateFormTests(TestCase):

@@ -388,8 +388,13 @@ class Project(models.Model):
     def user_viewable(cls, user):
         return cls.for_user(user)
 
+    @classmethod
+    def user_editable(cls, user):
+        """Return projects the user may modify."""
+        return cls.for_user(user)
+
     def user_can_edit(self, user) -> bool:
-        return self.user_can_view(user)
+        return self.user_editable(user).contains(self)
 
     def user_can_delete(self, user) -> bool:
         return self.user_can_view(user)

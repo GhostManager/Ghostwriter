@@ -23,6 +23,8 @@ import { faTerminal } from "@fortawesome/free-solid-svg-icons/faTerminal";
 import { faTextSlash } from "@fortawesome/free-solid-svg-icons/faTextSlash";
 import { faUnderline } from "@fortawesome/free-solid-svg-icons/faUnderline";
 import { faBars } from "@fortawesome/free-solid-svg-icons/faBars";
+import { faRotateLeft } from "@fortawesome/free-solid-svg-icons/faRotateLeft";
+import { faRotateRight } from "@fortawesome/free-solid-svg-icons/faRotateRight";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { HocuspocusProvider } from "@hocuspocus/provider";
 import {
@@ -105,6 +107,7 @@ function FormatButton(props: {
             className={active ? "is-active" : undefined}
             tabIndex={-1}
             title={props.tooltip}
+            aria-label={props.tooltip}
         >
             {props.children}
         </button>
@@ -114,11 +117,95 @@ function FormatButton(props: {
 export function Toolbar(props: {
     editor: Editor | null;
     extra?: (editor: Editor) => React.ReactNode;
+    history?: boolean;
+    profile?: "compact" | "standard" | "narrative" | "full";
 }) {
     const editor = props.editor;
     if (!editor || editor.isDestroyed) return null;
+
+    if (props.profile === "compact") {
+        return (
+            <div className="control-group" aria-label="Text formatting">
+                <div className="button-group">
+                    <FormatButton
+                        editor={editor}
+                        chain={(c) => c.toggleBold()}
+                        active="bold"
+                        tooltip="Bold"
+                    >
+                        <FontAwesomeIcon icon={faBold} />
+                    </FormatButton>
+                    <FormatButton
+                        editor={editor}
+                        chain={(c) => c.toggleItalic()}
+                        active="italic"
+                        tooltip="Italic"
+                    >
+                        <FontAwesomeIcon icon={faItalic} />
+                    </FormatButton>
+                    <LinkButton editor={editor} />
+                    <Menu
+                        portal
+                        menuClassName="collab-edit-toolbar-menu"
+                        menuButton={
+                            <MenuButton tabIndex={-1} title="List">
+                                <FontAwesomeIcon icon={faList} />
+                                <FontAwesomeIcon icon={faChevronDown} />
+                            </MenuButton>
+                        }
+                    >
+                        <FormatButton
+                            menuItem
+                            editor={editor}
+                            chain={(c) => c.toggleBulletList()}
+                            active="bulletList"
+                        >
+                            Bullet list
+                        </FormatButton>
+                        <FormatButton
+                            menuItem
+                            editor={editor}
+                            chain={(c) => c.toggleOrderedList()}
+                            active="orderedList"
+                        >
+                            Numbered list
+                        </FormatButton>
+                    </Menu>
+                    <FormatButton
+                        editor={editor}
+                        chain={(c) => c.unsetAllMarks()}
+                        tooltip="Clear formatting"
+                    >
+                        <FontAwesomeIcon icon={faTextSlash} />
+                    </FormatButton>
+                </div>
+            </div>
+        );
+    }
+
     return (
-        <div className="control-group">
+        <div className="control-group" aria-label="Text formatting">
+            {props.history && (
+                <>
+                    <div className="button-group">
+                        <FormatButton
+                            editor={editor}
+                            chain={(c) => c.undo()}
+                            tooltip="Undo"
+                        >
+                            <FontAwesomeIcon icon={faRotateLeft} />
+                        </FormatButton>
+                        <FormatButton
+                            editor={editor}
+                            chain={(c) => c.redo()}
+                            tooltip="Redo"
+                        >
+                            <FontAwesomeIcon icon={faRotateRight} />
+                        </FormatButton>
+                    </div>
+                    <div className="separator" />
+                </>
+            )}
             <div className="button-group">
                 <FormatButton
                     editor={editor}
@@ -204,7 +291,7 @@ export function Toolbar(props: {
                             menuItem
                             editor={editor}
                             chain={(c) => c.toggleHeading({ level })}
-                            active={(e) => e.isActive("heading", { level })}
+                            active={(e) => e.isActive("gwheading", { level })}
                         >
                             Heading {level}
                         </FormatButton>

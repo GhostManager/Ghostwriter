@@ -243,7 +243,9 @@ export function ConnectionStatus(props: { status: ConnectionStatus }) {
     const [text, cls] = STATUS_LOOKUP[props.status];
     return (
         <div className={"collab-connection-status alert " + cls}>
-            <small className="form-text text-muted">{text}</small>
+            <small className="collab-connection-status-message text-muted">
+                {text}
+            </small>
         </div>
     );
 }

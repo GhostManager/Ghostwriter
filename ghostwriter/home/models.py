@@ -28,3 +28,21 @@ class UserProfile(models.Model):
         ordering = ["user"]
         verbose_name = "User profile"
         verbose_name_plural = "User profiles"
+
+
+class DashboardExceptionDismissal(models.Model):
+    """Record a cleared dashboard alert without deleting its task history."""
+
+    task_id = models.CharField(max_length=32, unique=True)
+    dismissed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        on_delete=models.SET_NULL,
+        related_name="cleared_dashboard_exceptions",
+    )
+    dismissed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-dismissed_at"]
+        verbose_name = "dashboard exception dismissal"
+        verbose_name_plural = "dashboard exception dismissals"

@@ -2,67 +2,102 @@
 
 {% block pagetitle %}Health Status{% endblock %}
 
-{% block breadcrumbs %}
-  <nav aria-label="breadcrumb">
-    <ul class="breadcrumb">
-      <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-      <li class="breadcrumb-item active" aria-current="page">System Monitoring</li>
-    </ul>
-  </nav>
-{% endblock %}
-
 {% block content %}
-    <h1>System Status</h1>
-    <h2>Monitoring Thresholds</h2>
-    <table class="table table-sm table-borderless">
-      <thead>
-        <tr>
-          <th class="align-middle text-left">Check</th>
-          <th class="align-middle text-left">Configured Value</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for threshold in health_check_thresholds %}
-          <tr>
-            <td class="align-middle text-left">{{ threshold.name }}</td>
-            <td class="align-middle text-left">{{ threshold.value }}</td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-    <h2>Service Checks</h2>
-    <table class="table table-sm table-borderless">
-      <thead>
-        <tr>
-          <th class="align-middle text-left"></th>
-          <th class="align-middle text-left">Service</th>
-          <th class="align-middle text-left">Status</th>
-          <th class="align-middle text-left">Time Taken</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for status_result in status_results %}
-          <tr>
-            <td class="icons">
-              <span aria-hidden="true">
-                {% if status_result.result.error %}
-                  &#10060;
-                {% else %}
-                  &#9989;
-                {% endif %}
-              </span>
-            </td>
-            <td class="align-middle text-left">{{ status_result.display_name }}</td>
-            <td class="align-middle text-left">
-              {% if status_result.result.error %}
-                {{ status_result.result.error | linebreaks }}
-              {% else %}
-                {{ status_result.result.check.pretty_status | linebreaks }}
-              {% endif %}
-            </td>
-            <td class="align-middle text-left">{{ status_result.result.time_taken|floatformat:4 }} seconds</td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+  <main class="status-page">
+    <header class="status-page-heading">
+      <div>
+        <span class="detail-eyebrow">System monitoring</span>
+        <h1>System status</h1>
+        <p>Live checks for Ghostwriter’s required services and capacity safeguards.</p>
+      </div>
+      <div class="status-page-actions">
+        <a class="btn btn-sm btn-outline-secondary" href="{% url 'home:dashboard' %}">
+          <i class="fas fa-arrow-left" aria-hidden="true"></i> Return home
+        </a>
+        <span class="status-overall-state {% if has_check_failures %}is-attention{% else %}is-healthy{% endif %}">
+          <i class="fas {% if has_check_failures %}fa-exclamation-triangle{% else %}fa-check-circle{% endif %}" aria-hidden="true"></i>
+          {% if has_check_failures %}Attention required{% else %}Operational{% endif %}
+        </span>
+        <a class="btn btn-sm btn-outline-secondary" href="{% url 'status:healthcheck' %}">
+          <i class="fas fa-sync-alt" aria-hidden="true"></i> Refresh checks
+        </a>
+      </div>
+    </header>
+
+    <section class="status-summary-card {% if has_check_failures %}is-attention{% else %}is-healthy{% endif %}" aria-labelledby="status-summary-title">
+      <span class="status-summary-icon" aria-hidden="true">
+        <i class="fas {% if has_check_failures %}fa-exclamation-triangle{% else %}fa-heartbeat{% endif %}"></i>
+      </span>
+      <div class="status-summary-copy">
+        <span class="detail-eyebrow">Current readout</span>
+        <h2 id="status-summary-title">
+          {% if has_check_failures %}One or more checks need attention{% else %}All monitored services are operational{% endif %}
+        </h2>
+        <p>{{ healthy_check_count }} of {{ status_results|length }} checks returned a healthy result.</p>
+      </div>
+    </section>
+
+    <div class="status-page-grid">
+      <section class="status-section" aria-labelledby="monitoring-thresholds-title">
+        <header class="status-section-header">
+          <span class="status-section-icon" aria-hidden="true"><i class="fas fa-sliders-h"></i></span>
+          <div>
+            <span class="detail-eyebrow">Guardrails</span>
+            <h2 id="monitoring-thresholds-title">Monitoring thresholds</h2>
+          </div>
+        </header>
+        <dl class="status-threshold-list">
+          {% for threshold in health_check_thresholds %}
+            <div>
+              <dt>{{ threshold.name }}</dt>
+              <dd class="operator-data">{{ threshold.value }}</dd>
+            </div>
+          {% endfor %}
+        </dl>
+      </section>
+
+      <section class="status-section status-service-section" aria-labelledby="service-checks-title">
+        <header class="status-section-header">
+          <span class="status-section-icon" aria-hidden="true"><i class="fas fa-network-wired"></i></span>
+          <div>
+            <span class="detail-eyebrow">Dependencies</span>
+            <h2 id="service-checks-title">Service checks</h2>
+          </div>
+        </header>
+        <div class="table-responsive data-table-frame status-check-table">
+          <table class="table mb-0">
+            <thead>
+              <tr>
+                <th scope="col" class="status-check-indicator"><span class="visually-hidden">Result</span></th>
+                <th scope="col">Service</th>
+                <th scope="col">Status</th>
+                <th scope="col" class="status-check-time-header">Response time</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for status_result in status_results %}
+                <tr class="{% if status_result.is_healthy %}is-healthy{% else %}is-attention{% endif %}">
+                  <td class="status-check-indicator">
+                    <i class="fas {% if status_result.is_healthy %}fa-check-circle{% else %}fa-exclamation-triangle{% endif %}" aria-hidden="true"></i>
+                    <span class="visually-hidden">{% if status_result.is_healthy %}Healthy{% else %}Requires attention{% endif %}</span>
+                  </td>
+                  <td class="status-check-service">{{ status_result.display_name }}</td>
+                  <td>
+                    <span class="status-check-result {% if status_result.is_healthy %}is-healthy{% else %}is-attention{% endif %}">
+                      {% if status_result.result.error %}
+                        {{ status_result.result.error|linebreaksbr }}
+                      {% else %}
+                        {{ status_result.result.check.pretty_status|linebreaksbr }}
+                      {% endif %}
+                    </span>
+                  </td>
+                  <td class="operator-data status-check-time">{{ status_result.result.time_taken|floatformat:4 }}s</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </main>
 {% endblock content %}

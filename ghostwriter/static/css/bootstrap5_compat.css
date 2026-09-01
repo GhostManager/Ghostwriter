@@ -1,0 +1,65 @@
+/*
+ * Temporary compatibility layer for Bootstrap 4 markup that remains while
+ * Ghostwriter moves to Bootstrap 5. Keep new components on Bootstrap 5 APIs
+ * and remove these rules as the corresponding legacy markup is migrated.
+ */
+
+.close {
+  float: right;
+  padding: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
+  color: currentColor;
+  text-shadow: 0 1px 0 #fff;
+  background-color: transparent;
+  border: 0;
+  opacity: 0.5;
+}
+
+.close:hover,
+.close:focus {
+  color: currentColor;
+  text-decoration: none;
+  opacity: 0.75;
+}
+
+.badge-primary {
+  color: #fff;
+  background-color: var(--bs-primary);
+}
+
+.badge-secondary {
+  color: #fff;
+  background-color: var(--bs-secondary);
+}
+
+.badge-success {
+  color: #fff;
+  background-color: var(--bs-success);
+}
+
+.badge-danger {
+  color: #fff;
+  background-color: var(--bs-danger);
+}
+
+.badge-warning {
+  color: #000;
+  background-color: var(--bs-warning);
+}
+
+.badge-info {
+  color: #000;
+  background-color: var(--bs-info);
+}
+
+.badge-light {
+  color: #000;
+  background-color: var(--bs-light);
+}
+
+.badge-dark {
+  color: #fff;
+  background-color: var(--bs-dark);
+}

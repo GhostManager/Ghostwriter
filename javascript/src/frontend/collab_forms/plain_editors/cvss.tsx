@@ -99,7 +99,10 @@ function getCvssDefaultVersion(): "3.1" | "4.0" {
         }
     } catch (e) {
         // localStorage may throw in privacy mode, blocked third-party storage, or quota exceeded
-        console.warn("Could not access localStorage for CVSS version preference:", e);
+        console.warn(
+            "Could not access localStorage for CVSS version preference:",
+            e
+        );
     }
 
     // Fall back to backend config
@@ -123,7 +126,10 @@ function saveCvssVersionPreference(version: "3.1" | "4.0") {
         localStorage.setItem(CVSS_VERSION_STORAGE_KEY, version);
     } catch (e) {
         // localStorage may throw in privacy mode, blocked third-party storage, or quota exceeded
-        console.warn("Could not save CVSS version preference to localStorage:", e);
+        console.warn(
+            "Could not save CVSS version preference to localStorage:",
+            e
+        );
     }
 }
 
@@ -218,26 +224,32 @@ export default function CvssCalculator(props: {
     }
 
     return (
-        <div className="card mb-2 mt-3">
-            <div
-                className={
-                    "card-header library-filter d-flex " +
-                    (open ? "" : "collapsed")
-                }
+        <div className="cvss-calculator-panel mt-2">
+            <button
+                type="button"
+                className="cvss-calculator-toggle"
                 aria-expanded={open ? "true" : "false"}
-                onClick={(e) => {
-                    e.preventDefault();
-                    setOpen((v) => !v);
-                }}
+                aria-controls="cvss-calculator"
+                onClick={() => setOpen((value) => !value)}
             >
-                <h5 className="mb-0 flex-grow-1">CVSS Calculator</h5>
-                <span>{open ? "\u2212" : "\u002b"}</span>
-            </div>
+                <span className="cvss-calculator-toggle-copy">
+                    <span className="cvss-calculator-eyebrow">
+                        Scoring assistant
+                    </span>
+                    <span className="cvss-calculator-title">
+                        CVSS Calculator
+                    </span>
+                </span>
+                <i
+                    className={`fas fa-chevron-down cvss-calculator-chevron${open ? " is-open" : ""}`}
+                    aria-hidden="true"
+                />
+            </button>
             <div
                 id="cvss-calculator"
                 className={open ? "collapse show" : "collapse"}
             >
-                <div className="card-body">{form}</div>
+                <div className="cvss-calculator-body">{form}</div>
             </div>
         </div>
     );
@@ -299,17 +311,20 @@ function CvssV3Form(props: {
 
     return (
         <div id="cvss-v3-calculator" className="form-row cvss-calculator">
-            <h2>CVSS v3.1</h2>
-            <button
-                className="mt-2 mb-2 btn btn-outline-secondary cvss-switch"
-                onClick={(e) => {
-                    e.preventDefault();
-                    saveCvssVersionPreference("4.0");
-                    props.setVector(() => new Cvss4P0());
-                }}
-            >
-                Switch to v4
-            </button>
+            <div className="cvss-calculator-heading">
+                <h2>CVSS v3.1</h2>
+                <button
+                    type="button"
+                    className="btn btn-outline-secondary btn-sm cvss-switch"
+                    onClick={(e) => {
+                        e.preventDefault();
+                        saveCvssVersionPreference("4.0");
+                        props.setVector(() => new Cvss4P0());
+                    }}
+                >
+                    Use CVSS v4
+                </button>
+            </div>
 
             <div className="cvss-buttons">
                 <CvssButtons
@@ -350,17 +365,20 @@ function CvssV4Form(props: {
 
     return (
         <div id="cvss-v4-calculator" className="form-row cvss-calculator">
-            <h2>CVSS v4</h2>
-            <button
-                className="mt-2 mb-2 btn btn-outline-secondary cvss-switch"
-                onClick={(e) => {
-                    e.preventDefault();
-                    saveCvssVersionPreference("3.1");
-                    props.setVector(() => new Cvss3P1());
-                }}
-            >
-                Switch to v3
-            </button>
+            <div className="cvss-calculator-heading">
+                <h2>CVSS v4</h2>
+                <button
+                    type="button"
+                    className="btn btn-outline-secondary btn-sm cvss-switch"
+                    onClick={(e) => {
+                        e.preventDefault();
+                        saveCvssVersionPreference("3.1");
+                        props.setVector(() => new Cvss3P1());
+                    }}
+                >
+                    Use CVSS v3.1
+                </button>
+            </div>
 
             <div className="cvss-buttons">
                 <CvssButtons
@@ -416,20 +434,65 @@ function CvssButtons(props: {
     setVector: SetVector;
     connected: boolean;
 }) {
+    const categories = Array.from(
+        props.vector.getRegisteredComponents().entries()
+    );
+    const baseCategories = categories.filter(
+        ([category]) => category.name === "base"
+    );
+    const advancedCategories = categories.filter(
+        ([category]) => category.name !== "base"
+    );
+    const advancedMetricCount = advancedCategories.reduce(
+        (count, [, components]) =>
+            count +
+            components.filter((component) => {
+                const value = props.vector.getComponent(component);
+                return value !== undefined && value.shortName !== "X";
+            }).length,
+        0
+    );
+    const [showAdvanced, setShowAdvanced] = useState(false);
+
+    const renderCategory = ([
+        category,
+        components,
+    ]: (typeof categories)[number]) => (
+        <CvssCategoryButtons
+            key={category.name}
+            vector={props.vector}
+            setVector={props.setVector}
+            connected={props.connected}
+            category={category}
+            components={components}
+        />
+    );
+
     return (
         <>
-            {Array.from(props.vector.getRegisteredComponents().entries()).map(
-                ([category, components], i) => (
-                    <CvssCategoryButtons
-                        key={category.name}
-                        vector={props.vector}
-                        setVector={props.setVector}
-                        connected={props.connected}
-                        category={category}
-                        components={components}
+            {baseCategories.map(renderCategory)}
+            {advancedCategories.length > 0 && (
+                <button
+                    type="button"
+                    className="cvss-advanced-toggle"
+                    aria-expanded={showAdvanced}
+                    onClick={() => setShowAdvanced((value) => !value)}
+                >
+                    <span>
+                        <strong>Advanced metrics</strong>
+                        <small>
+                            {advancedMetricCount > 0
+                                ? `${advancedMetricCount} configured`
+                                : "Optional temporal and environmental context"}
+                        </small>
+                    </span>
+                    <i
+                        className={`fas fa-chevron-down${showAdvanced ? " is-open" : ""}`}
+                        aria-hidden="true"
                     />
-                )
+                </button>
             )}
+            {showAdvanced && advancedCategories.map(renderCategory)}
         </>
     );
 }
@@ -580,6 +643,7 @@ function CvssButton(props: {
         : false;
     return (
         <button
+            type="button"
             onClick={click}
             className={
                 selected

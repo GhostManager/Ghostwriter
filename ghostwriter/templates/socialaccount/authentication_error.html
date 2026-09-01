@@ -1,0 +1,25 @@
+{% extends "account/base.html" %}
+
+{% load i18n %}
+
+{% block pagetitle %}{% trans "Organization sign-in unavailable" %}{% endblock pagetitle %}
+
+{% block inner %}
+    <div class="auth-challenge-heading">
+        <span class="auth-challenge-icon auth-journey-icon-danger" aria-hidden="true"><i class="fas fa-shield-alt"></i></span>
+        <div>
+            <span class="auth-challenge-eyebrow">{% trans "Organization sign-in" %}</span>
+            <h1>{% trans "Unable to sign in with your organization" %}</h1>
+            <p>{% trans "Ghostwriter could not complete the external authentication request." %}</p>
+        </div>
+    </div>
+
+    <div class="auth-journey-status auth-journey-status-danger">
+        <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+        <p>{% trans "Try again, or use another sign-in method. Contact your administrator if the problem continues." %}</p>
+    </div>
+
+    <div class="auth-journey-actions">
+        <a class="btn btn-primary auth-challenge-submit" href="{% url 'account_login' %}"><i class="fas fa-arrow-right" aria-hidden="true"></i> {% trans "Return to sign in" %}</a>
+    </div>
+{% endblock inner %}

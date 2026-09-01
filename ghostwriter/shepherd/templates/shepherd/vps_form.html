@@ -4,7 +4,16 @@
 {% block pagetitle %}Virtual Private Server{% endblock %}
 
 {% block content %}
-    <p>Enter the details for this VPS and how it will be used for the project.</p>
+    <header class="resource-form-page-heading mb-4">
+        <span class="detail-eyebrow">Project Server</span>
+        {% if object.pk %}
+            <h1>Edit {{ object.name|default:object.ip_address }}</h1>
+            <p>Keep this engagement-specific host and its operational role current.</p>
+        {% else %}
+            <h1>Add project server</h1>
+            <p>Record a VPS or other temporary host used only for this engagement.</p>
+        {% endif %}
+    </header>
 
     <!-- Form Error Section -->
     {% if form.errors %}
@@ -20,6 +29,7 @@
         </script>
     {% endif %}
 
-    <!-- Form Section -->
-    {% crispy form form.helper %}
+    <div class="resource-form-shell">
+        {% crispy form form.helper %}
+    </div>
 {% endblock %}

@@ -1,24 +1,28 @@
-{% extends "base_generic.html" %}
+{% extends "base_generic_empty.html" %}
 
 {% load static %}
 
-{% block title %}Forbidden (403){% endblock %}
-
-{% block breadcrumbs %}
-  <nav aria-label="breadcrumb" style="padding-left: 20px;">
-    <ul class="breadcrumb" style="margin: 0;">
-      <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-      <li class="breadcrumb-item active" aria-current="page">Forbidden</li>
-    </ul>
-  </nav>
-{% endblock %}
+{% block title %}Access denied · Ghostwriter{% endblock %}
 
 {% block content %}
-    <h2>Forbidden (403)</h2>
-
-    <img src="{% static 'images/amazed.png' %}" alt="403 Ghost Image" style="max-width: 250px;">
-
-    <p class="mt-3">Uh oh, you aren't supposed to be here.</p>
-
-    <p>You weren't trying to access something restricted, were you?</p>
+    <section class="error-state-page error-state--forbidden" aria-labelledby="error-state-title">
+        <article class="error-state-card">
+            <header class="error-state-header">
+                <div class="error-state-code" aria-label="Status code 403">403</div>
+                <img class="error-state-art" src="{% static 'images/amazed.png' %}" alt="" aria-hidden="true">
+                <div>
+                    <span class="detail-eyebrow">Access restricted</span>
+                    <h1 id="error-state-title">You do not have access to this page</h1>
+                    <p>Your account does not have the permission required for this action or resource.</p>
+                </div>
+            </header>
+            <div class="error-state-guidance">
+                <i class="fas fa-user-shield" aria-hidden="true"></i>
+                <p>Ask a Ghostwriter administrator if you believe your role should include this access.</p>
+            </div>
+            <footer class="error-state-actions">
+                <a href="{% url 'home:dashboard' %}" class="btn btn-primary"><i class="fas fa-home" aria-hidden="true"></i> Return to dashboard</a>
+            </footer>
+        </article>
+    </section>
 {% endblock content %}

@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+* Added a working-context application shell with customizable sidebar navigation and quicker access to active engagements and reports
+
+### Changed
+
+* Upgraded the interface from Bootstrap 4 to Bootstrap 5.3 and replaced legacy components and styles with the refreshed design system
+* Redesigned the dashboard and the primary client, project, infrastructure, reporting, operation log, profile, credential, and administration workflows
+  * Updated cards, tables, forms, tabs, modals, menus, filters, empty states, and status presentations for greater consistency and readability
+  * Improved theme support, keyboard and screen-reader accessibility, and navigation behavior in narrow windows
+* Modernized rich-text editing and preview workflows with the refreshed TipTap-based editors
+
+### Security
+
+* Added a report-only Content Security Policy baseline across Django and Nginx as groundwork for future CSP enforcement
+
 ## [7.2.6] - 10 August 2026
 
 ### Fixed

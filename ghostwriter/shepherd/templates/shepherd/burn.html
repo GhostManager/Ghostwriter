@@ -4,7 +4,11 @@
 {% block pagetitle %}Burn Domain{% endblock %}
 
 {% block content %}
-    <p>Explain why {{ domain_name }} is being marked as burned.</p>
+    <header class="resource-form-page-heading mb-4">
+        <span class="detail-eyebrow">Domain Health</span>
+        <h1>Mark {{ domain_name }} as burned</h1>
+        <p>Explain the signal or event that makes this domain unsafe for future operations.</p>
+    </header>
 
     <!-- Form Error Section -->
     {% if form.errors %}
@@ -20,6 +24,7 @@
         </script>
     {% endif %}
 
-    <!-- Form Section -->
-    {% crispy form form.helper %}
+    <div class="resource-form-shell">
+        {% crispy form form.helper %}
+    </div>
 {% endblock %}

@@ -4,26 +4,24 @@
 
 {% block pagetitle %}{{ primary_address }}{% endblock %}
 
-{% block breadcrumbs %}
-  <nav aria-label="breadcrumb">
-    <ul class="breadcrumb">
-      <li class="breadcrumb-item truncate"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-      <li class="breadcrumb-item truncate"><a href="{% url 'shepherd:servers' %}">Servers</a></li>
-      <li class="breadcrumb-item active truncate" aria-current="page">{{ primary_address }}</li>
-    </ul>
-  </nav>
-{% endblock %}
 
 {% block content %}
 
-  <div class="dropdown">
-    <div class="dropdown-menu-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
-         onclick="hamburger(this)">
-      <div class="bar1"></div>
-      <div class="bar2"></div>
-      <div class="bar3"></div>
-    </div>
-    <div class="dropdown-menu dropdown-menu-right" aria-labelledby="client-dropdown-btn">
+  <div class="infrastructure-detail-page">
+    <header class="detail-page-heading resource-detail-heading">
+      <div class="detail-page-heading-main resource-detail-heading-main">
+        <span class="detail-eyebrow">Reusable Server</span>
+        <h2 class="operator-data">{{ primary_address }}</h2>
+        <div class="detail-tag-list" aria-label="Server status and tags">
+          {% if staticserver.name %}<span class="library-tag library-tag-info">{{ staticserver.name }}</span>{% endif %}
+          <span class="library-tag {% if staticserver.server_status.server_status == 'Available' %}library-tag-success{% else %}library-tag-danger{% endif %}">{{ staticserver.server_status }}</span>
+          {% for tag in staticserver.tags.names %}<span class="library-tag library-tag-neutral">{{ tag|bleach }}</span>{% endfor %}
+        </div>
+      </div>
+      <div class="dropdown detail-page-heading-actions">
+        <button id="server-actions-button" type="button" class="btn btn-outline-primary btn-sm dropdown-toggle"
+                data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Actions</span></button>
+        <div class="dropdown-menu dropdown-menu-end" aria-labelledby="server-actions-button">
       <a class="dropdown-item icon edit-icon" href="{% url 'shepherd:server_update' staticserver.id %}">Edit Details</a>
       <a class="dropdown-item icon add-icon" href="{% url 'shepherd:server_update' staticserver.id %}#addresses">Add Aux
         IP Address</a>
@@ -34,18 +32,11 @@
         <a class="dropdown-item icon block-icon" href="#">Server Unavailable</a>
       {% endif %}
       <a class="dropdown-item icon trash-icon" href="{% url 'shepherd:server_delete' staticserver.id %}">Delete</a>
-    </div>
-  </div>
+        </div>
+      </div>
+    </header>
 
-  <div class="container">
-    <h2>{{ primary_address }} {% if staticserver.name %}({{ staticserver.name }}){% endif %}</h2>
-  </div>
-  {% for tag in staticserver.tags.names %}
-    <span class="badge badge-secondary">{{ tag|bleach }}</span>
-  {% endfor %}
-  <hr>
-
-  <div>
+  <div class="infrastructure-detail-workspace">
     <!-- Navigation Tabs -->
     <ul id="tab-bar" class="nav nav-tabs nav-justified"
         js-update-tabs-url="{% url 'shepherd:ajax_update_server_badges' staticserver.id %}">
@@ -55,110 +46,117 @@
     <!-- General Tab -->
     <div class="tab-content">
       <div id="details" class="tab-pane in active">
-        <h4>Server Details</h4>
-        <hr>
-
-        <table class="table table-borderless project-details-table offset-2 col-8">
-          <tr>
-            <td class="text-left bold">Hostname</td>
-            <td class="text-left">
-              {% if staticserver.name %} {{ staticserver.name }} {% else %} No Hostname {% endif %}
-            </td>
-          </tr>
-          <tr>
-            <td class="text-left bold">Hosting Provider</td>
-            <td class="text-left">{{ staticserver.server_provider }}</td>
-          </tr>
-          <tr>
-            <td class="text-left bold">Current Status</td>
-            <td class="text-left">
-              {{ staticserver.server_status }}
-            </td>
-          </tr>
-          <tr>
-            <td class="text-left bold">Additional Info</td>
-            <td class="text-left">
-              <a href="javascript:void(0);" id="serverDescriptionDropdown" class="align-icon icon add-icon">Show
-                More</a>
-            </td>
-          </tr>
-        </table>
-
-        <div id="serverDescription" class="d-flex justify-content-center">
-          <div class="description-block">
-            {% if staticserver.note %}
-              {{ staticserver.note|strip_empty_tags|bleach }}
-            {% else %}
-              <p class="mb-0">There are no additional information provided for this server.</p>
-            {% endif %}
+        <header class="content-section-header">
+          <div class="content-section-heading">
+            <h4 id="server-details-heading">Server Details</h4>
           </div>
+        </header>
+
+        <div class="detail-layout">
+          <section class="detail-panel" aria-labelledby="server-details-heading">
+            <dl class="detail-grid">
+              <div class="detail-field">
+                <dt>Hostname</dt>
+                <dd>{% if staticserver.name %}{{ staticserver.name }}{% else %}<span class="detail-empty">No hostname</span>{% endif %}</dd>
+              </div>
+              <div class="detail-field">
+                <dt>Hosting provider</dt>
+                <dd>{{ staticserver.server_provider }}</dd>
+              </div>
+              <div class="detail-field">
+                <dt>Current status</dt>
+                <dd><span class="library-tag {% if staticserver.server_status.server_status == 'Available' %}library-tag-success{% else %}library-tag-danger{% endif %}">{{ staticserver.server_status }}</span></dd>
+              </div>
+            </dl>
+          </section>
+
+          <section class="detail-panel infrastructure-description-panel" aria-labelledby="server-description-heading">
+            <div class="detail-panel-header">
+              <div>
+                <span class="detail-eyebrow">Operator context</span>
+                <h5 id="server-description-heading">Additional information</h5>
+              </div>
+            </div>
+            <div class="detail-prose">
+              {% if staticserver.description %}
+                {{ staticserver.description|strip_empty_tags|bleach }}
+              {% else %}
+                <p class="detail-empty mb-0">No additional information has been provided for this server.</p>
+              {% endif %}
+            </div>
+          </section>
+
+          <section class="detail-panel" aria-labelledby="server-addresses-heading">
+            <div class="detail-panel-header">
+              <div>
+                <span class="detail-eyebrow">Network identity</span>
+                <h5 id="server-addresses-heading">Server addresses</h5>
+              </div>
+            </div>
+            <div class="table-responsive data-table-frame mb-0">
+              <table id="address-table" class="table">
+                <thead>
+                  <tr>
+                    <th class="align-middle text-start">IP Address</th>
+                    <th class="align-middle text-start">Assignment</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="align-middle text-start operator-data" data-label="IP Address">{{ staticserver.ip_address }}</td>
+                    <td class="align-middle text-start" data-label="Assignment">Primary address</td>
+                  </tr>
+                  {% for addy in staticserver.auxserveraddress_set.all %}
+                    <tr>
+                      <td class="align-middle text-start operator-data" data-label="IP Address">{{ addy }}</td>
+                      <td class="align-middle text-start" data-label="Assignment">{% if addy.primary %}Primary address{% else %}Additional address{% endif %}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </section>
         </div>
-
-        <div class="hidden-element"></div>
-
-        <!-- Address Table -->
-        <table id="address-table" class="tablesorter table table-striped">
-          <thead>
-          <tr>
-            <th class="align-middle text-left">IP Address</th>
-            <th class="align-middle text-left">Primary</th>
-          </tr>
-          </thead>
-          <tr>
-            <td class="align-middle text-left">{{ staticserver.ip_address }}</td>
-            <td class="align-middle text-left">Assigned to Server</td>
-          </tr>
-          {% if staticserver.auxserveraddress_set %}
-            {% for addy in staticserver.auxserveraddress_set.all %}
-              <tr>
-                <td class="align-middle text-left">{{ addy }}</td>
-                <td class="align-middle text-left">
-                  {% if addy.primary %}
-                    Yes
-                  {% else %}
-                    No
-                  {% endif %}
-                </td>
-              </tr>
-            {% endfor %}
-          {% endif %}
-        </table>
       </div>
 
       <!-- History Tab -->
       <div id="history" class="tab-pane">
-        <h4>Server History</h4>
-        <hr/>
-
-        <p>If you do not have access to the related client or project, the history entry will be partially redacted.</p>
+        <header class="content-section-header">
+          <div class="content-section-heading">
+            <h4 id="server-history-heading">Server History</h4>
+            <p class="content-section-intro">Entries are partially redacted when you cannot access the related client or project.</p>
+          </div>
+        </header>
 
         {% if staticserver.serverhistory_set.all %}
-          <table id="project-table" class="tablesorter table table-striped">
-            <thead>
-            <tr>
-              <th class="align-middle pr-4 text-left">Project</th>
-              <th class="align-middle pr-4 text-left">Activity Type</th>
-              <th class="align-middle pr-4 text-left">Server Role</th>
-              <th class="align-middle sorter-date-range-dMMMyyyy pr-4 text-left">Execution Window</th>
-              <th class="align-middle pr-4 text-left">Checked Out By</th>
-              <th class="align-middle sorter-false">Options</th>
-            </tr>
-            </thead>
-            {% for checkout in staticserver.serverhistory_set.all %}
+          <div class="table-responsive data-table-frame">
+            <table id="server-history-table" class="tablesorter table">
+              <thead>
               <tr>
-                <td class="align-middle text-left">
+                <th class="align-middle pe-4 text-start">Project</th>
+                <th class="align-middle pe-4 text-start">Activity Type</th>
+                <th class="align-middle pe-4 text-start">Server Role</th>
+                <th class="align-middle sorter-date-range-dMMMyyyy pe-4 text-start">Execution Window</th>
+                <th class="align-middle pe-4 text-start">Checked Out By</th>
+                <th class="align-middle sorter-false text-end">Options</th>
+              </tr>
+              </thead>
+              <tbody>
+              {% for checkout in staticserver.serverhistory_set.all %}
+                <tr>
+                <td class="align-middle text-start">
                   {% if checkout.project|has_access:request.user %}
-                    <a class="clickable"
+                    <a class="table-primary-link"
                        href="{% url 'rolodex:project_detail' checkout.project.id %}">{{ checkout.project }}</a>
                   {% else %}
                     <span class="blurry">REDACTED</span>
                   {% endif %}
                 </td>
-                <td class="align-middle text-left">{{ checkout.activity_type }}</td>
-                <td class="align-middle text-left">{{ checkout.server_role }}</td>
-                <td class="align-middle text-left" data-text="{{ checkout.start_date|date:"Y-m-d" }}">{{ checkout.start_date|date:"DATE_FORMAT" }}
+                <td class="align-middle text-start">{{ checkout.activity_type }}</td>
+                <td class="align-middle text-start">{{ checkout.server_role }}</td>
+                <td class="align-middle text-start" data-text="{{ checkout.start_date|date:"Y-m-d" }}">{{ checkout.start_date|date:"DATE_FORMAT" }}
                   - {{ checkout.end_date|date:"DATE_FORMAT" }}</td>
-                <td class="align-middle text-left">
+                <td class="align-middle text-start">
                   {% if checkout.operator %}
                     {% if checkout.operator.name %}
                       {{ checkout.operator.name }} ({{ checkout.operator.username }})
@@ -169,117 +167,133 @@
                     Unknown/Deleted user
                   {% endif %}
                 </td>
-                <td class="align-middle">
+                <td class="align-middle text-end">
                   {% if checkout.project|has_access:request.user %}
-                    <div class="d-flex justify-content-center">
-                      <a class="icon edit-icon"
+                    <div class="table-row-actions">
+                      <a class="table-row-action"
+                         data-bs-toggle="tooltip"
+                         data-bs-placement="top"
                          title="Edit this history entry"
-                         href="{% url 'shepherd:server_history_update' checkout.id %}"></a>
-                      <a class="icon trash-icon"
+                         aria-label="Edit this history entry"
+                         href="{% url 'shepherd:server_history_update' checkout.id %}"><i class="fas fa-pencil-alt" aria-hidden="true"></i></a>
+                      <a class="table-row-action table-row-action-danger"
+                         data-bs-toggle="tooltip"
+                         data-bs-placement="top"
                          title="Delete this history entry"
-                         href="{% url 'shepherd:server_history_delete' checkout.id %}"></a>
+                         aria-label="Delete this history entry"
+                         href="{% url 'shepherd:server_history_delete' checkout.id %}"><i class="fas fa-trash-alt" aria-hidden="true"></i></a>
                     </div>
                   {% endif %}
                 </td>
               </tr>
             {% endfor %}
-          </table>
+              </tbody>
+            </table>
+          </div>
         {% else %}
-          <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">This server has no history.</div>
+          <div class="empty-state">
+            <p class="empty-state-title">No project history yet</p>
+            <p class="empty-state-description">Check this server out to a project to begin its usage history.</p>
+          </div>
         {% endif %}
       </div>
 
       <!-- Notes Tab -->
       <div id="notes" class="tab-pane">
-        <h4>Server Notes</h4>
-        <hr/>
-
-        <p>
-          <a class="icon add-icon btn btn-primary col-3" href="{% url 'shepherd:server_note_add' staticserver.id %}">Add
-            a Note</a>
-        </p>
+        <header class="content-section-header">
+          <div class="content-section-heading">
+            <h4 id="server-notes-heading">Server Notes</h4>
+          </div>
+          <a class="icon add-icon btn btn-primary btn-sm"
+             href="{% url 'shepherd:server_note_add' staticserver.id %}">Add a Note</a>
+        </header>
         {% if staticserver.servernote_set.all %}
-          {% for note in staticserver.servernote_set.all reversed %}
-            <div id="note-container-{{ note.id }}">
-              <div class="container note-container {% if forloop.counter|divisibleby:2 %}darker{% endif %}">
-                <div class="float-left col-10 col-md-10 col-sm-8">
-                  {{ note.note|bleach }}
-                </div>
-
-                <div class="float-right col-2 col-md-2 col-sm-4">
-                  <div>{% if note.operator %}<a class="note-link"
-                                                href="{% url 'users:user_detail' note.operator.username %}">{{ note.operator.username }}</a>{% else %}
-                    <span class="note-link">Deleted</span>{% endif %}</div>
-                  <div><p class="note-time">{{ note.timestamp }}</p></div>
-                </div>
-              </div>
-            </div>
-
-            {% if request.user == note.operator or request.user|is_privileged %}
-              <div class="pb-3">
-                <a class="note-link" href="{% url 'shepherd:server_note_edit' note.id %}">Edit</a> |
-                <a id="note-delete-button-{{ note.id }}" class="js-confirm-delete note-link" data-toggle="modal"
-                   data-target="#confirm-delete-modal" href="javascript:void(0);"
-                   delete-target-csrftoken="{{ csrf_token }}"
-                   delete-target-url="{% url 'shepherd:ajax_delete_server_note' note.id %}"
-                   delete-target-id="{{ note.id }}" delete-target-type="note">Delete</a>
-              </div>
-            {% endif %}
-          {% endfor %}
+          <div class="note-card-list">
+            {% for note in staticserver.servernote_set.all reversed %}
+              <article id="note-container-{{ note.id }}" class="note-card">
+                <div class="note-card-body">{{ note.note|bleach }}</div>
+                <footer class="note-card-footer">
+                  {% if request.user == note.operator or request.user|is_privileged %}
+                    <div class="note-card-actions" aria-label="Note actions">
+                      <a class="btn btn-outline-primary btn-sm icon edit-icon" href="{% url 'shepherd:server_note_edit' note.id %}">Edit</a>
+                      <a id="note-delete-button-{{ note.id }}" class="btn btn-outline-danger btn-sm js-confirm-delete"
+                         data-bs-toggle="modal" data-bs-target="#confirm-delete-modal" href="javascript:void(0);"
+                         delete-target-csrftoken="{{ csrf_token }}"
+                         delete-target-url="{% url 'shepherd:ajax_delete_server_note' note.id %}"
+                         delete-target-id="{{ note.id }}" delete-target-type="note"><i class="fas fa-trash-alt" aria-hidden="true"></i> Delete</a>
+                    </div>
+                  {% endif %}
+                  <div class="note-card-meta">
+                    {% if note.operator %}<a class="note-card-author" href="{% url 'users:user_detail' note.operator.username %}">{{ note.operator.username }}</a>{% else %}<span class="note-card-author">Deleted user</span>{% endif %}
+                    <span aria-hidden="true">&middot;</span>
+                    <time class="note-card-time" datetime="{{ note.timestamp|date:'c' }}">{{ note.timestamp }}</time>
+                  </div>
+                </footer>
+              </article>
+            {% endfor %}
+          </div>
         {% else %}
-          <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">There are no notes for this server.</div>
+          <div class="empty-state">
+            <p class="empty-state-title">No notes yet</p>
+            <p class="empty-state-description">Add a note when operators need context that does not belong in the server description.</p>
+          </div>
         {% endif %}
       </div>
 
       {% comment %} Extra Fields Tab {% endcomment %}
       {% if server_extra_fields_spec %}
         <div id="extra-fields" class="tab-pane">
-          <h4>Extra Fields</h4>
-          <hr/>
+          <header class="content-section-header">
+            <div class="content-section-heading">
+              <h4 id="server-extra-fields-heading">Extra Fields</h4>
+              <p class="content-section-intro">Jinja2 template syntax is not rendered in these previews because a project and report context is required.</p>
+            </div>
+            <a class="icon edit-icon btn btn-primary btn-sm" href="{% url 'shepherd:server_update' staticserver.id %}#extra-fields">Edit Extra Fields</a>
+          </header>
 
-          <p class="text-muted small">Jinja2 template syntax will not be rendered in these previews because a project and report context is needed. Rich text previews with rendered Jinja2 are available on report and project detail pages where these fields are referenced.</p>
-
-          <div class="extra-fields-grid">
+          <div class="extra-fields-grid client-extra-fields-grid infrastructure-extra-fields-grid">
             {% for field_spec in server_extra_fields_spec %}
-              <section class="extra-field-card">
-                <h5 class="extra-field-name">{{ field_spec.display_name }}</h5>
-                <div class="extra-field-type">
-                  {% if field_spec.type == "rich_text" %}
-                    Rich Text Field
-                  {% else %}
-                    {{ field_spec.get_type_display }} Field
-                  {% endif %}
+              <section class="extra-field-card" aria-labelledby="server-extra-field-{{ field_spec.internal_name }}">
+                <div class="extra-field-card-header">
+                  <h5 id="server-extra-field-{{ field_spec.internal_name }}" class="extra-field-name">{{ field_spec.display_name }}</h5>
+                  <span class="extra-field-type-badge">
+                    {% if field_spec.type == "rich_text" %}Rich Text{% else %}{{ field_spec.get_type_display }}{% endif %}
+                  </span>
                 </div>
-                <div class="extra-field-type">Loop and reference as <code>object.extra_fields.{{ field_spec.internal_name }}</code></div>
+                <div class="extra-field-reference">
+                  <span>Template reference</span>
+                  <code>staticserver.extra_fields.{{ field_spec.internal_name }}</code>
+                </div>
                 <div class="extra-field-value">
-                  {% if field_spec.type == "rich_text" %}
-                    <span class="extra-field-summary">Use Preview to view formatted content.</span>
-                  {% elif field_spec.type == "json" %}
-                    <span class="extra-field-summary">Use View JSON to inspect structured content.</span>
-                  {% else %}
-                    {% include "user_extra_fields/field.html" with extra_fields=staticserver.extra_fields field_spec=field_spec preview_report=False %}
-                  {% endif %}
+                  <span class="extra-field-value-label">Current value</span>
+                  <div class="extra-field-value-content">
+                    {% if field_spec.type == "rich_text" %}
+                      <span class="extra-field-summary">Formatted content is available in Preview.</span>
+                    {% elif field_spec.type == "json" %}
+                      <span class="extra-field-summary">Structured content is available in View JSON.</span>
+                    {% else %}
+                      {% include "user_extra_fields/field.html" with extra_fields=staticserver.extra_fields field_spec=field_spec preview_report=False %}
+                    {% endif %}
+                  </div>
                 </div>
-                <div class="extra-field-actions">
-                  {% if field_spec.type == "rich_text" %}
-                    <button type="button" class="btn btn-primary btn-sm icon view-icon" data-toggle="modal"
-                            data-target="#field_spec_{{ field_spec.internal_name }}">Preview
-                    </button>
-                  {% elif field_spec.type == "json" %}
-                    <button type="button" class="btn btn-primary btn-sm icon code-icon" data-toggle="modal"
-                            data-target="#field_spec_{{ field_spec.internal_name }}">View JSON
-                    </button>
-                  {% endif %}
-                  <a class="btn btn-outline-primary btn-sm icon edit-icon"
-                     href="{% url 'shepherd:server_update' staticserver.id %}#extra-fields"
-                     title="Edit {{ field_spec.display_name }}">Edit</a>
-                </div>
+                {% if field_spec.type == "rich_text" or field_spec.type == "json" %}
+                  <footer class="extra-field-actions">
+                    {% if field_spec.type == "rich_text" %}
+                      <button type="button" class="btn btn-primary btn-sm icon view-icon" data-bs-toggle="modal"
+                              data-bs-target="#field_spec_{{ field_spec.internal_name }}">Preview</button>
+                    {% else %}
+                      <button type="button" class="btn btn-primary btn-sm icon code-icon" data-bs-toggle="modal"
+                              data-bs-target="#field_spec_{{ field_spec.internal_name }}">View JSON</button>
+                    {% endif %}
+                  </footer>
+                {% endif %}
               </section>
             {% endfor %}
           </div>
         </div>
       {% endif %}
     </div>
+  </div>
   </div>
 {% endblock %}
 
@@ -291,7 +305,7 @@
   <!-- jQuery Tablesorter Script -->
   <script>
     $(document).ready(function () {
-      $("#project-table").tablesorter(
+      $("#server-history-table").tablesorter(
         {
           cssAsc: 'down',
           cssDesc: 'up',
@@ -299,22 +313,6 @@
         }
       );
       $('.tablesorter').trigger('update');
-    });
-  </script>
-
-  <!-- Hide Project Description -->
-  <script>
-    $('div.description-block').each(function () {
-      $(this).css('height', $(this).height() + 'px');
-      $(this).hide();
-    });
-  </script>
-
-  <!-- Expand Hidden Server Information -->
-  <script>
-    $('#serverDescriptionDropdown').click(function (e) {
-      $('div.description-block').slideToggle('slow');
-      $('#serverDescriptionDropdown').toggleClass('add-icon sub-icon')
     });
   </script>
 

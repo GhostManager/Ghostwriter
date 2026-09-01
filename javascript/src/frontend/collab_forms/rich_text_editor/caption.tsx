@@ -29,49 +29,82 @@ export default function CaptionButton({ editor }: { editor: Editor }) {
                 isOpen={modalOpen}
                 onRequestClose={() => setModalOpen(false)}
                 contentLabel="Insert Caption"
-                className="modal-dialog modal-dialog-centered"
+                className="modal-dialog modal-dialog-centered gw-editor-dialog"
             >
-                <div className="modal-content">
-                    <div className="modal-header">
-                        <h5 className="modal-title">Insert Caption</h5>
+                <div className="modal-content gw-editor-dialog-content">
+                    <div className="modal-header gw-editor-dialog-header">
+                        <div>
+                            <span className="gw-editor-dialog-eyebrow">
+                                Report structure
+                            </span>
+                            <h5 className="modal-title">Insert caption</h5>
+                            <p className="gw-editor-dialog-intro">
+                                Create a numbered caption at the current
+                                position in the report.
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            className="gw-editor-dialog-close"
+                            aria-label="Close caption dialog"
+                            onClick={() => setModalOpen(false)}
+                        >
+                            <i className="fas fa-times" aria-hidden="true" />
+                        </button>
                     </div>
                     <form
-                        className="modal-body text-center"
+                        className="gw-editor-dialog-form"
                         onSubmit={(ev) => {
                             ev.preventDefault();
                             editor.chain().setCaption(refName.trim()).run();
                             setModalOpen(false);
                         }}
                     >
-                        <div className="form-group">
-                            <label htmlFor={fieldId}>
-                                Reference Name (Optional)
-                            </label>
-                            <input
-                                id={fieldId}
-                                type="text"
-                                className="form-control"
-                                value={refName}
-                                autoFocus
-                                onChange={(e) => setRefName(e.target.value)}
-                            />
-                            <small className="form-text text-muted">
-                                If supplied, links can be made to this caption
-                                by using <code>{"{{.ref name}}"}</code>
-                            </small>
+                        <div className="modal-body gw-editor-dialog-body">
+                            <div className="gw-editor-dialog-field">
+                                <label htmlFor={fieldId}>
+                                    Reference name
+                                    <span className="gw-editor-dialog-optional">
+                                        Optional
+                                    </span>
+                                </label>
+                                <input
+                                    id={fieldId}
+                                    type="text"
+                                    className="form-control"
+                                    value={refName}
+                                    autoFocus
+                                    onChange={(e) => setRefName(e.target.value)}
+                                    placeholder="e.g., authentication-flow"
+                                />
+                                <small className="form-text">
+                                    Use a short name if you want to link to this
+                                    caption later with{" "}
+                                    <code>{"{{.ref name}}"}</code>.
+                                </small>
+                            </div>
                         </div>
 
-                        <div className="modal-footer">
-                            <button className="btn btn-primary">Insert</button>
+                        <div className="modal-footer gw-editor-dialog-footer">
                             <button
                                 type="button"
-                                className="btn btn-secondary"
+                                className="btn btn-outline-secondary"
                                 onClick={(e) => {
                                     e.preventDefault();
                                     setModalOpen(false);
                                 }}
                             >
                                 Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                className="btn gw-editor-primary-action"
+                            >
+                                <i
+                                    className="fas fa-bookmark"
+                                    aria-hidden="true"
+                                />
+                                Insert caption
                             </button>
                         </div>
                     </form>

@@ -1,18 +1,26 @@
 import { Editor, EditorContent, useEditor } from "@tiptap/react";
-import EXTENSIONS from "../tiptap_gw";
+import { createGhostwriterExtensions } from "../tiptap_gw";
 import { useCallback, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Toolbar } from "./collab_forms/rich_text_editor";
 
 function RichTextEditor(props: { name: string; initial: string; id: string }) {
     const editor = useEditor({
-        extensions: EXTENSIONS,
+        extensions: createGhostwriterExtensions({ undoRedo: true }),
         content: props.initial,
+        autofocus: false,
+        editorProps: {
+            attributes: {
+                "aria-label": "Default formatted text",
+                class: "gw-tiptap-editable",
+                spellcheck: "true",
+            },
+        },
     });
 
     return (
-        <div className="collab-editor">
-            <Toolbar editor={editor} />
+        <div className="collab-editor gw-standalone-editor gw-editor-profile-standard">
+            <Toolbar editor={editor} history profile="standard" />
             <EditorContent editor={editor} />
             <HtmlInputElement
                 editor={editor}
@@ -43,7 +51,7 @@ function HtmlInputElement(props: {
         return () => {
             props.editor?.off("update", updateHtml);
         };
-    }, [props.editor]);
+    }, [props.editor, updateHtml]);
 
     return <input type="hidden" name={props.name} value={html} id={props.id} />;
 }

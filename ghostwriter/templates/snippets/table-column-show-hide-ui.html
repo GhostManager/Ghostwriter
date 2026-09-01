@@ -1,41 +1,26 @@
-<div id="{{ column_show_hide_id|default:'column-show-hide-ui' }}-parent">
-  <div class="card mb-2">
-    <div
-      class="card-header"
-      role="tab"
-      data-toggle="collapse"
-      data-target="#{{ column_show_hide_id|default:'column-show-hide-ui' }}-accordion"
-    >
-      <h5 class="mb-0">
-        <a
-          data-toggle="collapse"
-          data-target="#{{ column_show_hide_id|default:'column-show-hide-ui' }}-accordion"
-          href="#{{ column_show_hide_id|default:'column-show-hide-ui' }}-accordion"
-          aria-controls="{{ column_show_hide_id|default:'column-show-hide-ui' }}-accordion"
-          aria-expanded="false"
-        >
-          Show/Hide Columns
-        </a>
-      </h5>
-    </div>
-    <div
-      id="{{ column_show_hide_id|default:'column-show-hide-ui' }}-accordion"
-      class="collapse"
-      role="tabpanel"
-      data-parent="#{{ column_show_hide_id|default:'column-show-hide-ui' }}-parent"
-    >
-      <div class="card-body">
-        <div class="form-row">
-          <div class="col-md-12 m-1">
-            <div
-              class="form-group"
-              id="{{ column_show_hide_id|default:'column-show-hide-ui' }}"
-            >
-              {%comment%} Filled by table-columns.js {%endcomment%}
-            </div>
-          </div>
+{% with picker_id=column_show_hide_id|default:'column-show-hide-ui' %}
+  <div id="{{ picker_id }}-parent" class="column-picker">
+    <button class="column-picker-toggle collapsed" type="button"
+            data-bs-toggle="collapse" data-bs-target="#{{ picker_id }}-accordion"
+            aria-controls="{{ picker_id }}-accordion" aria-expanded="false">
+      <span class="column-picker-heading">
+        <i class="fas fa-columns" aria-hidden="true"></i>
+        <span>
+          <span class="column-picker-title">Show or hide columns</span>
+          <span class="column-picker-summary">Choose the details shown in this table</span>
+        </span>
+      </span>
+      <i class="fas fa-chevron-down column-picker-chevron" aria-hidden="true"></i>
+    </button>
+    <div id="{{ picker_id }}-accordion" class="collapse"
+         data-bs-parent="#{{ picker_id }}-parent">
+      <div class="column-picker-body">
+        <p class="column-picker-help">Your choices are saved for this table on this device.</p>
+        <div id="{{ picker_id }}" class="column-picker-options"
+             role="group" aria-label="Visible table columns">
+          {% comment %}Filled by table-columns.js{% endcomment %}
         </div>
       </div>
     </div>
   </div>
-</div>
+{% endwith %}

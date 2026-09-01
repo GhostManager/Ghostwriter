@@ -292,6 +292,22 @@ class ProjectModelTests(TestCase):
         self.assertFalse(project.user_can_edit(user))
         self.assertFalse(project.user_can_delete(user))
 
+    def test_user_editable_queryset_matches_instance_edit_access(self):
+        project = ProjectFactory()
+        user = UserFactory(password="SuperNaturalReporting!")
+
+        self.assertNotIn(project, Project.user_editable(user))
+
+        assignment = ProjectAssignmentFactory(operator=user, project=project)
+        self.assertIn(project, Project.user_editable(user))
+
+        assignment.delete()
+        self.assertNotIn(project, Project.user_editable(user))
+
+        user.role = "manager"
+        user.save()
+        self.assertIn(project, Project.user_editable(user))
+
 
 class ProjectRoleModelTests(TestCase):
     """Collection of tests for :model:`rolodex.ProjectRole`."""

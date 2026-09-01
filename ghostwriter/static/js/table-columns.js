@@ -61,20 +61,28 @@ document.addEventListener("DOMContentLoaded", function() {
             }
 
             const node = document.createElement("div");
-            node.classList.add("custom-control", "custom-checkbox", "custom-control-inline");
+            node.classList.add("column-picker-option");
 
             const input = document.createElement("input");
             input.type = "checkbox";
             input.checked = shownMap[internalName] ?? !columnTh.hasAttribute("data-hide-default");
-            input.id = `column-show-hide-checkbox-${internalName}`;
-            input.classList.add("custom-control-input");
+            input.id = `column-show-hide-checkbox-${tableName}-${internalName}`;
+            input.classList.add("column-picker-checkbox");
             input.addEventListener("change", updateShown);
             node.appendChild(input);
 
             const label = document.createElement("label");
             label.htmlFor = input.id;
-            label.classList.add("custom-control-label");
-            label.textContent = prettyName;
+            label.classList.add("column-picker-label");
+
+            const check = document.createElement("span");
+            check.classList.add("column-picker-check");
+            check.setAttribute("aria-hidden", "true");
+            label.appendChild(check);
+
+            const labelText = document.createElement("span");
+            labelText.textContent = prettyName.trim();
+            label.appendChild(labelText);
             node.appendChild(label);
 
             uiContainer.appendChild(node);

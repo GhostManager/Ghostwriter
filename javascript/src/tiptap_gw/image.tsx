@@ -65,7 +65,7 @@ export default Image;
 
 function ImageView(props: NodeViewProps) {
     return (
-        <NodeViewWrapper className="richtext-evidence">
+        <NodeViewWrapper className="richtext-evidence richtext-client-logo">
             <span className="richtext-evidence-name">
                 {IMAGE_TYPES.get(props.node.attrs.imgName) ??
                     props.node.attrs.imgName}

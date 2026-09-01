@@ -2,18 +2,22 @@
 
 {% block pagetitle %}Evidence Form{% endblock %}
 
-{% block breadcrumbs %}
-    <nav aria-label="breadcrumb">
-        <ul class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'rolodex:client_detail' report.project.client.id %}">{{ report.project.client.name }}</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'rolodex:project_detail' report.project.id %}">{{ report.project }}</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'reporting:report_detail' report.id %}">{{ report }}</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Evidence Form</li>
-        </ul>
-    </nav>
-{% endblock %}
 
 {% block content %}
+  <div class="resource-edit-page">
+    <header class="detail-page-heading resource-detail-heading resource-edit-heading">
+      <div class="detail-page-heading-main resource-detail-heading-main">
+        <span class="detail-eyebrow">{% if object %}Edit Report Evidence{% else %}Upload Report Evidence{% endif %}</span>
+        <h2 class="mb-0">{% if object %}{{ object.friendly_name }}{% else %}New evidence file{% endif %}</h2>
+        <p class="resource-edit-intro mb-0">Prepare a reusable file, caption, and operator-facing name for {{ report }}.</p>
+      </div>
+      {% if object %}
+        <div class="detail-page-heading-actions">
+          <a class="btn btn-outline-primary btn-sm icon view-icon"
+             href="{% url 'reporting:evidence_detail' object.id %}">View evidence</a>
+        </div>
+      {% endif %}
+    </header>
     {% include "reporting/evidence_form_template.html" with form=form %}
+  </div>
 {% endblock %}

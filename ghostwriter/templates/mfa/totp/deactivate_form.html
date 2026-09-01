@@ -2,43 +2,84 @@
 {% load i18n %}
 {% load crispy_forms_tags %}
 
-{% block pagetitle %}Remove MFA{% endblock %}
+{% block pagetitle %}{% trans "Disable authenticator app" %}{% endblock %}
 
-{% block breadcrumbs %}
-  <nav aria-label="breadcrumb">
-    <ul class="breadcrumb">
-      <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-      <li class="breadcrumb-item"><a href="{% url 'users:user_detail' request.user.username %}">Your Profile</a></li>
-      <li class="breadcrumb-item"><a href="{% url 'mfa_index' %}">Manage MFA Settings</a></li>
-      <li class="breadcrumb-item active" aria-current="page">Remove MFA</li>
-    </ul>
-  </nav>
-{% endblock %}
 
 {% block content %}
-  <h2>
-  {% trans "Disable Multi-Factor Authentication" %}
-  </h2>
+  <div class="resource-form-shell account-profile-editor account-mfa-deactivation">
+    <form
+      method="post"
+      action="{% url 'mfa_deactivate_totp' %}"
+      class="resource-edit-form account-mfa-deactivation-form"
+    >
+      {% csrf_token %}
 
-  {% if request.method == 'POST' and form.code %}
-    <p>{% trans "Please enter a valid authentication token to disable multi-factor authentication:" %}</p>
-  {% endif %}
+      {% if request.method == 'POST' and form.errors %}
+        <div class="alert alert-danger account-security-alert" role="alert">
+          <div class="account-security-alert-icon" aria-hidden="true">
+            <i class="fas fa-exclamation-circle"></i>
+          </div>
+          <div>
+            <strong>{% trans "Authenticator app not disabled" %}</strong>
+            <p>{% trans "Check the current authentication code and try again." %}</p>
+            {% if form.non_field_errors %}{{ form.non_field_errors }}{% endif %}
+          </div>
+        </div>
+      {% endif %}
 
-  <!-- Form Error Section -->
-  {% if request.method == 'POST' and form.errors %}
-    <script>
-      {% for field in form %}
-        {% for error in field.errors %}
-          displayToastTop({type: 'error', string: '{{ error|escapejs }}', context: 'form'});
-        {% endfor %}
-      {% endfor %}
-      {% for error in form.non_field_errors %}
-        displayToastTop({type: 'error', string: '{{ error|escapejs }}', context: 'form'});
-      {% endfor %}
-    </script>
-  {% endif %}
+      <section
+        class="resource-form-card account-mfa-deactivation-card"
+        aria-labelledby="mfa-deactivation-heading"
+      >
+        <div class="resource-form-section-heading">
+          <span class="resource-form-section-icon account-mfa-danger-icon" aria-hidden="true">
+            <i class="fas fa-shield-alt"></i>
+          </span>
+          <div>
+            <h1 id="mfa-deactivation-heading">{% trans "Disable authenticator app" %}</h1>
+            <p>{% trans "Remove authenticator-app verification from your Ghostwriter account." %}</p>
+          </div>
+        </div>
 
-  <!-- Form Section -->
-  {% crispy form form.helper %}
+        <div class="account-mfa-deactivation-status">
+          <span class="account-mfa-status-indicator" aria-hidden="true"></span>
+          <div>
+            <span>{% trans "Authenticator app" %}</span>
+            <strong>{% trans "Currently active" %}</strong>
+          </div>
+        </div>
 
+        <div class="account-mfa-impact" role="note">
+          <span class="account-mfa-impact-icon" aria-hidden="true">
+            <i class="fas fa-exclamation-triangle"></i>
+          </span>
+          <div>
+            <h2>{% trans "What changes when you disable it" %}</h2>
+            <ul>
+              <li>{% trans "Codes from your authenticator app will stop working immediately." %}</li>
+              <li>{% trans "Recovery codes are also removed if no other multi-factor method remains." %}</li>
+              <li>{% trans "You can set up an authenticator app again from MFA settings." %}</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="account-mfa-deactivation-confirm">
+          <h2>{% trans "Confirm this change" %}</h2>
+          <p>{% trans "Enter the code currently shown in your authenticator app." %}</p>
+          <div class="account-mfa-deactivation-field">
+            {{ form.code|as_crispy_field }}
+          </div>
+        </div>
+      </section>
+
+      <div class="resource-form-actions resource-form-actions-compact account-mfa-deactivation-actions">
+        <div class="resource-form-actions-buttons">
+          <a class="btn btn-outline-secondary" href="{% url 'mfa_index' %}">{% trans "Cancel" %}</a>
+          <button class="btn btn-danger" type="submit">
+            <i class="fas fa-shield-alt" aria-hidden="true"></i> {% trans "Disable authenticator app" %}
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
 {% endblock %}

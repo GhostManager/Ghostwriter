@@ -33,18 +33,41 @@ export default function EvidenceModal(props: {
         );
     }
 
+    const title = uploadMode
+        ? "Upload evidence"
+        : props.initialId === null
+          ? "Insert evidence"
+          : "Edit evidence reference";
+    const description = uploadMode
+        ? "Add a report-ready file and insert it at the current cursor position."
+        : "Choose evidence already attached to this report.";
+
     return (
         <ReactModal
             isOpen
             onRequestClose={() => props.setEvidenceId(null)}
-            contentLabel="Insert Evidence"
-            className="modal-dialog modal-dialog-centered"
+            contentLabel={title}
+            className="modal-dialog modal-dialog-centered gw-evidence-dialog"
         >
-            <div className="modal-content">
-                <div className="modal-header">
-                    <h5 className="modal-title">
-                        {props.initialId === null ? "Insert" : "Edit"} Evidence
-                    </h5>
+            <div className="modal-content gw-evidence-dialog-content">
+                <div className="modal-header gw-evidence-dialog-header">
+                    <div>
+                        <span className="gw-evidence-dialog-eyebrow">
+                            Report evidence
+                        </span>
+                        <h5 className="modal-title">{title}</h5>
+                        <p className="gw-evidence-dialog-intro">
+                            {description}
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        className="gw-evidence-dialog-close"
+                        aria-label="Close"
+                        onClick={() => props.setEvidenceId(null)}
+                    >
+                        <i className="fas fa-times" aria-hidden="true" />
+                    </button>
                 </div>
                 {content}
             </div>
@@ -58,16 +81,27 @@ function EvidenceSelectForm(props: {
     switchMode: () => void;
 }) {
     const evidences = useContext(EvidencesContext);
-    const [selectedId, setSelectedId] = useState<number | null>(null);
+    const [selectedId, setSelectedId] = useState<number | null>(props.initial);
     const nameId = useId();
     return (
         <>
-            <div className="modal-body">
-                <div className="form-group">
-                    <label htmlFor={nameId}>Evidence Name</label>
+            <div className="modal-body gw-evidence-dialog-body">
+                <div className="gw-evidence-picker">
+                    <div className="gw-evidence-picker-icon" aria-hidden="true">
+                        <i className="fas fa-paperclip" />
+                    </div>
+                    <div className="gw-evidence-picker-field">
+                        <label htmlFor={nameId}>Evidence file</label>
+                        <p id={`${nameId}-help`}>
+                            Select the file to place at the current cursor
+                            position.
+                        </p>
+                    </div>
                     <select
-                        className="custom-select custom-select-lg"
-                        value={selectedId?.toString()}
+                        id={nameId}
+                        className="form-select form-select-lg gw-evidence-select"
+                        aria-describedby={`${nameId}-help`}
+                        value={selectedId?.toString() ?? ""}
                         onChange={(e) =>
                             setSelectedId(
                                 e.target.value === ""
@@ -76,7 +110,7 @@ function EvidenceSelectForm(props: {
                             )
                         }
                     >
-                        <option value="">Select Evidence...</option>
+                        <option value="">Choose evidence…</option>
                         {evidences?.evidence?.map((e) => (
                             <option value={e.id} key={e.id}>
                                 {e.friendlyName}
@@ -86,35 +120,44 @@ function EvidenceSelectForm(props: {
                 </div>
             </div>
 
-            <div className="modal-footer">
+            <div className="modal-footer gw-evidence-dialog-footer">
                 <button
-                    className="btn btn-secondary"
+                    type="button"
+                    className="btn btn-outline-secondary gw-evidence-mode-action"
                     onClick={(e) => {
                         e.preventDefault();
                         props.switchMode();
                     }}
                 >
-                    Upload New
+                    <i className="fas fa-upload" aria-hidden="true" />
+                    Upload new evidence
                 </button>
-                <button
-                    className="btn btn-primary"
-                    disabled={selectedId === null}
-                    onClick={(e) => {
-                        e.preventDefault();
-                        props.onSubmit(selectedId);
-                    }}
-                >
-                    {props.initial === null ? "Insert" : "Save"}
-                </button>
-                <button
-                    className="btn btn-secondary-outline"
-                    onClick={(e) => {
-                        e.preventDefault();
-                        props.onSubmit(null);
-                    }}
-                >
-                    Cancel
-                </button>
+                <div className="gw-evidence-dialog-primary-actions">
+                    <button
+                        type="button"
+                        className="btn btn-outline-secondary"
+                        onClick={(e) => {
+                            e.preventDefault();
+                            props.onSubmit(null);
+                        }}
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        type="button"
+                        className="btn gw-evidence-primary-action"
+                        disabled={selectedId === null}
+                        onClick={(e) => {
+                            e.preventDefault();
+                            props.onSubmit(selectedId);
+                        }}
+                    >
+                        <i className="fas fa-paperclip" aria-hidden="true" />
+                        {props.initial === null
+                            ? "Insert evidence"
+                            : "Save reference"}
+                    </button>
+                </div>
             </div>
         </>
     );

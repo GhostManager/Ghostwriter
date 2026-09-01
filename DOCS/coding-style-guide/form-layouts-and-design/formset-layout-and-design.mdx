@@ -3,5 +3,183 @@ title: "Formset Layout & Design"
 description: "Creation and layout of inline formsets"
 ---
 
+## Keep Formsets as Infrastructure
 
+Django inline formsets remain the preferred server-side mechanism when a parent form
+creates or updates a bounded collection of child models in one transaction. They
+provide mature handling for:
 
+- Management counts and prefixes
+- Existing and new child instances
+- Per-field and cross-form validation
+- Hidden deletion flags
+- Atomic parent/child submission
+- Re-rendering submitted values after a validation error
+
+The browser does not need to expose the collection as a traditional stack of forms.
+Ghostwriter's refreshed pattern treats the formset as infrastructure and presents it
+as a collection editor.
+
+Use a separate CRUD workflow instead when child objects must save independently,
+require different permissions, need real-time collaboration, or can grow into an
+unbounded dataset. Do not introduce separate endpoints only to make an inline formset
+look modern.
+
+## Collection Editor Pattern
+
+`ClientForm` in `ghostwriter/rolodex/forms_client.py`,
+`rolodex/client_form.html`, and the project collection configuration in
+`rolodex/project_form.html` are the current references.
+
+The collection has four layers:
+
+1. A `collection-toolbar` with the collection name, purpose, and Add action.
+2. A `collection-empty-state` that identifies a genuinely empty collection.
+3. One `collection-form-card` per submitted formset form.
+4. The standard formset management and `empty_form` prototype.
+
+Each card uses a native `<details>` element:
+
+- The summary contains the child identity, useful metadata, optional status, and one
+  chevron.
+- Existing valid objects begin collapsed.
+- New objects and objects containing validation errors begin open.
+- The body contains the unchanged Django fields and hidden `DELETE` input.
+- The Remove action sets `DELETE`; it does not remove or renumber the submitted DOM
+  record.
+- The undo alert clears `DELETE` and restores the card.
+
+Use `.text()` or `textContent` to update summaries from input values. Do not place
+user-controlled values into raw JavaScript, selectors, inline handlers, or
+`innerHTML`. Values rendered into JavaScript still require `escapejs`; structured data
+still requires `json_script`.
+
+## Formset Lifecycle
+
+### Initial render
+
+- Render no artificial blank child merely to make the page look populated. `extra=0`
+  is preferred when the relationship is optional.
+- Show an actionable empty state and let the user choose Add.
+- Count only formset forms inside the live formset container. Exclude the hidden
+  element whose ID begins with `empty-form-`.
+- Preserve the management form and every existing primary-key field.
+- Some non-model or custom formsets do not render a primary-key field. Determine
+  whether an indexed form is saved or newly added by comparing its index with the
+  management form's `INITIAL_FORMS` value; do not infer this from whether visible
+  fields happen to contain values.
+
+### Add
+
+1. Read `TOTAL_FORMS`.
+2. Copy the hidden `empty_form` markup.
+3. Replace every `__prefix__` with the new index.
+4. Append the new form to the live formset container.
+5. Increment `TOTAL_FORMS`.
+6. Open the new collection card.
+7. Initialize only editors inside the new card.
+8. Refresh summary text, count badges, and empty state.
+
+Never reuse or decrement a submitted index. A removed form remains represented by its
+index and `DELETE` value.
+
+### Remove and undo
+
+The existing global formset behavior in `base_generic.html` sets or clears the hidden
+`DELETE` input and presents an undo alert. Collection editors may additionally hide
+the surrounding summary card and update visible counts, but they must not replace
+that submission behavior.
+
+Use **Remove** for an existing child and **Discard** when an unsaved child can be
+distinguished reliably. Avoid **Delete** when the record is only staged for deletion
+until the parent form is saved.
+
+### Validation errors
+
+- Select the tab containing the first invalid control.
+- Open the collection card containing the invalid field or feedback element.
+- Keep the submitted values and formset indices.
+- Initialize an errored rich-text field only after its card is visible.
+- Do not silently discard an invalid form because another form in the collection is
+  valid.
+
+## Rich-Text Fields
+
+Repeated rich-text fields are the main performance and stability risk in formsets.
+
+- Add `gw-tiptap-compact` to short supporting notes or comments.
+- Add `gw-tiptap-narrative` only when the child genuinely needs longer prose.
+- Leave editors inside closed `collection-form-card` details unmounted.
+- Initialize an editor when its card opens.
+- Exclude the hidden `empty_form` prototype from automatic initialization.
+- Use `window.gwInitTiptapStableContainer()` for expandable cards and collapsible
+  regions. It initializes the visible collection without focusing it and restores
+  the triggering viewport position.
+- Keep rich-text editors in inactive task tabs lazy. Prepare the destination pane
+  when its tab is first requested rather than blocking initial page scrolling to
+  warm every hidden editor.
+
+Switching to the collection's tab should not mount every editor. Browser QA should
+confirm that opening one card creates one editor, switching tabs does not change
+`scrollY`, and editors do not render collapsed.
+
+## Visual and Interaction Rules
+
+- Keep collection cards compact when closed—identity on the left, high-value status
+  and one chevron on the right.
+- Rotate only the chevron, not the summary or cell.
+- Let Add, Delete, and Remove buttons size to their label with a shared minimum
+  width. Do not impose a fixed width that truncates object-specific action text.
+- Use neutral borders and surfaces. Violet identifies selection or current context;
+  green is reserved for successful or healthy state.
+- Add buttons belong beside the section heading on wider screens and below it on
+  narrow screens.
+- Tab counts are neutral metadata, not bright notification badges.
+- Summaries truncate safely on desktop and retain all actions on narrow screens.
+- Use a sticky Save/Cancel surface when an open card makes the form substantially
+  taller than the viewport.
+- Respect `prefers-reduced-motion`.
+
+## Applying the Pattern to Another Form
+
+Before changing markup, identify:
+
+- The parent model and every submitted formset prefix
+- Required, optional, and mutually exclusive child fields
+- Existing add, delete, undo, ordering, and validation behavior
+- Rich-text or file controls that initialize JavaScript
+- Whether zero child objects is valid
+- The summary fields operators need to distinguish collapsed objects
+
+Then:
+
+1. Keep the formset factory and validation unchanged.
+2. Stop forcing a blank `extra` form if the relationship is optional.
+3. Add a toolbar and explicit empty state.
+4. Wrap each child helper layout in `collection-form-card`.
+5. Preserve hidden `id`, foreign-key, ordering, and `DELETE` fields.
+6. Add safe summary synchronization and tab counts.
+7. Make closed rich-text cards lazy.
+8. Add structural tests for management fields, cards, empty state, and invalid forms.
+9. Test add, remove, undo, submit, and validation in the installed Playwright browser.
+10. Review at 1440, 1024, 768, and 390 pixels in light and dark themes.
+
+Do not copy page-specific contact or access labels into another workflow. Reuse the
+interaction model and semantic classes, then choose summaries and actions that match
+the operator's actual task.
+
+## Regression Checklist
+
+- [ ] `TOTAL_FORMS` increments exactly once for every Add action.
+- [ ] Existing hidden primary keys remain present.
+- [ ] Remove checks the intended `DELETE` input.
+- [ ] Undo restores both the input state and visible card.
+- [ ] Empty state and tab count exclude deleted forms and the `empty_form` prototype.
+- [ ] Invalid child forms reappear open with errors and submitted values.
+- [ ] Cross-form validation still runs.
+- [ ] Rich-text fields save their editor content.
+- [ ] Closed cards do not mount editors.
+- [ ] Tab switching does not flicker or change scroll position.
+- [ ] Keyboard users can open summaries and reach every action.
+- [ ] There is no document-level horizontal overflow.
+- [ ] Light and dark themes retain readable controls, menus, and editor content.
