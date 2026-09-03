@@ -1,8 +1,12 @@
 import base64
+import json
 import os
+import re
+import secrets
 import subprocess
 import tempfile
 from functools import wraps
+from urllib.parse import urlparse
 
 import requests
 import urllib3
@@ -10,7 +14,156 @@ from bs4 import BeautifulSoup
 from flask import Flask, jsonify, request
 
 
+# Default friendly name used to locate the PoC source that has been uploaded as
+# report evidence. The file itself is uploaded as .txt (".py" is not an allowed
+# evidence extension) but the friendly name carries the script name, e.g.
+# "poc.py". A manifest may override this with an explicit "attachment" key when a
+# report holds more than one PoC.
+POC_DEFAULT_ATTACHMENT_NAME = "poc.py"
+# Sandbox resource limits are not part of the manifest, so fall back to these
+# when the runtime block does not specify them.
+POC_DEFAULT_MEM_MB = 256
+POC_DEFAULT_CPU = 0.5
+
+
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+
+def parse_poc_manifest(raw):
+    """
+    Parse the ``poc`` extra field into a manifest dict.
+
+    The field is a free-form multiline text field, so the manifest normally arrives
+    as a JSON string. When it has been edited through a rich-text widget it may be
+    wrapped in HTML (``<p>`` tags, ``&quot;`` entities); as a fallback the HTML is
+    stripped before parsing. A native ``json`` extra field (already a dict) is
+    passed through unchanged. Returns the manifest dict, or ``None`` if it cannot
+    be parsed.
+    """
+    if isinstance(raw, dict):
+        return raw
+    if not isinstance(raw, str):
+        return None
+
+    candidates = [raw]
+    stripped = BeautifulSoup(raw, "html.parser").get_text(separator="\n")
+    if stripped != raw:
+        candidates.append(stripped)
+
+    for candidate in candidates:
+        candidate = candidate.strip()
+        if not candidate:
+            continue
+        try:
+            parsed = json.loads(candidate)
+        except (ValueError, TypeError):
+            continue
+        if isinstance(parsed, dict):
+            return parsed
+    return None
+
+
+def resolve_and_validate_inputs(params, provided):
+    """
+    Merge caller-supplied inputs over the manifest parameter defaults and validate
+    each value against its parameter spec (enum membership, string pattern, type).
+
+    Returns (resolved_inputs, error) where exactly one is non-None. ``resolved_inputs``
+    contains every declared parameter (so downstream consumers such as credential
+    templating and the runner ``inputs`` block are always complete).
+    """
+    provided = provided or {}
+    if not isinstance(provided, dict):
+        return None, {"error": "inputs must be an object"}
+
+    resolved = {}
+    param_names = set()
+    for param in params or []:
+        name = param.get("name")
+        if not name:
+            continue
+        param_names.add(name)
+
+        if name in provided and provided[name] is not None:
+            value = provided[name]
+        elif "default" in param:
+            value = param.get("default")
+        else:
+            return None, {"error": f"missing required input: {name}"}
+
+        ptype = param.get("type")
+        if ptype == "enum":
+            allowed = param.get("values") or []
+            if value not in allowed:
+                return None, {"error": f"input '{name}' must be one of {allowed}"}
+        elif ptype == "string":
+            if not isinstance(value, str):
+                return None, {"error": f"input '{name}' must be a string"}
+            pattern = param.get("pattern")
+            if pattern and not re.fullmatch(pattern, value):
+                return None, {"error": f"input '{name}' does not match required pattern"}
+        elif ptype == "integer":
+            if isinstance(value, bool) or not isinstance(value, int):
+                return None, {"error": f"input '{name}' must be an integer"}
+        elif ptype == "number":
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                return None, {"error": f"input '{name}' must be a number"}
+        elif ptype == "boolean":
+            if not isinstance(value, bool):
+                return None, {"error": f"input '{name}' must be a boolean"}
+
+        resolved[name] = value
+
+    unknown = set(provided.keys()) - param_names
+    if unknown:
+        return None, {"error": f"unknown inputs: {sorted(unknown)}"}
+
+    return resolved, None
+
+
+def egress_allowlist_for(target_value):
+    """Derive a ``host:port`` egress allowlist entry from a target URL."""
+    if not isinstance(target_value, str):
+        return []
+    parsed = urlparse(target_value)
+    host = parsed.hostname
+    if not host:
+        return []
+    port = parsed.port
+    if port is None:
+        port = 80 if parsed.scheme == "http" else 443
+    return [f"{host}:{port}"]
+
+
+def build_runner_credentials(manifest_credentials, resolved_inputs):
+    """
+    Translate the manifest ``credentials`` block into the runner shape: drop the
+    ``source`` key and expand ``{param}`` templates in string values (e.g. a
+    ``ref`` of ``acme/poc/{test_account}`` becomes ``acme/poc/viewer-a``).
+
+    Returns (credentials, error).
+    """
+    result = {}
+    for key, entry in (manifest_credentials or {}).items():
+        if not isinstance(entry, dict):
+            result[key] = entry
+            continue
+        out = {}
+        for field, value in entry.items():
+            if field == "source":
+                continue
+            if isinstance(value, str):
+                try:
+                    value = value.format(**resolved_inputs)
+                except (KeyError, IndexError, ValueError) as exc:
+                    return None, {
+                        "error": f"credential '{key}.{field}' references an unknown input",
+                        "detail": str(exc),
+                    }
+            out[field] = value
+        result[key] = out
+    return result, None
+
 
 def create_app():
     app = Flask(__name__)
@@ -42,6 +195,17 @@ def create_app():
     # queries should still fail fast.
     graphql_timeout = int(os.environ.get("GRAPHQL_TIMEOUT", "30"))
     graphql_report_timeout = int(os.environ.get("GRAPHQL_REPORT_TIMEOUT", "600"))
+
+    # PoC runner configuration. These are optional so existing deployments that
+    # do not use the runner still boot; /runPoc returns 503 until they are set.
+    poc_runner_url = os.environ.get("POC_RUNNER_URL", "")
+    poc_runner_api_key = os.environ.get("POC_RUNNER_API_KEY", "")
+    poc_runner_timeout = int(os.environ.get("POC_RUNNER_TIMEOUT", "120"))
+    poc_runner_verify_tls = os.environ.get("POC_RUNNER_VERIFY_TLS", "true").lower() not in (
+        "0",
+        "false",
+        "no",
+    )
 
     def graphql_request(query, variables, timeout=None):
         try:
@@ -933,6 +1097,203 @@ def create_app():
             })
 
         return jsonify(results)
+
+    @app.route("/runPoc", methods=["POST"])
+    @require_api_key
+    def run_poc():
+        """
+        Run a finding's proof-of-concept in the external sandbox runner.
+
+        Request body:
+            {
+              "finding_id": 4127,
+              "poc_version": 1,
+              "inputs": { "target": "...", "object_id": "8814" },
+              "client_run_id": "b3f1c2a4-..."
+            }
+
+        The endpoint fetches the finding's ``poc`` manifest (a JSON extra field on
+        ``reportedFinding``), verifies the requested ``poc_version`` and validates the
+        supplied inputs against the manifest parameters, then downloads the PoC source
+        (uploaded as report evidence under the friendly name ``poc.py`` or the manifest's
+        ``attachment`` override). On success it forwards a run request to the
+        runner and returns the runner's response synchronously.
+        """
+        if not poc_runner_url:
+            return jsonify({"error": "poc runner is not configured"}), 503
+
+        body = request.get_json(silent=True) or {}
+        finding_id = body.get("finding_id")
+        poc_version = body.get("poc_version")
+        client_run_id = body.get("client_run_id")
+        provided_inputs = body.get("inputs") or {}
+
+        if finding_id is None:
+            return jsonify({"error": "finding_id is required"}), 400
+        if poc_version is None:
+            return jsonify({"error": "poc_version is required"}), 400
+        if not client_run_id:
+            return jsonify({"error": "client_run_id is required"}), 400
+
+        finding_id, err = parse_int(finding_id, "finding_id")
+        if err:
+            return jsonify(err), 400
+
+        # 1. Fetch the finding and its PoC manifest
+        finding_query = """
+        query GetFindingPoc($id: bigint!) {
+          reportedFinding_by_pk(id: $id) {
+            id
+            title
+            reportId
+            extraFields
+          }
+        }
+        """
+        data, error = graphql_request(finding_query, {"id": finding_id})
+        if error:
+            return jsonify({"error": error}), 502
+
+        finding = (data or {}).get("reportedFinding_by_pk")
+        if not finding:
+            return jsonify({"error": f"finding {finding_id} not found"}), 404
+
+        extra_fields = finding.get("extraFields") or {}
+        manifest = parse_poc_manifest(extra_fields.get("poc"))
+        if manifest is None:
+            return jsonify({"error": f"finding {finding_id} has no valid PoC manifest"}), 404
+
+        # 2. Verify the manifest against the request
+        manifest_finding_id = manifest.get("finding_id")
+        if manifest_finding_id is not None and int(manifest_finding_id) != finding_id:
+            return jsonify({
+                "error": "manifest finding_id does not match finding",
+                "manifestFindingId": manifest_finding_id,
+                "findingId": finding_id,
+            }), 409
+        if manifest.get("poc_version") != poc_version:
+            return jsonify({
+                "error": "poc_version mismatch",
+                "requested": poc_version,
+                "available": manifest.get("poc_version"),
+            }), 409
+        if not manifest.get("runnable", False):
+            return jsonify({"error": "PoC is not marked runnable"}), 409
+
+        # 3. Resolve and validate inputs against the manifest parameters
+        resolved_inputs, error = resolve_and_validate_inputs(manifest.get("params"), provided_inputs)
+        if error:
+            return jsonify(error), 400
+
+        targets_from = manifest.get("targets_from")
+        target_value = resolved_inputs.get(targets_from) if targets_from else None
+        egress_allowlist = egress_allowlist_for(target_value)
+
+        credentials, error = build_runner_credentials(manifest.get("credentials"), resolved_inputs)
+        if error:
+            return jsonify(error), 400
+
+        # 4. Locate and download the PoC source (uploaded as report evidence)
+        report_id = finding.get("reportId")
+        if report_id is None:
+            return jsonify({"error": f"finding {finding_id} is not attached to a report"}), 409
+
+        friendly_name = manifest.get("attachment") or POC_DEFAULT_ATTACHMENT_NAME
+        evidence_query = """
+        query GetPocEvidence($reportId: bigint!, $friendlyName: String!) {
+          evidence(where: {reportId: {_eq: $reportId}, friendlyName: {_eq: $friendlyName}}) {
+            id
+            friendlyName
+            document
+          }
+        }
+        """
+        ev_data, error = graphql_request(
+            evidence_query, {"reportId": int(report_id), "friendlyName": friendly_name}
+        )
+        if error:
+            return jsonify({"error": error}), 502
+
+        evidence_list = (ev_data or {}).get("evidence") or []
+        if not evidence_list:
+            return jsonify({
+                "error": "PoC source evidence not found",
+                "friendlyName": friendly_name,
+                "reportId": report_id,
+            }), 404
+
+        download_query = """
+        query DownloadEvidence($evidenceId: Int!) {
+          downloadEvidence(evidenceId: $evidenceId) {
+            evidenceId
+            filename
+            friendlyName
+            fileBase64
+          }
+        }
+        """
+        dl_data, error = graphql_request(download_query, {"evidenceId": int(evidence_list[0]["id"])})
+        if error:
+            return jsonify({"error": error}), 502
+
+        downloaded = (dl_data or {}).get("downloadEvidence") or {}
+        file_base64 = downloaded.get("fileBase64")
+        if not file_base64:
+            return jsonify({"error": "PoC source evidence has no content"}), 502
+        try:
+            poc_source = base64.b64decode(file_base64).decode("utf-8", errors="replace")
+        except (ValueError, TypeError) as exc:
+            return jsonify({"error": "failed to decode PoC source", "detail": str(exc)}), 502
+
+        # 5. Assemble the runner request
+        runtime = manifest.get("runtime") or {}
+        limits = {
+            "timeout_seconds": runtime.get("timeout_seconds", 60),
+            "max_requests": runtime.get("max_requests", 5),
+            "mem_mb": runtime.get("mem_mb", POC_DEFAULT_MEM_MB),
+            "cpu": runtime.get("cpu", POC_DEFAULT_CPU),
+        }
+        runner_body = {
+            "job_ref": f"run-{finding_id}-{str(client_run_id).split('-')[0]}",
+            "poc_source": poc_source,
+            "entrypoint": runtime.get("entrypoint", ["python", "/poc/poc.py"]),
+            "image": runtime.get("image"),
+            "inputs": resolved_inputs,
+            "egress_allowlist": egress_allowlist,
+            "run_token": f"rtok_{secrets.token_hex(24)}",
+            "credentials": credentials,
+            "limits": limits,
+        }
+
+        # 6. Forward to the runner and return its response synchronously
+        runner_headers = {"Content-Type": "application/json"}
+        if poc_runner_api_key:
+            runner_headers["X-API-Key"] = poc_runner_api_key
+        # The HTTP timeout must outlast the sandbox job timeout so the runner has
+        # time to respond after the PoC itself hits its limit.
+        http_timeout = max(poc_runner_timeout, limits["timeout_seconds"] + 15)
+
+        try:
+            runner_resp = requests.post(
+                poc_runner_url,
+                json=runner_body,
+                headers=runner_headers,
+                timeout=http_timeout,
+                verify=poc_runner_verify_tls,
+            )
+        except requests.RequestException as exc:
+            return jsonify({"error": "poc runner request failed", "detail": str(exc)}), 502
+
+        try:
+            runner_json = runner_resp.json()
+        except ValueError:
+            return jsonify({
+                "error": "poc runner returned a non-JSON response",
+                "status": runner_resp.status_code,
+                "body": runner_resp.text,
+            }), 502
+
+        return jsonify(runner_json), runner_resp.status_code
 
     return app
 
