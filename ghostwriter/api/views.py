@@ -18,6 +18,7 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, get_user_model
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.core.files.base import ContentFile
+from django.db import transaction
 from django.db.models import Q
 from django.db.utils import IntegrityError
 from django.http import HttpRequest, JsonResponse
@@ -44,6 +45,7 @@ from ghostwriter.api.forms import (
     ApiReportTemplateForm,
     ServiceTokenForm,
     TokenExpiryForm,
+    validate_no_control_characters,
 )
 from ghostwriter.api.models import (
     APIKey,
@@ -63,7 +65,12 @@ from ghostwriter.modules.model_utils import (
 from ghostwriter.modules.passive_voice.detector import get_detector
 from ghostwriter.modules.reportwriter import jinja_string_literal
 from ghostwriter.modules.reportwriter.report.json import ExportReportJson
-from ghostwriter.oplog.models import OplogEntry, OplogEntryEvidence, OplogEntryRecording
+from ghostwriter.oplog.models import (
+    Oplog,
+    OplogEntry,
+    OplogEntryEvidence,
+    OplogEntryRecording,
+)
 from ghostwriter.oplog.utils import extract_cast_text, validate_cast_gzip_upload
 from ghostwriter.reporting.models import (
     Evidence,
@@ -864,6 +871,187 @@ class GraphqlWhoami(JwtRequiredMixin, HasuraActionView):
                 "expires": datetime.fromtimestamp(payload["exp"]),
             }
         return JsonResponse(data, status=self.status)
+
+
+class GraphqlGenerateOplogToken(JwtRequiredMixin, HasuraActionView):
+    """Issue a service token scoped to one editable Oplog."""
+
+    required_inputs = ["oplogId", "servicePrincipalName", "tokenName"]
+
+    @staticmethod
+    def _normalize_name(value) -> str | None:
+        """Return a safe token or service-principal name, or ``None`` if invalid."""
+        if not isinstance(value, str):
+            return None
+
+        value = value.strip()
+        if not value or len(value) > 255:
+            return None
+        try:
+            validate_no_control_characters(value)
+        except ValidationError:
+            return None
+        return value
+
+    @staticmethod
+    def _has_expected_permissions(token: ServiceToken, oplog_id: int) -> bool:
+        """Return whether a token has only the expected Oplog permissions."""
+        return set(
+            token.permissions.values_list("resource_type", "resource_id", "action")
+        ) == {
+            (
+                ServiceTokenPermission.ResourceType.OPLOG,
+                oplog_id,
+                ServiceTokenPermission.Action.READ,
+            ),
+            (
+                ServiceTokenPermission.ResourceType.OPLOG,
+                oplog_id,
+                ServiceTokenPermission.Action.CREATE,
+            ),
+        }
+
+    def post(self, request, *args, **kwargs):
+        if self.api_key_obj is None:
+            return JsonResponse(
+                utils.generate_hasura_error_payload(
+                    "Unauthorized access", "Unauthorized"
+                ),
+                status=HTTPStatus.UNAUTHORIZED,
+            )
+
+        action_input = self.input
+        if not isinstance(action_input, dict):
+            return JsonResponse(
+                utils.generate_hasura_error_payload(
+                    "Invalid action input", "InvalidRequestBody"
+                ),
+                status=HTTPStatus.BAD_REQUEST,
+            )
+
+        oplog_id = action_input["oplogId"]
+        if not isinstance(oplog_id, int) or isinstance(oplog_id, bool) or oplog_id <= 0:
+            return JsonResponse(
+                utils.generate_hasura_error_payload(
+                    "Invalid oplog ID", "InvalidRequestBody"
+                ),
+                status=HTTPStatus.BAD_REQUEST,
+            )
+
+        service_principal_name = self._normalize_name(
+            action_input["servicePrincipalName"]
+        )
+        if service_principal_name is None:
+            return JsonResponse(
+                utils.generate_hasura_error_payload(
+                    "Invalid service principal name", "InvalidRequestBody"
+                ),
+                status=HTTPStatus.BAD_REQUEST,
+            )
+
+        token_name = self._normalize_name(action_input["tokenName"])
+        if token_name is None:
+            return JsonResponse(
+                utils.generate_hasura_error_payload(
+                    "Invalid token name", "InvalidRequestBody"
+                ),
+                status=HTTPStatus.BAD_REQUEST,
+            )
+
+        try:
+            oplog = Oplog.objects.select_related("project").get(pk=oplog_id)
+        except Oplog.DoesNotExist:
+            return JsonResponse(
+                utils.generate_hasura_error_payload(
+                    "Unauthorized access", "Unauthorized"
+                ),
+                status=HTTPStatus.UNAUTHORIZED,
+            )
+
+        user = self.api_key_obj.user
+        if oplog.project is None or not oplog.user_can_edit(user):
+            return JsonResponse(
+                utils.generate_hasura_error_payload(
+                    "Unauthorized access", "Unauthorized"
+                ),
+                status=HTTPStatus.UNAUTHORIZED,
+            )
+
+        permissions = [
+            {
+                "resource_type": ServiceTokenPermission.ResourceType.OPLOG,
+                "resource_id": oplog.pk,
+                "action": ServiceTokenPermission.Action.READ,
+            },
+            {
+                "resource_type": ServiceTokenPermission.ResourceType.OPLOG,
+                "resource_id": oplog.pk,
+                "action": ServiceTokenPermission.Action.CREATE,
+            },
+        ]
+        with transaction.atomic():
+            # Lock the user row to serialize principal creation and token rotation
+            # for this requesting user without imposing a global principal constraint.
+            user = User.objects.select_for_update().get(pk=user.pk)
+            if not user.is_active:
+                return JsonResponse(
+                    utils.generate_hasura_error_payload(
+                        "Unauthorized access", "Unauthorized"
+                    ),
+                    status=HTTPStatus.UNAUTHORIZED,
+                )
+
+            service_principal = (
+                ServicePrincipal.objects.filter(
+                    name__iexact=service_principal_name,
+                    active=True,
+                    created_by=user,
+                )
+                .order_by("pk")
+                .first()
+            )
+            if service_principal is None:
+                service_principal = ServicePrincipal.objects.create(
+                    name=service_principal_name,
+                    service_type=ServicePrincipal.ServiceType.INTEGRATION,
+                    created_by=user,
+                )
+
+            token = None
+            usable_tokens = (
+                ServiceToken.objects.select_for_update()
+                .filter(
+                    name=token_name,
+                    created_by=user,
+                    service_principal=service_principal,
+                    revoked=False,
+                )
+                .filter(
+                    Q(expiry_date__isnull=True)
+                    | Q(expiry_date__gte=django_timezone.now())
+                )
+                .prefetch_related("permissions")
+                .order_by("-created", "-pk")
+            )
+            for candidate in usable_tokens:
+                if self._has_expected_permissions(candidate, oplog.pk):
+                    token = candidate
+                    break
+
+            if token is None:
+                token, token_value = ServiceToken.objects.create_token(
+                    name=token_name,
+                    created_by=user,
+                    service_principal=service_principal,
+                    permissions=permissions,
+                )
+            else:
+                _, token_value = ServiceToken.objects.generate_token(token)
+                token.save(
+                    update_fields=["token_prefix", "secret_hash", "last_used_at"]
+                )
+
+        return JsonResponse({"token": token_value}, status=self.status)
 
 
 class GraphqlGetExtraFieldSpecAction(JwtRequiredMixin, HasuraActionView):

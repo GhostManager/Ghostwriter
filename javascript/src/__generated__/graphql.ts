@@ -60,6 +60,11 @@ export type ExtraFieldSpecOutput = {
   extraFieldSpec: Scalars['String']['output'];
 };
 
+export type GenerateOplogTokenResponse = {
+  __typename?: 'GenerateOplogTokenResponse';
+  token: Scalars['String']['output'];
+};
+
 export type GetFindingByTagsResponse = {
   __typename?: 'GetFindingByTagsResponse';
   finding?: Maybe<Finding>;
@@ -11407,6 +11412,8 @@ export type Mutation_Root = {
   delete_whoisStatus_by_pk?: Maybe<WhoisStatus>;
   /** generateCodename */
   generateCodename?: Maybe<CodenameResponse>;
+  /** Generate a service token scoped to one Oplog */
+  generateOplogToken: GenerateOplogTokenResponse;
   /** Generate a JSON report for the given report ID */
   generateReport?: Maybe<ReportResponse>;
   /** insert data into the table: "shepherd_activitytype" */
@@ -13003,6 +13010,14 @@ export type Mutation_RootDelete_WhoisStatusArgs = {
 /** mutation root */
 export type Mutation_RootDelete_WhoisStatus_By_PkArgs = {
   id: Scalars['bigint']['input'];
+};
+
+
+/** mutation root */
+export type Mutation_RootGenerateOplogTokenArgs = {
+  oplogId: Scalars['Int']['input'];
+  servicePrincipalName: Scalars['String']['input'];
+  tokenName: Scalars['String']['input'];
 };
 
 

@@ -6863,6 +6863,355 @@ class GraphqlDownloadEvidenceViewTests(TestCase):
         self.assertIn("fileBase64", result)
 
 
+class GraphqlGenerateOplogTokenTests(TestCase):
+    """Collection of tests for :view:`api.GraphqlGenerateOplogToken`."""
+
+    default_token_name = "Fault Line Oplog token"
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD, role="user", is_active=True)
+        cls.other_user = UserFactory(password=PASSWORD, role="user", is_active=True)
+        cls.project = ProjectFactory()
+        cls.oplog = OplogFactory(project=cls.project)
+        ProjectAssignmentFactory(project=cls.project, operator=cls.user)
+        cls.user_api_key, cls.user_token = APIKey.objects.create_token(
+            user=cls.user,
+            name="Oplog token API key",
+        )
+        cls.uri = reverse("api:graphql_generate_oplog_token")
+
+    def setUp(self):
+        self.client = Client()
+
+    def post_action_input(self, token, action_input):
+        return self.client.post(
+            self.uri,
+            json.dumps({"input": action_input}),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {token}",
+            HTTP_HASURA_ACTION_SECRET=ACTION_SECRET,
+        )
+
+    def generate_token(
+        self,
+        token,
+        oplog_id,
+        service_principal_name="Fault Line",
+        token_name=None,
+    ):
+        return self.post_action_input(
+            token,
+            {
+                "oplogId": oplog_id,
+                "servicePrincipalName": service_principal_name,
+                "tokenName": (
+                    self.default_token_name if token_name is None else token_name
+                ),
+            },
+        )
+
+    def test_creates_requested_principal_and_read_create_token_for_editable_oplog(self):
+        token_name = "Operation Automation Oplog writer"
+        response = self.generate_token(
+            self.user_token,
+            self.oplog.pk,
+            service_principal_name="Operation Automation",
+            token_name=token_name,
+        )
+
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        token_value = response.json()["token"]
+        token = ServiceToken.objects.get_valid_from_token(token_value)
+        self.assertEqual(token.created_by, self.user)
+        self.assertEqual(token.name, token_name)
+        self.assertEqual(token.service_principal.name, "Operation Automation")
+        self.assertEqual(token.service_principal.created_by, self.user)
+        self.assertEqual(
+            token.service_principal.service_type,
+            ServicePrincipal.ServiceType.INTEGRATION,
+        )
+        self.assertEqual(
+            set(
+                token.permissions.values_list("resource_type", "resource_id", "action")
+            ),
+            {
+                (
+                    ServiceTokenPermission.ResourceType.OPLOG,
+                    self.oplog.pk,
+                    ServiceTokenPermission.Action.READ,
+                ),
+                (
+                    ServiceTokenPermission.ResourceType.OPLOG,
+                    self.oplog.pk,
+                    ServiceTokenPermission.Action.CREATE,
+                ),
+            },
+        )
+
+    def test_rejects_session_jwt_even_when_user_can_edit_oplog(self):
+        _, session_token = generate_user_jwt(self.user)
+
+        response = self.generate_token(session_token, self.oplog.pk)
+
+        self.assertEqual(response.status_code, HTTPStatus.UNAUTHORIZED)
+        self.assertEqual(response.json()["extensions"]["code"], "Unauthorized")
+        self.assertFalse(ServicePrincipal.objects.filter(created_by=self.user).exists())
+
+    def test_rejects_user_without_edit_access_without_disclosing_oplog(self):
+        _, other_token = APIKey.objects.create_token(
+            user=self.other_user,
+            name="Other user API token",
+        )
+
+        response = self.generate_token(other_token, self.oplog.pk)
+
+        self.assertEqual(response.status_code, HTTPStatus.UNAUTHORIZED)
+        self.assertEqual(response.json()["extensions"]["code"], "Unauthorized")
+        self.assertFalse(
+            ServicePrincipal.objects.filter(created_by=self.other_user).exists()
+        )
+
+    def test_rejects_oplog_without_a_project(self):
+        unassociated_oplog = OplogFactory(project=None)
+
+        response = self.generate_token(self.user_token, unassociated_oplog.pk)
+
+        self.assertEqual(response.status_code, HTTPStatus.UNAUTHORIZED)
+        self.assertEqual(response.json()["extensions"]["code"], "Unauthorized")
+        self.assertFalse(ServicePrincipal.objects.exists())
+
+    def test_creates_principal_when_only_inactive_name_matches(self):
+        principal = ServicePrincipal.objects.create(
+            name="Fault Line",
+            created_by=self.user,
+            active=False,
+        )
+
+        response = self.generate_token(self.user_token, self.oplog.pk)
+
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        self.assertEqual(
+            ServicePrincipal.objects.filter(
+                name="Fault Line", created_by=self.user
+            ).count(),
+            2,
+        )
+        issued_token = ServiceToken.objects.get_valid_from_token(
+            response.json()["token"]
+        )
+        self.assertNotEqual(issued_token.service_principal, principal)
+        self.assertTrue(issued_token.service_principal.active)
+        self.assertEqual(
+            issued_token.service_principal.service_type,
+            ServicePrincipal.ServiceType.INTEGRATION,
+        )
+
+    def test_rejects_malformed_inputs(self):
+        invalid_inputs = (
+            ("not-an-oplog-id", "Fault Line", self.default_token_name),
+            (self.oplog.pk, "", self.default_token_name),
+            (self.oplog.pk, "invalid\nprincipal", self.default_token_name),
+            (self.oplog.pk, "a" * 256, self.default_token_name),
+            (self.oplog.pk, "Fault Line", ""),
+            (self.oplog.pk, "Fault Line", "invalid\ntoken name"),
+            (self.oplog.pk, "Fault Line", "a" * 256),
+        )
+
+        for oplog_id, service_principal_name, token_name in invalid_inputs:
+            with self.subTest(
+                oplog_id=oplog_id,
+                service_principal_name=service_principal_name,
+                token_name=token_name,
+            ):
+                response = self.generate_token(
+                    self.user_token,
+                    oplog_id,
+                    service_principal_name=service_principal_name,
+                    token_name=token_name,
+                )
+
+                self.assertEqual(response.status_code, HTTPStatus.BAD_REQUEST)
+                self.assertEqual(
+                    response.json()["extensions"]["code"], "InvalidRequestBody"
+                )
+        self.assertFalse(ServicePrincipal.objects.exists())
+
+    def test_requires_a_token_name(self):
+        response = self.post_action_input(
+            self.user_token,
+            {
+                "oplogId": self.oplog.pk,
+                "servicePrincipalName": "Fault Line",
+            },
+        )
+
+        self.assertEqual(response.status_code, HTTPStatus.BAD_REQUEST)
+        self.assertEqual(response.json()["extensions"]["code"], "InvalidRequestBody")
+        self.assertFalse(ServicePrincipal.objects.exists())
+
+    def test_reuses_the_requesting_users_active_principal_case_insensitively(self):
+        principal = ServicePrincipal.objects.create(
+            name="Operation Automation",
+            created_by=self.user,
+        )
+
+        response = self.generate_token(
+            self.user_token,
+            self.oplog.pk,
+            service_principal_name="operation automation",
+        )
+
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        token = ServiceToken.objects.get_valid_from_token(response.json()["token"])
+        self.assertEqual(token.service_principal, principal)
+        self.assertEqual(
+            ServicePrincipal.objects.filter(created_by=self.user).count(), 1
+        )
+
+    def test_rotates_existing_unexpired_token_without_creating_another(self):
+        first_response = self.generate_token(self.user_token, self.oplog.pk)
+        first_token_value = first_response.json()["token"]
+        first_token = ServiceToken.objects.get_valid_from_token(first_token_value)
+
+        second_response = self.generate_token(self.user_token, self.oplog.pk)
+
+        self.assertEqual(second_response.status_code, HTTPStatus.OK)
+        second_token_value = second_response.json()["token"]
+        second_token = ServiceToken.objects.get_valid_from_token(second_token_value)
+        self.assertEqual(second_token.pk, first_token.pk)
+        self.assertNotEqual(second_token_value, first_token_value)
+        self.assertFalse(ServiceToken.objects.is_valid(first_token_value))
+        self.assertEqual(
+            ServiceToken.objects.filter(
+                service_principal=second_token.service_principal,
+                created_by=self.user,
+            ).count(),
+            1,
+        )
+
+    def test_token_name_distinguishes_intentionally_separate_tokens(self):
+        first_response = self.generate_token(
+            self.user_token,
+            self.oplog.pk,
+            token_name="Fault Line Oplog entries",
+        )
+        second_response = self.generate_token(
+            self.user_token,
+            self.oplog.pk,
+            token_name="Fault Line Oplog recordings",
+        )
+
+        self.assertEqual(first_response.status_code, HTTPStatus.OK)
+        self.assertEqual(second_response.status_code, HTTPStatus.OK)
+        first_token = ServiceToken.objects.get_valid_from_token(
+            first_response.json()["token"]
+        )
+        second_token = ServiceToken.objects.get_valid_from_token(
+            second_response.json()["token"]
+        )
+        self.assertNotEqual(first_token.pk, second_token.pk)
+        self.assertEqual(first_token.name, "Fault Line Oplog entries")
+        self.assertEqual(second_token.name, "Fault Line Oplog recordings")
+
+    def test_does_not_rotate_a_token_with_broader_permissions(self):
+        principal = ServicePrincipal.objects.create(
+            name="Fault Line",
+            created_by=self.user,
+        )
+        broader_token, broader_token_value = ServiceToken.objects.create_token(
+            name=self.default_token_name,
+            created_by=self.user,
+            service_principal=principal,
+            permissions=ServiceToken.build_permissions_for_preset(
+                ServiceTokenPreset.OPLOG_RW,
+                oplog_id=self.oplog.pk,
+            ),
+        )
+
+        response = self.generate_token(self.user_token, self.oplog.pk)
+
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        issued_token = ServiceToken.objects.get_valid_from_token(
+            response.json()["token"]
+        )
+        self.assertNotEqual(issued_token.pk, broader_token.pk)
+        self.assertTrue(ServiceToken.objects.is_valid(broader_token_value))
+        self.assertEqual(
+            set(
+                issued_token.permissions.values_list(
+                    "resource_type", "resource_id", "action"
+                )
+            ),
+            {
+                (
+                    ServiceTokenPermission.ResourceType.OPLOG,
+                    self.oplog.pk,
+                    ServiceTokenPermission.Action.READ,
+                ),
+                (
+                    ServiceTokenPermission.ResourceType.OPLOG,
+                    self.oplog.pk,
+                    ServiceTokenPermission.Action.CREATE,
+                ),
+            },
+        )
+
+    def test_creates_a_new_token_after_the_existing_token_expires(self):
+        first_response = self.generate_token(self.user_token, self.oplog.pk)
+        first_token = ServiceToken.objects.get_valid_from_token(
+            first_response.json()["token"]
+        )
+        first_token.expiry_date = timezone.now() - timedelta(seconds=1)
+        first_token.save(update_fields=["expiry_date"])
+
+        second_response = self.generate_token(self.user_token, self.oplog.pk)
+
+        self.assertEqual(second_response.status_code, HTTPStatus.OK)
+        second_token = ServiceToken.objects.get_valid_from_token(
+            second_response.json()["token"]
+        )
+        self.assertNotEqual(second_token.pk, first_token.pk)
+        self.assertEqual(
+            ServiceToken.objects.filter(
+                service_principal=second_token.service_principal,
+                created_by=self.user,
+            ).count(),
+            2,
+        )
+
+    def test_creates_a_separate_principal_per_user(self):
+        other_project = ProjectFactory()
+        other_oplog = OplogFactory(project=other_project)
+        ProjectAssignmentFactory(project=other_project, operator=self.other_user)
+        _, other_token = APIKey.objects.create_token(
+            user=self.other_user,
+            name="Other user API token",
+        )
+
+        first_response = self.generate_token(
+            self.user_token,
+            self.oplog.pk,
+            service_principal_name="Operation Automation",
+        )
+        second_response = self.generate_token(
+            other_token,
+            other_oplog.pk,
+            service_principal_name="Operation Automation",
+        )
+
+        self.assertEqual(first_response.status_code, HTTPStatus.OK)
+        self.assertEqual(second_response.status_code, HTTPStatus.OK)
+        principals = ServicePrincipal.objects.filter(
+            name="Operation Automation"
+        ).order_by("created_by_id")
+        self.assertEqual(principals.count(), 2)
+        self.assertEqual(
+            set(principals.values_list("created_by_id", flat=True)),
+            {self.user.pk, self.other_user.pk},
+        )
+
+
 class GraphqlLinkOplogEvidenceTests(TestCase):
     """Collection of tests for :view:`api.GraphqlLinkOplogEvidence`."""
 
