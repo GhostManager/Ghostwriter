@@ -19,9 +19,9 @@ function sanitizeColor(color: unknown): string {
     return DEFAULT_COLOR;
 }
 
-function rgbToHex(rgb: string): string | null {
+export function rgbToHex(rgb: string): string | null {
     const match = rgb.match(
-        /^rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$/,
+        /^rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$/
     );
     if (!match) return null;
     const [, r, g, b] = match;

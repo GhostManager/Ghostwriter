@@ -6,13 +6,14 @@ from django.urls import reverse
 from django.utils import timezone
 
 # 3rd Party Libraries
-from crispy_forms.bootstrap import FieldWithButtons, StrictButton
+from crispy_forms.bootstrap import FieldWithButtons, StrictButton, TabHolder
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import HTML, ButtonHolder, Column, Field, Layout, Row, Submit
+from crispy_forms.layout import Column, Div, Field, HTML, Layout, Row, Submit
 
 # Ghostwriter Libraries
 from ghostwriter.api.utils import get_project_list
 from ghostwriter.commandcenter.forms import ExtraFieldsField
+from ghostwriter.modules.custom_layout_object import CustomTab
 from ghostwriter.oplog.models import Oplog, OplogEntry
 from ghostwriter.reporting.models import Evidence, Report
 from ghostwriter.rolodex.models import Project
@@ -57,16 +58,36 @@ class OplogForm(forms.ModelForm):
         self.helper = FormHelper()
         self.helper.form_show_errors = False
         self.helper.form_method = "post"
+        self.helper.form_class = "resource-edit-form"
         self.helper.layout = Layout(
-            "name",
-            "project",
-            ButtonHolder(
-                Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
+            Div(
                 HTML(
                     """
-                    <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    <div class="resource-form-section-heading">
+                      <span class="resource-form-section-icon"><i class="fas fa-stream" aria-hidden="true"></i></span>
+                      <div>
+                        <h4>Log identity</h4>
+                        <p>Name this timeline for quick recognition and connect it to the engagement it supports.</p>
+                      </div>
+                    </div>
                     """
                 ),
+                "name",
+                "project",
+                css_class="resource-form-card",
+            ),
+            Div(
+                HTML("""<span class="resource-form-actions-context">{% if object.pk %}Editing {{ object.name }}{% else %}Creating an operation log{% endif %}</span>"""),
+                Div(
+                    HTML("""<a href="{{ cancel_link }}" class="btn btn-outline-secondary">Cancel</a>"""),
+                    Submit(
+                        "submit_btn",
+                        "Save Changes" if self.instance.pk else "Create Log",
+                        css_class="btn btn-primary",
+                    ),
+                    css_class="resource-form-actions-buttons",
+                ),
+                css_class="resource-form-actions",
             ),
         )
 
@@ -119,8 +140,15 @@ class OplogEntryForm(forms.ModelForm):
         self.fields["comments"].widget.attrs["rows"] = 2
         for field_name in ("command", "output"):
             existing_classes = self.fields[field_name].widget.attrs.get("class", "").split()
-            if "no-auto-tinymce" not in existing_classes:
-                existing_classes.append("no-auto-tinymce")
+            if "no-auto-rich-text" not in existing_classes:
+                existing_classes.append("no-auto-rich-text")
+            self.fields[field_name].widget.attrs["class"] = " ".join(existing_classes)
+        for field_name in ("description", "comments"):
+            existing_classes = (
+                self.fields[field_name].widget.attrs.get("class", "").split()
+            )
+            if "gw-tiptap-compact" not in existing_classes:
+                existing_classes.append("gw-tiptap-compact")
             self.fields[field_name].widget.attrs["class"] = " ".join(existing_classes)
 
         self.helper = FormHelper()
@@ -141,64 +169,120 @@ class OplogEntryForm(forms.ModelForm):
 
         has_extra_fields = bool(self.fields["extra_fields"].specs)
 
-        self.helper.layout = Layout(
-            Row(
-                Column(Field("start_date", step=1), css_class="form-group col-6 mb-0"),
-                Column(
-                    FieldWithButtons(
-                        Field("end_date", step=1),
-                        StrictButton(
-                            "Now",
-                            css_class="btn btn-secondary js-set-oplog-end-date-now",
-                            title="Set end date and time to now",
-                        ),
-                    ),
-                    css_class="form-group col-6 mb-0",
-                ),
-                css_class="form-row",
-            ),
-            Row(
-                Column("entry_identifier", css_class="form-group col-6 mb-0"),
-                Column("operator_name", css_class="form-group col-6 mb-0"),
-                css_class="form-row",
-            ),
-            Row(
-                Column("source_ip", css_class="form-group col-6 mb-0"),
-                Column("dest_ip", css_class="form-group col-6 mb-0"),
-                css_class="form-row",
-            ),
-            Row(
-                Column("tool", css_class="form-group col-6 mb-0"),
-                Column("user_context", css_class="form-group col-6 mb-0"),
-                css_class="form-row",
-            ),
-            Row(
-                Column("command", css_class="form-group col-6 mb-0 empty-form"),
-                Column("output", css_class="form-group col-6 mb-0 empty-form"),
-                css_class="form-row",
-            ),
-            Row(
-                Column("description", css_class="form-group col-6 mb-0"),
-                Column("comments", css_class="form-group col-6 mb-0"),
-                css_class="form-row",
-            ),
-            "tags",
-            HTML(
-                """
-                <h4 class="icon custom-field-icon">Extra Fields</h4>
-                <hr />
-                """
-            ) if has_extra_fields else None,
-            "extra_fields" if has_extra_fields else None,
-            ButtonHolder(
-                Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
+        tabs = [
+            CustomTab(
+                "Activity",
                 HTML(
                     """
-                    <button data-dismiss="modal" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    <div class="form-section-heading mb-3">
+                        <h2>Activity context</h2>
+                        <p>Record when and where the command ran, the tool and user context, and who performed it.</p>
+                    </div>
                     """
                 ),
+                Row(
+                    Column(
+                        Field("start_date", step=1),
+                        css_class="col-md-6 mb-0",
+                    ),
+                    Column(
+                        FieldWithButtons(
+                            Field("end_date", step=1),
+                            StrictButton(
+                                "Now",
+                                css_class="btn btn-outline-secondary js-set-oplog-end-date-now",
+                                title="Set end date and time to now",
+                            ),
+                        ),
+                        css_class="col-md-6 mb-0",
+                    ),
+                    css_class="row g-3",
+                ),
+                Row(
+                    Column("source_ip", css_class="col-md-6 mb-0"),
+                    Column("dest_ip", css_class="col-md-6 mb-0"),
+                    css_class="row g-3",
+                ),
+                Row(
+                    Column("tool", css_class="col-md-6 mb-0"),
+                    Column("user_context", css_class="col-md-6 mb-0"),
+                    css_class="row g-3",
+                ),
+                Div("command", css_class="empty-form"),
+                Row(
+                    Column("operator_name", css_class="col-md-6 mb-0"),
+                    Column("entry_identifier", css_class="col-md-6 mb-0"),
+                    css_class="row g-3",
+                ),
+                css_id="activity",
+            ),
+            CustomTab(
+                "Notes & Output",
+                HTML(
+                    """
+                    <div class="form-section-heading mb-3">
+                        <h2>Supporting details</h2>
+                        <p>Add output, narrative context, and tags when they help explain or organize the activity.</p>
+                    </div>
+                    """
+                ),
+                "output",
+                Row(
+                    Column("description", css_class="col-md-6 mb-0"),
+                    Column("comments", css_class="col-md-6 mb-0"),
+                    css_class="row g-3",
+                ),
+                "tags",
+                css_id="notes-output",
+            ),
+        ]
+
+        if has_extra_fields:
+            tabs.append(
+                CustomTab(
+                    "Extra Fields",
+                    HTML(
+                        """
+                        <div class="form-section-heading mb-3">
+                            <h2>Additional details</h2>
+                            <p>Capture organization-specific metadata configured for operation log entries.</p>
+                        </div>
+                        """
+                    ),
+                    "extra_fields",
+                    link_css_class="tab-icon custom-field-icon",
+                    css_id="extra-fields",
+                )
+            )
+
+        self.helper.layout = Layout(
+            TabHolder(
+                *tabs,
+                template="tab.html",
+                css_class="oplog-entry-tabs nav-fill",
+                css_id="oplog-entry-tab-bar",
+            ),
+            Div(
+                HTML(
+                    """
+                    <span class="resource-form-actions-context">
+                        Editing entry #{{ object.pk }} &middot; Ctrl/Cmd + Enter to save
+                    </span>
+                    """
+                ),
+                Div(
+                    HTML(
+                        """
+                        <button data-bs-dismiss="modal" class="btn btn-outline-secondary" type="button">Cancel</button>
+                        """
+                    ),
+                    Submit("submit_btn", "Save Entry", css_class="btn btn-primary"),
+                    css_class="resource-form-actions-buttons",
+                ),
+                css_class="resource-form-actions oplog-entry-form-actions",
             ),
         )
+        self.helper.form_class = "resource-edit-form oplog-entry-edit-form"
 
 
 class OplogEvidenceForm(forms.ModelForm):
@@ -221,7 +305,7 @@ class OplogEvidenceForm(forms.ModelForm):
             "tags",
         )
         widgets = {
-            "document": forms.FileInput(attrs={"class": "form-control"}),
+            "document": forms.FileInput(attrs={"class": "resource-file-input"}),
             "description": forms.Textarea(attrs={"rows": 1}),
         }
 
@@ -256,33 +340,7 @@ class OplogEvidenceForm(forms.ModelForm):
         self.helper.form_method = "post"
         self.helper.attrs = {"enctype": "multipart/form-data"}
         self.helper.form_id = "oplog-evidence-form"
-        self.helper.layout = Layout(
-            HTML(
-                """
-                <p class="mb-1">Upload evidence and attach it to the selected report. The friendly name is used to
-                reference this evidence in reports, and the caption appears below figures.
-                You can press <em>Enter</em> to submit.</p>
-                """
-            ),
-            "report",
-            Row(
-                Column("friendly_name", css_class="form-group col-md-6 mb-0"),
-                Column("tags", css_class="form-group col-md-6 mb-0"),
-                css_class="form-row",
-            ),
-            "caption",
-            "description",
-            Field("document", css_class="custom-file-input"),
-            ButtonHolder(
-                Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
-                HTML(
-                    """
-                    <button data-dismiss="modal" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
-                    """
-                ),
-                css_class="mt-3",
-            ),
-        )
+        self.helper.form_class = "oplog-evidence-upload-form"
 
     def clean(self):
         cleaned_data = super().clean()

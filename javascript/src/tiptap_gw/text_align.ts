@@ -18,6 +18,9 @@ const TextAlign = TTTextAlign.extend({
                         break;
                     }
                 }
+                if (el.classList.contains("full")) {
+                    align = "justify";
+                }
             }
             return align === "" ? this.options.defaultAlignment : align;
         };

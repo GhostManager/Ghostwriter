@@ -1,23 +1,32 @@
 {% load bleach_tags custom_tags %}
 
-<div id="template_detail_{{ template.id }}" class="modal fade" tabindex="-1" role="dialog">
+<div id="template_detail_{{ template.id }}" class="modal fade detail-preview-modal" tabindex="-1" role="dialog">
   <div class="modal-dialog modal-super-sized modal-dialog-scrollable modal-dialog-centered" role="document">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">Additional Details for {{ template }}</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
+        <div>
+          <span class="detail-preview-modal-eyebrow">Report template</span>
+          <h2 class="modal-title">{{ template }}</h2>
+        </div>
+        <button type="button" class="btn-close detail-preview-modal-close" data-bs-dismiss="modal" aria-label="Close">
         </button>
       </div>
       <div class="modal-body">
 
-        {% if template.protected %}<span class="badge badge-danger mb-3">Protected</span>{% endif %}<span class="badge badge-success mb-3">{% if template.landscape %}Landscsape{% else %}Portrait{% endif %}</span>{%  for tag in template.tags.all %}<span class="badge badge-secondary mb-3">{{ tag.name }}</span>{% endfor %}
+        <div class="detail-preview-modal-tags">
+          {% if template.protected %}<span class="detail-preview-modal-tag is-protected">Protected</span>{% endif %}
+          <span class="detail-preview-modal-tag">{% if template.landscape %}Landscape{% else %}Portrait{% endif %}</span>
+          {% for tag in template.tags.all %}<span class="detail-preview-modal-tag">{{ tag.name }}</span>{% endfor %}
+        </div>
 
         <h5>Template Description</h5>
         {% if template.description %}
           {{ template.description|bleach|safe }}
         {% else %}
-          <p>No one has added a description of this template.{% if request.user|can_edit_report_template:template %} <a class="clickable" href="{% url 'reporting:template_update' template.id %}">Fix that here.</a>{% endif %}</p>
+          <div class="empty-state">
+            <p class="empty-state-title">No description provided</p>
+            <p class="empty-state-description">Add guidance that helps operators choose the right template.{% if request.user|can_edit_report_template:template %} <a class="clickable" href="{% url 'reporting:template_update' template.id %}">Edit template</a>.{% endif %}</p>
+          </div>
         {% endif %}
 
         <h5>Linting Results</h5>
@@ -32,7 +41,7 @@
                         class="alert alert-danger"
                     {% endif %}
                 role="alert">
-                    <h4 style="margin-top: 0;" class="alert-heading">{{ lint_result.result|capfirst }}</h4>
+                    <h4 class="alert-heading template-lint-alert-heading">{{ lint_result.result|capfirst }}</h4>
                     {% if lint_result.result == "success" %}
                       <p>Template passed all linter checks, but try using it for a report to test it with findings and custom fields.</p>
                     {% else %}
@@ -50,9 +59,9 @@
                         {% for warning in lint_result.warnings %}
                             <tr>
                                 <td >
-                                    <span class="badge badge-warning">Warning</span>
+                                    <span class="template-lint-status is-warning">Warning</span>
                                 </td>
-                                <td class="text-left">
+                                <td class="text-start">
                                     {{ warning }}
                                 </td>
                             </tr>
@@ -65,9 +74,9 @@
                         {% for error in lint_result.errors %}
                             <tr>
                                 <td>
-                                    <span class="badge badge-danger">Error</span>
+                                    <span class="template-lint-status is-error">Error</span>
                                 </td>
-                                <td class="text-left">
+                                <td class="text-start">
                                     {{ error }}
                                 </td>
                             </tr>
@@ -77,14 +86,14 @@
                 {% endif %}
             {% endwith %}
         {% else %}
-            <div class="alert alert-secondary" role="alert">
-                <h4 style="margin-top: 0;" class="alert-heading">Unknown</h4>
-                Run the linter on this template to get new results
+            <div class="empty-state">
+                <p class="empty-state-title">No linting results yet</p>
+                <p class="empty-state-description">Run the linter to check this template for reporting issues.</p>
             </div>
         {% endif %}
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary col-3" data-dismiss="modal">Close</button>
+      <div class="modal-footer detail-preview-modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
       </div>
     </div>
   </div>

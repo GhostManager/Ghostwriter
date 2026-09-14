@@ -1,30 +1,95 @@
 # Standard Libraries
 import logging
 import os
+import time
 from base64 import b64decode
 from io import BytesIO
 from unittest.mock import patch
 
 # Django Imports
 from django.conf import settings
+from django.contrib.auth import SESSION_KEY
 from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import InMemoryUploadedFile, SimpleUploadedFile
+from django.template.loader import get_template
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
 # 3rd Party Libraries
 from allauth.account.models import EmailAddress
+from allauth.account.authentication import AUTHENTICATION_METHODS_SESSION_KEY
 from allauth.mfa import app_settings as mfa_app_settings
 from allauth.mfa.internal.flows.add import validate_can_add_authenticator
+from allauth.mfa.models import Authenticator
+from allauth.mfa.recovery_codes.internal.auth import RecoveryCodes
+from allauth.mfa.totp.internal.auth import TOTP, generate_totp_secret
 
 # Ghostwriter Libraries
-from ghostwriter.factories import UserFactory
+from ghostwriter.factories import ProjectAssignmentFactory, ProjectFactory, UserFactory
 from ghostwriter.home.models import UserProfile
 
 logging.disable(logging.CRITICAL)
 
 PASSWORD = "SuperNaturalReporting!"
+
+
+class SocialAccountViewTests(TestCase):
+    """Checks Ghostwriter's social-account entry and management surfaces."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+
+    def setUp(self):
+        self.client_auth = Client()
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    def test_social_account_journey_templates_compile(self):
+        for template_name in (
+            "socialaccount/login.html",
+            "socialaccount/signup.html",
+            "socialaccount/login_cancelled.html",
+            "socialaccount/authentication_error.html",
+            "socialaccount/connections.html",
+        ):
+            self.assertIsNotNone(get_template(template_name))
+
+    def test_login_cancelled_uses_refreshed_journey_card(self):
+        response = self.client.get(reverse("socialaccount_login_cancelled"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "socialaccount/login_cancelled.html")
+        self.assertContains(response, 'class="auth-challenge-card auth-journey-card"')
+        self.assertContains(response, "No changes were made to your Ghostwriter account.")
+        self.assertContains(response, "Return to sign in")
+
+    def test_login_error_uses_refreshed_journey_card(self):
+        response = self.client.get(reverse("socialaccount_login_error"))
+
+        self.assertEqual(response.status_code, 401)
+        self.assertTemplateUsed(response, "socialaccount/authentication_error.html")
+        self.assertContains(
+            response,
+            'class="auth-journey-status auth-journey-status-danger"',
+            status_code=401,
+        )
+        self.assertContains(
+            response,
+            "Unable to sign in with your organization",
+            status_code=401,
+        )
+
+    def test_connections_uses_refreshed_empty_state(self):
+        response = self.client_auth.get(reverse("socialaccount_connections"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "socialaccount/connections.html")
+        self.assertContains(response, 'class="auth-social-empty"')
+        self.assertContains(response, "No linked accounts")
+        self.assertNotContains(response, "You currently have no third-party accounts connected")
 
 
 class UserDetailViewTests(TestCase):
@@ -39,7 +104,9 @@ class UserDetailViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -53,6 +120,23 @@ class UserDetailViewTests(TestCase):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "users/profile.html")
+        self.assertContains(response, 'class="page-content"')
+        self.assertContains(response, 'class="profile-dashboard"')
+        self.assertContains(response, 'class="profile-identity-panel"')
+        self.assertContains(response, 'id="account-actions"')
+        self.assertContains(response, "Settings and security")
+        self.assertContains(response, "Personal access tokens")
+
+    def test_active_project_uses_shared_table_link_style(self):
+        project = ProjectFactory()
+        ProjectAssignmentFactory(project=project, operator=self.user)
+
+        response = self.client_auth.get(self.uri)
+
+        self.assertContains(
+            response,
+            f'class="table-primary-link" href="{project.get_absolute_url()}"',
+        )
 
 
 class UserUpdateViewTests(TestCase):
@@ -63,16 +147,26 @@ class UserUpdateViewTests(TestCase):
         cls.user = UserFactory(password=PASSWORD)
         cls.other_user = UserFactory(password=PASSWORD)
         cls.uri = reverse("users:user_update", kwargs={"username": cls.user.username})
-        cls.success_uri = reverse("users:user_detail", kwargs={"username": cls.user.username})
+        cls.success_uri = reverse(
+            "users:user_detail", kwargs={"username": cls.user.username}
+        )
 
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
         self.other_client_auth = Client()
-        self.other_client_auth.login(username=self.other_user.username, password=PASSWORD)
-        self.assertTrue(self.other_client_auth.login(username=self.other_user.username, password=PASSWORD))
+        self.other_client_auth.login(
+            username=self.other_user.username, password=PASSWORD
+        )
+        self.assertTrue(
+            self.other_client_auth.login(
+                username=self.other_user.username, password=PASSWORD
+            )
+        )
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -86,6 +180,21 @@ class UserUpdateViewTests(TestCase):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "users/profile_form.html")
+        self.assertContains(response, "Operator identity")
+        self.assertContains(
+            response,
+            "Edit the contact details and timezone used for assignments and reports.",
+        )
+        self.assertContains(response, 'data-timezone-search="true"')
+        self.assertContains(response, 'id="profile-timezone-options"')
+        self.assertContains(response, "America/Los_Angeles")
+        self.assertContains(
+            response,
+            'class="resource-form-actions resource-form-actions-compact"',
+        )
+        self.assertNotContains(response, "Editing your profile")
+        self.assertNotContains(response, "Edit operator profile")
+        self.assertNotContains(response, '<span class="detail-eyebrow">Profile</span>')
 
     def test_view_blocks_improper_access(self):
         response = self.other_client_auth.get(self.uri)
@@ -103,6 +212,23 @@ class UserUpdateViewTests(TestCase):
         )
         self.assertRedirects(response, self.success_uri)
 
+    def test_invalid_timezone_is_rejected(self):
+        response = self.client_auth.post(
+            self.uri,
+            {
+                "name": self.user.name,
+                "timezone": "Not/A_Timezone",
+                "phone": self.user.phone,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFormError(
+            response.context["form"],
+            "timezone",
+            "Select a valid choice. Not/A_Timezone is not one of the available choices.",
+        )
+
 
 class UserProfileUpdateViewTests(TestCase):
     """Collection of tests for :view:`users.UserProfileUpdateView`."""
@@ -111,24 +237,38 @@ class UserProfileUpdateViewTests(TestCase):
     def setUpTestData(cls):
         cls.user = UserFactory(password=PASSWORD)
         cls.other_user = UserFactory(password=PASSWORD)
-        cls.uri = reverse("users:userprofile_update", kwargs={"username": cls.user.username})
+        cls.uri = reverse(
+            "users:userprofile_update", kwargs={"username": cls.user.username}
+        )
         cls.redirect_uri = reverse("users:redirect")
-        cls.success_uri = reverse("users:user_detail", kwargs={"username": cls.user.username})
+        cls.success_uri = reverse(
+            "users:user_detail", kwargs={"username": cls.user.username}
+        )
 
         image_data = b64decode(
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
         )
         image_file = ContentFile(image_data, "fake.png")
-        cls.uploaded_image_file = SimpleUploadedFile(image_file.name, image_file.read(), content_type="image/png")
+        cls.uploaded_image_file = SimpleUploadedFile(
+            image_file.name, image_file.read(), content_type="image/png"
+        )
 
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
         self.other_client_auth = Client()
-        self.other_client_auth.login(username=self.other_user.username, password=PASSWORD)
-        self.assertTrue(self.other_client_auth.login(username=self.other_user.username, password=PASSWORD))
+        self.other_client_auth.login(
+            username=self.other_user.username, password=PASSWORD
+        )
+        self.assertTrue(
+            self.other_client_auth.login(
+                username=self.other_user.username, password=PASSWORD
+            )
+        )
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -142,6 +282,18 @@ class UserProfileUpdateViewTests(TestCase):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "users/profile_form.html")
+        self.assertContains(response, 'class="profile-avatar-current"')
+        self.assertContains(response, "Choose a new image")
+        self.assertContains(response, "profile-avatar-submit")
+        self.assertContains(response, "disabled")
+        self.assertContains(
+            response,
+            'class="resource-form-actions resource-form-actions-compact"',
+        )
+        self.assertNotContains(response, "Updating your profile image")
+        self.assertNotContains(response, "Avatar Upload")
+        self.assertNotContains(response, "Update profile image")
+        self.assertNotContains(response, '<span class="detail-eyebrow">Profile</span>')
 
     def test_view_blocks_improper_access(self):
         response = self.other_client_auth.get(self.uri)
@@ -159,13 +311,17 @@ class UserRedirectViewTests(TestCase):
     def setUpTestData(cls):
         cls.user = UserFactory(password=PASSWORD)
         cls.uri = reverse("users:redirect")
-        cls.redirect_uri = reverse("users:user_detail", kwargs={"username": cls.user.username})
+        cls.redirect_uri = reverse(
+            "users:user_detail", kwargs={"username": cls.user.username}
+        )
 
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -183,17 +339,35 @@ class GhostwriterPasswordChangeViewTests(TestCase):
     def setUpTestData(cls):
         cls.user = UserFactory(password=PASSWORD)
         cls.uri = reverse("account_change_password")
-        cls.success_uri = reverse("users:user_detail", kwargs={"username": cls.user.username})
+        cls.success_uri = reverse(
+            "users:user_detail", kwargs={"username": cls.user.username}
+        )
 
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "password-change-form")
+
+    def test_view_uses_refreshed_account_security_layout(self):
+        response = self.client_auth.get(self.uri)
+
+        self.assertContains(
+            response,
+            'class="resource-form-shell account-profile-editor account-security-page"',
+        )
+        self.assertContains(
+            response, 'class="resource-form-card account-security-card"'
+        )
+        self.assertContains(response, 'class="resource-form-actions-buttons"')
+        self.assertNotContains(response, 'class="col-md-6 offset-md-3"')
 
     def test_view_requires_login(self):
         response = self.client.get(self.uri)
@@ -202,11 +376,548 @@ class GhostwriterPasswordChangeViewTests(TestCase):
     def test_successfull_redirect(self):
         response = self.client_auth.post(
             self.uri,
-            {"oldpassword": PASSWORD, "password1": "IxIGx58vy79hS&sju#Ea", "password2": "IxIGx58vy79hS&sju#Ea"},
+            {
+                "oldpassword": PASSWORD,
+                "password1": "IxIGx58vy79hS&sju#Ea",
+                "password2": "IxIGx58vy79hS&sju#Ea",
+            },
         )
         self.assertRedirects(response, self.success_uri)
         self.user.password = PASSWORD
         self.user.save()
+
+
+class GhostwriterEmailAddressViewTests(TestCase):
+    """Collection of tests for the account email-address management view."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD, email="operator@example.com")
+        cls.uri = reverse("account_email")
+        EmailAddress.objects.create(
+            user=cls.user,
+            email=cls.user.email,
+            primary=True,
+            verified=True,
+        )
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    def test_view_uses_refreshed_account_email_layout(self):
+        response = self.client_auth.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            'class="resource-form-shell account-profile-editor account-email-editor"',
+        )
+        self.assertContains(response, 'class="account-email-option"')
+        self.assertContains(response, "Verified")
+        self.assertContains(response, "Primary")
+        self.assertContains(response, "Add an email address")
+        self.assertContains(response, "window.confirm")
+        self.assertNotContains(response, 'class="col-md-6 offset-md-3"')
+
+    def test_view_requires_login(self):
+        response = self.client.get(self.uri)
+
+        self.assertEqual(response.status_code, 302)
+
+
+class MFAIndexViewTests(TestCase):
+    """Collection of tests for the multi-factor authentication settings page."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.uri = reverse("mfa_index")
+
+    def setUp(self):
+        self.client_auth = Client()
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    def test_view_uses_refreshed_method_cards(self):
+        response = self.client_auth.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            'class="resource-form-shell account-profile-editor account-mfa-management"',
+        )
+        self.assertContains(response, "Multi-factor authentication")
+        self.assertContains(response, 'class="account-mfa-method-card"', count=3)
+        self.assertContains(response, "Authenticator app")
+        self.assertContains(response, "Security keys and passkeys")
+        self.assertContains(response, "Recovery codes")
+        self.assertNotContains(response, 'class="mfa-card-container"')
+        self.assertNotContains(response, 'class="card-footer mfa-actions"')
+
+
+class MFALoginChallengeViewTests(TestCase):
+    """Collection of tests for the MFA challenge during sign-in."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(
+            password=PASSWORD,
+            email="mfa-login@example.com",
+        )
+        cls.uri = reverse("mfa_authenticate")
+        EmailAddress.objects.create(
+            user=cls.user,
+            email=cls.user.email,
+            primary=True,
+            verified=True,
+        )
+        TOTP.activate(cls.user, generate_totp_secret())
+
+    def setUp(self):
+        self.client_auth = Client()
+        response = self.client_auth.post(
+            reverse("account_login"),
+            {"login": self.user.username, "password": PASSWORD},
+        )
+        self.assertRedirects(
+            response,
+            self.uri,
+            fetch_redirect_response=False,
+        )
+
+    def test_view_uses_refreshed_login_challenge_layout(self):
+        response = self.client_auth.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "mfa/authenticate.html")
+        self.assertContains(response, 'class="auth-challenge-page"')
+        self.assertContains(response, 'class="auth-challenge-card"')
+        self.assertContains(response, "Confirm your sign-in")
+        self.assertContains(response, "Verify and continue")
+        self.assertContains(response, "Use passkey")
+        self.assertContains(response, "Authentication or recovery code")
+        self.assertContains(response, 'autocomplete="one-time-code"')
+        self.assertContains(response, 'autocapitalize="off"')
+        self.assertNotContains(response, 'class="form-group col-4 offset-4')
+        self.assertContains(response, "auth-mfa-login-code-form")
+        self.assertContains(response, "Authenticator codes refresh regularly")
+
+
+class MFAActivationViewTests(TestCase):
+    """Collection of tests for the authenticator-app activation page."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(
+            password=PASSWORD,
+            email="mfa-activation@example.com",
+        )
+        cls.uri = reverse("mfa_activate_totp")
+        EmailAddress.objects.create(
+            user=cls.user,
+            email=cls.user.email,
+            primary=True,
+            verified=True,
+        )
+
+    def setUp(self):
+        self.client_auth = Client()
+        self.client_auth.force_login(self.user)
+        session = self.client_auth.session
+        session[AUTHENTICATION_METHODS_SESSION_KEY] = [
+            {"method": "password", "at": time.time()}
+        ]
+        session.save()
+
+    def test_view_uses_refreshed_activation_layout(self):
+        response = self.client_auth.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "mfa/totp/activate_form.html")
+        self.assertContains(
+            response,
+            'class="resource-form-shell account-profile-editor account-mfa-activation"',
+        )
+        self.assertContains(response, 'class="account-mfa-step"', count=2)
+        self.assertContains(response, "Connect your app")
+        self.assertContains(response, "Confirm the connection")
+        self.assertContains(response, "Verify and enable")
+        self.assertContains(response, 'autocomplete="one-time-code"')
+        self.assertContains(response, 'inputmode="numeric"')
+        self.assertContains(response, 'pattern="[0-9]{6}"')
+        self.assertNotContains(response, 'class="col-4 offset-4')
+
+    def test_view_does_not_schedule_working_report_redirect(self):
+        response = self.client_auth.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "redirectToShortcutAfterMessage: true")
+
+
+class MFADeactivationViewTests(TestCase):
+    """Collection of tests for authenticator-app deactivation."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(
+            password=PASSWORD,
+            email="mfa-deactivation@example.com",
+        )
+        cls.uri = reverse("mfa_deactivate_totp")
+        EmailAddress.objects.create(
+            user=cls.user,
+            email=cls.user.email,
+            primary=True,
+            verified=True,
+        )
+        TOTP.activate(cls.user, generate_totp_secret())
+
+    def setUp(self):
+        self.client_auth = Client()
+        self.client_auth.force_login(self.user)
+        session = self.client_auth.session
+        session[AUTHENTICATION_METHODS_SESSION_KEY] = [
+            {"method": "password", "at": time.time()}
+        ]
+        session.save()
+
+    def test_view_uses_refreshed_deactivation_layout(self):
+        response = self.client_auth.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "mfa/totp/deactivate_form.html")
+        self.assertContains(
+            response,
+            'class="resource-form-shell account-profile-editor account-mfa-deactivation"',
+        )
+        self.assertContains(response, "What changes when you disable it")
+        self.assertContains(response, "Confirm this change")
+        self.assertContains(response, "Current authenticator code")
+        self.assertContains(response, 'autocomplete="one-time-code"')
+        self.assertContains(response, 'inputmode="numeric"')
+        self.assertNotContains(response, "This field is required")
+        self.assertNotContains(response, 'class="form-group col-4 offset-4')
+
+    def test_invalid_code_is_reported_inline_without_removing_authenticator(self):
+        response = self.client_auth.post(self.uri, {"code": "123"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Authenticator app not disabled")
+        self.assertContains(response, "Ensure this value has at least 6 characters")
+        self.assertTrue(
+            Authenticator.objects.filter(
+                user=self.user,
+                type=Authenticator.Type.TOTP,
+            ).exists()
+        )
+
+
+class MFAWebAuthnAddViewTests(TestCase):
+    """Collection of tests for security-key enrollment."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(
+            password=PASSWORD,
+            email="mfa-security-key@example.com",
+        )
+        cls.uri = reverse("mfa_add_webauthn")
+        EmailAddress.objects.create(
+            user=cls.user,
+            email=cls.user.email,
+            primary=True,
+            verified=True,
+        )
+        TOTP.activate(cls.user, generate_totp_secret())
+
+    def setUp(self):
+        self.client_auth = Client()
+        self.client_auth.force_login(self.user)
+        session = self.client_auth.session
+        session[AUTHENTICATION_METHODS_SESSION_KEY] = [
+            {"method": "password", "at": time.time()}
+        ]
+        session.save()
+
+    def test_view_uses_refreshed_security_key_layout(self):
+        response = self.client_auth.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "mfa/webauthn/add_form.html")
+        self.assertContains(
+            response,
+            'class="resource-form-shell account-profile-editor account-webauthn-add"',
+        )
+        self.assertContains(response, "What to expect")
+        self.assertContains(response, "Allow passwordless sign-in")
+        self.assertContains(response, 'id="id_passwordless_helptext"')
+        self.assertContains(response, 'name="name"')
+        self.assertContains(response, 'name="credential"')
+        self.assertContains(response, 'id="mfa_webauthn_add" type="button"')
+        self.assertContains(
+            response, 'data-allauth-onload="allauth.webauthn.forms.addForm"'
+        )
+        self.assertNotContains(response, "redirectToShortcutAfterMessage: true")
+        self.assertNotContains(response, 'class="row justify-content-center"')
+
+
+class MFAWebAuthnListViewTests(TestCase):
+    """Collection of tests for registered security-key management."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.uri = reverse("mfa_list_webauthn")
+        cls.passkey = Authenticator.objects.create(
+            user=cls.user,
+            type=Authenticator.Type.WEBAUTHN,
+            data={
+                "name": "Laptop passkey",
+                "credential": {"clientExtensionResults": {"credProps": {"rk": True}}},
+            },
+        )
+        cls.security_key = Authenticator.objects.create(
+            user=cls.user,
+            type=Authenticator.Type.WEBAUTHN,
+            data={
+                "name": "Office key",
+                "credential": {"clientExtensionResults": {"credProps": {"rk": False}}},
+            },
+        )
+
+    def setUp(self):
+        self.client_auth = Client()
+        self.client_auth.force_login(self.user)
+
+    def test_view_uses_refreshed_key_management_layout(self):
+        response = self.client_auth.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "mfa/webauthn/authenticator_list.html")
+        self.assertContains(
+            response,
+            'class="resource-form-shell account-profile-editor account-webauthn-management"',
+        )
+        self.assertContains(response, 'class="account-webauthn-device"', count=2)
+        self.assertContains(response, "Laptop passkey")
+        self.assertContains(response, "Office key")
+        self.assertContains(response, "Passkey")
+        self.assertContains(response, "Security key")
+        self.assertContains(
+            response,
+            f'href="{reverse("mfa_edit_webauthn", args=[self.passkey.pk])}"',
+        )
+        self.assertContains(
+            response,
+            f'href="{reverse("mfa_remove_webauthn", args=[self.passkey.pk])}"',
+        )
+        self.assertNotContains(response, '<table id="token-table"')
+        self.assertNotContains(
+            response,
+            f'<form method="post" action="{reverse("mfa_edit_webauthn", args=[self.passkey.pk])}"',
+        )
+        self.assertNotContains(
+            response,
+            f'<form method="post" action="{reverse("mfa_remove_webauthn", args=[self.passkey.pk])}"',
+        )
+
+    def test_view_has_actionable_empty_state(self):
+        Authenticator.objects.filter(
+            user=self.user,
+            type=Authenticator.Type.WEBAUTHN,
+        ).delete()
+
+        response = self.client_auth.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "No security keys registered")
+        self.assertContains(response, reverse("mfa_add_webauthn"))
+
+
+class MFAWebAuthnKeyActionViewTests(TestCase):
+    """Collection of tests for renaming and removing security keys."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.authenticator = Authenticator.objects.create(
+            user=cls.user,
+            type=Authenticator.Type.WEBAUTHN,
+            data={
+                "name": "Office key",
+                "credential": {"clientExtensionResults": {"credProps": {"rk": False}}},
+            },
+        )
+        cls.edit_uri = reverse(
+            "mfa_edit_webauthn",
+            args=[cls.authenticator.pk],
+        )
+        cls.remove_uri = reverse(
+            "mfa_remove_webauthn",
+            args=[cls.authenticator.pk],
+        )
+
+    def setUp(self):
+        self.client_auth = Client()
+        self.client_auth.force_login(self.user)
+        session = self.client_auth.session
+        session[AUTHENTICATION_METHODS_SESSION_KEY] = [
+            {"method": "password", "at": time.time()}
+        ]
+        session.save()
+
+    def test_edit_view_uses_refreshed_layout(self):
+        response = self.client_auth.get(self.edit_uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "mfa/webauthn/edit_form.html")
+        self.assertContains(
+            response,
+            'class="resource-form-shell account-profile-editor account-webauthn-edit"',
+        )
+        self.assertContains(response, "Rename security key")
+        self.assertContains(response, "Office key")
+        self.assertContains(response, "Save name")
+        self.assertContains(response, f'action="{self.edit_uri}"')
+        self.assertNotContains(response, 'class="row justify-content-center"')
+
+    def test_edit_post_renames_security_key(self):
+        response = self.client_auth.post(
+            self.edit_uri,
+            {"name": "Travel key"},
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("mfa_list_webauthn"),
+            fetch_redirect_response=False,
+        )
+        self.authenticator.refresh_from_db()
+        self.assertEqual(self.authenticator.data["name"], "Travel key")
+
+    def test_remove_view_uses_custom_confirmation_layout(self):
+        response = self.client_auth.get(self.remove_uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(
+            response,
+            "mfa/webauthn/authenticator_confirm_delete.html",
+        )
+        self.assertContains(
+            response,
+            'class="resource-form-shell account-profile-editor account-webauthn-remove"',
+        )
+        self.assertContains(response, "This action cannot be undone")
+        self.assertContains(response, "Office key")
+        self.assertContains(response, f'action="{self.remove_uri}"')
+        self.assertTrue(Authenticator.objects.filter(pk=self.authenticator.pk).exists())
+
+    def test_remove_post_deletes_security_key(self):
+        response = self.client_auth.post(self.remove_uri)
+
+        self.assertRedirects(
+            response,
+            reverse("mfa_list_webauthn"),
+            fetch_redirect_response=False,
+        )
+        self.assertFalse(
+            Authenticator.objects.filter(pk=self.authenticator.pk).exists()
+        )
+
+
+@override_settings(MFA_REVEAL_TOKENS=True)
+class MFARecoveryCodesViewTests(TestCase):
+    """Collection of tests for the recovery-code management page."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(
+            password=PASSWORD,
+            email="mfa-recovery@example.com",
+        )
+        cls.uri = reverse("mfa_view_recovery_codes")
+        EmailAddress.objects.create(
+            user=cls.user,
+            email=cls.user.email,
+            primary=True,
+            verified=True,
+        )
+        TOTP.activate(cls.user, generate_totp_secret())
+        cls.recovery_codes = RecoveryCodes.activate(cls.user).get_unused_codes()
+
+    def setUp(self):
+        self.client_auth = Client()
+        self.client_auth.force_login(self.user)
+        session = self.client_auth.session
+        session[AUTHENTICATION_METHODS_SESSION_KEY] = [
+            {"method": "password", "at": time.time()}
+        ]
+        session.save()
+
+    def test_view_uses_refreshed_recovery_code_layout(self):
+        response = self.client_auth.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "mfa/recovery_codes/index.html")
+        self.assertContains(
+            response,
+            'class="resource-form-shell account-profile-editor account-recovery-codes"',
+        )
+        self.assertContains(
+            response, 'class="account-recovery-code"', count=len(self.recovery_codes)
+        )
+        self.assertContains(response, self.recovery_codes[0])
+        self.assertContains(
+            response,
+            f'action="{reverse("mfa_view_recovery_codes")}"',
+        )
+        self.assertContains(response, "Replace codes")
+        self.assertContains(response, "data-confirm-replacement")
+        self.assertContains(response, "window.confirm")
+        self.assertNotContains(response, 'class="offset-4 col-4"')
+
+    def test_recovery_codes_are_not_rendered_when_viewing_is_disabled(self):
+        with patch(
+            "allauth.mfa.recovery_codes.internal.flows.view_recovery_codes"
+        ) as mock_view_codes:
+            recovery_wrapper = Authenticator.objects.get(
+                user=self.user,
+                type=Authenticator.Type.RECOVERY_CODES,
+            ).wrap()
+            mock_view_codes.return_value = (recovery_wrapper, False)
+            response = self.client_auth.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Recovery codes are hidden")
+        self.assertNotContains(response, self.recovery_codes[0])
+
+    @override_settings(MFA_REVEAL_TOKENS=False)
+    def test_view_respects_administrator_code_reveal_policy(self):
+        response = self.client_auth.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response, "Your administrator has disabled displaying recovery codes here"
+        )
+        self.assertNotContains(response, self.recovery_codes[0])
+
+    def test_recovery_code_generation_uses_local_confirmation_template(self):
+        response = self.client_auth.get(reverse("mfa_generate_recovery_codes"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "mfa/recovery_codes/generate.html")
+        self.assertContains(
+            response,
+            'class="resource-form-shell account-profile-editor account-recovery-generate"',
+        )
+        self.assertContains(response, "Replace the existing recovery-code set?")
+        self.assertContains(response, "Replace recovery codes")
+        self.assertNotContains(response, 'class="offset-4 col-4"')
 
 
 class UserLoginViewTests(TestCase):
@@ -221,7 +932,9 @@ class UserLoginViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client.get(self.uri)
@@ -236,6 +949,32 @@ class UserLoginViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "account/login.html")
 
+    def test_view_uses_refreshed_authentication_layout(self):
+        response = self.client.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            'class="auth-challenge-page auth-login-page"',
+        )
+        self.assertContains(
+            response,
+            'class="auth-challenge-card auth-login-card"',
+        )
+        self.assertContains(response, "Sign in to Ghostwriter")
+        self.assertContains(response, "Operator access")
+        self.assertContains(response, 'name="login"')
+        self.assertContains(response, 'name="password"')
+        self.assertContains(
+            response,
+            reverse("account_reset_password"),
+            count=1,
+        )
+        self.assertContains(response, f'action="{self.uri}"')
+        self.assertContains(response, 'id="passkey_login"')
+        self.assertContains(response, 'id="mfa_login"')
+        self.assertNotContains(response, 'class="col-md-6 offset-md-3"')
+
     @patch("ghostwriter.context_processors.get_editor_shortcuts_date_config")
     def test_anonymous_view_does_not_load_editor_shortcuts(self, mock_date_config):
         response = self.client.get(self.uri)
@@ -246,14 +985,57 @@ class UserLoginViewTests(TestCase):
         self.assertNotContains(response, "js/editor_shortcuts.js")
 
     def test_valid_credentials(self):
-        response = self.client.post(self.uri, {"login": self.user.username, "password": PASSWORD})
+        response = self.client.post(
+            self.uri, {"login": self.user.username, "password": PASSWORD}
+        )
         self.assertEqual(response.status_code, 302)
         self.assertTemplateUsed(response, "account/messages/logged_in.txt")
 
     def test_invalid_credentials(self):
-        response = self.client.post(self.uri, {"login": self.user.username, "password": "invalid"})
+        response = self.client.post(
+            self.uri, {"login": self.user.username, "password": "invalid"}
+        )
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "account/login.html")
+        self.assertContains(response, "We could not sign you in")
+
+
+class UserLogoutViewTests(TestCase):
+    """Collection of tests for :view:`allauth.Logout` and its confirmation."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.uri = reverse("account_logout")
+
+    def setUp(self):
+        self.client_auth = Client()
+        self.client_auth.force_login(self.user)
+
+    def test_view_uses_refreshed_session_confirmation_layout(self):
+        response = self.client_auth.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "account/logout.html")
+        self.assertContains(
+            response,
+            'class="auth-challenge-page auth-signout-page"',
+        )
+        self.assertContains(
+            response,
+            'class="auth-challenge-card auth-signout-card"',
+        )
+        self.assertContains(response, "Sign out of Ghostwriter")
+        self.assertContains(response, self.user.username)
+        self.assertContains(response, f'action="{self.uri}"')
+        self.assertContains(response, reverse("home:dashboard"))
+        self.assertNotContains(response, 'class="col-md-6 offset-md-3"')
+
+    def test_post_ends_authenticated_session(self):
+        response = self.client_auth.post(self.uri)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertNotIn(SESSION_KEY, self.client_auth.session)
 
 
 class RequireMFAMiddlewareTests(TestCase):
@@ -272,7 +1054,9 @@ class RequireMFAMiddlewareTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
 
     def test_mfa_required(self):
         response = self.client_auth.get(self.uri)
@@ -283,7 +1067,12 @@ class RequireMFAMiddlewareTests(TestCase):
 
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 302)
-        self.assertRedirects(response, self.setup_uri, fetch_redirect_response=False, target_status_code=302)
+        self.assertRedirects(
+            response,
+            self.setup_uri,
+            fetch_redirect_response=False,
+            target_status_code=302,
+        )
 
         response = self.client_auth.get(self.setup_uri)
         self.assertEqual(response.status_code, 302)
@@ -335,8 +1124,12 @@ class AvatarDownloadTest(TestCase):
         cls.username_with_period = UserFactory(username="first.last", password=PASSWORD)
         cls.uri = reverse("users:avatar_download", kwargs={"slug": cls.user.username})
         cls.user_profile = UserProfile.objects.get(user=cls.user)
-        cls.missing_user_uri = reverse("users:avatar_download", kwargs={"slug": "missing_user"})
-        cls.period_uri = reverse("users:avatar_download", kwargs={"slug": cls.username_with_period.username})
+        cls.missing_user_uri = reverse(
+            "users:avatar_download", kwargs={"slug": "missing_user"}
+        )
+        cls.period_uri = reverse(
+            "users:avatar_download", kwargs={"slug": cls.username_with_period.username}
+        )
 
         image_data = b64decode(
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
@@ -353,19 +1146,26 @@ class AvatarDownloadTest(TestCase):
         )
         cls.in_memory_image = image
 
-        cls.uploaded_image_file = SimpleUploadedFile(image_file.name, image_file.read(), content_type="image/png")
+        cls.uploaded_image_file = SimpleUploadedFile(
+            image_file.name, image_file.read(), content_type="image/png"
+        )
 
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
 
     def test_view_uri_exists_at_desired_location(self):
         """Test default behavior downloads file (as_attachment=True)."""
         response = self.client_auth.get(f"{self.uri}")
         self.assertEqual(response.status_code, 200)
-        self.assertEquals(response.get("Content-Disposition"), 'attachment; filename="default_avatar.png"')
+        self.assertEquals(
+            response.get("Content-Disposition"),
+            'attachment; filename="default_avatar.png"',
+        )
         # Verify security header is present
         self.assertEqual(response.get("X-Content-Type-Options"), "nosniff")
 
@@ -399,7 +1199,10 @@ class AvatarDownloadTest(TestCase):
 
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
-        self.assertRegexpMatches(response.get("Content-Disposition"), r'^attachment; filename="fake[_0-9a-zA-Z]*\.png"$')
+        self.assertRegexpMatches(
+            response.get("Content-Disposition"),
+            r'^attachment; filename="fake[_0-9a-zA-Z]*\.png"$',
+        )
         # Verify security header
         self.assertEqual(response.get("X-Content-Type-Options"), "nosniff")
 
@@ -408,14 +1211,20 @@ class AvatarDownloadTest(TestCase):
 
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
-        self.assertEquals(response.get("Content-Disposition"), 'attachment; filename="default_avatar.png"')
+        self.assertEquals(
+            response.get("Content-Disposition"),
+            'attachment; filename="default_avatar.png"',
+        )
 
         self.user_profile.avatar = None
         self.user_profile.save()
 
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
-        self.assertEquals(response.get("Content-Disposition"), 'attachment; filename="default_avatar.png"')
+        self.assertEquals(
+            response.get("Content-Disposition"),
+            'attachment; filename="default_avatar.png"',
+        )
 
 
 class HideQuickStartViewTests(TestCase):
@@ -426,12 +1235,16 @@ class HideQuickStartViewTests(TestCase):
         cls.user = UserFactory(password=PASSWORD)
         cls.other_user = UserFactory(password=PASSWORD)
         cls.uri = reverse("users:hide_quickstart", kwargs={"slug": cls.user.username})
-        cls.other_user_uri = reverse("users:hide_quickstart", kwargs={"slug": cls.other_user.username})
+        cls.other_user_uri = reverse(
+            "users:hide_quickstart", kwargs={"slug": cls.other_user.username}
+        )
 
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
-        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
 
     def test_view_requires_login(self):
         user_profile = UserProfile.objects.get(user=self.user)
@@ -469,9 +1282,33 @@ class SignupViewTests(TestCase):
         response = self.client.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "account/signup.html")
+        self.assertContains(response, 'class="auth-challenge-page auth-journey-page"')
+        self.assertContains(response, 'class="auth-challenge-card auth-journey-card"')
+        self.assertContains(response, 'class="signup auth-journey-form"')
+        self.assertContains(response, "Create your account")
+        self.assertContains(response, "Create account")
+        self.assertNotContains(response, "btn btn-primary col-md-6")
 
         settings.ACCOUNT_ALLOW_REGISTRATION = False
         self.assertFalse(settings.ACCOUNT_ALLOW_REGISTRATION)
         response = self.client.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "account/signup_closed.html")
+        self.assertContains(response, 'class="auth-journey-status auth-journey-status-warning"')
+        self.assertContains(response, "Registration unavailable")
+
+
+class AccountRecoveryViewTests(TestCase):
+    """Checks for the standalone password recovery surface."""
+
+    def test_password_reset_uses_the_shared_account_journey_surface(self):
+        response = self.client.get(reverse("account_reset_password"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "account/password_reset.html")
+        self.assertContains(response, 'class="auth-challenge-page auth-journey-page"')
+        self.assertContains(response, 'class="password_reset auth-journey-form"')
+        self.assertContains(response, 'id="password-reset-heading">Reset your password</h1>')
+        self.assertContains(response, "Send reset link")
+        self.assertContains(response, "Contact your administrator")
+        self.assertNotContains(response, "btn btn-primary col-md-6")

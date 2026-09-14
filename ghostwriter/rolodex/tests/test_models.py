@@ -195,6 +195,23 @@ class ProjectModelTests(TestCase):
         except Exception:
             self.fail("Project.get_absolute_url() raised an exception")
 
+    def test_lifecycle_status_is_derived_from_dates_and_completion(self):
+        project = ProjectFactory(complete=False)
+        today = date(2026, 9, 10)
+
+        project.start_date = today + timedelta(days=1)
+        project.end_date = today + timedelta(days=5)
+        self.assertEqual(project.get_lifecycle_status(today), "Upcoming")
+
+        project.start_date = today - timedelta(days=1)
+        self.assertEqual(project.get_lifecycle_status(today), "In Progress")
+
+        project.end_date = today - timedelta(days=1)
+        self.assertEqual(project.get_lifecycle_status(today), "Awaiting Completion")
+
+        project.complete = True
+        self.assertEqual(project.get_lifecycle_status(today), "Complete")
+
     def test_checkout_adjustment_signal(self):
         yesterday = date.today() - timedelta(days=1)
 
@@ -291,6 +308,22 @@ class ProjectModelTests(TestCase):
         self.assertFalse(project.user_can_view(user))
         self.assertFalse(project.user_can_edit(user))
         self.assertFalse(project.user_can_delete(user))
+
+    def test_user_editable_queryset_matches_instance_edit_access(self):
+        project = ProjectFactory()
+        user = UserFactory(password="SuperNaturalReporting!")
+
+        self.assertNotIn(project, Project.user_editable(user))
+
+        assignment = ProjectAssignmentFactory(operator=user, project=project)
+        self.assertIn(project, Project.user_editable(user))
+
+        assignment.delete()
+        self.assertNotIn(project, Project.user_editable(user))
+
+        user.role = "manager"
+        user.save()
+        self.assertIn(project, Project.user_editable(user))
 
 
 class ProjectRoleModelTests(TestCase):

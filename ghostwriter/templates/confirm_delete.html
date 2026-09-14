@@ -3,18 +3,35 @@
 {% block pagetitle %}Delete{% endblock %}
 
 {% block content %}
-    <div class="alert alert-danger mt-5" role="alert">
-        <h5 class="alert-heading">Tread Carefully!</h4>
-        You are seeing this message because what you are about to do might have serious consequences.
-    </div>
+  <div class="resource-form-shell direct-delete-confirmation-page">
+    <section class="resource-form-card direct-delete-confirmation-card" aria-labelledby="delete-confirmation-heading">
+      <div class="resource-form-section-heading">
+        <span class="resource-form-section-icon direct-delete-confirmation-icon" aria-hidden="true"><i class="fas fa-trash-alt"></i></span>
+        <div>
+          <span class="detail-eyebrow">Permanent action</span>
+          <h1 id="delete-confirmation-heading">Delete {{ object_type }}?</h1>
+          <p>Remove this item and its associated Ghostwriter data permanently.</p>
+        </div>
+      </div>
 
-    <p>Are you sure you want to delete this {{ object_type }}? This action cannot be undone.</p>
+      <div class="direct-delete-confirmation-target">
+        <span>Selected item</span>
+        <strong>{{ object_to_be_deleted }}</strong>
+      </div>
 
-    <p><em>{{ object_to_be_deleted }}</em></p>
+      <div class="destructive-confirmation-warning" role="note">
+        <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+        <p><strong>This cannot be undone.</strong> Review the selected item, then confirm only when you are ready to remove it.</p>
+      </div>
 
-    <form action="" method="POST">
+      <form action="" method="post" class="resource-form-actions resource-form-actions-compact direct-delete-confirmation-actions">
         {% csrf_token %}
-        <input type="submit" class="btn btn-danger col-md-2" value="Delete">
-        <button onclick="window.location.href = '{{ cancel_link }}';" class="btn btn-outline-secondary col-md-2" type="button">Cancel</button>
-    </form>
+        <div class="resource-form-actions-context">This action takes effect immediately.</div>
+        <div class="resource-form-actions-buttons">
+          <a class="btn btn-outline-secondary" href="{{ cancel_link }}">Cancel</a>
+          <button type="submit" class="btn btn-danger"><i class="fas fa-trash-alt" aria-hidden="true"></i> Delete permanently</button>
+        </div>
+      </form>
+    </section>
+  </div>
 {% endblock %}

@@ -1,12 +1,14 @@
 {% load bleach_tags %}
 
-<div id="vps_detail_{{ vps.id }}" class="modal fade" tabindex="-1" role="dialog">
+<div id="vps_detail_{{ vps.id }}" class="modal fade detail-preview-modal" tabindex="-1" role="dialog">
   <div class="modal-dialog modal-super-sized modal-dialog-scrollable modal-dialog-centered" role="document">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">Additional Server Details</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
+        <div>
+          <span class="detail-preview-modal-eyebrow">Cloud server</span>
+          <h2 class="modal-title">{{ vps }}</h2>
+        </div>
+        <button type="button" class="btn-close detail-preview-modal-close" data-bs-dismiss="modal" aria-label="Close">
         </button>
       </div>
       <div class="modal-body">
@@ -16,8 +18,8 @@
           <p>No one has added a description on this cloud host. <a class="clickable" href="{% url 'shepherd:vps_update' vps.id %}">Fix that here.</a></p>
         {% endif %}
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary col-3" data-dismiss="modal">Close</button>
+      <div class="modal-footer detail-preview-modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
       </div>
     </div>
   </div>

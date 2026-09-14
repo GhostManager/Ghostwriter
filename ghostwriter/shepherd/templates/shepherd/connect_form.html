@@ -4,8 +4,16 @@
 {% block pagetitle %}Domain + Server Connection{% endblock %}
 
 {% block content %}
-    <p>This will create an association between the domain and a server for your project.</p>
-    <hr>
+    <header class="resource-form-page-heading mb-4">
+        <span class="detail-eyebrow">Infrastructure Route</span>
+        {% if object.pk %}
+            <h1>Edit domain connection</h1>
+            <p>Update how a checked-out domain routes to infrastructure for this engagement.</p>
+        {% else %}
+            <h1>Connect domain and server</h1>
+            <p>Route a checked-out domain to one static or project-specific server.</p>
+        {% endif %}
+    </header>
 
     <!-- Form Error Section -->
     {% if form.errors %}
@@ -21,6 +29,7 @@
         </script>
     {% endif %}
 
-    <!-- Form Section -->
-    {% crispy form form.helper %}
+    <div class="resource-form-shell">
+        {% crispy form form.helper %}
+    </div>
 {% endblock %}

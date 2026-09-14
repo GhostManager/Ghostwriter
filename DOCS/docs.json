@@ -214,6 +214,7 @@
             "group": "Coding Style Guide",
             "pages": [
               "coding-style-guide/style-guide",
+              "coding-style-guide/ui-refresh-design-system",
               {
                 "group": "Form Layouts & Design",
                 "pages": [

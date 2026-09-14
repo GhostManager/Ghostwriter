@@ -95,7 +95,7 @@ class TextTracking:
 
 class BaseHtmlToOOXML:
     """
-    Base HTML to OpenOffice XML converter. Converts HTML from the TinyMCE rich
+    Base HTML to OpenOffice XML converter. Converts HTML from the rich
     text to various types of OpenXML documents.
 
     Use a subclass that matches the desired document type.

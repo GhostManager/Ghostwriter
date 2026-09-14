@@ -2,11 +2,9 @@
 
 <div class="modal-header">
   <h5 class="modal-title" id="api-token-details-modal-label">{{ key.name|bleach }} Access Details</h5>
-  <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-    <span aria-hidden="true">&times;</span>
-  </button>
+  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 </div>
-<div class="modal-body text-left">
+<div class="modal-body text-start">
   <div class="row">
     <div class="col-md-6 mb-3">
       <p class="bold mb-1">User</p>
@@ -18,16 +16,16 @@
     </div>
   </div>
 
-  <div class="alert alert-info">
+  <div class="context-note" role="note">
     This API token authenticates as {{ key.user.username|bleach }} and carries all current Ghostwriter permissions for that user. Any action or project the user can access can also be accessed with this token.
   </div>
 
   <h6 class="bold">Current Project Access</h6>
   {% if project_access %}
     <p class="text-muted">The token can currently access every project listed below because the token user can access them.</p>
-    <div class="list-group mb-3">
+    <div class="token-access-list mb-3">
       {% for project in project_access %}
-        <div class="list-group-item">
+        <div class="token-access-list-item">
           {% if project.codename %}
             <a class="bold" href="{{ project.get_absolute_url }}">{{ project.codename|bleach|upper }}</a>
           {% elif project.client.short_name %}
@@ -46,5 +44,5 @@
   {% endif %}
 </div>
 <div class="modal-footer">
-  <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+  <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
 </div>

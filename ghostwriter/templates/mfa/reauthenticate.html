@@ -5,9 +5,7 @@
 
 {% block reauthenticate_content %}
 
-{% element p %}
-    {% blocktranslate %}Enter an authenticator code:{% endblocktranslate %}
-    {% endelement %}
+    <p class="auth-journey-intro">{% blocktranslate %}Enter an authenticator code to continue.{% endblocktranslate %}</p>
 
     <!-- Form Error Section -->
     {% if form.errors %}
@@ -23,12 +21,14 @@
     </script>
     {% endif %}
     {% url 'mfa_reauthenticate' as action_url %}
-    <!-- Form Section -->
-    <div class="row justify-content-center">
-      <form class="validate col-md-4" method="POST" action="{{ action_url }}" novalidate>
-        {% csrf_token %}
-        {{ form|crispy }}
-        <button class="btn btn-primary col-md-4" type="submit">{% trans 'Confirm' %}</button>
-      </form>
-    </div>
+    <form class="validate auth-journey-form auth-mfa-reauthentication-form" method="POST" action="{{ action_url }}" novalidate>
+      {% csrf_token %}
+      <div class="auth-challenge-field auth-mfa-code-challenge-field">
+        {{ form.code|as_crispy_field }}
+      </div>
+      {{ redirect_field }}
+      <div class="auth-journey-actions">
+        <button class="btn btn-primary auth-challenge-submit" type="submit"><i class="fas fa-shield-alt" aria-hidden="true"></i> {% trans "Confirm access" %}</button>
+      </div>
+    </form>
 {% endblock %}

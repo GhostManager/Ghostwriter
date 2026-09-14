@@ -1,15 +1,26 @@
 <!-- Revoke button will POST to the URL on the element that opened this modal. -->
-<div class="modal fade" id="confirm-revoke-modal" tabindex="-1" role="dialog"
+<div class="modal fade destructive-confirmation-modal" id="confirm-revoke-modal" tabindex="-1" role="dialog"
      aria-labelledby="confirm-revoke-modal-label" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered" role="document">
     <div class="modal-content">
-      <div class="modal-body confirm-revoke">
-        Are you sure you want to revoke this token? This action is permanent!
-        <div id="object-preview-content"></div>
+      <div class="modal-header">
+        <div>
+          <span class="detail-eyebrow">Permanent action</span>
+          <h5 class="modal-title" id="confirm-revoke-modal-label">Revoke token?</h5>
+        </div>
+        <button type="button" class="btn-close destructive-confirmation-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p class="destructive-confirmation-copy">This credential will immediately stop working.</p>
+        <div class="destructive-confirmation-warning" role="note">
+          <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+          <p><strong>This cannot be undone.</strong> Create a replacement token before revoking one that is still in use.</p>
+        </div>
+        <div id="revoke-object-preview-content" class="destructive-confirmation-preview d-none"></div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-danger" data-dismiss="modal" id="confirm-revoke-button-modal">Revoke
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-danger" data-bs-dismiss="modal" id="confirm-revoke-button-modal">Revoke token
         </button>
       </div>
     </div>
@@ -33,7 +44,9 @@
     let previewContent = getRevokeTargetValue($target, 'preview') || '';
 
     $modal.data('revoke-target', $target);
-    $('#object-preview-content').html(escapeHtml(previewContent));
+    $('#revoke-object-preview-content')
+      .text(previewContent)
+      .toggleClass('d-none', !previewContent);
   });
 
   $('#confirm-revoke-button-modal').click(function () {
@@ -92,7 +105,7 @@
               let $tokenSection = $targetTable.closest('.js-token-table-section');
               if ($tokenSection.length) {
                 $targetTable.closest('.js-token-table-responsive').addClass('d-none');
-                $tokenSection.find('.js-token-table-empty-alert').removeClass('d-none').show();
+                $tokenSection.find('.js-token-table-empty-state').removeClass('d-none').show();
               } else {
                 $targetTable.hide();
               }

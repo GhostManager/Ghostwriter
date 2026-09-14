@@ -2,73 +2,89 @@
 
 {% load determine_primary %}
 
-<tr id="objective-row-{{ objective.id }}" data-id="{{ objective.id }}" class="accordion-row {% if objective.complete %}complete{% endif %}" objective-id="{{ objective.id }}" data-id="{{ objective.id }}" toggle-objective-url="{% url 'rolodex:ajax_toggle_project_objective' objective.id %}" objective-csrftoken="{{ csrf_token }}" refresh-objective-url="{% url 'rolodex:ajax_update_objective_row' objective.id %}" deadline-date="{{ objective.deadline|date:"Y-m-d" }}">
-    <td
-      data-toggle="tooltip"
-      data-placement="bottom"
+<tr id="objective-row-{{ objective.id }}" data-id="{{ objective.id }}" class="accordion-row objective-row {% if objective.complete %}complete{% endif %}" objective-id="{{ objective.id }}" toggle-objective-url="{% url 'rolodex:ajax_toggle_project_objective' objective.id %}" objective-csrftoken="{{ csrf_token }}" refresh-objective-url="{% url 'rolodex:ajax_update_objective_row' objective.id %}" deadline-date="{{ objective.deadline|date:"Y-m-d" }}">
+    <td class="objective-complete-cell"
+      data-bs-toggle="tooltip"
+      data-bs-placement="bottom"
       title="Toggle objective's completed status"
-      class="align-middle"
     >
-        <span>
-            <input
-                type="checkbox"
-                onclick="$(this).tooltip('hide'); toggleObjective($(this).parent().parent().parent());"
-                {% if objective.complete %}checked{% endif %}
-            >
-        </span>
+      <input
+          type="checkbox"
+          class="form-check-input objective-complete-input"
+          aria-label="Mark {{ objective.objective|striptags }} complete"
+          onclick="$(this).tooltip('hide'); toggleObjective($(this).closest('tr'));"
+          {% if objective.complete %}checked{% endif %}
+      >
     </td>
-    <td
-        class="holdme align-middle"
-        data-toggle="tooltip"
-        data-placement="bottom"
+    <td class="objective-drag-cell"
+        data-bs-toggle="tooltip"
+        data-bs-placement="bottom"
         title="Click-n-drag to reposition or categorize"
-    ></td>
-    <td
-      data-toggle="tooltip"
-      data-placement="bottom"
-      title="Expand to view task list"
-      class="align-middle"
+    >
+      <button type="button" class="holdme objective-drag-handle" aria-label="Reorder {{ objective.objective|striptags }}">
+        <i class="fas fa-grip-vertical" aria-hidden="true"></i>
+      </button>
+    </td>
+    <td class="objective-main-cell">
+        <button
+            type="button"
+            class="expandme objective-expand-button"
+            aria-expanded="false"
+            aria-controls="objective-{{ objective.id }}-tasks"
+            aria-label="Show details and subtasks for {{ objective.objective|striptags }}"
+            onclick="expandObjective($(this))"
+        ><i class="fas fa-chevron-right objective-expand-icon" aria-hidden="true"></i></button>
+        <div class="objective-title-stack">
+          <h5 class="objective-title">{{ objective.objective|striptags }}</h5>
+          <span class="objective-task-count">
+            {{ objective.projectsubtask_set.count }} subtask{{ objective.projectsubtask_set.count|pluralize }}
+          </span>
+        </div>
+    </td>
+    <td class="objective-status-cell"
+      data-bs-toggle="tooltip"
+      data-bs-placement="bottom"
+      title="Click to cycle the status"
     >
         <button
-            class="expandme btn btn-transparent"
-            onclick="expandObjective($(this))"
-        ></button>
-    </td>
-    <td class="align-middle">{{ objective.objective|striptags }}</td>
-    <td
-      data-toggle="tooltip"
-      data-placement="bottom"
-      title="Click to cycle the status"
-      class="align-middle"
-    >
-        <div
+            type="button"
             id="objective-status-{{ objective.id }}"
             status-id="{{ objective.status.id }}"
             objective-id="{{ objective.id }}"
             obj-status-update-url="{% url 'rolodex:ajax_set_objective_status' objective.id %}"
             obj-status-csrftoken="{{ csrf_token }}"
-            class="objective-badge badge badge-secondary"
+            class="objective-badge"
+            aria-label="Current objective status: {{ objective.status }}. Select to advance."
             onclick="cycleStatus($(this))"
         >
             {{ objective.status }}
-        </div>
+        </button>
     </td>
-    <td
-      data-toggle="tooltip"
-      data-placement="bottom"
+    <td class="objective-progress-cell"
+      data-bs-toggle="tooltip"
+      data-bs-placement="bottom"
       title="The objective's completion progress based on subtask completion"
-      class="align-middle"
     >
         {% with percentage=objective.calculate_status %}
-        <div class="progress">
-            <div class="progress-bar progress-bar-striped todo-progressbar" role="progressbar" style="width: {{ percentage }}%" aria-valuenow="{{ percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
-            <div class="todo-progressbar-title">{{ percentage }}%</div>
+        <div class="objective-progress-summary">
+          <span class="objective-meta-label">Progress</span>
+          <strong>{{ percentage }}%</strong>
+        </div>
+        <div class="progress objective-progress-track">
+            <div class="progress-bar todo-progressbar" role="progressbar" style="width: {{ percentage }}%" aria-label="{{ percentage }} percent complete" aria-valuenow="{{ percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
         </div>
     {% endwith %}
     </td>
-    <td class="align-middle">
+    <td class="objective-deadline-cell">
+        <span class="objective-meta-label">Due</span>
         <span class="objective-deadline {% if not objective.complete and objective.deadline|days_left <= 1 %}task-imminent{% elif not objective.complete and objective.deadline|days_left <= 5 %}task-due-soon{% endif %}">
             {{ objective.deadline|date:"DATE_FORMAT" }}
         </span>
+    </td>
+    <td class="objective-actions-cell">
+      <button type="button" class="btn btn-outline-primary btn-sm objective-add-task-button" onclick="openNewSubtask($(this))">
+        <i class="fas fa-plus" aria-hidden="true"></i>
+        <span>New subtask</span>
+      </button>
     </td>
 </tr>

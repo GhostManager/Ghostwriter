@@ -21,20 +21,21 @@
 <script>
   const fileInput = document.getElementById('id_document')
   const previewDiv = document.getElementById('findingPreview')
+  const filenameLabel = document.getElementById('filename')
 
   // Add frame when dragging file into input
   fileInput.addEventListener('dragover', function () {
-    filename.classList.add('dragging');
+    filenameLabel.classList.add('dragging');
   });
   fileInput.addEventListener('dragenter', function () {
-    filename.classList.add('dragging');
+    filenameLabel.classList.add('dragging');
   });
   // Removes drag class when drag leaves or file is dropped
   fileInput.addEventListener('dragleave', function () {
-    filename.classList.remove('dragging');
+    filenameLabel.classList.remove('dragging');
   });
   fileInput.addEventListener('drop', function () {
-    filename.classList.remove('dragging');
+    filenameLabel.classList.remove('dragging');
   });
 
   // Detect when a file is pasted into the page and update the input and preview
@@ -44,14 +45,14 @@
 
     if (pastedFileObj.files.length) {
       fileInput.files = pastedFileObj.files
-      filename.textContent = fileInput.files[0].name
+      filenameLabel.querySelector('span').textContent = fileInput.files[0].name
       renderPreview(fileInput, previewDiv)
     }
   });
   // Detect when a file is dragged into the page and update the input and preview
   $('input[type=file]').on('change', function () {
     let filename = $(this).val().split('\\').pop();
-    $('#filename').text(filename);
+    filenameLabel.querySelector('span').textContent = filename;
     renderPreview(fileInput, previewDiv)
   });
 </script>

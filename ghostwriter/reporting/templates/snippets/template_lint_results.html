@@ -1,7 +1,12 @@
 {% load report_tags %}
 
-<h3 class="icon bug-icon">Linting Results</h3>
-<hr>
+<div class="detail-panel-header">
+  <div>
+    <span class="detail-eyebrow">Quality gate</span>
+    <h4>Linting Results</h4>
+  </div>
+  <i class="fas fa-bug template-detail-section-icon" aria-hidden="true"></i>
+</div>
 {% if reporttemplate.lint_result %}
     {% with reporttemplate.lint_result as lint_result %}
         <div
@@ -13,7 +18,7 @@
                 class="alert alert-danger"
             {% endif %}
         role="alert">
-            <h4 style="margin-top: 0;" class="alert-heading">{{ lint_result.result|capfirst }}</h4>
+            <h4 class="alert-heading template-lint-alert-heading">{{ lint_result.result|capfirst }}</h4>
             {% if lint_result.result == "success" %}
               <p>Template passed all linter checks, but try using it for a report to test it with findings and custom fields.</p>
             {% else %}
@@ -27,39 +32,31 @@
         </div>
 
         {% if lint_result.warnings %}
-            <table class="table table-borderless">
+            <div class="template-lint-list">
                 {% for warning in lint_result.warnings %}
-                    <tr>
-                        <td >
-                            <span class="badge badge-warning">Warning</span>
-                        </td>
-                        <td class="text-left">
-                            {{ warning }}
-                        </td>
-                    </tr>
+                    <div class="template-lint-item">
+                        <span class="template-lint-status is-warning">Warning</span>
+                        <span>{{ warning }}</span>
+                    </div>
                 {% endfor %}
-            </table>
+            </div>
         {% endif %}
 
         {% if lint_result.errors %}
-            <table class="table table-borderless">
+            <div class="template-lint-list">
                 {% for error in lint_result.errors %}
-                    <tr>
-                        <td>
-                            <span class="badge badge-danger">Error</span>
-                        </td>
-                        <td class="text-left">
-                            {{ error }}
-                        </td>
-                    </tr>
+                    <div class="template-lint-item">
+                        <span class="template-lint-status is-error">Error</span>
+                        <span>{{ error }}</span>
+                    </div>
                 {% endfor %}
-            </table>
+            </div>
             <p><strong>Note:</strong> Syntax errors tied to undefined variables might be linked to a Table of Contents picking up a variable (e.g., <em>finding.title</em>) outside of a loop.</p>
         {% endif %}
     {% endwith %}
 {% else %}
-    <div class="alert alert-secondary" role="alert">
-        <h4 style="margin-top: 0;" class="alert-heading">Unknown</h4>
-        Run the linter on this template to get new results
+    <div class="empty-state">
+        <p class="empty-state-title">No linting results yet</p>
+        <p class="empty-state-description">Run the linter to check this template for reporting issues.</p>
     </div>
 {% endif %}

@@ -3,20 +3,8 @@
 
 {% block pagetitle %}User Profile{% endblock %}
 
-{% block breadcrumbs %}
-  <nav aria-label="breadcrumb">
-    <ul class="breadcrumb">
-      <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-      <li class="breadcrumb-item"><a href="{% url 'users:user_detail' request.user.username %}">Your Profile</a></li>
-      <li class="breadcrumb-item active" aria-current="page">Profile Form</li>
-    </ul>
-  </nav>
-{% endblock %}
 
 {% block content %}
-  <!-- Current Avatar -->
-  <img class="avatar mt-3" src="{%  url 'users:avatar_download' slug=request.user.username %}" alt="User Image">
-
   <!-- Form Error Section -->
   {% if form.errors %}
     <script>
@@ -31,28 +19,44 @@
     </script>
   {% endif %}
 
-  <!-- Avatar Upload Form -->
-  {% crispy form form.helper %}
+  <div class="resource-form-shell account-profile-editor{% if form.avatar %} account-avatar-editor{% endif %}">
+    {% crispy form form.helper %}
+  </div>
+
+  {% if form.timezone_choices %}
+    {{ form.timezone_choices|json_script:"profile-timezone-options" }}
+  {% endif %}
 {% endblock %}
 
 {% block morescripts %}
+  {% if form.avatar %}
   <script>
     const fileInput = document.getElementById('id_avatar')
     const previewDiv = document.getElementById('avatarPreview')
+    const filenameLabel = document.getElementById('filename')
+    const avatarSubmitButton = document.querySelector('.profile-avatar-submit')
+
+    function syncAvatarSubmitState() {
+      const hasSelectedFile = fileInput.files && fileInput.files.length > 0
+      avatarSubmitButton.disabled = !hasSelectedFile
+      avatarSubmitButton.setAttribute('aria-disabled', hasSelectedFile ? 'false' : 'true')
+    }
+
+    syncAvatarSubmitState()
 
     // Add frame when dragging file into input
     fileInput.addEventListener('dragover', function () {
-      filename.classList.add('dragging');
+      filenameLabel.classList.add('dragging');
     });
     fileInput.addEventListener('dragenter', function () {
-      filename.classList.add('dragging');
+      filenameLabel.classList.add('dragging');
     });
     // Removes drag class when drag leaves or file is dropped
     fileInput.addEventListener('dragleave', function () {
-      filename.classList.remove('dragging');
+      filenameLabel.classList.remove('dragging');
     });
     fileInput.addEventListener('drop', function () {
-      filename.classList.remove('dragging');
+      filenameLabel.classList.remove('dragging');
     });
 
     // Detect when a file is pasted into the page and update the input and preview
@@ -62,8 +66,9 @@
 
       if (pastedFileObj.files.length) {
         fileInput.files = pastedFileObj.files
-        filename.textContent = fileInput.files[0].name
+        filenameLabel.textContent = fileInput.files[0].name
         renderAvatarPreview(fileInput, previewDiv)
+        syncAvatarSubmitState()
       }
     });
     // Detect when a file is dragged into the page and update the input and preview
@@ -71,6 +76,63 @@
       let filename = $(this).val().split('\\').pop();
       $('#filename').text(filename);
       renderAvatarPreview(fileInput, previewDiv)
+      syncAvatarSubmitState()
     });
   </script>
+  {% elif form.timezone_choices %}
+  <script>
+    $(function () {
+      const timezoneData = JSON.parse(document.getElementById('profile-timezone-options').textContent)
+      const timezoneInput = $('#id_timezone')
+      const initialTimezone = timezoneData.find(function (timezone) {
+        return timezone.value === timezoneInput.val()
+      })
+
+      if (initialTimezone) {
+        timezoneInput.val(initialTimezone.label)
+        timezoneInput.data('timezone-value', initialTimezone.value)
+      }
+
+      timezoneInput.autocomplete({
+        delay: 0,
+        minLength: 0,
+        source: function (request, response) {
+          const term = $.ui.autocomplete.escapeRegex(request.term)
+          const matcher = new RegExp(term, 'i')
+          response(timezoneData.filter(function (timezone) {
+            return matcher.test(timezone.label) || matcher.test(timezone.value)
+          }).slice(0, 50).map(function (timezone) {
+            return {
+              label: timezone.label,
+              value: timezone.label,
+              timezoneValue: timezone.value
+            }
+          }))
+        },
+        select: function (_event, ui) {
+          timezoneInput.data('timezone-value', ui.item.timezoneValue)
+        }
+      }).autocomplete('widget').addClass('profile-timezone-menu')
+
+      timezoneInput.on('input', function () {
+        timezoneInput.removeData('timezone-value')
+      })
+
+      timezoneInput.closest('form').on('submit', function () {
+        const enteredTimezone = timezoneInput.val().trim()
+        const selectedValue = timezoneInput.data('timezone-value')
+        const exactMatch = timezoneData.find(function (timezone) {
+          return timezone.label.toLowerCase() === enteredTimezone.toLowerCase() ||
+            timezone.value.toLowerCase() === enteredTimezone.toLowerCase()
+        })
+
+        if (selectedValue) {
+          timezoneInput.val(selectedValue)
+        } else if (exactMatch) {
+          timezoneInput.val(exactMatch.value)
+        }
+      })
+    })
+  </script>
+  {% endif %}
 {% endblock %}

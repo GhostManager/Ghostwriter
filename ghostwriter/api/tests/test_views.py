@@ -4650,6 +4650,9 @@ class ApiKeyCreateTests(TestCase):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "token_form.html")
+        self.assertContains(response, 'class="resource-form-shell token-create-editor"')
+        self.assertContains(response, "Create API token")
+        self.assertContains(response, "Create API Token")
 
     def test_custom_context_exists(self):
         response = self.client_auth.get(self.uri)
@@ -5178,6 +5181,11 @@ class ServiceTokenCreateTests(TestCase):
         self.assertTemplateUsed(response, "service_token_form.html")
         self.assertIn("cancel_link", response.context)
         self.assertEqual(response.context["cancel_link"], self.redirect_uri)
+        self.assertContains(response, 'class="resource-form-shell token-create-editor"')
+        self.assertContains(response, "Token identity")
+        self.assertContains(response, "Service principal")
+        self.assertContains(response, "Access scope")
+        self.assertContains(response, "Create Service Token")
 
     def test_get_excludes_inactive_service_principals(self):
         inactive_principal = ServicePrincipal.objects.create(

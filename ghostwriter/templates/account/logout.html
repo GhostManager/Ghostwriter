@@ -2,18 +2,44 @@
 
 {% load i18n %}
 
-{% block pagetitle %}Sign Out{% endblock %}
+{% block pagetitle %}{% trans "Sign Out" %}{% endblock %}
 
-{% block inner %}
-    <h2>{% trans "Sign Out" %}</h2>
+{% block content %}
+  <div class="auth-challenge-page auth-signout-page">
+    <section class="auth-challenge-card auth-signout-card" aria-labelledby="auth-signout-heading">
+      <div class="auth-challenge-heading">
+        <span class="auth-challenge-icon auth-signout-icon" aria-hidden="true"><i class="fas fa-sign-out-alt"></i></span>
+        <div>
+          <span class="auth-challenge-eyebrow">{% trans "Session controls" %}</span>
+          <h1 id="auth-signout-heading">{% trans "Sign out of Ghostwriter" %}</h1>
+          <p>{% trans "End this browser session and return to the sign-in screen." %}</p>
+        </div>
+      </div>
 
-    <p>{% trans 'Are you sure you want to sign out?' %}</p>
+      <div class="auth-signout-session" role="note">
+        <span class="auth-signout-session-icon" aria-hidden="true"><i class="fas fa-user-shield"></i></span>
+        <div>
+          <span>{% trans "Signed in as" %}</span>
+          <strong>{{ request.user.username }}</strong>
+        </div>
+      </div>
 
-    <form method="post" action="{% url 'account_logout' %}">
+      <p class="auth-signout-copy">
+        {% trans "You will need to authenticate again before returning to your workspace." %}
+      </p>
+
+      <form class="auth-signout-form" method="post" action="{% url 'account_logout' %}">
         {% csrf_token %}
         {% if redirect_field_value %}
-            <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}"/>
+          <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">
         {% endif %}
-        <button class="btn btn-danger col-md-4" type="submit">{% trans 'Sign Out' %}</button>
-    </form>
+        <div class="auth-signout-actions">
+          <a class="btn btn-outline-secondary" href="{% url 'home:dashboard' %}">{% trans "Return home" %}</a>
+          <button class="btn btn-danger auth-signout-submit" type="submit">
+            <i class="fas fa-sign-out-alt" aria-hidden="true"></i> {% trans "Sign out" %}
+          </button>
+        </div>
+      </form>
+    </section>
+  </div>
 {% endblock %}

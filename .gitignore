@@ -290,3 +290,6 @@ ghostwriter-cli
 # Ignore any *.cast or *.cast.gz files
 *.cast
 *.cast.gz
+
+# Ignore any QA testing artifacts
+.playwright-mcp/*

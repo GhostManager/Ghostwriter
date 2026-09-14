@@ -103,27 +103,32 @@ class UserProfileTokenDisplayTests(TestCase):
         self.assertContains(response, 'class="js-token-row"', count=6)
         self.assertContains(
             response,
-            'class="alert alert-secondary mt-2 mb-2 js-token-table-empty-alert d-none"',
+            'class="empty-state profile-token-empty-state mt-2 mb-2 js-token-table-empty-state d-none"',
             count=2,
         )
         self.assertContains(
-            response, '<th class="align-middle text-left">Last Used</th>', count=2
+            response, '<th class="align-middle text-start">Last used</th>', count=2
+        )
+        self.assertContains(
+            response,
+            '<th class="align-middle text-end sorter-false">Options</th>',
+            count=2,
         )
 
         self.assertContains(
             response,
-            'class="align-middle text-left warning"',
+            'class="align-middle text-start warning"',
             count=2,
         )
         self.assertContains(response, "Later API Token")
         self.assertContains(response, "Later Service Token")
         self.assertContains(
             response,
-            'class="align-middle text-left burned js-expired-token js-expired-api-token"',
+            'class="align-middle text-start burned js-expired-token js-expired-api-token"',
         )
         self.assertContains(
             response,
-            'class="align-middle text-left burned js-expired-token js-expired-service-token"',
+            'class="align-middle text-start burned js-expired-token js-expired-service-token"',
         )
 
         self.assertContains(
@@ -135,7 +140,16 @@ class UserProfileTokenDisplayTests(TestCase):
             'data-revoke-target-url="/api/ajax/service-token/revoke/',
         )
         self.assertContains(response, "Edit Expiry", count=6)
-        self.assertContains(response, ">Regenerate</button>", count=6)
+        self.assertContains(response, 'title="View details"', count=6)
+        self.assertContains(response, 'title="Revoke token"', count=6)
+        self.assertContains(
+            response,
+            'class="modal fade destructive-confirmation-modal" id="confirm-revoke-modal"',
+        )
+        self.assertContains(response, 'id="confirm-revoke-modal-label">Revoke token?</h5>')
+        self.assertContains(response, 'id="revoke-object-preview-content"')
+        self.assertContains(response, "Create a replacement token before revoking one that is still in use.")
+        self.assertContains(response, "Revoke token")
 
         self.assertContains(response, 'id="token-expiry-display-', count=3)
         self.assertContains(response, 'id="service-token-expiry-display-', count=3)
@@ -151,7 +165,9 @@ class UserProfileTokenDisplayTests(TestCase):
         self.assertContains(response, 'action="/api/token/regenerate/')
         self.assertContains(response, 'action="/api/service-token/regenerate/')
         self.assertContains(response, 'class="d-flex m-0 js-regenerate-token-form"', count=6)
-        self.assertContains(response, "disabled>Regenerate</button>", count=2)
+        self.assertContains(response, 'aria-label="Regenerate API token"', count=3)
+        self.assertContains(response, 'aria-label="Regenerate service token"', count=3)
+        self.assertContains(response, "disabled><i class=\"fas fa-sync-alt\"", count=2)
 
         self.assertContains(response, 'id="edit-token-expiry-modal"')
         self.assertContains(response, 'id="edit-token-expiry-error"')
@@ -213,10 +229,10 @@ class UserProfileTokenDisplayTests(TestCase):
         response = self.client_auth.get(self.uri)
 
         self.assertNotContains(
-            response, '<th class="align-middle text-left">Service Principal</th>'
+            response, '<th class="align-middle text-start">Service Principal</th>'
         )
         self.assertNotContains(
-            response, '<th class="align-middle text-left">Scope</th>'
+            response, '<th class="align-middle text-start">Scope</th>'
         )
         self.assertContains(
             response,
@@ -275,6 +291,9 @@ class UserProfileTokenDisplayTests(TestCase):
         )
         self.assertContains(response, "ALPHA PROJECT")
         self.assertContains(response, "BRAVO PROJECT")
+        self.assertContains(response, 'class="token-access-list mb-3"')
+        self.assertContains(response, 'class="token-access-list-item"')
+        self.assertNotContains(response, 'class="list-group')
 
     def test_api_token_details_view_rejects_tokens_owned_by_other_users(self):
         other_user = UserFactory(password=PASSWORD)
@@ -327,6 +346,8 @@ class UserProfileTokenDisplayTests(TestCase):
             response,
             "This token has no direct oplog assignment. It can access logs under the above projects.",
         )
+        self.assertContains(response, 'class="token-access-list mb-3"')
+        self.assertNotContains(response, 'class="list-group')
 
     def test_service_token_details_view_lists_oplog_access(self):
         project = ProjectFactory(codename="Alpha Project")
@@ -362,6 +383,8 @@ class UserProfileTokenDisplayTests(TestCase):
         self.assertContains(response, "Operator Activity")
         self.assertContains(response, "Read oplog and entries")
         self.assertContains(response, "Create entries")
+        self.assertContains(response, 'class="token-access-list mb-3"')
+        self.assertNotContains(response, 'class="list-group')
         self.assertContains(response, "Update entries")
         self.assertContains(response, "Delete entries")
 

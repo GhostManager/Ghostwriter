@@ -1,8 +1,11 @@
 # Standard Libraries
 import logging
-from django.forms import ValidationError
+
+# 3rd Party Libraries
+from bs4 import BeautifulSoup
 
 # Django Imports
+from django.forms import ValidationError
 from django.forms.models import inlineformset_factory
 from django.test import TestCase
 
@@ -200,6 +203,7 @@ class ExtraFieldFormTest(TestCase):
             internal_name="test_field_integer",
             display_name="Test Field 3",
             type="integer",
+            description="Helpful context for the integer field.",
         )
 
     def test_widget_has_fields(self):
@@ -211,6 +215,7 @@ class ExtraFieldFormTest(TestCase):
         self.assertEqual(subwidgets[0]["widget"]["name"], "testform_test_field_single_line")
         self.assertEqual(subwidgets[0]["widget"]["type"], "text")
         self.assertEqual(subwidgets[1]["label"], "Test Field 2")
+        self.assertEqual(subwidgets[1]["field_type"], "rich_text")
         self.assertEqual(subwidgets[1]["widget"]["name"], "testform_test_field_rich")
         self.assertEqual(subwidgets[2]["label"], "Test Field 3")
         self.assertEqual(subwidgets[2]["widget"]["name"], "testform_test_field_integer")
@@ -250,6 +255,51 @@ class ExtraFieldFormTest(TestCase):
                 "test_field_integer": "123",
             },
         )
+
+    def test_widget_groups_labels_controls_and_help_text(self):
+        widget = ExtraFieldsWidget("test.TestModel")
+
+        rendered = widget.render(
+            "testform",
+            None,
+            attrs={"id": "id_testform", "class": "extrafieldswidget form-control"},
+        )
+        soup = BeautifulSoup(rendered, "html.parser")
+        groups = soup.select(".extra-field-form-group")
+        integer_input = soup.find(id="id_testform_test_field_integer")
+        integer_group = integer_input.find_parent(class_="extra-field-form-group")
+        rich_text_group = soup.find(id="id_testform_test_field_rich").find_parent(
+            class_="extra-field-form-group"
+        )
+
+        self.assertEqual(len(groups), 3)
+        self.assertEqual(integer_group.find("label")["for"], integer_input["id"])
+        self.assertEqual(
+            integer_group.select_one(".form-text").get_text(strip=True),
+            "Helpful context for the integer field.",
+        )
+        self.assertNotIn("mb-3", integer_input.get("class", []))
+        self.assertIn("extra-field-form-card-rich-text", rich_text_group.get("class", []))
+
+    def test_json_widget_uses_a_full_width_card(self):
+        ExtraFieldSpec.objects.create(
+            target_model=self.model,
+            internal_name="test_field_json",
+            display_name="Workflow Metadata",
+            type="json",
+        )
+        widget = ExtraFieldsWidget("test.TestModel")
+
+        rendered = widget.render(
+            "testform",
+            None,
+            attrs={"id": "id_testform", "class": "extrafieldswidget form-control"},
+        )
+        soup = BeautifulSoup(rendered, "html.parser")
+        json_input = soup.find(id="id_testform_test_field_json")
+        json_group = json_input.find_parent(class_="extra-field-form-group")
+
+        self.assertIn("extra-field-form-card-json", json_group.get("class", []))
 
     def test_field_clean(self):
         field = ExtraFieldsField("test.TestModel")
@@ -314,23 +364,41 @@ class ExtraFieldFormTest(TestCase):
         data = field.clean(field_data)
         self.assertTrue(data["test_field_bool"])
 
-    def test_checkbox_widget_uses_custom_switch_markup(self):
+    def test_checkbox_widget_uses_bootstrap_switch_markup(self):
         ExtraFieldSpec.objects.create(
             target_model=self.model,
             internal_name="test_field_bool",
             display_name="Test Field 4",
             type="checkbox",
+            description="Enable this field when the condition is met.",
         )
         widget = ExtraFieldsWidget("test.TestModel")
 
-        rendered = widget.render("testform", {"test_field_bool": True}, attrs={"id": "id_testform"})
+        rendered = widget.render(
+            "testform",
+            {"test_field_bool": True},
+            attrs={"id": "id_testform", "class": "extrafieldswidget form-control"},
+        )
 
-        self.assertIn('class="mb-3 custom-control custom-switch"', rendered)
-        self.assertIn('class="custom-control-input"', rendered)
+        self.assertIn(
+            'class="extra-field-form-group extra-field-form-card extra-field-form-group-switch"',
+            rendered,
+        )
+        soup = BeautifulSoup(rendered, "html.parser")
+        checkbox = soup.find(id="id_testform_test_field_bool")
+        group = checkbox.find_parent(class_="extra-field-form-group-switch")
+
+        self.assertIsNotNone(group)
+        self.assertIn("extra-field-form-switch", checkbox.parent.get("class", []))
+        self.assertIn('class="extrafieldswidget form-check-input"', rendered)
+        self.assertNotIn('class="extrafieldswidget form-control form-check-input"', rendered)
         self.assertIn("checked", rendered)
-        self.assertIn('for="id_testform_test_field_bool"', rendered)
-        self.assertIn('class="custom-control-label form-check-label"', rendered)
-        self.assertIn("Test Field 4", rendered)
+        self.assertEqual(group.select_one(".form-label")["for"], checkbox["id"])
+        self.assertEqual(group.select_one(".form-label").get_text(strip=True), "Test Field 4")
+        self.assertEqual(
+            group.select_one(".form-text").get_text(strip=True),
+            "Enable this field when the condition is met.",
+        )
 
     def test_checkbox_false(self):
         ExtraFieldSpec.objects.create(

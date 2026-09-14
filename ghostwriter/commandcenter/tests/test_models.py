@@ -386,7 +386,7 @@ class BannerConfigurationTests(TestCase):
         entry.banner_link = "javascript:alert(document.domain)"
         self.assertEqual(entry.safe_banner_link, "")
 
-        entry.banner_link = 'https://example.com/\" onclick=\"alert(1)'
+        entry.banner_link = 'https://example.com/" onclick="alert(1)'
         self.assertEqual(entry.safe_banner_link, "")
 
 

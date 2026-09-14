@@ -247,6 +247,7 @@ class FindingNoteCreate(RoleBasedAccessControlMixin, CreateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         finding_instance = get_object_or_404(Finding, pk=self.kwargs.get("pk"))
+        ctx["note_object"] = finding_instance.title
         ctx["cancel_link"] = reverse("reporting:finding_detail", kwargs={"pk": finding_instance.pk})
         return ctx
 
@@ -294,6 +295,7 @@ class FindingNoteUpdate(RoleBasedAccessControlMixin, UpdateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
+        ctx["note_object"] = self.object.finding.title
         ctx["cancel_link"] = reverse("reporting:finding_detail", kwargs={"pk": self.get_object().finding.pk})
         return ctx
 

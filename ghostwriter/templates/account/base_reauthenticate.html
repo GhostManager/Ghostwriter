@@ -8,25 +8,25 @@
     {% trans "Confirm Access" %}
 {% endblock head_title %}
 {% block content %}
-    {% element h1 %}
-        {% trans "Confirm Access" %}
-    {% endelement %}
-    {% element p %}
-        {% blocktranslate %}Please reauthenticate to safeguard your account.{% endblocktranslate %}
-    {% endelement %}
-    {% block reauthenticate_content %}{% endblock %}
-    {% if reauthentication_alternatives %}
-        {% element hr %}
-        {% endelement %}
-        {% element h2 %}
-            {% translate "Alternative Methods" %}
-        {% endelement %}
-        <div class="d-grid gap-3">
-            {% for alt in reauthentication_alternatives %}
-            <a href="{{ alt.url }}" class="btn btn-outline-primary">
-            {{ alt.description }}
-            </a>
-            {% endfor %}
+  <div class="auth-challenge-page auth-journey-page">
+    <section class="auth-challenge-card auth-journey-card" aria-labelledby="reauthenticate-heading">
+      <div class="auth-challenge-heading">
+        <span class="auth-challenge-icon auth-journey-icon" aria-hidden="true"><i class="fas fa-user-shield"></i></span>
+        <div>
+          <span class="auth-challenge-eyebrow">{% trans "Account security" %}</span>
+          <h1 id="reauthenticate-heading">{% trans "Confirm access" %}</h1>
+          <p>{% blocktranslate %}Reauthenticate to safeguard your account before continuing.{% endblocktranslate %}</p>
         </div>
-    {% endif %}
+      </div>
+      {% block reauthenticate_content %}{% endblock %}
+      {% if reauthentication_alternatives %}
+        <div class="auth-challenge-divider"><span>{% translate "Alternative methods" %}</span></div>
+        <div class="auth-journey-alternatives">
+          {% for alt in reauthentication_alternatives %}
+            <a href="{{ alt.url }}" class="btn btn-outline-secondary">{{ alt.description }}</a>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </section>
+  </div>
 {% endblock content %}

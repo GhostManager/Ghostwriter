@@ -207,6 +207,21 @@ class DomainModelTests(TestCase):
         except Exception:
             self.fail("Domain model `get_domain_age` method failed unexpectedly!")
 
+    def test_method_get_domain_age_display(self):
+        domain = DomainFactory(
+            creation=date.today() - timedelta(days=628),
+            expiration=date.today() + timedelta(days=1),
+            expired=False,
+        )
+        young_domain = DomainFactory(
+            creation=date.today() - timedelta(days=1),
+            expiration=date.today() + timedelta(days=1),
+            expired=False,
+        )
+
+        self.assertEqual(domain.get_domain_age_display(), "1 year, 263 days")
+        self.assertEqual(young_domain.get_domain_age_display(), "1 day")
+
     def test_method_is_expired(self):
         creation = date.today() - timedelta(days=361)
         expiration = date.today() - timedelta(days=1)

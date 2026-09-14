@@ -1,0 +1,54 @@
+{% extends "base_generic.html" %}
+{% load i18n %}
+
+{% block pagetitle %}{% trans "Generate recovery codes" %}{% endblock %}
+
+{% block content %}
+  <div class="resource-form-shell account-profile-editor account-recovery-generate">
+    <form method="post" action="{% url 'mfa_generate_recovery_codes' %}" class="resource-edit-form account-recovery-generate-form">
+      {% csrf_token %}
+      {{ form.as_p }}
+
+      <section class="resource-form-card account-recovery-generate-card" aria-labelledby="recovery-generate-heading">
+        <div class="resource-form-section-heading">
+          <span class="resource-form-section-icon account-mfa-card-icon" aria-hidden="true"><i class="fas fa-life-ring"></i></span>
+          <div>
+            <h1 id="recovery-generate-heading">{% trans "Generate recovery codes" %}</h1>
+            <p>{% trans "Create single-use backup codes for signing in when your usual multi-factor method is unavailable." %}</p>
+          </div>
+        </div>
+
+        {% if unused_code_count %}
+          <div class="account-recovery-generate-warning" role="alert">
+            <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+            <div>
+              <strong>{% trans "Replace the existing recovery-code set?" %}</strong>
+              <p>{% trans "Generating a new set immediately invalidates every unused code in the current set." %}</p>
+            </div>
+          </div>
+        {% else %}
+          <div class="account-recovery-generate-note" role="note">
+            <i class="fas fa-lock" aria-hidden="true"></i>
+            <div>
+              <strong>{% trans "Store the new codes outside Ghostwriter" %}</strong>
+              <p>{% trans "Save them in a password manager or another secure location. Each code works once." %}</p>
+            </div>
+          </div>
+        {% endif %}
+      </section>
+
+      <div class="resource-form-actions resource-form-actions-compact account-recovery-generate-actions">
+        <div class="resource-form-actions-context">
+          {% trans "The next page will display the new codes so you can save them securely." %}
+        </div>
+        <div class="resource-form-actions-buttons">
+          <a class="btn btn-outline-secondary" href="{% url 'mfa_view_recovery_codes' %}">{% trans "Cancel" %}</a>
+          <button class="btn {% if unused_code_count %}btn-danger{% else %}btn-primary{% endif %}" type="submit">
+            <i class="fas fa-sync-alt" aria-hidden="true"></i>
+            {% if unused_code_count %}{% trans "Replace recovery codes" %}{% else %}{% trans "Generate recovery codes" %}{% endif %}
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+{% endblock %}

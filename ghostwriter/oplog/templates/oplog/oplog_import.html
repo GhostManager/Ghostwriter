@@ -1,80 +1,126 @@
 {% extends "base_generic.html" %}
 
-{% block pagetitle %}Domain Entry{% endblock %}
-
-{% block breadcrumbs %}
-  <nav aria-label="breadcrumb">
-    <ul class="breadcrumb">
-      <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-      <li class="breadcrumb-item"><a href="{% url 'oplog:index' %}">Operation Logs</a></li>
-      <li class="breadcrumb-item active" aria-current="page">Log Import</li>
-    </ul>
-  </nav>
-{% endblock %}
+{% block pagetitle %}Import Activity Log Entries{% endblock %}
 
 {% block content %}
-  <!-- File Upload -->
-  <h2>Upload Operation Log Entries CSV</h2>
-  <p>Select a target log and upload a csv file containing log entries to be imported:</p>
-  {% if initial_log %}<p>You came from <em>{{ initial_log.name }} (ID #{{ initial_log.id }})</em></p>{% endif %}
-  <form action="{% url 'oplog:oplog_import' %}" method="POST" enctype="multipart/form-data" class="form-horizontal">
-    {% csrf_token %}
-    <div class="input-group mb-3 offset-2 col-8">
-      <label for="oplog_id"></label>
-      <select class="form-control" id="oplog_log" name="oplog_id" required {% if not logs %}disabled{% endif %}>
-        {%  if logs %}
-          <option value="">-- Select a Target Log --</option>
-          {% for log in logs %}
-            <option value="{{ log.id }}" {% if initial_log.id == log.id %}selected="selected"{% endif %}>{{ log.name }} (ID {{ log.id }})</option>
-          {% endfor %}
-        {% else %}
-          <option value="0">-- No Logs Available --</option>
-        {% endif %}
-      </select>
-    </div>
-    <div class="input-group input-group-lg mb-3 offset-2 col-8">
-      <div class="custom-file">
-        <input type="file" class="custom-file-input" id="csv_file" name="csv_file" required {% if not logs %}disabled{% endif %}>
-        <label class="custom-file-label" for="csv_file">Choose csv file...</label>
+  <div class="oplog-import-page">
+    <header class="resource-form-page-heading oplog-import-heading">
+      <div>
+        <span class="detail-eyebrow">Activity log</span>
+        <h1>Import entries</h1>
+        <p>Bring a CSV export into an activity log. Existing entries with matching identifiers are updated; new rows are added.</p>
       </div>
-    </div>
+      {% if initial_log %}
+        <a class="btn btn-outline-secondary btn-sm oplog-import-return" href="{% url 'oplog:oplog_entries' initial_log.id %}">
+          <i class="fas fa-arrow-left" aria-hidden="true"></i> Back to log
+        </a>
+      {% else %}
+        <a class="btn btn-outline-secondary btn-sm oplog-import-return" href="{% url 'oplog:index' %}">
+          <i class="fas fa-arrow-left" aria-hidden="true"></i> Operation logs
+        </a>
+      {% endif %}
+    </header>
 
-    <div class="form-group">
-      <button class="btn btn-primary col-2" {% if not logs %}disabled{% endif %}><i class="fas fa-file-upload"></i> Upload</button>
-    </div>
-  </form>
+    {% if logs %}
+      <form action="{% url 'oplog:oplog_import' %}" method="POST" enctype="multipart/form-data" class="oplog-import-form">
+        {% csrf_token %}
+        <div class="oplog-import-workspace">
+          <section class="oplog-import-upload-card" aria-labelledby="oplog-import-upload-heading">
+            <div class="oplog-import-card-heading">
+              <div>
+                <span class="detail-eyebrow">Import source</span>
+                <h2 id="oplog-import-upload-heading">Choose import source</h2>
+                <p>Pick the log that will receive these entries, then select its CSV file.</p>
+              </div>
+            </div>
 
-  <!-- Section for Instructions -->
-  <h3>Instructions</h3>
-  <div>
-    <div class="row">
-      <div class="alert alert-success offset-md-2 col-md-8 mt-1" role="alert">
-        <h4 class="alert-heading">CSV Headers</h4>
-        <p>Your csv file must have these headers:</p>
-        <em>
-          entry_identifier, start_date, end_date, source_ip, dest_ip, tool, user_context, command, description, output,
-          comments, operator_name, tags
-        </em>
-        <p class="mt-3">The <em>entry_identifer</em> field can be empty or a unique value for the log entry. If an existing log
-          entry shares the same <em>entry_identifer</em> it will be updated with the imported values.</p>
-        <p class="mt-3">An <em>extra_fields</em> column can optionally be provided. It should contain a JSON object with field internal names for keys.</p>
+            <div class="mb-3">
+              <label class="form-label" for="oplog_log">Destination log</label>
+              <select class="form-select" id="oplog_log" name="oplog_id" required>
+                <option value="">Select an activity log</option>
+                {% for log in logs %}
+                  <option value="{{ log.id }}" {% if initial_log.id == log.id %}selected{% endif %}>{{ log.name }} (ID #{{ log.id }})</option>
+                {% endfor %}
+              </select>
+              {% if initial_log %}
+                <p class="oplog-import-field-note"><i class="fas fa-crosshairs" aria-hidden="true"></i> Opened from {{ initial_log.name }}.</p>
+              {% endif %}
+            </div>
+
+            <div class="oplog-import-dropzone resource-file-dropzone">
+              <input type="file" class="resource-file-input" id="csv_file" name="csv_file" accept=".csv,text/csv" required>
+              <label class="resource-file-label" for="csv_file">
+                <i class="fas fa-file-csv" aria-hidden="true"></i>
+                <span class="oplog-import-file-copy">
+                  <strong id="oplog-import-file-name">Select a CSV file</strong>
+                  <small>CSV format; Ghostwriter validates the entries before import.</small>
+                </span>
+              </label>
+            </div>
+
+            <div class="oplog-import-actions">
+              <button type="submit" class="btn btn-primary oplog-import-submit"><i class="fas fa-file-import" aria-hidden="true"></i> Import entries</button>
+              {% if initial_log %}
+                <a class="btn btn-outline-secondary" href="{% url 'oplog:oplog_entries' initial_log.id %}">Cancel</a>
+              {% else %}
+                <a class="btn btn-outline-secondary" href="{% url 'oplog:index' %}">Cancel</a>
+              {% endif %}
+            </div>
+          </section>
+
+          <aside class="oplog-import-flow" aria-labelledby="oplog-import-flow-heading">
+            <span class="detail-eyebrow">What happens next</span>
+            <h2 id="oplog-import-flow-heading">Import safely</h2>
+            <ol>
+              <li><span>1</span><p>Ghostwriter checks the target log and CSV structure.</p></li>
+              <li><span>2</span><p>Rows with matching <code>entry_identifier</code> values update existing entries.</p></li>
+              <li><span>3</span><p>Rows without a match become new entries in the selected log.</p></li>
+            </ol>
+          </aside>
+        </div>
+      </form>
+    {% else %}
+      <div class="empty-state oplog-import-empty-state" role="status">
+        <p class="empty-state-title">No operation logs available</p>
+        <p class="empty-state-description">Create an operation log before importing entries from a CSV file.</p>
+        <a class="btn btn-primary btn-sm icon add-icon mt-3" href="{% url 'oplog:oplog_create_no_project' %}">Create Log</a>
       </div>
-    </div>
+    {% endif %}
 
-    <div class="row">
-      <div class="alert alert-warning offset-md-2 col-md-8 mt-2" role="alert">
-        <h4 class="alert-heading">Notes on Timestamps</h4>
-        <p>Your <em>start_date</em> and <em>end_date</em> values must be in the <em>YYYY-MM-DD HH:MM:SS</em> format. The timestamps should match what you get when exporting a log.</p>
-        <p>Include a timezone offset at the end (e.g., <em>+00:00</em> for UTC). If you do not include an offset, the timestamps will use the server's timezone ({{ TIME_ZONE }}).</p>
+    <section class="oplog-import-reference" aria-labelledby="oplog-import-requirements-heading">
+      <div class="oplog-import-reference-heading">
+        <span class="detail-eyebrow">CSV reference</span>
+        <h2 id="oplog-import-requirements-heading">Prepare the export</h2>
+        <p>Use an export from Ghostwriter when possible; it already carries the expected header and timestamp shape.</p>
       </div>
-    </div>
+      <div class="oplog-import-reference-grid">
+        <article class="instruction-panel oplog-import-reference-card">
+          <span class="instruction-panel-icon" aria-hidden="true"><i class="fas fa-file-csv"></i></span>
+          <div class="instruction-panel-content">
+            <h3>Required headers</h3>
+            <code class="instruction-code-block">entry_identifier, start_date, end_date, source_ip, dest_ip, tool, user_context, command, description, output, comments, operator_name, tags</code>
+            <p><code>entry_identifier</code> may be empty or unique. An optional <code>extra_fields</code> column accepts a JSON object keyed by extra-field internal name.</p>
+          </div>
+        </article>
+
+        <article class="instruction-panel oplog-import-reference-card">
+          <span class="instruction-panel-icon" aria-hidden="true"><i class="fas fa-clock"></i></span>
+          <div class="instruction-panel-content">
+            <h3>Timestamp format</h3>
+            <p>Use <code>YYYY-MM-DD HH:MM:SS</code> for <code>start_date</code> and <code>end_date</code>, matching a Ghostwriter export.</p>
+            <p>Include a timezone offset such as <code>+00:00</code>. Without one, Ghostwriter uses the server timezone ({{ TIME_ZONE }}).</p>
+          </div>
+        </article>
+      </div>
+    </section>
   </div>
 {% endblock %}
 
 {% block morescripts %}
   <script>
-    $('input[type=file]').on('change', function () {
-      $('.custom-file-label').text($(this).val());
+    $('#csv_file').on('change', function () {
+      let fileName = this.files && this.files.length ? this.files[0].name : 'Select a CSV file';
+      $('#oplog-import-file-name').text(fileName);
     });
   </script>
 {% endblock %}

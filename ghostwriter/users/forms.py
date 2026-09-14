@@ -17,7 +17,7 @@ from allauth.mfa.base.internal.flows import check_rate_limit
 from allauth.mfa.models import Authenticator
 from allauth.mfa.totp.forms import ActivateTOTPForm, DeactivateTOTPForm
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import HTML, ButtonHolder, Column, Layout, Row, Submit
+from crispy_forms.layout import Div, HTML, Column, Layout, Row, Submit
 
 User = get_user_model()
 
@@ -41,30 +41,58 @@ class UserChangeForm(UserChangeForm):
         self.fields["name"].widget.attrs["autocomplete"] = "off"
         self.fields["phone"].widget.attrs["placeholder"] = "(212) 555-2368"
         self.fields["phone"].help_text = "Work phone number for work contacts"
-        self.fields["timezone"].help_text = "Timezone in which you work"
+        timezone_choices = [
+            {"value": str(value), "label": str(label)}
+            for value, label in self.fields["timezone"].choices
+            if value
+        ]
+        self.fields["timezone"].widget = TextInput(
+            attrs={
+                "autocomplete": "off",
+                "class": "form-control profile-timezone-input",
+                "data-timezone-search": "true",
+                "spellcheck": "false",
+            }
+        )
+        self.fields["timezone"].help_text = (
+            "Start typing a city or region, then choose a timezone"
+        )
+        self.timezone_choices = timezone_choices
         self.fields["name"].help_text = "Your full name as it should appear in reports"
         self.fields["name"].label = "Your Full Name"
         self.fields["timezone"].label = "Your Timezone"
         self.fields["phone"].label = "Your Contact Number"
         self.helper = FormHelper()
         self.helper.form_method = "post"
+        self.helper.form_class = "resource-edit-form"
         self.helper.layout = Layout(
-            Row(
-                Column("name", css_class="form-group col-md-12 mb-0"),
-                css_class="form-row mt-4",
-            ),
-            Row(
-                Column("phone", css_class="form-group col-md-6 mb-0"),
-                Column("timezone", css_class="form-group col-md-6 mb-0"),
-                css_class="form-row",
-            ),
-            ButtonHolder(
-                Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
+            Div(
                 HTML(
                     """
-                    <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    <div class="resource-form-section-heading">
+                      <span class="resource-form-section-icon"><i class="fas fa-user" aria-hidden="true"></i></span>
+                      <div>
+                        <h1>Operator identity</h1>
+                        <p>Edit the contact details and timezone used for assignments and reports.</p>
+                      </div>
+                    </div>
                     """
                 ),
+                "name",
+                Row(
+                    Column("phone", css_class="col-md-6"),
+                    Column("timezone", css_class="col-md-6"),
+                    css_class="row g-3",
+                ),
+                css_class="resource-form-card",
+            ),
+            Div(
+                Div(
+                    HTML("""<a href="{{ cancel_link }}" class="btn btn-outline-secondary">Cancel</a>"""),
+                    Submit("submit", "Save Changes", css_class="btn btn-primary"),
+                    css_class="resource-form-actions-buttons",
+                ),
+                css_class="resource-form-actions resource-form-actions-compact",
             ),
         )
 
@@ -147,16 +175,16 @@ class UserLoginForm(LoginForm):
         self.helper.form_show_errors = False
         self.helper.layout = Layout(
             Row(
-                Column("login", css_class="form-group col-12 mb-0"),
-                css_class="form-row mt-4",
+                Column("login", css_class="col-12 mb-0"),
+                css_class="row g-3 mt-4",
             ),
             Row(
-                Column("password", css_class="form-group col-12 mb-0"),
-                css_class="form-row",
+                Column("password", css_class="col-12 mb-0"),
+                css_class="row g-3",
             ),
             Row(
-                Column("remember", css_class="form-group col-12 mb-0"),
-                css_class="form-row",
+                Column("remember", css_class="col-12 mb-0"),
+                css_class="row g-3",
             ),
         )
 
@@ -182,24 +210,24 @@ class UserSignupForm(SignupForm):
         self.helper.form_show_errors = False
         self.helper.layout = Layout(
             Row(
-                Column("name", css_class="form-group col-12 mb-0"),
-                css_class="form-row",
+                Column("name", css_class="col-12 mb-0"),
+                css_class="row g-3",
             ),
             Row(
-                Column("email", css_class="form-group col-12 mb-0"),
-                css_class="form-row mt-4",
+                Column("email", css_class="col-12 mb-0"),
+                css_class="row g-3 mt-4",
             ),
             Row(
-                Column("username", css_class="form-group col-12 mb-0"),
-                css_class="form-row",
+                Column("username", css_class="col-12 mb-0"),
+                css_class="row g-3",
             ),
             Row(
-                Column("password1", css_class="form-group col-12 mb-0"),
-                css_class="form-row",
+                Column("password1", css_class="col-12 mb-0"),
+                css_class="row g-3",
             ),
             Row(
-                Column("password2", css_class="form-group col-12 mb-0"),
-                css_class="form-row",
+                Column("password2", css_class="col-12 mb-0"),
+                css_class="row g-3",
             ),
         )
 
@@ -207,27 +235,27 @@ class UserSignupForm(SignupForm):
 class UserMFAAuthenticateForm(AuthenticateForm):
     """
     Authenticate an individual :model:`users.User` with their TOTP. This is customized
-    to make adjustments like disabling autocomplete on the token field.
+    to support one-time-code entry while retaining recovery-code authentication.
     """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        for field in self.fields:
-            self.fields[field].widget.attrs["autocomplete"] = "off"
-        self.fields["code"].widget.attrs["placeholder"] = "421 984"
+        self.fields["code"].label = _("Authentication or recovery code")
+        self.fields["code"].help_text = _(
+            "Enter the current code from your authenticator app or an unused recovery code."
+        )
+        self.fields["code"].widget.attrs.update(
+            {
+                "autocomplete": "one-time-code",
+                "autocapitalize": "off",
+                "spellcheck": "false",
+                "placeholder": _("Enter code"),
+            }
+        )
         self.helper = FormHelper()
         self.helper.form_method = "post"
         self.helper.form_tag = False
-        self.helper.form_show_errors = False
-        self.helper.layout = Layout(
-            Row(
-                Column("code", css_class="form-group col-4 offset-4 mb-0"),
-                css_class="form-row mt-4",
-            ),
-            ButtonHolder(
-                Submit("submit", "Authenticate", css_class="col-4"),
-            ),
-        )
+        self.helper.layout = Layout("code")
 
     def clean_code(self):
         clear_rl = check_rate_limit(self.user)
@@ -247,35 +275,37 @@ class UserMFAAuthenticateForm(AuthenticateForm):
 class UserMFADeviceForm(ActivateTOTPForm):
     """
     Enroll an MFA device for an individual :model:`users.User`. This is customized
-    to make adjustments like disabling autocomplete on the token field.
+    to optimize the verification field for one-time-code entry.
     """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        for field in self.fields:
-            self.fields[field].widget.attrs["autocomplete"] = "off"
-        self.fields["code"].widget.attrs["placeholder"] = "421 984"
+        self.fields["code"].label = _("6-digit authenticator code")
+        self.fields["code"].help_text = _(
+            "Enter the current code from your authenticator app."
+        )
+        self.fields["code"].widget.attrs.update(
+            {
+                "autocomplete": "one-time-code",
+                "inputmode": "numeric",
+                "pattern": "[0-9]{6}",
+                "maxlength": "6",
+                "placeholder": "123456",
+            }
+        )
         self.helper = FormHelper()
         self.helper.form_method = "post"
-        self.helper.form_show_errors = False
-        self.helper.layout = Layout(
-            Row(
-                Column("code", css_class="form-group col-4 offset-4 mb-0"),
-                css_class="form-row mt-4",
-            ),
-            ButtonHolder(
-                Submit("submit", "Verify", css_class="col-4"),
-            ),
-        )
+        self.helper.form_tag = False
+        self.helper.layout = Layout("code")
 
 
 class UserMFADeviceRemoveForm(DeactivateTOTPForm):
     """
     Remove an MFA device enrolled for an individual :model:`users.User`. This is customized
-    to make adjustments like disabling autocomplete on the password field.
+    to require the current authenticator code and apply rate limiting.
     """
     code = CharField(
-        label=_("Current Authenticator Code"),
+        label=_("Current authenticator code"),
         max_length=6,
         min_length=6,
         required=True,
@@ -287,7 +317,9 @@ class UserMFADeviceRemoveForm(DeactivateTOTPForm):
                 "pattern": "[0-9]{6}",
             }
         ),
-        help_text="Enter the current 6-digit code from your authenticator app to confirm deactivation.",
+        help_text=_(
+            "Enter the current 6-digit code from your authenticator app to confirm deactivation."
+        ),
     )
 
     def __init__(self, *args, **kwargs):
@@ -296,16 +328,8 @@ class UserMFADeviceRemoveForm(DeactivateTOTPForm):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "post"
-        self.helper.form_show_errors = False
-        self.helper.layout = Layout(
-            Row(
-                Column("code", css_class="form-group col-4 offset-4 mb-0"),
-                css_class="form-row mt-4",
-            ),
-            ButtonHolder(
-                Submit("submit", "Disable Multi-Factor", css_class="col-4"),
-            ),
-        )
+        self.helper.form_tag = False
+        self.helper.layout = Layout("code")
 
     def clean_code(self):
         """

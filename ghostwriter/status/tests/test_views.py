@@ -2,6 +2,7 @@
 from unittest.mock import Mock, patch
 
 # Django Imports
+from django.contrib.auth import get_user_model
 from django.test import Client, TestCase, override_settings, tag
 from django.urls import reverse
 
@@ -35,6 +36,19 @@ class HealthCheckCustomViewTests(TestCase):  # pragma: no cover
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "health_check.html")
 
+    def test_authenticated_view_hides_inherited_top_bar(self):
+        user = get_user_model().objects.create_user(
+            username="status-user",
+            password="status-test-password",
+        )
+        self.client.force_login(user)
+
+        response = self.client.get(self.uri)
+
+        self.assertNotContains(response, 'class="top-bar')
+        self.assertNotContains(response, 'class="navbar-avatar"')
+        self.assertContains(response, "Return home")
+
     def test_format_options(self):
         response = self.client.get(self.uri)
         self.assertEqual(response.status_code, 200)
@@ -65,7 +79,14 @@ class HealthCheckCustomViewTests(TestCase):  # pragma: no cover
     def test_view_displays_configured_thresholds(self):
         response = self.client.get(self.uri)
 
-        self.assertContains(response, "Monitoring Thresholds")
+        self.assertContains(response, 'class="status-page"')
+        self.assertContains(response, 'class="status-section"')
+        self.assertContains(response, 'class="status-section status-service-section"')
+        self.assertNotContains(response, 'class="card status-section')
+        self.assertContains(response, "Current readout")
+        self.assertContains(response, "Return home")
+        self.assertContains(response, "Refresh checks")
+        self.assertContains(response, "Monitoring thresholds")
         self.assertContains(response, "Disk Usage Warning Threshold")
         self.assertContains(response, "100%")
         self.assertContains(response, "Minimum Available Memory")

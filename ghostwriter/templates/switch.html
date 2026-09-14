@@ -4,20 +4,20 @@
     {{ field }}
 {% else %}
     {% if field|is_checkbox %}
-        <div id="div_{{ field.auto_id }}" class="mb-1 custom-control custom-switch {% if wrapper_class %} {{ wrapper_class }}{% endif %}">
-            {% crispy_field field 'class' 'custom-control-input' %}
-            <label for="{{ field.id_for_label }}" class="custom-control-label form-check-label{% if field.field.required %} requiredField{% endif %}">
+        <div id="div_{{ field.auto_id }}" class="mb-1 form-check form-switch{% if wrapper_class %} {{ wrapper_class }}{% endif %}">
+            {% crispy_field field 'class' 'form-check-input' %}
+            <label for="{{ field.id_for_label }}" class="form-check-label{% if field.field.required %} requiredField{% endif %}">
                 {{ field.label|safe }}
             </label>
-            {% include 'bootstrap4/layout/help_text_and_errors.html' %}
+            {% include 'bootstrap5/layout/help_text_and_errors.html' %}
         </div>
     {% else %}
         <div id="div_{{ field.auto_id }}" class="input-group{% if wrapper_class %} {{ wrapper_class }}{% endif %}">
-            <label for="{{ field.id_for_label }}" class="sr-only{% if field.field.required %} requiredField{% endif %}">
+            <label for="{{ field.id_for_label }}" class="visually-hidden{% if field.field.required %} requiredField{% endif %}">
                 {{ field.label|safe }}
             </label>
             {% crispy_field field 'placeholder' field.label %}
-            {% include 'bootstrap4/layout/help_text_and_errors.html' %}
+            {% include 'bootstrap5/layout/help_text_and_errors.html' %}
         </div>
     {% endif %}
 {% endif %}
