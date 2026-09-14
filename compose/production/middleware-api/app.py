@@ -547,6 +547,7 @@ def create_app():
               id
               name
               shortName
+              extraFields
             }
             projectType {
               id
@@ -614,7 +615,20 @@ def create_app():
 
         project_data = data.get("project_by_pk")
         if project_data:
+            # The client's `showResultsInDashboard` extra field gates finding detail.
+            # Absent key reads as false, matching the checkbox extra field's empty value
+            # and the `_contains` filters used by /getStatistics.
+            client_extra_fields = (project_data.get("client") or {}).get("extraFields") or {}
+            show_results = client_extra_fields.get("showResultsInDashboard") is True
+
             for report in project_data.get("reports", []):
+                if not show_results:
+                    # Evidence is finding detail too, so drop it without downloading the
+                    # blobs - that loop costs one request per evidence item.
+                    report["findings"] = []
+                    report["evidence"] = []
+                    continue
+
                 evidence_list = report.get("evidence", [])
                 downloaded = []
                 for ev in evidence_list:
