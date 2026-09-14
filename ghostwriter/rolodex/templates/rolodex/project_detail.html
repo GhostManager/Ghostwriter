@@ -45,6 +45,19 @@
           <i class="fas fa-thumbtack" aria-hidden="true"></i>
           <span data-work-pin-label>Pin to sidebar</span>
         </button>
+        {% if can_edit_project %}
+          <div class="dropdown-divider"></div>
+          <button type="button"
+                  id="js-project-status-action"
+                  class="dropdown-item js-toggle-project-status"
+                  data-project-complete="{% if project.complete %}true{% else %}false{% endif %}"
+                  toggle-project-status-csrftoken="{{ csrf_token }}"
+                  toggle-project-status-url="{% url 'rolodex:ajax_toggle_project' project.id %}"
+                  toggle-project-status-id="{{ project.id }}">
+            <i class="fas {% if project.complete %}fa-undo{% else %}fa-check-circle{% endif %}" aria-hidden="true"></i>
+            <span data-project-status-action-label>{% if project.complete %}Reopen project{% else %}Mark project complete{% endif %}</span>
+          </button>
+        {% endif %}
         {% if request.user|is_privileged %}
           <div class="dropdown-divider"></div>
           <a class="dropdown-item icon edit-icon" href="{% url 'rolodex:project_update' project.id %}">Edit project</a>
@@ -84,23 +97,14 @@
             <dl class="detail-grid detail-grid-three">
               <div class="detail-field">
                 <dt>Project Status</dt>
-                <dd class="report-state-control">
-                  <div class="report-state-copy">
-                    <span id="js-project-status" class="report-state-value">{% if project.complete %}Complete{% else %}In Progress{% endif %}</span>
-                    <span id="project-status-help" class="report-state-help">Controls whether the project is still active.</span>
+                <dd>
+                  <div id="js-project-status-summary"
+                       class="project-status-summary {{ project_status.style }}"
+                       aria-live="polite">
+                    <i id="js-project-status-icon" class="fas {{ project_status.icon }}" aria-hidden="true"></i>
+                    <span id="js-project-status">{{ project_status.label }}</span>
                   </div>
-                  <div class="form-check form-switch report-state-switch">
-                    <input id="js-project-status-switch"
-                           class="form-check-input js-toggle-project-status"
-                           type="checkbox"
-                           role="switch"
-                           aria-describedby="project-status-help"
-                           aria-label="{% if project.complete %}Mark project as in progress{% else %}Mark project as complete{% endif %}"
-                           toggle-project-status-csrftoken="{{ csrf_token }}"
-                           toggle-project-status-url="{% url 'rolodex:ajax_toggle_project' project.id %}"
-                           toggle-project-status-id="{{ project.id }}"
-                           {% if project.complete %}checked{% endif %}>
-                  </div>
+                  <span id="project-status-help" class="report-state-help">{{ project_status.help }}</span>
                 </dd>
               </div>
               <div class="detail-field">
@@ -1792,15 +1796,19 @@
       });
     }
 
-    {% comment %} Toggle Project Status with AJAX {% endcomment %}
-    $('.js-toggle-project-status').change(function () {
-      let statusSwitch = $(this);
-      let previousState = !statusSwitch.prop('checked');
+    {% comment %} Update Project Completion with AJAX {% endcomment %}
+    $('.js-toggle-project-status').click(function () {
+      let statusAction = $(this);
       let url = $(this).attr('toggle-project-status-url');
       let projectId = $(this).attr('toggle-project-status-id');
       let csrftoken = $(this).attr('toggle-project-status-csrftoken');
       let statusText = $('#js-project-status');
-      statusSwitch.prop('disabled', true);
+      let statusHelp = $('#project-status-help');
+      let statusSummary = $('#js-project-status-summary');
+      let statusIcon = $('#js-project-status-icon');
+      let actionLabel = statusAction.find('[data-project-status-action-label]');
+      let actionIcon = statusAction.find('i');
+      statusAction.prop('disabled', true);
       $.ajaxSetup({
         beforeSend: function (xhr, settings) {
           if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
@@ -1817,7 +1825,6 @@
         },
         success: function (data) {
           if (data['result'] !== 'success') {
-            statusSwitch.prop('checked', previousState);
             displayToastTop({
               type: 'error',
               string: data['message'] || 'Could not update project status.',
@@ -1825,22 +1832,29 @@
             });
             return;
           }
-          statusSwitch.prop('checked', Boolean(data['toggle']));
-          statusSwitch.attr(
-            'aria-label',
-            data['toggle'] ? 'Mark project as in progress' : 'Mark project as complete'
-          );
-          statusText.text(data['status']);
+          let status = data['status'];
+          statusAction.attr('data-project-complete', Boolean(data['toggle']).toString());
+          actionLabel.text(data['toggle'] ? 'Reopen project' : 'Mark project complete');
+          actionIcon
+            .toggleClass('fa-check-circle', !data['toggle'])
+            .toggleClass('fa-undo', data['toggle']);
+          statusText.text(status['label']);
+          statusHelp.text(status['help']);
+          statusSummary
+            .removeClass('is-upcoming is-in-progress is-awaiting-completion is-complete')
+            .addClass(status['style']);
+          statusIcon
+            .removeClass('fa-calendar-alt fa-play-circle fa-hourglass-end fa-check-circle')
+            .addClass(status['icon']);
           if (data['message']) {
             displayToastTop({type: data['result'], string: data['message'], title: 'Project Update'});
           }
         },
         error: function () {
-          statusSwitch.prop('checked', previousState);
           displayToastTop({type: 'error', string: 'Could not update project status.', title: 'Project Update'});
         },
         complete: function () {
-          statusSwitch.prop('disabled', false);
+          statusAction.prop('disabled', false);
         }
       });
     });

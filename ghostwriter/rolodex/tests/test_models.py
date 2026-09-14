@@ -195,6 +195,23 @@ class ProjectModelTests(TestCase):
         except Exception:
             self.fail("Project.get_absolute_url() raised an exception")
 
+    def test_lifecycle_status_is_derived_from_dates_and_completion(self):
+        project = ProjectFactory(complete=False)
+        today = date(2026, 9, 10)
+
+        project.start_date = today + timedelta(days=1)
+        project.end_date = today + timedelta(days=5)
+        self.assertEqual(project.get_lifecycle_status(today), "Upcoming")
+
+        project.start_date = today - timedelta(days=1)
+        self.assertEqual(project.get_lifecycle_status(today), "In Progress")
+
+        project.end_date = today - timedelta(days=1)
+        self.assertEqual(project.get_lifecycle_status(today), "Awaiting Completion")
+
+        project.complete = True
+        self.assertEqual(project.get_lifecycle_status(today), "Complete")
+
     def test_checkout_adjustment_signal(self):
         yesterday = date.today() - timedelta(days=1)
 

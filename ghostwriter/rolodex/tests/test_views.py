@@ -332,8 +332,13 @@ class ProjectStatusToggleViewTests(TestCase):
     def test_view_uri_exists_at_desired_location(self):
         data = {
             "result": "success",
-            "message": "Project successfully marked as complete.",
-            "status": "Complete",
+            "message": "Project marked complete.",
+            "status": {
+                "help": "This project is complete. Additional reports cannot be created.",
+                "icon": "fa-check-circle",
+                "label": "Complete",
+                "style": "is-complete",
+            },
             "toggle": 1,
         }
         self.project.complete = False
@@ -348,8 +353,13 @@ class ProjectStatusToggleViewTests(TestCase):
 
         data = {
             "result": "success",
-            "message": "Project successfully marked as incomplete.",
-            "status": "In Progress",
+            "message": "Project reopened.",
+            "status": {
+                "help": "The project is within its scheduled execution window.",
+                "icon": "fa-play-circle",
+                "label": "In Progress",
+                "style": "is-in-progress",
+            },
             "toggle": 0,
         }
         response = self.client_mgr.post(self.uri)
@@ -359,11 +369,34 @@ class ProjectStatusToggleViewTests(TestCase):
         self.assertEqual(self.project.complete, False)
 
     def test_view_requires_login_and_permissions(self):
-        response = self.client.get(self.uri)
+        response = self.client.post(self.uri)
         self.assertEqual(response.status_code, 302)
 
-        response = self.client_auth.get(self.uri)
+        response = self.client_auth.post(self.uri)
         self.assertEqual(response.status_code, 403)
+
+    def test_reopening_returns_date_derived_status(self):
+        self.project.complete = True
+        self.project.end_date = date.today() - timedelta(days=1)
+        self.project.save(update_fields=["complete", "end_date"])
+
+        response = self.client_mgr.post(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(
+            force_str(response.content),
+            {
+                "result": "success",
+                "message": "Project reopened.",
+                "status": {
+                    "help": "The execution window has ended; mark the project complete when work is closed.",
+                    "icon": "fa-hourglass-end",
+                    "label": "Awaiting Completion",
+                    "style": "is-awaiting-completion",
+                },
+                "toggle": 0,
+            },
+        )
 
 
 # Tests related to :model:`rolodex.ProjectScope`
@@ -1574,41 +1607,80 @@ class ProjectDetailViewTests(TestCase):
                 count,
             )
 
-    def test_project_status_uses_report_style_switch(self):
+    def test_project_status_is_read_only_and_completion_is_an_action(self):
         response = self.client_mgr.get(self.uri)
         soup = BeautifulSoup(response.content, "html.parser")
 
-        status_switch = soup.select_one(
-            '#js-project-status-switch.form-check-input.js-toggle-project-status[role="switch"]'
-        )
+        status_summary = soup.select_one("#js-project-status-summary")
+        status_action = soup.select_one("#js-project-status-action.js-toggle-project-status")
 
-        self.assertIsNotNone(status_switch)
-        self.assertEqual(status_switch.get("aria-describedby"), "project-status-help")
-        self.assertEqual(status_switch.get("aria-label"), "Mark project as complete")
-        self.assertIsNone(status_switch.get("checked"))
-        self.assertContains(
-            response, 'class="form-check form-switch report-state-switch"'
-        )
+        self.assertIsNotNone(status_summary)
+        self.assertIn("is-in-progress", status_summary.get("class"))
+        self.assertEqual(status_action.get_text(strip=True), "Mark project complete")
+        self.assertEqual(status_action.get("data-project-complete"), "false")
         self.assertContains(
             response,
-            'id="js-project-status" class="report-state-value">In Progress</span>',
+            'id="js-project-status">In Progress</span>',
         )
+        self.assertContains(response, "The project is within its scheduled execution window.")
         self.assertNotContains(response, "fa-toggle-on")
         self.assertNotContains(response, "fa-toggle-off")
+        self.assertNotContains(response, 'id="js-project-status-switch"')
 
         self.project.complete = True
         self.project.save(update_fields=["complete"])
 
         response = self.client_mgr.get(self.uri)
         soup = BeautifulSoup(response.content, "html.parser")
-        status_switch = soup.select_one("#js-project-status-switch")
+        status_summary = soup.select_one("#js-project-status-summary")
+        status_action = soup.select_one("#js-project-status-action")
 
-        self.assertIsNotNone(status_switch.get("checked"))
-        self.assertEqual(status_switch.get("aria-label"), "Mark project as in progress")
+        self.assertIn("is-complete", status_summary.get("class"))
+        self.assertEqual(status_action.get_text(strip=True), "Reopen project")
+        self.assertEqual(status_action.get("data-project-complete"), "true")
         self.assertContains(
             response,
-            'id="js-project-status" class="report-state-value">Complete</span>',
+            'id="js-project-status">Complete</span>',
         )
+
+    def test_project_status_renders_date_derived_states(self):
+        today = date.today()
+        cases = (
+            (
+                today + timedelta(days=1),
+                today + timedelta(days=5),
+                "Upcoming",
+                "is-upcoming",
+                "The execution window has not started.",
+            ),
+            (
+                today - timedelta(days=5),
+                today - timedelta(days=1),
+                "Awaiting Completion",
+                "is-awaiting-completion",
+                "The execution window has ended; mark the project complete when work is closed.",
+            ),
+        )
+
+        for start_date, end_date, label, style, help_text in cases:
+            with self.subTest(label=label):
+                self.project.complete = False
+                self.project.start_date = start_date
+                self.project.end_date = end_date
+                self.project.save(
+                    update_fields=["complete", "start_date", "end_date"]
+                )
+
+                response = self.client_mgr.get(self.uri)
+                soup = BeautifulSoup(response.content, "html.parser")
+                status_summary = soup.select_one("#js-project-status-summary")
+
+                self.assertIn(style, status_summary.get("class"))
+                self.assertEqual(
+                    status_summary.select_one("#js-project-status").get_text(strip=True),
+                    label,
+                )
+                self.assertContains(response, help_text)
 
     def test_report_archive_action_uses_the_confirmation_modal(self):
         report = ReportFactory(project=self.project)

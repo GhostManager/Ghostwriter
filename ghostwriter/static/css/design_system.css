@@ -1244,6 +1244,35 @@ textarea.form-control {
   line-height: 1.35;
 }
 
+.project-status-summary {
+  align-items: center;
+  display: inline-flex;
+  font-weight: 650;
+  gap: 0.5rem;
+  line-height: 1.35;
+}
+
+.project-status-summary.is-upcoming {
+  color: var(--gw-context-blue);
+}
+
+.project-status-summary.is-in-progress {
+  color: var(--gw-engagement-violet);
+}
+
+.project-status-summary.is-awaiting-completion {
+  color: var(--gw-signal-amber);
+}
+
+.project-status-summary.is-complete {
+  color: var(--gw-signal-green);
+}
+
+.project-status-summary + .report-state-help {
+  display: block;
+  margin-top: 0.25rem;
+}
+
 .report-state-switch.form-switch {
   flex: 0 0 auto;
   min-height: 0;
