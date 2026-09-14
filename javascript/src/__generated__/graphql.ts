@@ -37,6 +37,12 @@ export type Boolean_Comparison_Exp = {
   _nin?: InputMaybe<Array<Scalars['Boolean']['input']>>;
 };
 
+export type DocReportResponse = {
+  __typename?: 'DocReportResponse';
+  docBase64: Scalars['String']['output'];
+  fileName: Scalars['String']['output'];
+};
+
 export type DownloadEvidenceResponse = {
   __typename?: 'DownloadEvidenceResponse';
   downloadUrl: Scalars['String']['output'];
@@ -163,6 +169,11 @@ export type String_Comparison_Exp = {
 export type TagsResult = {
   __typename?: 'TagsResult';
   tags: Array<Scalars['String']['output']>;
+};
+
+export type UploadClientLogoResult = {
+  __typename?: 'UploadClientLogoResult';
+  id: Scalars['Int']['output'];
 };
 
 export type UploadEvidenceResult = {
@@ -11407,6 +11418,8 @@ export type Mutation_Root = {
   delete_whoisStatus_by_pk?: Maybe<WhoisStatus>;
   /** generateCodename */
   generateCodename?: Maybe<CodenameResponse>;
+  /** Generate a DOCX report as base64 for the given report and template IDs */
+  generateDocReport?: Maybe<DocReportResponse>;
   /** Generate a JSON report for the given report ID */
   generateReport?: Maybe<ReportResponse>;
   /** insert data into the table: "shepherd_activitytype" */
@@ -12103,6 +12116,7 @@ export type Mutation_Root = {
   update_whoisStatus_by_pk?: Maybe<WhoisStatus>;
   /** update multiples rows of table: "shepherd_whoisstatus" */
   update_whoisStatus_many?: Maybe<Array<Maybe<WhoisStatus_Mutation_Response>>>;
+  uploadClientLogo: UploadClientLogoResult;
   uploadEvidence: UploadEvidenceResult;
   /** Upload an Asciinema terminal recording for an oplog entry */
   uploadOplogRecording: UploadOplogRecordingResult;
@@ -13003,6 +13017,13 @@ export type Mutation_RootDelete_WhoisStatusArgs = {
 /** mutation root */
 export type Mutation_RootDelete_WhoisStatus_By_PkArgs = {
   id: Scalars['bigint']['input'];
+};
+
+
+/** mutation root */
+export type Mutation_RootGenerateDocReportArgs = {
+  id: Scalars['Int']['input'];
+  templateId: Scalars['Int']['input'];
 };
 
 
@@ -15633,6 +15654,14 @@ export type Mutation_RootUpdate_WhoisStatus_By_PkArgs = {
 /** mutation root */
 export type Mutation_RootUpdate_WhoisStatus_ManyArgs = {
   updates: Array<WhoisStatus_Updates>;
+};
+
+
+/** mutation root */
+export type Mutation_RootUploadClientLogoArgs = {
+  clientId: Scalars['Int']['input'];
+  file_base64: Scalars['String']['input'];
+  filename: Scalars['String']['input'];
 };
 
 
