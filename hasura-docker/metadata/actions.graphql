@@ -93,6 +93,7 @@ type Mutation {
     oplogId: Int!
     servicePrincipalName: String!
     tokenName: String!
+    expiryDate: date
   ): GenerateOplogTokenResponse!
 }
 

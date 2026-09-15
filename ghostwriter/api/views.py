@@ -8,7 +8,7 @@ import os
 import uuid
 from asgiref.sync import async_to_sync
 from base64 import b64encode
-from datetime import date, datetime
+from datetime import date, datetime, time
 from http import HTTPStatus
 from socket import gaierror
 
@@ -46,6 +46,7 @@ from ghostwriter.api.forms import (
     ServiceTokenForm,
     TokenExpiryForm,
     validate_no_control_characters,
+    validate_token_max_lifetime,
 )
 from ghostwriter.api.models import (
     APIKey,
@@ -874,7 +875,7 @@ class GraphqlWhoami(JwtRequiredMixin, HasuraActionView):
 
 
 class GraphqlGenerateOplogToken(JwtRequiredMixin, HasuraActionView):
-    """Issue a service token scoped to one editable Oplog."""
+    """Issue a read/create/update service token scoped to one editable Oplog."""
 
     required_inputs = ["oplogId", "servicePrincipalName", "tokenName"]
 
@@ -894,22 +895,28 @@ class GraphqlGenerateOplogToken(JwtRequiredMixin, HasuraActionView):
         return value
 
     @staticmethod
-    def _has_expected_permissions(token: ServiceToken, oplog_id: int) -> bool:
+    def _has_expected_permissions(token: ServiceToken, expected_permissions) -> bool:
         """Return whether a token has only the expected Oplog permissions."""
-        return set(
-            token.permissions.values_list("resource_type", "resource_id", "action")
-        ) == {
-            (
-                ServiceTokenPermission.ResourceType.OPLOG,
-                oplog_id,
-                ServiceTokenPermission.Action.READ,
+        return (
+            set(token.permissions.values_list("resource_type", "resource_id", "action"))
+            == expected_permissions
+        )
+
+    @staticmethod
+    def _invalid_expiry_response() -> JsonResponse:
+        """Return the generic error response for an unusable token expiry."""
+        return JsonResponse(
+            utils.generate_hasura_error_payload(
+                "Expiry date must be a future date within the configured token lifetime",
+                "InvalidExpiryDate",
             ),
-            (
-                ServiceTokenPermission.ResourceType.OPLOG,
-                oplog_id,
-                ServiceTokenPermission.Action.CREATE,
-            ),
-        }
+            status=HTTPStatus.BAD_REQUEST,
+        )
+
+    @staticmethod
+    def _expiry_at_end_of_day(expiry_day: date) -> datetime:
+        """Return an aware expiry datetime for the end of the given server-local day."""
+        return django_timezone.make_aware(datetime.combine(expiry_day, time.max))
 
     def post(self, request, *args, **kwargs):
         if self.api_key_obj is None:
@@ -977,6 +984,32 @@ class GraphqlGenerateOplogToken(JwtRequiredMixin, HasuraActionView):
                 status=HTTPStatus.UNAUTHORIZED,
             )
 
+        requested_expiry_date = action_input.get("expiryDate")
+        if requested_expiry_date is None:
+            expiry_day = oplog.project.end_date
+        elif (
+            isinstance(requested_expiry_date, str) and len(requested_expiry_date) == 10
+        ):
+            try:
+                expiry_day = date.fromisoformat(requested_expiry_date)
+            except ValueError:
+                return self._invalid_expiry_response()
+        else:
+            return self._invalid_expiry_response()
+
+        expiry_date = self._expiry_at_end_of_day(expiry_day)
+        if expiry_date <= django_timezone.now():
+            return self._invalid_expiry_response()
+        try:
+            validate_token_max_lifetime(expiry_date)
+        except ValidationError:
+            return self._invalid_expiry_response()
+
+        update_permission = {
+            "resource_type": ServiceTokenPermission.ResourceType.OPLOG,
+            "resource_id": oplog.pk,
+            "action": ServiceTokenPermission.Action.UPDATE,
+        }
         permissions = [
             {
                 "resource_type": ServiceTokenPermission.ResourceType.OPLOG,
@@ -988,7 +1021,23 @@ class GraphqlGenerateOplogToken(JwtRequiredMixin, HasuraActionView):
                 "resource_id": oplog.pk,
                 "action": ServiceTokenPermission.Action.CREATE,
             },
+            update_permission,
         ]
+        expected_permissions = {
+            (
+                permission["resource_type"],
+                permission["resource_id"],
+                permission["action"],
+            )
+            for permission in permissions
+        }
+        legacy_permissions = expected_permissions - {
+            (
+                update_permission["resource_type"],
+                update_permission["resource_id"],
+                update_permission["action"],
+            )
+        }
         with transaction.atomic():
             # Lock the user row to serialize principal creation and token rotation
             # for this requesting user without imposing a global principal constraint.
@@ -1034,7 +1083,11 @@ class GraphqlGenerateOplogToken(JwtRequiredMixin, HasuraActionView):
                 .order_by("-created", "-pk")
             )
             for candidate in usable_tokens:
-                if self._has_expected_permissions(candidate, oplog.pk):
+                if self._has_expected_permissions(candidate, expected_permissions):
+                    token = candidate
+                    break
+                if self._has_expected_permissions(candidate, legacy_permissions):
+                    candidate.permissions.create(**update_permission)
                     token = candidate
                     break
 
@@ -1043,12 +1096,19 @@ class GraphqlGenerateOplogToken(JwtRequiredMixin, HasuraActionView):
                     name=token_name,
                     created_by=user,
                     service_principal=service_principal,
+                    expiry_date=expiry_date,
                     permissions=permissions,
                 )
             else:
                 _, token_value = ServiceToken.objects.generate_token(token)
+                token.expiry_date = expiry_date
                 token.save(
-                    update_fields=["token_prefix", "secret_hash", "last_used_at"]
+                    update_fields=[
+                        "token_prefix",
+                        "secret_hash",
+                        "last_used_at",
+                        "expiry_date",
+                    ]
                 )
 
         return JsonResponse({"token": token_value}, status=self.status)
@@ -1667,7 +1727,11 @@ class GraphqlUploadOplogRecording(JwtRequiredMixin, HasuraActionView):
         try:
             entry.recording.delete()
         except OplogEntryRecording.DoesNotExist:
-            logger.debug("Oplog entry %s has no existing recording to replace.", entry.id, exc_info=True)
+            logger.debug(
+                "Oplog entry %s has no existing recording to replace.",
+                entry.id,
+                exc_info=True,
+            )
 
         # Extract searchable text from the cast file before saving
         file_bytes = form.cleaned_data["file_base64"]
@@ -1934,9 +1998,7 @@ class GraphqlUserCreate(JwtRequiredMixin, HasuraActionView):
                 user.enable_observation_delete = enable_observation_delete
 
             if "enableTemplateManagement" in self.input:
-                user.enable_template_management = self.input[
-                    "enableTemplateManagement"
-                ]
+                user.enable_template_management = self.input["enableTemplateManagement"]
 
             if "requiremfa" in self.input:
                 require_mfa = self.input["requiremfa"]
@@ -2191,15 +2253,9 @@ class GraphqlEvidenceUpdateEvent(HasuraEventView):
             # Track previous friendly name and reference
             prev_friendly = f"{{{{.{self.old_data['friendly_name']}}}}}"
             prev_friendly_ref = f"{{{{.ref {self.old_data['friendly_name']}}}}}"
-            encoded_previous_name = jinja_string_literal(
-                self.old_data["friendly_name"]
-            )
-            prev_encoded_friendly = (
-                f"{{{{ mk_evidence({encoded_previous_name}) }}}}"
-            )
-            prev_encoded_friendly_ref = (
-                f"{{{{ mk_ref({encoded_previous_name}) }}}}"
-            )
+            encoded_previous_name = jinja_string_literal(self.old_data["friendly_name"])
+            prev_encoded_friendly = f"{{{{ mk_evidence({encoded_previous_name}) }}}}"
+            prev_encoded_friendly_ref = f"{{{{ mk_ref({encoded_previous_name}) }}}}"
 
             logger.info(
                 "Updating content of ReportFindingLink instances with updated name for Evidence %s",
@@ -3177,10 +3233,7 @@ class SetTags(
                 status=404,
             )
 
-        if (
-            self.service_token_obj is None
-            and not obj.user_can_edit(self.user_obj)
-        ):
+        if self.service_token_obj is None and not obj.user_can_edit(self.user_obj):
             return JsonResponse(
                 utils.generate_hasura_error_payload(
                     "Not allowed to edit", "Unauthorized"

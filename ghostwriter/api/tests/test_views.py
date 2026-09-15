@@ -5,7 +5,7 @@ import json
 import logging
 import os
 from concurrent.futures import ThreadPoolExecutor
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 from http import HTTPStatus
 from threading import Barrier
 
@@ -2145,9 +2145,7 @@ class GraphqlDeleteReportTemplateAction(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertFalse(
-            self.ReportTemplate.objects.filter(
-                id=self.protected_template.id
-            ).exists()
+            self.ReportTemplate.objects.filter(id=self.protected_template.id).exists()
         )
 
     def test_template_manager_cannot_delete_inaccessible_client_template(self):
@@ -2494,7 +2492,12 @@ class GraphqlUploadEvidenceViewTests(TestCase):
 
     def test_upload_report_accepts_empty_legacy_finding_values(self):
         _, token = generate_user_jwt(self.user)
-        for field_name, value in (("finding", None), ("finding", ""), ("findingId", None), ("findingId", "")):
+        for field_name, value in (
+            ("finding", None),
+            ("finding", ""),
+            ("findingId", None),
+            ("findingId", ""),
+        ):
             with self.subTest(field_name=field_name, value=value):
                 data = {
                     "filename": "test.txt",
@@ -2564,7 +2567,9 @@ class GraphqlUploadEvidenceViewTests(TestCase):
         self.assertEqual(response.status_code, 401, response.content)
         self.assertEqual(response.json()["extensions"]["code"], "Invalid")
         self.assertIn("report:", response.json()["message"])
-        self.assertFalse(Evidence.objects.filter(friendly_name=data["friendly_name"]).exists())
+        self.assertFalse(
+            Evidence.objects.filter(friendly_name=data["friendly_name"]).exists()
+        )
 
     def test_upload_finding_rejected(self):
         _, token = generate_user_jwt(self.user)
@@ -2587,7 +2592,9 @@ class GraphqlUploadEvidenceViewTests(TestCase):
             },
         )
         self.assertEqual(response.status_code, 401, response.content)
-        self.assertFalse(Evidence.objects.filter(friendly_name=data["friendly_name"]).exists())
+        self.assertFalse(
+            Evidence.objects.filter(friendly_name=data["friendly_name"]).exists()
+        )
 
     def test_upload_evidence_oversized_payload_rejected(self):
         """Regression test: payloads exceeding GHOSTWRITER_MAX_FILE_SIZE must return 413, not exhaust memory."""
@@ -3970,9 +3977,7 @@ class GraphqlEvidenceUpdateEventTests(TestCase):
 
         # Add a blank finding to the report for regression testing updates on findings with blank fields
         BlankReportFindingLinkFactory(report=cls.report_evidence.report)
-        EvidenceFactory(
-            report=cls.report_evidence.report, friendly_name="Blank Test"
-        )
+        EvidenceFactory(report=cls.report_evidence.report, friendly_name="Blank Test")
 
         # Sample data for an update that changes the friendly name and document on report evidence
         cls.update_data_report = {
@@ -4413,7 +4418,9 @@ class ApiKeyExpiryUpdateTests(TestCase):
         self.assertEqual(token_obj.expiry_date, future_expiry)
         self.assertFalse(APIKey.objects.is_valid(old_token))
 
-    def test_ajax_regenerate_active_token_returns_replacement_token_without_redirect(self):
+    def test_ajax_regenerate_active_token_returns_replacement_token_without_redirect(
+        self,
+    ):
         future_expiry = timezone.localtime(timezone.now() + timedelta(days=7)).replace(
             microsecond=0
         )
@@ -4808,7 +4815,9 @@ class ServiceTokenExpiryUpdateTests(TestCase):
             self.client_auth.login(username=self.user.username, password=PASSWORD)
         )
 
-    def test_expired_service_token_future_expiry_extends_without_rotation_by_default(self):
+    def test_expired_service_token_future_expiry_extends_without_rotation_by_default(
+        self,
+    ):
         future_expiry = timezone.localtime(timezone.now() + timedelta(days=14)).replace(
             microsecond=0
         )
@@ -4896,7 +4905,9 @@ class ServiceTokenExpiryUpdateTests(TestCase):
         self.assertEqual(len(replacement_messages), 1)
         self.assertTrue(ServiceToken.objects.is_valid(str(replacement_messages[0])))
 
-    def test_expired_service_token_future_expiry_rotates_when_required_by_settings(self):
+    def test_expired_service_token_future_expiry_rotates_when_required_by_settings(
+        self,
+    ):
         config = GeneralConfiguration.get_solo()
         config.token_extend_requires_rotation = True
         config.save(update_fields=["token_extend_requires_rotation"])
@@ -4950,7 +4961,9 @@ class ServiceTokenExpiryUpdateTests(TestCase):
         self.assertEqual(token_obj.expiry_date, future_expiry)
         self.assertFalse(ServiceToken.objects.is_valid(old_token))
 
-    def test_ajax_regenerate_service_token_returns_replacement_token_without_redirect(self):
+    def test_ajax_regenerate_service_token_returns_replacement_token_without_redirect(
+        self,
+    ):
         future_expiry = timezone.localtime(timezone.now() + timedelta(days=7)).replace(
             microsecond=0
         )
@@ -4991,9 +5004,7 @@ class ServiceTokenExpiryUpdateTests(TestCase):
         old_prefix = self.token_obj.token_prefix
         old_secret_hash = self.token_obj.secret_hash
         response = self.client_auth.post(
-            reverse(
-                "api:regenerate_service_token", kwargs={"pk": self.token_obj.pk}
-            ),
+            reverse("api:regenerate_service_token", kwargs={"pk": self.token_obj.pk}),
         )
 
         self.assertRedirects(response, self.redirect_uri)
@@ -5011,9 +5022,7 @@ class ServiceTokenExpiryUpdateTests(TestCase):
         old_prefix = self.token_obj.token_prefix
         old_secret_hash = self.token_obj.secret_hash
         response = self.client_auth.post(
-            reverse(
-                "api:regenerate_service_token", kwargs={"pk": self.token_obj.pk}
-            ),
+            reverse("api:regenerate_service_token", kwargs={"pk": self.token_obj.pk}),
             HTTP_X_REQUESTED_WITH="XMLHttpRequest",
         )
 
@@ -5105,7 +5114,9 @@ class ServiceTokenExpiryUpdateTests(TestCase):
             future_expiry.strftime("%Y-%m-%dT%H:%M:%S"),
         )
 
-    def test_ajax_extending_service_token_rotation_returns_replacement_without_message(self):
+    def test_ajax_extending_service_token_rotation_returns_replacement_without_message(
+        self,
+    ):
         config = GeneralConfiguration.get_solo()
         config.token_extend_requires_rotation = True
         config.save(update_fields=["token_extend_requires_rotation"])
@@ -6699,9 +6710,7 @@ class GraphqlDownloadEvidenceViewTests(TestCase):
         result = response.json()
         self.assertEqual(result["evidenceId"], self.evidence.id)
         self.assertEqual(result["filename"], self.evidence.filename)
-        self.assertEqual(
-            result["friendlyName"], self.evidence.friendly_name
-        )
+        self.assertEqual(result["friendlyName"], self.evidence.friendly_name)
         self.assertIn("downloadUrl", result)
         self.assertIn(str(self.evidence.id), result["downloadUrl"])
         self.assertIn("fileBase64", result)
@@ -6899,19 +6908,25 @@ class GraphqlGenerateOplogTokenTests(TestCase):
         oplog_id,
         service_principal_name="Fault Line",
         token_name=None,
+        expiry_date=None,
     ):
+        action_input = {
+            "oplogId": oplog_id,
+            "servicePrincipalName": service_principal_name,
+            "tokenName": (
+                self.default_token_name if token_name is None else token_name
+            ),
+        }
+        if expiry_date is not None:
+            action_input["expiryDate"] = expiry_date
         return self.post_action_input(
             token,
-            {
-                "oplogId": oplog_id,
-                "servicePrincipalName": service_principal_name,
-                "tokenName": (
-                    self.default_token_name if token_name is None else token_name
-                ),
-            },
+            action_input,
         )
 
-    def test_creates_requested_principal_and_read_create_token_for_editable_oplog(self):
+    def test_creates_requested_principal_and_read_create_update_token_for_editable_oplog(
+        self,
+    ):
         token_name = "Operation Automation Oplog writer"
         response = self.generate_token(
             self.user_token,
@@ -6946,8 +6961,88 @@ class GraphqlGenerateOplogTokenTests(TestCase):
                     self.oplog.pk,
                     ServiceTokenPermission.Action.CREATE,
                 ),
+                (
+                    ServiceTokenPermission.ResourceType.OPLOG,
+                    self.oplog.pk,
+                    ServiceTokenPermission.Action.UPDATE,
+                ),
             },
         )
+
+    def test_defaults_expiry_to_the_oplogs_project_end_date(self):
+        project_end_date = timezone.localdate() + timedelta(days=30)
+        self.project.end_date = project_end_date
+        self.project.save(update_fields=["end_date"])
+
+        response = self.generate_token(self.user_token, self.oplog.pk)
+
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        token = ServiceToken.objects.get_valid_from_token(response.json()["token"])
+        self.assertEqual(
+            token.expiry_date,
+            timezone.make_aware(datetime.combine(project_end_date, time.max)),
+        )
+
+    def test_requested_expiry_overrides_project_end_date_on_reused_token(self):
+        first_response = self.generate_token(self.user_token, self.oplog.pk)
+        first_token = ServiceToken.objects.get_valid_from_token(
+            first_response.json()["token"]
+        )
+        requested_expiry_date = timezone.localdate() + timedelta(days=7)
+
+        response = self.generate_token(
+            self.user_token,
+            self.oplog.pk,
+            expiry_date=requested_expiry_date.isoformat(),
+        )
+
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        token = ServiceToken.objects.get_valid_from_token(response.json()["token"])
+        self.assertEqual(token.pk, first_token.pk)
+        self.assertEqual(
+            token.expiry_date,
+            timezone.make_aware(datetime.combine(requested_expiry_date, time.max)),
+        )
+
+    def test_rejects_default_expiry_beyond_the_maximum_lifetime(self):
+        general_config = GeneralConfiguration.get_solo()
+        general_config.token_max_lifetime_days = 1
+        general_config.save(update_fields=["token_max_lifetime_days"])
+        self.project.end_date = timezone.localdate() + timedelta(days=2)
+        self.project.save(update_fields=["end_date"])
+
+        response = self.generate_token(self.user_token, self.oplog.pk)
+
+        self.assertEqual(response.status_code, HTTPStatus.BAD_REQUEST)
+        self.assertEqual(response.json()["extensions"]["code"], "InvalidExpiryDate")
+        self.assertFalse(ServicePrincipal.objects.exists())
+
+    def test_rejects_requested_expiry_beyond_the_maximum_lifetime(self):
+        general_config = GeneralConfiguration.get_solo()
+        general_config.token_max_lifetime_days = 1
+        general_config.save(update_fields=["token_max_lifetime_days"])
+        requested_expiry_date = timezone.localdate() + timedelta(days=2)
+
+        response = self.generate_token(
+            self.user_token,
+            self.oplog.pk,
+            expiry_date=requested_expiry_date.isoformat(),
+        )
+
+        self.assertEqual(response.status_code, HTTPStatus.BAD_REQUEST)
+        self.assertEqual(response.json()["extensions"]["code"], "InvalidExpiryDate")
+        self.assertFalse(ServicePrincipal.objects.exists())
+
+    def test_rejects_malformed_requested_expiry_date(self):
+        response = self.generate_token(
+            self.user_token,
+            self.oplog.pk,
+            expiry_date="not-a-date",
+        )
+
+        self.assertEqual(response.status_code, HTTPStatus.BAD_REQUEST)
+        self.assertEqual(response.json()["extensions"]["code"], "InvalidExpiryDate")
+        self.assertFalse(ServicePrincipal.objects.exists())
 
     def test_rejects_session_jwt_even_when_user_can_edit_oplog(self):
         _, session_token = generate_user_jwt(self.user)
@@ -7090,6 +7185,64 @@ class GraphqlGenerateOplogTokenTests(TestCase):
             1,
         )
 
+    def test_upgrades_and_rotates_legacy_read_create_token_without_creating_another(
+        self,
+    ):
+        principal = ServicePrincipal.objects.create(
+            name="Fault Line",
+            created_by=self.user,
+        )
+        legacy_token, legacy_token_value = ServiceToken.objects.create_token(
+            name=self.default_token_name,
+            created_by=self.user,
+            service_principal=principal,
+            permissions=[
+                {
+                    "resource_type": ServiceTokenPermission.ResourceType.OPLOG,
+                    "resource_id": self.oplog.pk,
+                    "action": ServiceTokenPermission.Action.READ,
+                },
+                {
+                    "resource_type": ServiceTokenPermission.ResourceType.OPLOG,
+                    "resource_id": self.oplog.pk,
+                    "action": ServiceTokenPermission.Action.CREATE,
+                },
+            ],
+        )
+
+        response = self.generate_token(self.user_token, self.oplog.pk)
+
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        upgraded_token = ServiceToken.objects.get_valid_from_token(
+            response.json()["token"]
+        )
+        self.assertEqual(upgraded_token.pk, legacy_token.pk)
+        self.assertFalse(ServiceToken.objects.is_valid(legacy_token_value))
+        self.assertEqual(
+            set(
+                upgraded_token.permissions.values_list(
+                    "resource_type", "resource_id", "action"
+                )
+            ),
+            {
+                (
+                    ServiceTokenPermission.ResourceType.OPLOG,
+                    self.oplog.pk,
+                    ServiceTokenPermission.Action.READ,
+                ),
+                (
+                    ServiceTokenPermission.ResourceType.OPLOG,
+                    self.oplog.pk,
+                    ServiceTokenPermission.Action.CREATE,
+                ),
+                (
+                    ServiceTokenPermission.ResourceType.OPLOG,
+                    self.oplog.pk,
+                    ServiceTokenPermission.Action.UPDATE,
+                ),
+            },
+        )
+
     def test_token_name_distinguishes_intentionally_separate_tokens(self):
         first_response = self.generate_token(
             self.user_token,
@@ -7153,6 +7306,11 @@ class GraphqlGenerateOplogTokenTests(TestCase):
                     ServiceTokenPermission.ResourceType.OPLOG,
                     self.oplog.pk,
                     ServiceTokenPermission.Action.CREATE,
+                ),
+                (
+                    ServiceTokenPermission.ResourceType.OPLOG,
+                    self.oplog.pk,
+                    ServiceTokenPermission.Action.UPDATE,
                 ),
             },
         )

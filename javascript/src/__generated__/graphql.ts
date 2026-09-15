@@ -13015,6 +13015,7 @@ export type Mutation_RootDelete_WhoisStatus_By_PkArgs = {
 
 /** mutation root */
 export type Mutation_RootGenerateOplogTokenArgs = {
+  expiryDate?: InputMaybe<Scalars['date']['input']>;
   oplogId: Scalars['Int']['input'];
   servicePrincipalName: Scalars['String']['input'];
   tokenName: Scalars['String']['input'];
