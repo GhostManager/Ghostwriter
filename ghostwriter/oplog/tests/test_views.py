@@ -1911,6 +1911,21 @@ class OplogRecordingUploadViewTests(TestCase):
         # _cast_file() contains [0.5, "o", "test"]
         self.assertIn("test", recording.recording_text)
 
+    def test_upload_with_nul_event_text_succeeds(self):
+        """NULs in cast events are removed before saving searchable text."""
+        cast_file = SimpleUploadedFile(
+            "nul.cast",
+            b'{"version": 2, "width": 80, "height": 24}\n'
+            b'[0.5, "o", "before\\u0000after"]\n',
+            content_type="application/octet-stream",
+        )
+
+        response = self.client_auth.post(self.uri, {"recording_file": cast_file})
+
+        self.assertEqual(response.status_code, 200)
+        recording = OplogEntryRecording.objects.get(oplog_entry=self.entry)
+        self.assertEqual(recording.recording_text, "beforeafter")
+
     def test_upload_v3_file_accepted_and_text_extracted(self):
         """A v3 format file is accepted and both 'o' and 'i' events populate recording_text."""
         v3_data = (
