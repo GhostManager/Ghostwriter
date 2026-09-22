@@ -33,8 +33,9 @@
 
         font-size: 0.9rem;
 
-        // Show on top of editor items, in particular highlight
-        z-index: 1;
+        // The editor creates a stacking context for collaboration carets. Keep
+        // sticky controls above it so clicks do not pass through after scroll.
+        z-index: 3;
 
         position: sticky;
         top: 0;
