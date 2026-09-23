@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [7.2.7] - 22 September 2026
+
+### Fixed
+
+* Fixed Asciinema recording uploads containing null characters that could cause the recording save transaction to fail.
+
 ## [7.2.6] - 10 August 2026
 
 ### Fixed
