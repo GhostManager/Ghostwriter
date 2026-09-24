@@ -986,7 +986,11 @@ class GraphqlGenerateOplogToken(JwtRequiredMixin, HasuraActionView):
 
         requested_expiry_date = action_input.get("expiryDate")
         if requested_expiry_date is None:
-            expiry_day = oplog.project.end_date
+            project_expiry_date = self._expiry_at_end_of_day(oplog.project.end_date)
+            expiry_date = min(
+                project_expiry_date,
+                GeneralConfiguration.get_solo().token_max_expiry_date(),
+            )
         elif (
             isinstance(requested_expiry_date, str) and len(requested_expiry_date) == 10
         ):
@@ -994,15 +998,15 @@ class GraphqlGenerateOplogToken(JwtRequiredMixin, HasuraActionView):
                 expiry_day = date.fromisoformat(requested_expiry_date)
             except ValueError:
                 return self._invalid_expiry_response()
+            expiry_date = self._expiry_at_end_of_day(expiry_day)
+            try:
+                validate_token_max_lifetime(expiry_date)
+            except ValidationError:
+                return self._invalid_expiry_response()
         else:
             return self._invalid_expiry_response()
 
-        expiry_date = self._expiry_at_end_of_day(expiry_day)
         if expiry_date <= django_timezone.now():
-            return self._invalid_expiry_response()
-        try:
-            validate_token_max_lifetime(expiry_date)
-        except ValidationError:
             return self._invalid_expiry_response()
 
         update_permission = {

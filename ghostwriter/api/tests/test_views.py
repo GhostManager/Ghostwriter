@@ -8,6 +8,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, time, timedelta
 from http import HTTPStatus
 from threading import Barrier
+from unittest.mock import patch
 
 # Django Imports
 from django.conf import settings
@@ -7004,18 +7005,21 @@ class GraphqlGenerateOplogTokenTests(TestCase):
             timezone.make_aware(datetime.combine(requested_expiry_date, time.max)),
         )
 
-    def test_rejects_default_expiry_beyond_the_maximum_lifetime(self):
-        general_config = GeneralConfiguration.get_solo()
-        general_config.token_max_lifetime_days = 1
-        general_config.save(update_fields=["token_max_lifetime_days"])
+    def test_caps_default_expiry_at_the_maximum_lifetime(self):
         self.project.end_date = timezone.localdate() + timedelta(days=2)
         self.project.save(update_fields=["end_date"])
+        max_expiry_date = timezone.now() + timedelta(days=1)
 
-        response = self.generate_token(self.user_token, self.oplog.pk)
+        with patch.object(
+            GeneralConfiguration,
+            "token_max_expiry_date",
+            return_value=max_expiry_date,
+        ):
+            response = self.generate_token(self.user_token, self.oplog.pk)
 
-        self.assertEqual(response.status_code, HTTPStatus.BAD_REQUEST)
-        self.assertEqual(response.json()["extensions"]["code"], "InvalidExpiryDate")
-        self.assertFalse(ServicePrincipal.objects.exists())
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        token = ServiceToken.objects.get_valid_from_token(response.json()["token"])
+        self.assertEqual(token.expiry_date, max_expiry_date)
 
     def test_rejects_requested_expiry_beyond_the_maximum_lifetime(self):
         general_config = GeneralConfiguration.get_solo()
