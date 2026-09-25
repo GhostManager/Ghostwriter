@@ -31,6 +31,7 @@ class UserChangeForm(UserChangeForm):
         model = get_user_model()
         fields = (
             "name",
+            "report_email",
             "timezone",
             "phone",
         )
@@ -60,6 +61,11 @@ class UserChangeForm(UserChangeForm):
         self.timezone_choices = timezone_choices
         self.fields["name"].help_text = "Your full name as it should appear in reports"
         self.fields["name"].label = "Your Full Name"
+        self.fields["report_email"].label = "Report Email Address"
+        self.fields["report_email"].help_text = (
+            "Optional address shown for you in project and report team lists. "
+            "Leave blank to use your account email. This does not change your account email or SSO sign-in."
+        )
         self.fields["timezone"].label = "Your Timezone"
         self.fields["phone"].label = "Your Contact Number"
         self.helper = FormHelper()
@@ -84,6 +90,7 @@ class UserChangeForm(UserChangeForm):
                     Column("timezone", css_class="col-md-6"),
                     css_class="row g-3",
                 ),
+                "report_email",
                 css_class="resource-form-card",
             ),
             Div(

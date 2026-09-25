@@ -31,7 +31,7 @@ from ghostwriter.factories import (
     SeverityFactory,
     UserFactory,
 )
-from ghostwriter.modules.custom_serializers import ReportDataSerializer
+from ghostwriter.modules.custom_serializers import FullProjectSerializer, ReportDataSerializer
 
 logging.disable(logging.CRITICAL)
 
@@ -257,6 +257,33 @@ class ReportDataSerializerTests(TestCase):
             [entry["name"] for entry in report_json["team"]],
             ["Amy Adams", "Beth Baker", "Zed Zebra"],
         )
+
+    def test_team_email_uses_report_override_and_falls_back_to_account_email(self):
+        project = ProjectFactory()
+        report = ReportFactory(project=project)
+        role = ProjectRoleFactory()
+        overridden_user = UserFactory(
+            name="Report Override",
+            email="sso@example.com",
+            report_email="reports@example.com",
+        )
+        default_user = UserFactory(
+            name="Account Email",
+            email="account@example.com",
+        )
+        ProjectAssignmentFactory(project=project, role=role, operator=overridden_user)
+        ProjectAssignmentFactory(project=project, role=role, operator=default_user)
+
+        for serialized in (
+            ReportDataSerializer(report).data,
+            FullProjectSerializer(project).data,
+        ):
+            team_emails = {member["name"]: member["email"] for member in serialized["team"]}
+            self.assertEqual(team_emails["Report Override"], "reports@example.com")
+            self.assertEqual(team_emails["Account Email"], "account@example.com")
+
+        overridden_user.refresh_from_db()
+        self.assertEqual(overridden_user.email, "sso@example.com")
 
     def test_unknown_excluded_field_is_ignored(self):
         serializer = ReportDataSerializer(self.report, exclude=["does_not_exist"])

@@ -5,7 +5,7 @@ from binascii import hexlify
 
 # Django Imports
 from django.contrib.auth.models import AbstractUser
-from django.db.models import BooleanField, CharField, JSONField
+from django.db.models import BooleanField, CharField, EmailField, JSONField
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
@@ -44,6 +44,12 @@ class User(AbstractUser):
         null=True,
         blank=True,
         help_text="Enter a phone number for this user",
+    )
+    report_email = EmailField(
+        "Report Email",
+        blank=True,
+        default="",
+        help_text="Optional email address to display for this user in project and report team lists",
     )
     role = CharField(
         max_length=120,

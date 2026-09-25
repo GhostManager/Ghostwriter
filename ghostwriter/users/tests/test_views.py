@@ -186,6 +186,8 @@ class UserUpdateViewTests(TestCase):
             "Edit the contact details and timezone used for assignments and reports.",
         )
         self.assertContains(response, 'data-timezone-search="true"')
+        self.assertContains(response, 'name="report_email"')
+        self.assertContains(response, "Leave blank to use your account email.")
         self.assertContains(response, 'id="profile-timezone-options"')
         self.assertContains(response, "America/Los_Angeles")
         self.assertContains(
@@ -211,6 +213,29 @@ class UserUpdateViewTests(TestCase):
             },
         )
         self.assertRedirects(response, self.success_uri)
+
+    def test_report_email_can_be_saved_and_cleared_without_changing_account_email(self):
+        account_email = self.user.email
+        form_data = {
+            "name": self.user.name,
+            "timezone": self.user.timezone,
+            "phone": self.user.phone,
+            "report_email": "reports@example.com",
+        }
+
+        response = self.client_auth.post(self.uri, form_data)
+        self.assertRedirects(response, self.success_uri)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.report_email, "reports@example.com")
+        self.assertEqual(self.user.email, account_email)
+        self.assertContains(self.client_auth.get(self.success_uri), "reports@example.com")
+
+        response = self.client_auth.post(self.uri, {**form_data, "report_email": ""})
+        self.assertRedirects(response, self.success_uri)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.report_email, "")
+        self.assertEqual(self.user.email, account_email)
+        self.assertContains(self.client_auth.get(self.success_uri), "(using account email)")
 
     def test_invalid_timezone_is_rejected(self):
         response = self.client_auth.post(

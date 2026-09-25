@@ -421,7 +421,7 @@ class ProjectAssignmentSerializer(CustomModelSerializer):
         return obj.operator.name
 
     def get_email(self, obj):
-        return obj.operator.email
+        return obj.operator.report_email or obj.operator.email
 
     def get_start_date(self, obj):
         return dateformat.format(obj.start_date, settings.DATE_FORMAT)

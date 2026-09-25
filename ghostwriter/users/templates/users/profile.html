@@ -45,7 +45,7 @@
         <div class="profile-action-grid">
           <a class="profile-action-link" href="{% url 'users:user_update' request.user.username %}">
             <span class="profile-action-icon"><i class="fas fa-user-edit" aria-hidden="true"></i></span>
-            <span><strong>Personal information</strong><small>Edit your name, phone number, and timezone.</small></span>
+            <span><strong>Personal information</strong><small>Edit your name, report email, phone number, and timezone.</small></span>
             <i class="fas fa-chevron-right profile-action-arrow" aria-hidden="true"></i>
           </a>
           <a class="profile-action-link" href="{% url 'account_change_password' %}">
@@ -81,8 +81,16 @@
       </div>
       <dl class="profile-detail-grid">
         <div class="profile-detail-item">
-          <dt>Email</dt>
+          <dt>Account email</dt>
           <dd>{% if user.email %}{{ user.email }}{% else %}Unavailable{% endif %}</dd>
+        </div>
+        <div class="profile-detail-item">
+          <dt>Report email</dt>
+          <dd>
+            {% if user.report_email %}{{ user.report_email }}
+            {% elif user.email %}{{ user.email }} <span class="text-muted small">(using account email)</span>
+            {% else %}Unavailable{% endif %}
+          </dd>
         </div>
         <div class="profile-detail-item">
           <dt>Phone</dt>
