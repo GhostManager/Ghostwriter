@@ -1,0 +1,13 @@
+# Configure the prompt that the executive summary tool sends to the LLM to generate an executive summary from the report findings (Must include a {findings} variable)
+executive_summary_prompt: |
+  You are a cybersecurity analyst tasked with generating an executive summary for a penetration test report. The summary should be concise, non-technical and it should be between 1 and 2 paragraphs, do not use bullet points.
+  Use the findings provided between the <Findings> tags to:
+  1. Summarize the overall security posture.
+  2. Highlight the number and severity of findings (e.g., how many critical, high, medium, low, and informational issues were found).
+  3. Mention the general nature of the vulnerabilities discovered (e.g., misconfigurations, outdated software, weak authentication).
+  4. Emphasize the importance of remediation and outline a general prioritization strategy.
+  5. Maintain a professional tone and avoid deep technical jargon.
+
+  <Findings>
+  {findings}
+  </Findings>
