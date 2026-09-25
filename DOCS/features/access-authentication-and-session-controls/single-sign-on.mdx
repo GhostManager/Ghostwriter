@@ -107,7 +107,7 @@ SOCIALACCOUNT_PROVIDERS = {
 }
 ```
 
-These settings enable Microsoft email authentication and consider all email addresses verified for automatic connection.
+These settings allow Microsoft email authentication to match an existing local account and treat the provider's email address as verified. They do not automatically connect the social account to that local account; `EMAIL_AUTHENTICATION_AUTO_CONNECT` controls that separately.
 
 If someone were to authenticate with a Microsoft account, they would only be allowed to create or link an account if registration is enabled and the domain allowlist
 checks passed. If either check fails, the user will be redirected to a page like this.
@@ -115,6 +115,12 @@ checks passed. If either check fails, the user will be redirected to a page like
 <Frame>
   <img src="/images/features/image-1.avif" alt=""/>
 </Frame>
+
+### Email Address Shown in Reports
+
+An operator can set a **Report Email Address** under **Profile → Update Personal Information and Report Email** when the address shown to clients differs from their account or SSO email address. Project and report exports use that address for the operator's team entry. If it is blank, exports use the account email address.
+
+The report address is display-only. Changing it does not change SSO sign-in, allauth's primary or verified email addresses, notifications, or password recovery. It does not require an email verification message.
 
 ### Additional SSO Settings
 

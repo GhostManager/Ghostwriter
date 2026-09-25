@@ -53,6 +53,8 @@ class UserDetailViewTests(TestCase):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "users/profile.html")
+        self.assertContains(response, reverse("users:user_update", kwargs={"username": self.user.username}))
+        self.assertContains(response, "Report Email")
 
 
 class UserUpdateViewTests(TestCase):
@@ -86,6 +88,8 @@ class UserUpdateViewTests(TestCase):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "users/profile_form.html")
+        self.assertContains(response, 'name="report_email"')
+        self.assertContains(response, "Leave blank to use your account email.")
 
     def test_view_blocks_improper_access(self):
         response = self.other_client_auth.get(self.uri)
@@ -102,6 +106,29 @@ class UserUpdateViewTests(TestCase):
             },
         )
         self.assertRedirects(response, self.success_uri)
+
+    def test_report_email_can_be_saved_and_cleared_without_changing_account_email(self):
+        account_email = self.user.email
+        form_data = {
+            "name": self.user.name,
+            "timezone": self.user.timezone,
+            "phone": self.user.phone,
+            "report_email": "reports@example.com",
+        }
+
+        response = self.client_auth.post(self.uri, form_data)
+        self.assertRedirects(response, self.success_uri)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.report_email, "reports@example.com")
+        self.assertEqual(self.user.email, account_email)
+        self.assertContains(self.client_auth.get(self.success_uri), "reports@example.com")
+
+        response = self.client_auth.post(self.uri, {**form_data, "report_email": ""})
+        self.assertRedirects(response, self.success_uri)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.report_email, "")
+        self.assertEqual(self.user.email, account_email)
+        self.assertContains(self.client_auth.get(self.success_uri), "(using account email)")
 
 
 class UserProfileUpdateViewTests(TestCase):
