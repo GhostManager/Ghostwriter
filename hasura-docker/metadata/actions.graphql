@@ -89,6 +89,15 @@ type Mutation {
 }
 
 type Mutation {
+  generateOplogToken(
+    oplogId: Int!
+    servicePrincipalName: String!
+    tokenName: String!
+    expiryDate: date
+  ): GenerateOplogTokenResponse!
+}
+
+type Mutation {
   generateReport(
     id: Int!
   ): ReportResponse
@@ -211,6 +220,10 @@ type Query {
 type LoginResponse {
   token: String!
   expires: date
+}
+
+type GenerateOplogTokenResponse {
+  token: String!
 }
 
 type WhoamiOutput {
