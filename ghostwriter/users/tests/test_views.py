@@ -63,7 +63,9 @@ class SocialAccountViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "socialaccount/login_cancelled.html")
         self.assertContains(response, 'class="auth-challenge-card auth-journey-card"')
-        self.assertContains(response, "No changes were made to your Ghostwriter account.")
+        self.assertContains(
+            response, "No changes were made to your Ghostwriter account."
+        )
         self.assertContains(response, "Return to sign in")
 
     def test_login_error_uses_refreshed_journey_card(self):
@@ -89,7 +91,9 @@ class SocialAccountViewTests(TestCase):
         self.assertTemplateUsed(response, "socialaccount/connections.html")
         self.assertContains(response, 'class="auth-social-empty"')
         self.assertContains(response, "No linked accounts")
-        self.assertNotContains(response, "You currently have no third-party accounts connected")
+        self.assertNotContains(
+            response, "You currently have no third-party accounts connected"
+        )
 
 
 class UserDetailViewTests(TestCase):
@@ -131,6 +135,31 @@ class UserDetailViewTests(TestCase):
             reverse("users:user_update", kwargs={"username": self.user.username}),
         )
         self.assertContains(response, "Report email")
+
+    def test_profile_displays_report_email_separately_from_account_email(self):
+        self.user.email = "account@example.com"
+        self.user.report_email = "reports@example.com"
+        self.user.save()
+
+        response = self.client_auth.get(self.uri)
+
+        self.assertContains(response, "<dd>account@example.com</dd>", html=True)
+        self.assertContains(response, "<dd>reports@example.com</dd>", html=True)
+        self.assertNotContains(response, "(using account email)")
+
+    def test_profile_report_email_falls_back_to_account_email(self):
+        self.user.email = "account@example.com"
+        self.user.report_email = ""
+        self.user.save()
+
+        response = self.client_auth.get(self.uri)
+
+        self.assertContains(
+            response,
+            '<dd>account@example.com <span class="text-muted small">'
+            "(using account email)</span></dd>",
+            html=True,
+        )
 
     def test_active_project_uses_shared_table_link_style(self):
         project = ProjectFactory()
@@ -191,7 +220,7 @@ class UserUpdateViewTests(TestCase):
             "Edit the contact details and timezone used for assignments and reports.",
         )
         self.assertContains(response, 'data-timezone-search="true"')
-        self.assertContains(response, 'name="report_email"')
+        self.assertContains(response, 'name="report_email"', count=1)
         self.assertContains(response, "Leave blank to use your account email.")
         self.assertContains(response, 'id="profile-timezone-options"')
         self.assertContains(response, "America/Los_Angeles")
@@ -233,14 +262,41 @@ class UserUpdateViewTests(TestCase):
         self.user.refresh_from_db()
         self.assertEqual(self.user.report_email, "reports@example.com")
         self.assertEqual(self.user.email, account_email)
-        self.assertContains(self.client_auth.get(self.success_uri), "reports@example.com")
+        self.assertContains(
+            self.client_auth.get(self.success_uri), "reports@example.com"
+        )
 
         response = self.client_auth.post(self.uri, {**form_data, "report_email": ""})
         self.assertRedirects(response, self.success_uri)
         self.user.refresh_from_db()
         self.assertEqual(self.user.report_email, "")
         self.assertEqual(self.user.email, account_email)
-        self.assertContains(self.client_auth.get(self.success_uri), "(using account email)")
+        self.assertContains(
+            self.client_auth.get(self.success_uri), "(using account email)"
+        )
+
+    def test_invalid_report_email_does_not_change_saved_addresses(self):
+        account_email = self.user.email
+        self.user.report_email = "reports@example.com"
+        self.user.save()
+
+        response = self.client_auth.post(
+            self.uri,
+            {
+                "name": self.user.name,
+                "timezone": self.user.timezone,
+                "phone": self.user.phone,
+                "report_email": "not-an-email",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFormError(
+            response.context["form"], "report_email", "Enter a valid email address."
+        )
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.report_email, "reports@example.com")
+        self.assertEqual(self.user.email, account_email)
 
     def test_invalid_timezone_is_rejected(self):
         response = self.client_auth.post(
@@ -1324,7 +1380,9 @@ class SignupViewTests(TestCase):
         response = self.client.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "account/signup_closed.html")
-        self.assertContains(response, 'class="auth-journey-status auth-journey-status-warning"')
+        self.assertContains(
+            response, 'class="auth-journey-status auth-journey-status-warning"'
+        )
         self.assertContains(response, "Registration unavailable")
 
 
@@ -1338,7 +1396,9 @@ class AccountRecoveryViewTests(TestCase):
         self.assertTemplateUsed(response, "account/password_reset.html")
         self.assertContains(response, 'class="auth-challenge-page auth-journey-page"')
         self.assertContains(response, 'class="password_reset auth-journey-form"')
-        self.assertContains(response, 'id="password-reset-heading">Reset your password</h1>')
+        self.assertContains(
+            response, 'id="password-reset-heading">Reset your password</h1>'
+        )
         self.assertContains(response, "Send reset link")
         self.assertContains(response, "Contact your administrator")
         self.assertNotContains(response, "btn btn-primary col-md-6")
