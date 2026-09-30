@@ -280,14 +280,14 @@
     });
   });
 
-  {% if user.is_authenticated %}
+  {% if request.user.is_authenticated %}
     {% comment %} Configure WebSockets protocol – HTTP for dev and HTTPS for prod {% endcomment %}
     let ws_proto = 'ws://'
     if (location.protocol === 'https:') {
       ws_proto = 'wss://'
     }
     const protocol = ws_proto
-    const username = '{{ user.get_clean_username|escapejs }}';
+    const username = '{{ request.user.get_clean_username|escapejs }}';
 
     {% comment %} Connect to channel for individual notifications {% endcomment %}
     const ws_user = new WebSocket(

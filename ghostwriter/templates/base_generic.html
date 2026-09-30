@@ -90,7 +90,7 @@
 <body>
 <div class="wrapper">
   <!-- Sidebar Holder -->
-  {% if user.is_authenticated %}
+  {% if request.user.is_authenticated %}
     <nav id="sidebar" class="{% if request.session.sidebar.sticky %}active{% endif %}">
       <!-- Sidebar Top Section -->
       <div class="sidebar-header">
@@ -181,7 +181,7 @@
 
   <!-- Page Content Holder -->
   <div id="content">
-    {% if user.is_authenticated %}
+    {% if request.user.is_authenticated %}
       <aside class="engagement-context{% if active_engagement %} engagement-context-active{% endif %}"
              data-active-report-id="{% if active_engagement %}{{ active_engagement.report.id }}{% endif %}"
              data-active-report-title="{% if active_engagement %}{{ active_engagement.report.title }}{% endif %}"
@@ -341,7 +341,7 @@
 
     {%  comment %} MOTD Banner {% endcomment %}
     {% if banner_config.enable_banner and not banner_config.expiry_date|is_past %}
-      {% if user.is_authenticated or banner_config.public_banner %}
+      {% if request.user.is_authenticated or banner_config.public_banner %}
         <div id="globalBanner" class="container-fluid mb-3" expiryDate="{{ expiry_date }}">
           <div class="alert alert-success text-center mb-0" role="alert">
             <button type="button" class="btn-close global-banner-close" data-bs-dismiss="alert" aria-label="Close"></button>
@@ -886,14 +886,14 @@
     });
   });
 
-  {% if user.is_authenticated %}
+  {% if request.user.is_authenticated %}
     {% comment %} Configure WebSockets protocol – HTTP for dev and HTTPS for prod {% endcomment %}
     let ws_proto = 'ws://'
     if (location.protocol === 'https:') {
       ws_proto = 'wss://'
     }
     const protocol = ws_proto
-    const username = '{{ user.get_clean_username|escapejs }}';
+    const username = '{{ request.user.get_clean_username|escapejs }}';
 
     {% comment %} Connect to channel for individual notifications {% endcomment %}
     const ws_user = new WebSocket(
