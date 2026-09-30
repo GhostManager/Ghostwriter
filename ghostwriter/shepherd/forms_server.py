@@ -436,15 +436,11 @@ class ServerNoteForm(forms.ModelForm):
         self.helper.layout = Layout(
             Div("note"),
             ButtonHolder(
+                HTML("""<a href="{{ cancel_link }}" class="btn btn-outline-secondary">Cancel</a>"""),
                 Submit(
                     "submit",
                     "Save Note",
                     css_class="btn btn-primary",
-                ),
-                HTML(
-                    """
-                    <a href="{{ cancel_link }}" class="btn btn-outline-secondary">Cancel</a>
-                    """
                 ),
                 css_class="resource-form-actions resource-form-actions-compact",
             ),
@@ -534,15 +530,11 @@ class ServerCheckoutForm(forms.ModelForm):
             "description",
             "server",
             ButtonHolder(
+                HTML("""<a href="{{ cancel_link }}" class="btn btn-outline-secondary">Cancel</a>"""),
                 Submit(
                     "submit",
                     "Save Changes" if self.instance.pk else "Check Out Server",
                     css_class="btn btn-primary",
-                ),
-                HTML(
-                    """
-                    <a href="{{ cancel_link }}" class="btn btn-outline-secondary">Cancel</a>
-                    """
                 ),
                 css_class="resource-form-actions resource-form-actions-compact",
             ),

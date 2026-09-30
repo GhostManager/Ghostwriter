@@ -107,15 +107,11 @@ class CheckoutForm(forms.ModelForm):
             "description",
             "domain",
             ButtonHolder(
+                HTML("""<a href="{{ cancel_link }}" class="btn btn-outline-secondary">Cancel</a>"""),
                 Submit(
                     "submit",
                     "Save Changes" if self.instance.pk else "Check Out Domain",
                     css_class="btn btn-primary",
-                ),
-                HTML(
-                    """
-                    <a href="{{ cancel_link }}" class="btn btn-outline-secondary">Cancel</a>
-                    """
                 ),
                 css_class="resource-form-actions resource-form-actions-compact",
             ),
@@ -393,15 +389,11 @@ class DomainLinkForm(forms.ModelForm):
             ),
             "project",
             ButtonHolder(
+                HTML("""<a href="{{ cancel_link }}" class="btn btn-outline-secondary">Cancel</a>"""),
                 Submit(
                     "submit",
                     "Save Connection" if self.instance.pk else "Create Connection",
                     css_class="btn btn-primary",
-                ),
-                HTML(
-                    """
-                    <a href="{{ cancel_link }}" class="btn btn-outline-secondary">Cancel</a>
-                    """
                 ),
                 css_class="resource-form-actions resource-form-actions-compact",
             ),
