@@ -36759,6 +36759,7 @@ export type User = {
   reportTemplates: Array<Template>;
   /** An aggregate relationship */
   reportTemplates_aggregate: Template_Aggregate;
+  report_email: Scalars['String']['output'];
   /** An array relationship */
   reportedFindingNotes: Array<ReportedFindingNote>;
   /** An aggregate relationship */
@@ -38260,6 +38261,7 @@ export type User_Bool_Exp = {
   projects_aggregate?: InputMaybe<Project_Aggregate_Bool_Exp>;
   reportTemplates?: InputMaybe<Template_Bool_Exp>;
   reportTemplates_aggregate?: InputMaybe<Template_Aggregate_Bool_Exp>;
+  report_email?: InputMaybe<String_Comparison_Exp>;
   reportedFindingNotes?: InputMaybe<ReportedFindingNote_Bool_Exp>;
   reportedFindingNotes_aggregate?: InputMaybe<ReportedFindingNote_Aggregate_Bool_Exp>;
   reportedFindings?: InputMaybe<ReportedFinding_Bool_Exp>;
@@ -38349,6 +38351,7 @@ export type User_Insert_Input = {
   projectNotes?: InputMaybe<ProjectNote_Arr_Rel_Insert_Input>;
   projects?: InputMaybe<Project_Arr_Rel_Insert_Input>;
   reportTemplates?: InputMaybe<Template_Arr_Rel_Insert_Input>;
+  report_email?: InputMaybe<Scalars['String']['input']>;
   reportedFindingNotes?: InputMaybe<ReportedFindingNote_Arr_Rel_Insert_Input>;
   reportedFindings?: InputMaybe<ReportedFinding_Arr_Rel_Insert_Input>;
   reportedObservations?: InputMaybe<ReportedObservation_Arr_Rel_Insert_Input>;
@@ -38375,6 +38378,7 @@ export type User_Max_Fields = {
   name?: Maybe<Scalars['String']['output']>;
   password?: Maybe<Scalars['String']['output']>;
   phone?: Maybe<Scalars['String']['output']>;
+  report_email?: Maybe<Scalars['String']['output']>;
   role?: Maybe<Scalars['String']['output']>;
   timezone?: Maybe<Scalars['String']['output']>;
   username?: Maybe<Scalars['String']['output']>;
@@ -38390,6 +38394,7 @@ export type User_Min_Fields = {
   name?: Maybe<Scalars['String']['output']>;
   password?: Maybe<Scalars['String']['output']>;
   phone?: Maybe<Scalars['String']['output']>;
+  report_email?: Maybe<Scalars['String']['output']>;
   role?: Maybe<Scalars['String']['output']>;
   timezone?: Maybe<Scalars['String']['output']>;
   username?: Maybe<Scalars['String']['output']>;
@@ -38452,6 +38457,7 @@ export type User_Order_By = {
   projectNotes_aggregate?: InputMaybe<ProjectNote_Aggregate_Order_By>;
   projects_aggregate?: InputMaybe<Project_Aggregate_Order_By>;
   reportTemplates_aggregate?: InputMaybe<Template_Aggregate_Order_By>;
+  report_email?: InputMaybe<Order_By>;
   reportedFindingNotes_aggregate?: InputMaybe<ReportedFindingNote_Aggregate_Order_By>;
   reportedFindings_aggregate?: InputMaybe<ReportedFinding_Aggregate_Order_By>;
   reportedObservations_aggregate?: InputMaybe<ReportedObservation_Aggregate_Order_By>;
@@ -38516,6 +38522,8 @@ export enum User_Select_Column {
   /** column name */
   Phone = 'phone',
   /** column name */
+  ReportEmail = 'report_email',
+  /** column name */
   Require_2fa = 'require_2fa',
   /** column name */
   Role = 'role',
@@ -38548,6 +38556,7 @@ export type User_Set_Input = {
   name?: InputMaybe<Scalars['String']['input']>;
   password?: InputMaybe<Scalars['String']['input']>;
   phone?: InputMaybe<Scalars['String']['input']>;
+  report_email?: InputMaybe<Scalars['String']['input']>;
   require_2fa?: InputMaybe<Scalars['Boolean']['input']>;
   role?: InputMaybe<Scalars['String']['input']>;
   sidebar_preferences?: InputMaybe<Scalars['jsonb']['input']>;
@@ -38601,6 +38610,7 @@ export type User_Stream_Cursor_Value_Input = {
   name?: InputMaybe<Scalars['String']['input']>;
   password?: InputMaybe<Scalars['String']['input']>;
   phone?: InputMaybe<Scalars['String']['input']>;
+  report_email?: InputMaybe<Scalars['String']['input']>;
   require_2fa?: InputMaybe<Scalars['Boolean']['input']>;
   role?: InputMaybe<Scalars['String']['input']>;
   sidebar_preferences?: InputMaybe<Scalars['jsonb']['input']>;
@@ -38651,6 +38661,8 @@ export enum User_Update_Column {
   Password = 'password',
   /** column name */
   Phone = 'phone',
+  /** column name */
+  ReportEmail = 'report_email',
   /** column name */
   Require_2fa = 'require_2fa',
   /** column name */

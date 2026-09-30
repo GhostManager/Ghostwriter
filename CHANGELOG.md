@@ -5,11 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [7.3.0-rc1] - 14 September 2026
+## [7.3.0] - 30 September 2026
 
 ### Added
 
 * Added a working-context application shell with customizable sidebar navigation and quicker access to active engagements and reports
+* Added a new report email field for user profiles
+  * This field overrides the account's email address for reporting functions
+  * If a report email is set, that email address will appear in reports instead of the account's email address
 
 ### Changed
 
@@ -22,6 +25,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 
 * Added a report-only Content Security Policy baseline across Django and Nginx as groundwork for future CSP enforcement
+
+## [7.2.7] - 22 September 2026
+
+### Fixed
+
+* Fixed Asciinema recording uploads containing null characters that could cause the recording save transaction to fail.
 
 ## [7.2.6] - 10 August 2026
 

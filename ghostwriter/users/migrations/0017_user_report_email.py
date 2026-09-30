@@ -3,7 +3,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("users", "0016_merge_ui_refresh_master"),
+        ("users", "0014_user_enable_template_management"),
     ]
 
     operations = [

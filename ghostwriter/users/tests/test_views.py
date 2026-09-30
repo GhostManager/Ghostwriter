@@ -126,6 +126,11 @@ class UserDetailViewTests(TestCase):
         self.assertContains(response, 'id="account-actions"')
         self.assertContains(response, "Settings and security")
         self.assertContains(response, "Personal access tokens")
+        self.assertContains(
+            response,
+            reverse("users:user_update", kwargs={"username": self.user.username}),
+        )
+        self.assertContains(response, "Report email")
 
     def test_active_project_uses_shared_table_link_style(self):
         project = ProjectFactory()
