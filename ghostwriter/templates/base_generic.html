@@ -51,9 +51,9 @@
   <script src="{% static 'js/project.js' %}"></script>
   <script src="{% static 'js/active-report.js' %}?v={{ VERSION }}"></script>
   <script src="{% static 'js/working-context.js' %}?v={{ VERSION }}"></script>
-  <link rel="stylesheet" href="{% static 'css/styles.css' %}?v={{ VERSION }}"/>
+  <link rel="stylesheet" href="{% static 'css/styles.css' %}?v={{ VERSION }}-scroll1"/>
   <link rel="stylesheet" href="{% static 'css/app_shell.css' %}?v={{ VERSION }}"/>
-  <link rel="stylesheet" href="{% static 'css/design_system.css' %}?v={{ VERSION }}-ui36"/>
+  <link rel="stylesheet" href="{% static 'css/design_system.css' %}?v={{ VERSION }}-ui39"/>
 
   <!-- Standalone Tiptap editor (packaged for offline deployments) -->
   <script type="module" src="{% static 'assets/standalone_tiptap_loader.js' %}?v={{ VERSION }}"></script>
@@ -87,7 +87,7 @@
   </script>
 </head>
 
-<body>
+<body class="has-scroll-to-top">
 <div class="wrapper">
   <!-- Sidebar Holder -->
   {% if request.user.is_authenticated %}
@@ -365,7 +365,7 @@
   </div>
 </div>
 
-<a style="display: none;" id="scroll-button"></a>
+{% include "snippets/scroll_to_top.html" %}
 
 {% comment %} Scripts included on ALL pages {% endcomment %}
 <script>
@@ -432,23 +432,6 @@
       }
     });
   })(jQuery);
-
-  {% comment %} Scroll button handling {% endcomment %}
-  let scrollButton = $('#scroll-button');
-
-  {% comment %} When the user scrolls down 20px from the top of the document, show the button {% endcomment %}
-  $(window).on('scroll', function () {
-    if ($(window).scrollTop() > 300) {
-      scrollButton.show(500);
-    } else {
-      scrollButton.hide(500);
-    }
-  });
-
-  {% comment %} When the user clicks on the button, scroll to the top of the document {% endcomment %}
-  scrollButton.on('click', function () {
-    $('html, body').animate({scrollTop: 0}, '300');
-  });
 
   {% comment %} Persist the working report in browser storage across login sessions {% endcomment %}
   GhostwriterActiveReport.init({
