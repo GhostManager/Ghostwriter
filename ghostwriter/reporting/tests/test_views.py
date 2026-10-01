@@ -3238,6 +3238,8 @@ class ReportExtraFieldEditViewTests(TestCase):
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "reporting/report_update_extra_field.html")
+        self.assertContains(response, 'class="report-field-workspace"')
+        self.assertContains(response, "js/page-sticky-offset.js")
 
     def test_view_renders_numeric_evidence_report_id(self):
         response = self.client_mgr.get(self.uri)

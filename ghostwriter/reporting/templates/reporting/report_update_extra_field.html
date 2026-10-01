@@ -6,13 +6,15 @@
 
 
 {% block content %}
-  <header class="resource-form-page-heading mb-4">
-    <span class="detail-eyebrow">Report Extra Field</span>
-    <h1>Edit {{ target_field.display_name }}</h1>
-    <p>Changes to this field on {{ report }} save automatically while collaboration is connected.</p>
-  </header>
-  <div class="resource-form-shell">
-    {{ block.super }}
+  <div class="report-field-workspace">
+    <header class="resource-form-page-heading mb-2">
+      <span class="detail-eyebrow">Report Extra Field</span>
+      <h1>Edit {{ target_field.display_name }}</h1>
+      <p>Changes to this field on {{ report }} save automatically while collaboration is connected.</p>
+    </header>
+    <div class="resource-form-shell">
+      {{ block.super }}
+    </div>
   </div>
 {% endblock %}
 
