@@ -404,6 +404,9 @@ body.sidebar-open #scroll-button {
 
 .formset-actions {
   display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
   justify-content: flex-end;
   width: 100%;
   margin-top: 1rem;
@@ -1027,6 +1030,10 @@ textarea.form-control {
   flex: 0 0 auto;
 }
 
+.collection-add-button {
+  max-width: 100%;
+}
+
 .collection-empty-state {
   margin-bottom: 1rem;
   padding: 2rem 1rem;
@@ -1138,6 +1145,7 @@ textarea.form-control {
 }
 
 .collection-form-card-chevron {
+  grid-column: -2 / -1;
   color: color-mix(in srgb, var(--main-txt-color) 64%, transparent);
   transition: transform 160ms ease;
 }
@@ -1151,7 +1159,7 @@ textarea.form-control {
 }
 
 .collection-form-card-fields > .formset-actions {
-  padding-top: 0.25rem;
+  padding-top: 1rem;
   border-top: 1px solid var(--gw-border);
 }
 
