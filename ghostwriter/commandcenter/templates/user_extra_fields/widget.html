@@ -1,22 +1,28 @@
 
-{% for entry in widget.subwidgets %}
-    {% if entry.is_checkbox %}
-        <div class="mb-3 custom-control custom-switch">
-            {% with widget=entry.widget %}
-                {% include widget.template_name %}
-            {% endwith %}
-            <label for="{{entry.widget.attrs.id}}" class="custom-control-label form-check-label">{{entry.label}}</label>
-            {% if entry.description %}
-                <small class="form-text text-muted">{{entry.description}}</small>
-            {% endif %}
-        </div>
-    {% else %}
-        <label>{{entry.label}}</label>
-        {% with widget=entry.widget %}
-            {% include widget.template_name %}
-        {% endwith %}
-        {% if entry.description %}
-            <small class="form-text text-muted">{{entry.description}}</small>
+<div class="extra-fields-form-grid">
+    {% for entry in widget.subwidgets %}
+        {% if entry.is_checkbox %}
+            <div class="extra-field-form-group extra-field-form-card extra-field-form-group-switch">
+                <label for="{{ entry.widget.attrs.id }}" class="form-label">{{ entry.label }}</label>
+                <div class="form-check form-switch extra-field-form-switch mb-0">
+                    {% with widget=entry.widget %}
+                        {% include widget.template_name %}
+                    {% endwith %}
+                </div>
+                {% if entry.description %}
+                    <div class="form-text">{{ entry.description }}</div>
+                {% endif %}
+            </div>
+        {% else %}
+            <div class="extra-field-form-group extra-field-form-card{% if entry.field_type == 'rich_text' %} extra-field-form-card-rich-text{% elif entry.field_type == 'json' %} extra-field-form-card-json{% endif %}">
+                <label for="{{ entry.widget.attrs.id }}" class="form-label">{{ entry.label }}</label>
+                {% with widget=entry.widget %}
+                    {% include widget.template_name %}
+                {% endwith %}
+                {% if entry.description %}
+                    <div class="form-text">{{ entry.description }}</div>
+                {% endif %}
+            </div>
         {% endif %}
-    {% endif %}
-{% endfor %}
+    {% endfor %}
+</div>

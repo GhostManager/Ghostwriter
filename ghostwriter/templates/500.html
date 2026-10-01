@@ -1,25 +1,28 @@
-{% extends "base_generic.html" %}
+{% extends "base_generic_empty.html" %}
 
 {% load static %}
 
-{% block title %}Server Error (500){% endblock %}
+{% block title %}Service interruption · Ghostwriter{% endblock %}
 
 {% block content %}
-    <h2>Server Error (500)</h2>
-
-    <img src="{% static 'images/scared.png' %}" alt="500 Ghost Image" style="max-width: 250px;">
-
-  <p class="mt-3">This is so embarassing! Something went wrong on our end.</p>
-
-    <div class="alert alert-warning offset-md-2 col-md-8 mt-3" role="alert">
-      <strong>Please Help Us:</strong> You should never see this page. If you do, please consider reporting
-      the steps you took leading up to this error to the Ghostwriter development team on
-      <a href="https://github.com/ghostwriter/ghostwriter/issues">GitHub</a>. Your administrator can
-      also collect the exception details from the server logs. Those logs will provide the necessary
-      information to help us identify and fix the issue.
-    </div>
-
-    <a href="{% url 'home:dashboard' %}" class="btn btn-primary mt-2">Return to Home</a>
+    <section class="error-state-page error-state--failure" aria-labelledby="error-state-title">
+        <article class="error-state-card">
+            <header class="error-state-header">
+                <div class="error-state-code" aria-label="Status code 500">500</div>
+                <img class="error-state-art" src="{% static 'images/scared.png' %}" alt="" aria-hidden="true">
+                <div>
+                    <span class="detail-eyebrow">Service interruption</span>
+                    <h1 id="error-state-title">Ghostwriter could not complete that request</h1>
+                    <p>An unexpected server condition interrupted this action. Your administrator can review the server logs for details.</p>
+                </div>
+            </header>
+            <div class="error-state-guidance">
+                <i class="fas fa-clipboard-list" aria-hidden="true"></i>
+                <p>Note the time and steps leading up to the error, then share them with your Ghostwriter administrator if it happens again.</p>
+            </div>
+            <footer class="error-state-actions">
+                <a href="{% url 'home:dashboard' %}" class="btn btn-primary"><i class="fas fa-home" aria-hidden="true"></i> Return to dashboard</a>
+            </footer>
+        </article>
+    </section>
 {% endblock content %}
-
-

@@ -1,7 +1,7 @@
 """This contains all the database models used by the Rolodex application."""
 
 # Standard Libraries
-from datetime import time, timedelta
+from datetime import date, time, timedelta
 
 # Django Imports
 from django.conf import settings
@@ -354,6 +354,18 @@ class Project(models.Model):
             self.bloodhound_api_key_token,
         ])
 
+    def get_lifecycle_status(self, as_of=None) -> str:
+        """Return the operator-facing status derived from dates and completion."""
+        as_of = as_of or date.today()
+
+        if self.complete:
+            return "Complete"
+        if as_of < self.start_date:
+            return "Upcoming"
+        if as_of > self.end_date:
+            return "Awaiting Completion"
+        return "In Progress"
+
     def __str__(self):
         return f"{self.start_date} {self.client} {self.project_type} ({self.codename})"
 
@@ -388,8 +400,13 @@ class Project(models.Model):
     def user_viewable(cls, user):
         return cls.for_user(user)
 
+    @classmethod
+    def user_editable(cls, user):
+        """Return projects the user may modify."""
+        return cls.for_user(user)
+
     def user_can_edit(self, user) -> bool:
-        return self.user_can_view(user)
+        return self.user_editable(user).contains(self)
 
     def user_can_delete(self, user) -> bool:
         return self.user_can_view(user)

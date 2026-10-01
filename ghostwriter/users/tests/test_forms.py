@@ -134,7 +134,9 @@ class UserChangeFormTests(TestCase):
             "timezone": self.user.timezone,
         }
         self.assertTrue(self.form_data(**base_data, report_email="").is_valid())
-        self.assertTrue(self.form_data(**base_data, report_email="reports@example.com").is_valid())
+        self.assertTrue(
+            self.form_data(**base_data, report_email="reports@example.com").is_valid()
+        )
 
         form = self.form_data(**base_data, report_email="not-an-email")
         self.assertFalse(form.is_valid())

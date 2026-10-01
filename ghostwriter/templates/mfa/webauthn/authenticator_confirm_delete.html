@@ -1,0 +1,75 @@
+{% extends "account/base.html" %}
+{% load i18n %}
+
+{% block pagetitle %}{% trans "Remove security key" %}{% endblock %}
+
+
+{% block content %}
+  <div class="resource-form-shell account-profile-editor account-webauthn-remove">
+    <form
+      method="post"
+      action="{% url 'mfa_remove_webauthn' authenticator.pk %}"
+      class="resource-edit-form account-webauthn-remove-form"
+    >
+      {% csrf_token %}
+
+      <section class="resource-form-card account-webauthn-remove-card" aria-labelledby="webauthn-remove-heading">
+        <div class="resource-form-section-heading">
+          <span class="resource-form-section-icon account-mfa-danger-icon" aria-hidden="true">
+            <i class="fas fa-trash-alt"></i>
+          </span>
+          <div>
+            <h1 id="webauthn-remove-heading">{% trans "Remove security key" %}</h1>
+            <p>{% trans "Permanently disconnect this credential from your Ghostwriter account." %}</p>
+          </div>
+        </div>
+
+        {% with security_key=authenticator.wrap %}
+          <div class="account-webauthn-key-summary account-webauthn-key-summary-danger">
+            <span class="account-webauthn-key-summary-icon" aria-hidden="true">
+              {% if security_key.is_passwordless is True %}
+                <i class="fas fa-fingerprint"></i>
+              {% else %}
+                <i class="fas fa-key"></i>
+              {% endif %}
+            </span>
+            <div>
+              <span>{% trans "Credential to remove" %}</span>
+              <strong>{{ authenticator }}</strong>
+              {% if security_key.is_passwordless is True %}
+                <small>{% trans "Passkey" %}</small>
+              {% elif security_key.is_passwordless is False %}
+                <small>{% trans "Security key" %}</small>
+              {% else %}
+                <small>{% trans "Type unknown" %}</small>
+              {% endif %}
+            </div>
+          </div>
+        {% endwith %}
+
+        <div class="account-mfa-impact" role="note">
+          <span class="account-mfa-impact-icon" aria-hidden="true">
+            <i class="fas fa-exclamation-triangle"></i>
+          </span>
+          <div>
+            <h2>{% trans "This action cannot be undone" %}</h2>
+            <ul>
+              <li>{% trans "This key will stop working for sign-in and account verification." %}</li>
+              <li>{% trans "The key remains usable with other services where you registered it." %}</li>
+              <li>{% trans "Recovery codes may also be removed if no other multi-factor method remains." %}</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <div class="resource-form-actions resource-form-actions-compact account-webauthn-remove-actions">
+        <div class="resource-form-actions-buttons">
+          <a class="btn btn-outline-secondary" href="{% url 'mfa_list_webauthn' %}">{% trans "Cancel" %}</a>
+          <button type="submit" class="btn btn-danger">
+            <i class="fas fa-trash-alt" aria-hidden="true"></i> {% trans "Remove security key" %}
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+{% endblock %}

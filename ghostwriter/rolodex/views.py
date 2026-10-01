@@ -98,6 +98,36 @@ from ghostwriter.shepherd.models import History, ServerHistory, TransientServer
 logger = logging.getLogger(__name__)
 
 
+PROJECT_STATUS_PRESENTATION = {
+    "Upcoming": {
+        "help": "The execution window has not started.",
+        "icon": "fa-calendar-alt",
+        "style": "is-upcoming",
+    },
+    "In Progress": {
+        "help": "The project is within its scheduled execution window.",
+        "icon": "fa-play-circle",
+        "style": "is-in-progress",
+    },
+    "Awaiting Completion": {
+        "help": "The execution window has ended; mark the project complete when work is closed.",
+        "icon": "fa-hourglass-end",
+        "style": "is-awaiting-completion",
+    },
+    "Complete": {
+        "help": "This project is complete. Additional reports cannot be created.",
+        "icon": "fa-check-circle",
+        "style": "is-complete",
+    },
+}
+
+
+def get_project_status_presentation(project: Project) -> dict:
+    """Return the presentational details for a project's derived lifecycle status."""
+    status = project.get_lifecycle_status()
+    return {"label": status, **PROJECT_STATUS_PRESENTATION[status]}
+
+
 ##################
 #   AJAX Views   #
 ##################
@@ -403,19 +433,18 @@ class ProjectStatusToggle(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                 obj.complete = False
                 data = {
                     "result": "success",
-                    "message": "Project successfully marked as incomplete.",
-                    "status": "In Progress",
+                    "message": "Project reopened.",
                     "toggle": 0,
                 }
             else:
                 obj.complete = True
                 data = {
                     "result": "success",
-                    "message": "Project successfully marked as complete.",
-                    "status": "Complete",
+                    "message": "Project marked complete.",
                     "toggle": 1,
                 }
             obj.save()
+            data["status"] = get_project_status_presentation(obj)
             logger.info(
                 "Toggled status of %s %s by request of %s",
                 obj.__class__.__name__,
@@ -1362,9 +1391,7 @@ class ClientCreate(RoleBasedAccessControlMixin, CreateView):
     def get(self, request, *args, **kwargs):
         self.object = None
         self.contacts = ClientContactFormSet(prefix="poc")
-        self.contacts.extra = 1
         self.invites = ClientInviteFormSet(prefix="invite")
-        self.invites.extra = 1
         return super().get(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
@@ -1462,12 +1489,8 @@ class ClientUpdate(RoleBasedAccessControlMixin, UpdateView):
             ctx["invites"] = ClientInviteFormSet(self.request.POST, prefix="invite", instance=self.object)
         else:
             contacts = ClientContactFormSet(prefix="poc", instance=self.object)
-            if self.object.clientcontact_set.all().count() < 1:
-                contacts.extra = 1
             ctx["contacts"] = contacts
             invites = ClientInviteFormSet(prefix="invite", instance=self.object)
-            if self.object.clientinvite_set.all().count() < 1:
-                invites.extra = 1
             ctx["invites"] = invites
         return ctx
 
@@ -1726,6 +1749,8 @@ class ProjectDetailView(RoleBasedAccessControlMixin, DetailView):
     def get_context_data(self, object: Project, **kwargs):
         ctx = super().get_context_data(object=object, **kwargs)
         ctx["project_extra_fields_spec"] = ExtraFieldSpec.objects.filter(target_model=Project._meta.label)
+        ctx["project_status"] = get_project_status_presentation(object)
+        ctx["can_edit_project"] = object.user_can_edit(self.request.user)
         ctx["export_templates"] = ReportTemplate.objects.filter(
             Q(doc_type__doc_type__iexact="project_docx") | Q(doc_type__doc_type__iexact="pptx")
         ).filter(Q(client=object.client) | Q(client__isnull=True))

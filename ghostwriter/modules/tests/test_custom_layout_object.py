@@ -1,5 +1,10 @@
+# Standard Libraries
+from unittest.mock import Mock, patch
+
+# Django Imports
 from django.test import SimpleTestCase
 
+# Ghostwriter Libraries
 from ghostwriter.modules.custom_layout_object import CustomTab
 
 
@@ -24,3 +29,14 @@ class CustomTabTests(SimpleTestCase):
 
         self.assertEqual(tab.tab_hash, "#extra-fields")
         self.assertEqual(tab.css_id, "tab-pane-extra-fields")
+
+    @patch("crispy_forms.bootstrap.Container.render", return_value="")
+    def test_extra_fields_tab_renders_spec_count_badge(self, _render):
+        tab = CustomTab("Extra Fields", "extra_fields")
+        form = Mock()
+        form.fields = {"extra_fields": Mock(specs=[Mock(), Mock(), Mock()])}
+
+        tab.render(form, Mock())
+        link = tab.render_link()
+
+        self.assertIn('<span class="tab-count-badge">3</span>', link)

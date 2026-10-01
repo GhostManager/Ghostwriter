@@ -1,16 +1,18 @@
-<div class="card mb-2">
-  <div class="card-header library-filter" data-toggle="collapse" data-target="#{{ div.css_id }}" role="tab">
-    <h5 class="mb-0">
-      <a data-toggle="collapse" href="#{{ div.css_id }}" aria-expanded="false"
-         aria-controls="{{ div.css_id }}">
-        {{ div.name }}
-      </a>
-    </h5>
-  </div>
+<section class="filter-accordion-group library-filter">
+  <button type="button" class="filter-accordion-toggle"
+          data-bs-toggle="collapse" data-bs-target="#{{ div.css_id }}"
+          aria-expanded="{% if div.active or request.session.filter.sticky %}true{% else %}false{% endif %}"
+          aria-controls="{{ div.css_id }}" id="{{ div.css_id }}-heading">
+    <span class="filter-accordion-title">
+      <i class="fas fa-filter" aria-hidden="true"></i>
+      <span>{{ div.name }}</span>
+    </span>
+    <span class="filter-accordion-indicator" aria-hidden="true"></span>
+  </button>
   <div id="{{ div.css_id }}" class="collapse{% if div.active or request.session.filter.sticky %} show{% endif %}" role="tabpanel"
-       aria-labelledby="{{ div.css_id }}" data-parent="#{{ div.data_parent }}">
-    <div class="card-body">
+       aria-labelledby="{{ div.css_id }}-heading" data-bs-parent="#{{ div.data_parent }}">
+    <div class="filter-accordion-body">
       {{ fields|safe }}
     </div>
   </div>
-</div>
+</section>

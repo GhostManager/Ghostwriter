@@ -1,17 +1,19 @@
 {% load bleach_tags %}
 
-<div id="project_detail_{{ project.id }}" class="modal fade" tabindex="-1" role="dialog">
+<div id="project_detail_{{ project.id }}" class="modal fade detail-preview-modal" tabindex="-1" role="dialog">
   <div class="modal-dialog modal-super-sized modal-dialog-scrollable modal-dialog-centered" role="document">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">Additional Project Details</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
+        <div>
+          <span class="detail-preview-modal-eyebrow">Project preview</span>
+          <h2 class="modal-title">{{ project }}</h2>
+        </div>
+        <button type="button" class="btn-close detail-preview-modal-close" data-bs-dismiss="modal" aria-label="Close">
         </button>
       </div>
       <div class="modal-body">
 
-        {%  for tag in project.tags.all %}<span class="badge badge-secondary mb-3">{{ tag.name }}</span>{% endfor %}
+        {% if project.tags.all %}<div class="detail-preview-modal-tags">{% for tag in project.tags.all %}<span class="detail-preview-modal-tag">{{ tag.name }}</span>{% endfor %}</div>{% endif %}
 
         <h5>Project Description</h5>
         {% if project.description %}
@@ -38,8 +40,8 @@
           No Assignments
         {% endif %}
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary col-3" data-dismiss="modal">Close</button>
+      <div class="modal-footer detail-preview-modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
       </div>
     </div>
   </div>

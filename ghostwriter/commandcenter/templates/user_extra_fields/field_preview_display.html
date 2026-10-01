@@ -1,46 +1,25 @@
 {% load bleach_tags extra_fields %}
 
-<p class="mt-2">Preview and edit the extra fields here. If you want to add or change a field, admins can do that in the admin panel.</p>
+<p class="extra-field-preview-description">Preview and edit the extra fields here. Admins can add or change field definitions in the admin panel.</p>
 
-{% comment %} List normal fields first {% endcomment %}
-{% for field_spec in object_extra_fields_spec %}
-  {% if field_spec.type != "rich_text" and field_spec.type != "json" %}
-    <div class="row justify-content-md-center mb-1">
-      <h6 class="col-3 text-left">
-        {{ field_spec.display_name }}
-      </h6>
-      <div class="mt-2 col-3 text-md-center align-middle offset-2">
-        {% include "user_extra_fields/field.html" with extra_fields=object.extra_fields field_spec=field_spec preview_report=False %}
+<div class="extra-field-preview-list">
+  {% for field_spec in object_extra_fields_spec %}
+    <article class="extra-field-preview-card">
+      <div class="extra-field-preview-card-heading">
+        <h6>{{ field_spec.display_name }}</h6>
+        {% if field_spec.type == "rich_text" or field_spec.type == "json" %}
+          <span class="extra-field-preview-type">{{ field_spec.get_type_display|default:field_spec.type }}</span>
+        {% endif %}
       </div>
-    </div>
-  {% endif %}
-{% endfor %}
-
-{% comment %} List rich text extra fields {% endcomment %}
-{% for field_spec in object_extra_fields_spec %}
-  {% if field_spec.type == "rich_text" %}
-    <div class="row justify-content-md-center mb-1">
-      <h6 class="col-3 text-left">
-        {{ field_spec.display_name }}
-      </h6>
-      <button type="button" class="btn btn-primary col-3 offset-2 icon view-icon" data-toggle="modal"
-              data-target="#field_spec_{{ field_spec.internal_name }}">Preview
-      </button>
-    </div>
-  {% endif %}
-{% endfor %}
-
-
-{% comment %} List JSON extra fields {% endcomment %}
-{% for field_spec in object_extra_fields_spec %}
-  {% if field_spec.type == "json" %}
-    <div class="row justify-content-md-center mb-1">
-      <h6 class="col-3 text-left">
-        {{ field_spec.display_name }}
-      </h6>
-      <button type="button" class="btn btn-primary col-3 offset-2 icon view-icon" data-toggle="modal"
-              data-target="#field_spec_{{ field_spec.internal_name }}">Preview
-      </button>
-    </div>
-  {% endif %}
-{% endfor %}
+      {% if field_spec.type == "rich_text" or field_spec.type == "json" %}
+        <button type="button" class="btn btn-outline-secondary btn-sm icon view-icon extra-field-preview-action" data-bs-toggle="modal"
+                data-bs-target="#field_spec_{{ field_spec.internal_name }}">Preview {{ field_spec.get_type_display|default:field_spec.type }}
+        </button>
+      {% else %}
+        <div class="extra-field-preview-value">
+          {% include "user_extra_fields/field.html" with extra_fields=object.extra_fields field_spec=field_spec preview_report=False %}
+        </div>
+      {% endif %}
+    </article>
+  {% endfor %}
+</div>

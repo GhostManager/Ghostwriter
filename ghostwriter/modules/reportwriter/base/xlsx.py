@@ -38,7 +38,7 @@ class ExportXlsxBase(ExportBase):
 
     def render_rich_text_xlsx(self, rich_text: LazilyRenderedTemplate) -> str:
         """
-        Renders a `LazilyRenderedTemplate`, converting the HTML from the TinyMCE rich text editor to a plain text string
+        Renders a `LazilyRenderedTemplate`, converting rich-text HTML to a plain text string
         for use in XLSX cells
         """
         return ReportExportTemplateError.map_errors(

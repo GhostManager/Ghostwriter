@@ -6,24 +6,35 @@
 {% block pagetitle %}Confirm Email Address{% endblock %}
 
 {% block inner %}
-    <h1>{% trans "Confirm Email Address" %}</h1>
+    <div class="auth-challenge-heading">
+        <span class="auth-challenge-icon {% if confirmation %}auth-journey-icon{% else %}auth-journey-icon-warning{% endif %}" aria-hidden="true"><i class="fas {% if confirmation %}fa-envelope-open-text{% else %}fa-exclamation-triangle{% endif %}"></i></span>
+        <div>
+            <span class="auth-challenge-eyebrow">{% trans "Account setup" %}</span>
+            <h1 id="email-confirm-heading">{% if confirmation %}{% trans "Confirm your email address" %}{% else %}{% trans "Email confirmation unavailable" %}{% endif %}</h1>
+            <p>{% if confirmation %}{% trans "Verify this address before using it for account communication and recovery." %}{% else %}{% trans "Request a fresh confirmation link to continue." %}{% endif %}</p>
+        </div>
+    </div>
 
     {% if confirmation %}
         {% user_display confirmation.email_address.user as user_display %}
 
-        <p>{% blocktrans with confirmation.email_address.email as email %}Please confirm that <a href="mailto:{{ email }}">{{ email }}</a> is an e-mail address for user {{ user_display }}.{% endblocktrans %}</p>
+        <div class="auth-journey-status" role="note">
+            <i class="fas fa-envelope" aria-hidden="true"></i>
+            <p>{% blocktrans with confirmation.email_address.email as email %}Confirm that <a href="mailto:{{ email }}">{{ email }}</a> is an email address for {{ user_display }}.{% endblocktrans %}</p>
+        </div>
 
-        <form method="post" action="{% url 'account_confirm_email' confirmation.key %}">
+        <form method="post" action="{% url 'account_confirm_email' confirmation.key %}" class="auth-journey-form" aria-labelledby="email-confirm-heading">
         {% csrf_token %}
-            <button class="btn btn-primary col-md-6" type="submit">{% trans 'Confirm' %}</button>
+            <div class="auth-journey-actions">
+                <button class="btn btn-primary auth-challenge-submit" type="submit"><i class="fas fa-check" aria-hidden="true"></i> {% trans "Confirm email address" %}</button>
+            </div>
         </form>
     {% else %}
         {% url 'account_email' as email_url %}
 
-        <p>
-            {% blocktrans %}
-            This e-mail confirmation link expired or is invalid. Please <a href="{{ email_url }}">issue a new e-mail confirmation request</a>.
-            {% endblocktrans %}
-        </p>
+        <div class="auth-journey-status auth-journey-status-warning" role="alert">
+            <i class="fas fa-exclamation-circle" aria-hidden="true"></i>
+            <p>{% blocktrans %}This email confirmation link expired or is invalid. Please <a href="{{ email_url }}">request a new email confirmation link</a>.{% endblocktrans %}</p>
+        </div>
     {% endif %}
 {% endblock %}

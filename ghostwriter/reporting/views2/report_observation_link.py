@@ -64,7 +64,7 @@ class CloneObservationLinkToObservation(RoleBasedAccessControlMixin, SingleObjec
 class AssignObservation(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """
     Copy an individual :model:`reporting.Observation` to create a new
-    :model:`reporting.ReportObservationLink` connected to the user's active
+    :model:`reporting.ReportObservationLink` connected to the user's working
     :model:`reporting.Report`.
     """
 
@@ -80,16 +80,16 @@ class AssignObservation(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                 report_id = self.request.POST["report"]
                 report = Report.objects.get(pk=report_id)
             else:
-                # Otherwise, use the session variable for the "active" report
+                # Otherwise, use the session variable for the working report
                 active_report = self.request.session.get("active_report", None)
                 if active_report:
                     report = Report.objects.get(pk=active_report["id"])
                 else:
                     raise Report.DoesNotExist()
-        except (Report.DoesNotExist, ValueError):
+        except (KeyError, Report.DoesNotExist, TypeError, ValueError):
             return JsonResponse({
                 "result": "error",
-                "message": "Please select a report to edit in the sidebar or go to a report's dashboard to assign an observation."
+                "message": "Choose a working report before adding an observation."
             }, status=400)
 
         if not report.user_can_edit(self.request.user):
@@ -126,7 +126,12 @@ class AssignObservation(RoleBasedAccessControlMixin, SingleObjectMixin, View):
 
         return JsonResponse({
             "result": "success",
-            "message": "{} successfully added to your active report.".format(obs),
+            "message": "{} added to {}.".format(
+                escape(str(obs)), escape(report.title)
+            ),
+            "report": report.title,
+            "report_id": report.id,
+            "url": report.get_absolute_url(),
             "table_html": render_to_string(
                 "snippets/report_observations_table.html", {"report": report}, request=self.request
             )
@@ -281,22 +286,44 @@ class ReportObservationLinkPreview(RoleBasedAccessControlMixin, SingleObjectMixi
                 content_type="text/html",
             )
 
-        parts = []
         title = escape(obs_data.get("title", "Untitled Observation"))
-        parts.append(f"<h2>{title}</h2>")
-        parts.append("<hr>")
+        parts = [
+            '<article class="report-preview report-observation-preview">',
+            '<header class="report-preview-hero">',
+            '<span class="report-preview-kind"><i class="far fa-eye" '
+            'aria-hidden="true"></i> Observation</span>',
+            f'<h2 class="report-preview-title">{title}</h2>',
+            '<p class="report-preview-deck">Context and noteworthy conditions recorded for this assessment.</p>',
+            "</header>",
+            '<div class="report-preview-sections">',
+        ]
 
         html = render_rich_text_value(obs_data.get("description_rt"))
         if has_rich_text_content(html):
             sanitized = expand_evidence_and_sanitize(html, report, client=client)
-            parts.append("<h3>Description</h3>")
-            parts.append(sanitized)
+            parts.extend(
+                [
+                    '<section class="report-preview-section">',
+                    "<h3><span>Description</span></h3>",
+                    f'<div class="report-preview-section-content">{sanitized}</div>',
+                    "</section>",
+                ]
+            )
+        else:
+            parts.append(
+                '<div class="report-preview-empty">'
+                '<i class="far fa-file-alt" aria-hidden="true"></i>'
+                "<p>This observation does not have a description yet.</p>"
+                "</div>"
+            )
+        parts.append("</div>")
 
         extra_fields = obs_data.get("extra_fields", {})
         ef_display_names = {
             spec.internal_name: spec.display_name
             for spec in ExtraFieldSpec.objects.filter(target_model=Observation._meta.label)
         }
+        extra_parts = []
         for ef_key, ef_value in extra_fields.items():
             html = render_rich_text_value(ef_value)
             if not has_rich_text_content(html):
@@ -304,8 +331,30 @@ class ReportObservationLinkPreview(RoleBasedAccessControlMixin, SingleObjectMixi
             html = wrap_plain_value(ef_value, html)
             sanitized = expand_evidence_and_sanitize(html, report, client=client)
             label = escape(ef_display_names.get(ef_key, ef_key))
-            parts.append(f"<h3>{label}</h3>")
-            parts.append(sanitized)
+            extra_parts.extend(
+                [
+                    '<section class="report-preview-extra-field">',
+                    f"<h4>{label}</h4>",
+                    f'<div class="report-preview-section-content">{sanitized}</div>',
+                    "</section>",
+                ]
+            )
+        if extra_parts:
+            parts.extend(
+                [
+                    '<aside class="report-preview-extras">',
+                    '<div class="report-preview-extras-heading">',
+                    '<span class="detail-eyebrow">Custom fields</span>',
+                    "<h3>Additional details</h3>",
+                    "<p>Template-specific fields are grouped separately from the observation narrative.</p>",
+                    "</div>",
+                    '<div class="report-preview-extra-grid">',
+                    *extra_parts,
+                    "</div>",
+                    "</aside>",
+                ]
+            )
+        parts.append("</article>")
 
         return HttpResponse("\n".join(parts), content_type="text/html")
 

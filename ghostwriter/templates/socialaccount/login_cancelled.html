@@ -1,0 +1,25 @@
+{% extends "account/base.html" %}
+
+{% load i18n %}
+
+{% block pagetitle %}{% trans "Sign-in cancelled" %}{% endblock pagetitle %}
+
+{% block inner %}
+    <div class="auth-challenge-heading">
+        <span class="auth-challenge-icon auth-journey-icon-warning" aria-hidden="true"><i class="fas fa-reply"></i></span>
+        <div>
+            <span class="auth-challenge-eyebrow">{% trans "Organization sign-in" %}</span>
+            <h1>{% trans "Sign-in cancelled" %}</h1>
+            <p>{% trans "No changes were made to your Ghostwriter account." %}</p>
+        </div>
+    </div>
+
+    <div class="auth-journey-status auth-journey-status-warning">
+        <i class="fas fa-exclamation-circle" aria-hidden="true"></i>
+        <p>{% trans "You stopped the external sign-in process before it completed." %}</p>
+    </div>
+
+    <div class="auth-journey-actions">
+        <a class="btn btn-primary auth-challenge-submit" href="{% url 'account_login' %}"><i class="fas fa-arrow-right" aria-hidden="true"></i> {% trans "Return to sign in" %}</a>
+    </div>
+{% endblock inner %}

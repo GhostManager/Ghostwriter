@@ -29,14 +29,31 @@ export default function FootnoteButton({ editor }: { editor: Editor }) {
                 isOpen={modalOpen}
                 onRequestClose={() => setModalOpen(false)}
                 contentLabel="Insert Footnote"
-                className="modal-dialog modal-dialog-centered"
+                className="modal-dialog modal-dialog-centered gw-editor-dialog"
             >
-                <div className="modal-content">
-                    <div className="modal-header">
-                        <h5 className="modal-title">Insert Footnote</h5>
+                <div className="modal-content gw-editor-dialog-content">
+                    <div className="modal-header gw-editor-dialog-header">
+                        <div>
+                            <span className="gw-editor-dialog-eyebrow">
+                                Report annotation
+                            </span>
+                            <h5 className="modal-title">Insert footnote</h5>
+                            <p className="gw-editor-dialog-intro">
+                                Add supporting context without interrupting the
+                                main narrative.
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            className="gw-editor-dialog-close"
+                            aria-label="Close footnote dialog"
+                            onClick={() => setModalOpen(false)}
+                        >
+                            <i className="fas fa-times" aria-hidden="true" />
+                        </button>
                     </div>
                     <form
-                        className="modal-body text-center"
+                        className="gw-editor-dialog-form"
                         onSubmit={(ev) => {
                             ev.preventDefault();
                             const content = footnoteContent.trim();
@@ -50,42 +67,48 @@ export default function FootnoteButton({ editor }: { editor: Editor }) {
                             setModalOpen(false);
                         }}
                     >
-                        <div className="form-group">
-                            <label htmlFor={fieldId}>Footnote Text</label>
-                            <textarea
-                                id={fieldId}
-                                className="form-control"
-                                rows={3}
-                                value={footnoteContent}
-                                autoFocus
-                                onChange={(e) =>
-                                    setFootnoteContent(e.target.value)
-                                }
-                                placeholder="Enter the footnote content..."
-                            />
-                            <small className="form-text text-muted">
-                                This text will appear at the bottom of the page
-                                in the generated report.
-                            </small>
+                        <div className="modal-body gw-editor-dialog-body">
+                            <div className="gw-editor-dialog-field">
+                                <label htmlFor={fieldId}>Footnote text</label>
+                                <textarea
+                                    id={fieldId}
+                                    className="form-control no-auto-rich-text"
+                                    rows={4}
+                                    value={footnoteContent}
+                                    autoFocus
+                                    onChange={(e) =>
+                                        setFootnoteContent(e.target.value)
+                                    }
+                                    placeholder="Enter the supporting context..."
+                                />
+                                <small className="form-text">
+                                    This text appears at the bottom of the page
+                                    in the generated report.
+                                </small>
+                            </div>
                         </div>
 
-                        <div className="modal-footer">
-                            <button
-                                type="submit"
-                                className="btn btn-primary"
-                                disabled={!footnoteContent.trim()}
-                            >
-                                Insert
-                            </button>
+                        <div className="modal-footer gw-editor-dialog-footer">
                             <button
                                 type="button"
-                                className="btn btn-secondary"
+                                className="btn btn-outline-secondary"
                                 onClick={(e) => {
                                     e.preventDefault();
                                     setModalOpen(false);
                                 }}
                             >
                                 Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                className="btn gw-editor-primary-action"
+                                disabled={!footnoteContent.trim()}
+                            >
+                                <i
+                                    className="fas fa-superscript"
+                                    aria-hidden="true"
+                                />
+                                Insert footnote
                             </button>
                         </div>
                     </form>

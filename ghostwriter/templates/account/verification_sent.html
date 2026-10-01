@@ -5,9 +5,18 @@
 {% block head_title %}{% trans "Verify Your E-mail Address" %}{% endblock %}
 
 {% block inner %}
-    <h2>{% trans "Verify Your E-mail Address" %}</h2>
+    <div class="auth-challenge-heading">
+        <span class="auth-challenge-icon auth-journey-icon" aria-hidden="true"><i class="fas fa-envelope"></i></span>
+        <div>
+            <span class="auth-challenge-eyebrow">{% trans "Operator onboarding" %}</span>
+            <h1>{% trans "Verify your email address" %}</h1>
+            <p>{% trans "One last step keeps your account recoverable and your team informed." %}</p>
+        </div>
+    </div>
 
-    <p>{% blocktrans %}We have sent an e-mail to you for verification. Follow the link provided to finalize the signup process. Please contact us if you do not receive it within a few minutes.{% endblocktrans %}</p>
+    <div class="auth-journey-status" role="status">
+        <i class="fas fa-envelope-open-text" aria-hidden="true"></i>
+        <p>{% blocktrans %}We sent an email for verification. Follow its link to finish setting up your account. Contact your administrator if it does not arrive within a few minutes.{% endblocktrans %}</p>
+    </div>
 
 {% endblock %}
-

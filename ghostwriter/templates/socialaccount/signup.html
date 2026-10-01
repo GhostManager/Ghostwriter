@@ -2,25 +2,29 @@
 
 {% load i18n %}
 
-{% load allauth crispy_forms_tags %}
+{% load crispy_forms_tags %}
 
 {% block head_title %}
     {% trans "Signup" %}
 {% endblock head_title %}
-{% block content %}
-    {% element h2 %}
-        {% trans "Sign Up" %}
-    {% endelement %}
-    {% element p %}
-        {% blocktrans with provider_name=account.get_provider.name site_name=site.name %}You are about to use your {{provider_name}} account to login to
-{{site_name}}. As a final step, please complete the following form:{% endblocktrans %}
-    {% endelement %}
-    <form class="signup" id="signup_form" method="post" action="{% url 'socialaccount_signup' %}">
+{% block inner %}
+    <div class="auth-challenge-heading">
+        <span class="auth-challenge-icon auth-social-icon" aria-hidden="true"><i class="fas fa-user-shield"></i></span>
+        <div>
+            <span class="auth-challenge-eyebrow">{% trans "Organization sign-in" %}</span>
+            <h1>{% trans "Complete account setup" %}</h1>
+            <p>{% blocktrans with provider_name=account.get_provider.name %}Your {{ provider_name }} account is ready. Confirm the remaining details to finish joining Ghostwriter.{% endblocktrans %}</p>
+        </div>
+    </div>
+
+    <form class="signup auth-journey-form" id="signup_form" method="post" action="{% url 'socialaccount_signup' %}">
         {% csrf_token %}
         {{ form|crispy }}
         {% if redirect_field_value %}
             <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
         {% endif %}
-        <button class="btn btn-primary col-md-6" type="submit">{% trans "Sign Up" %} &raquo;</button>
+        <div class="auth-journey-actions">
+            <button class="btn btn-primary auth-challenge-submit" type="submit"><i class="fas fa-user-check" aria-hidden="true"></i> {% trans "Complete setup" %}</button>
+        </div>
     </form>
-{% endblock content %}
+{% endblock inner %}

@@ -4,102 +4,129 @@
 
 {% block pagetitle %}{{ observation.display_title }} Details{% endblock %}
 
-{% block breadcrumbs %}
-  <nav aria-label="breadcrumb">
-    <ul class="breadcrumb">
-      <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-      <li class="breadcrumb-item"><a href="{% url 'reporting:observations' %}">Observations</a></li>
-      <li class="breadcrumb-item active" aria-current="page">{{ observation.display_title }}</li>
-    </ul>
-  </nav>
-{% endblock %}
 
 {% block content %}
-  <div class="dropdown">
-    <div class="dropdown-menu-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
-         onclick="hamburger(this)">
-      <div class="bar1"></div>
-      <div class="bar2"></div>
-      <div class="bar3"></div>
-    </div>
-    <div class="dropdown-menu dropdown-menu-right" aria-labelledby="observation-dropdown-btn">
-      <a class="dropdown-item icon edit-icon" href="{% url 'reporting:observation_update' observation.id %}">Edit</a>
-      <a class="dropdown-item icon add-icon js-assign-observation" assign-observation-id="{{ observation.id }}"
-         href="javascript:void(0);" assign-observation-csrftoken="{{ csrf_token }}"
-         assign-observation-url="{% url 'reporting:ajax_assign_observation' observation.id %}">Add to Report</a>
-      <a class="dropdown-item icon back-arrow-icon" href="{% url 'reporting:observations' %}">Return to Observations</a>
-      <a class="dropdown-item icon trash-icon" href="{% url 'reporting:observation_delete' observation.id %}">Delete</a>
-    </div>
-  </div>
+  <div class="observation-detail-page finding-detail-page">
+    <header class="detail-page-heading finding-detail-heading">
+      <div class="detail-page-heading-main finding-detail-heading-main">
+        <span class="detail-eyebrow">Observation</span>
+        <h2>{{ observation.display_title }}</h2>
+        {% if observation.tags.names %}
+          <div class="detail-tag-list" aria-label="Observation tags">
+            {% for tag in observation.tags.names %}<span class="library-tag library-tag-neutral">{{ tag|bleach }}</span>{% endfor %}
+          </div>
+        {% endif %}
+      </div>
 
-  <div class="container">
-    <h2>{{ observation.display_title }}</h2>
-  </div>
+      <div class="dropdown detail-page-heading-actions">
+        <button id="observation-actions-button" type="button" class="btn btn-outline-primary btn-sm dropdown-toggle"
+                data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+          <span>Actions</span>
+        </button>
+        <div class="dropdown-menu dropdown-menu-end" aria-labelledby="observation-actions-button">
+          <a class="dropdown-item icon edit-icon" href="{% url 'reporting:observation_update' observation.id %}">Edit observation</a>
+          <button type="button" class="dropdown-item icon add-icon js-quick-add"
+                  data-quick-add-kind="observation" data-quick-add-id="{{ observation.id }}"
+                  data-quick-add-label="{{ observation.display_title }}" data-quick-add-csrftoken="{{ csrf_token }}"
+                  data-quick-add-url="{% url 'reporting:ajax_assign_observation' observation.id %}">Add to working report</button>
+          <div class="dropdown-divider"></div>
+          <a class="dropdown-item icon back-arrow-icon" href="{% url 'reporting:observations' %}">Return to observations</a>
+          <div class="dropdown-divider"></div>
+          <a class="dropdown-item icon trash-icon text-danger" href="{% url 'reporting:observation_delete' observation.id %}">Delete observation</a>
+        </div>
+      </div>
+    </header>
 
-  <div id="descriptionCard" class="card mb-3">
-    <div class="card-header finding-header icon writing-icon">
-      Description
-    </div>
-    <div class="card-body finding-content">
-      {% if observation.description %}
-        <div class="rich-text-field-preview">{{ observation.description|bleach }}</div>
-      {% else %}
-        <p>Description write-up is needed.</p>
+    <div class="finding-detail-workspace">
+      {% if observation_extra_fields_spec %}
+        <ul id="tab-bar" class="nav nav-tabs nav-justified finding-detail-tabs" role="tablist" aria-label="Observation sections">
+          <li class="nav-item" role="presentation">
+            <a id="id_overview" class="nav-link active" href="#overview" data-tab-hash="#overview"
+               data-bs-toggle="tab" role="tab" aria-controls="overview" aria-selected="true">
+              <i class="fas fa-align-left" aria-hidden="true"></i>Overview
+            </a>
+          </li>
+          <li class="nav-item" role="presentation">
+            <a id="id_extra-fields" class="nav-link" href="#extra-fields" data-tab-hash="#extra-fields"
+               data-bs-toggle="tab" role="tab" aria-controls="extra-fields" aria-selected="false">
+              <i class="fas fa-puzzle-piece" aria-hidden="true"></i>Extra Fields <span class="tab-count-badge">{{ observation_extra_fields_spec|length }}</span>
+            </a>
+          </li>
+        </ul>
       {% endif %}
+
+      <div class="tab-content">
+        <div id="overview" class="tab-pane show active" role="tabpanel" aria-labelledby="id_overview">
+          <div class="detail-layout observation-overview-layout">
+            <section id="descriptionCard" class="detail-panel finding-detail-panel-wide" aria-labelledby="observation-description-heading">
+              <div class="detail-panel-header">
+                <div>
+                  <span class="detail-eyebrow">Narrative</span>
+                  <h4 id="observation-description-heading">Description</h4>
+                </div>
+                <i class="fas fa-align-left finding-section-icon" aria-hidden="true"></i>
+              </div>
+              {% if observation.description %}
+                <div class="detail-prose rich-text-field-preview">{{ observation.description|bleach }}</div>
+              {% else %}
+                <div class="empty-state">
+                  <p class="empty-state-title">Description needed</p>
+                  <p class="empty-state-description">Explain the observation and why it matters to the engagement.</p>
+                </div>
+              {% endif %}
+            </section>
+          </div>
+        </div>
+
+        {% if observation_extra_fields_spec %}
+          <div id="extra-fields" class="tab-pane" role="tabpanel" aria-labelledby="id_extra-fields">
+            <header class="content-section-header">
+              <div class="content-section-heading">
+                <h4>Extra Fields</h4>
+                <p class="content-section-intro">Observation-level values use the template reference shown on each card. Project- and report-aware expressions are rendered where the observation is used.</p>
+              </div>
+              <a class="icon edit-icon btn btn-primary btn-sm" href="{% url 'reporting:observation_update' observation.id %}">Edit Extra Fields</a>
+            </header>
+
+            <div class="extra-fields-grid client-extra-fields-grid finding-extra-fields-grid">
+              {% for field_spec in observation_extra_fields_spec %}
+                <section class="extra-field-card" aria-labelledby="observation-extra-field-{{ field_spec.internal_name }}">
+                  <div class="extra-field-card-header">
+                    <h5 id="observation-extra-field-{{ field_spec.internal_name }}" class="extra-field-name">{{ field_spec.display_name }}</h5>
+                    <span class="extra-field-type-badge">{% if field_spec.type == "rich_text" %}Rich Text{% else %}{{ field_spec.get_type_display }}{% endif %}</span>
+                  </div>
+                  <div class="extra-field-reference"><span>Template reference</span><code>object.extra_fields.{{ field_spec.internal_name }}</code></div>
+                  <div class="extra-field-value">
+                    <span class="extra-field-value-label">Current value</span>
+                    <div class="extra-field-value-content">
+                      {% if field_spec.type == "rich_text" %}
+                        <span class="extra-field-summary">Formatted content is available in Preview.</span>
+                      {% elif field_spec.type == "json" %}
+                        <span class="extra-field-summary">Structured content is available in View JSON.</span>
+                      {% else %}
+                        {% include "user_extra_fields/field.html" with extra_fields=observation.extra_fields field_spec=field_spec preview_report=False %}
+                      {% endif %}
+                    </div>
+                  </div>
+                  <footer class="extra-field-actions">
+                    {% if field_spec.type == "rich_text" %}
+                      <button type="button" class="btn btn-primary btn-sm icon view-icon" data-bs-toggle="modal" data-bs-target="#field_spec_{{ field_spec.internal_name }}">Preview</button>
+                    {% elif field_spec.type == "json" %}
+                      <button type="button" class="btn btn-primary btn-sm icon code-icon" data-bs-toggle="modal" data-bs-target="#field_spec_{{ field_spec.internal_name }}">View JSON</button>
+                    {% endif %}
+                    <a class="btn btn-outline-primary btn-sm icon edit-icon" href="{% url 'reporting:observation_update' observation.id %}" title="Edit {{ field_spec.display_name }}">Edit</a>
+                  </footer>
+                </section>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+      </div>
     </div>
   </div>
-
-  {% if observation_extra_fields_spec %}
-    <h4 class="icon custom-field-icon">Extra Fields</h4>
-    <hr>
-
-    <p class="text-muted small">Jinja2 template syntax will not be rendered in these previews because a project and report context is needed. Rich text previews with rendered Jinja2 are available on report and project detail pages where these fields are referenced.</p>
-
-    <div class="extra-fields-grid">
-      {% for field_spec in observation_extra_fields_spec %}
-        <section class="extra-field-card">
-          <h5 class="extra-field-name">{{ field_spec.display_name }}</h5>
-          <div class="extra-field-type">
-            {% if field_spec.type == "rich_text" %}
-              Rich Text Field
-            {% else %}
-              {{ field_spec.get_type_display }} Field
-            {% endif %}
-          </div>
-          <div class="extra-field-type">Loop and reference as <code>object.extra_fields.{{ field_spec.internal_name }}</code></div>
-          <div class="extra-field-value">
-            {% if field_spec.type == "rich_text" %}
-              <span class="extra-field-summary">Use Preview to view formatted content.</span>
-            {% elif field_spec.type == "json" %}
-              <span class="extra-field-summary">Use View JSON to inspect structured content.</span>
-            {% else %}
-              {% include "user_extra_fields/field.html" with extra_fields=observation.extra_fields field_spec=field_spec preview_report=False %}
-            {% endif %}
-          </div>
-          <div class="extra-field-actions">
-            {% if field_spec.type == "rich_text" %}
-              <button type="button" class="btn btn-primary btn-sm icon view-icon" data-toggle="modal"
-                      data-target="#field_spec_{{ field_spec.internal_name }}">Preview
-              </button>
-            {% elif field_spec.type == "json" %}
-              <button type="button" class="btn btn-primary btn-sm icon code-icon" data-toggle="modal"
-                      data-target="#field_spec_{{ field_spec.internal_name }}">View JSON
-              </button>
-            {% endif %}
-            <a class="btn btn-outline-primary btn-sm icon edit-icon"
-               href="{% url 'reporting:observation_update' observation.id %}"
-               title="Edit {{ field_spec.display_name }}">Edit</a>
-          </div>
-        </section>
-      {% endfor %}
-    </div>
-  {% endif %}
 {% endblock %}
 
 {% block morescripts %}
-  {% comment %} Include the reusable delete confirmation modal and related scripts {% endcomment %}
-  {% include "confirm_delete_modal.html" %}
-
   {% if observation_extra_fields_spec %}
     {% for field_spec in observation_extra_fields_spec %}
       {% url 'reporting:observation_extra_field_json' observation.id field_spec.internal_name as extra_field_json_url %}
@@ -107,35 +134,4 @@
     {% endfor %}
     {% include "user_extra_fields/lazy_json_modal_script.html" %}
   {% endif %}
-
-  <script>
-    $('.js-assign-observation').click(function () {
-      let url = $(this).attr('assign-observation-url');
-      let observationId = $(this).attr('assign-observation-id');
-      let csrftoken = $(this).attr('assign-observation-csrftoken')
-      $.ajaxSetup({
-        beforeSend: function (xhr, settings) {
-          if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-            xhr.setRequestHeader('X-CSRFToken', csrftoken);
-          }
-        }
-      });
-      $.ajax({
-        url: url,
-        type: 'POST',
-        dataType: 'json',
-        data: {
-          'observation': observationId
-        },
-        success: function (data) {
-          if (data['result'] === 'success') {
-            // Do Something
-          }
-          if (data['message']) {
-            displayToastTop({type: data['result'], string: data['message'], title: 'Observation Assigned'});
-          }
-        }
-      });
-    });
-  </script>
 {% endblock %}

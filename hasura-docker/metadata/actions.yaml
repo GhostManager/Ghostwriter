@@ -131,6 +131,18 @@ actions:
       - role: user
       - role: manager
     comment: generateCodename
+  - name: generateOplogToken
+    definition:
+      kind: synchronous
+      handler: '{{ACTIONS_URL_BASE}}/generateOplogToken'
+      forward_client_headers: true
+      headers:
+        - name: Hasura-Action-Secret
+          value_from_env: HASURA_ACTION_SECRET
+    permissions:
+      - role: user
+      - role: manager
+    comment: Generate a service token scoped to one Oplog
   - name: generateReport
     definition:
       kind: synchronous
@@ -339,6 +351,7 @@ custom_types:
     - name: deleteResponse
     - name: attachFindingResponse
     - name: codenameResponse
+    - name: GenerateOplogTokenResponse
     - name: ExtraFieldSpecOutput
     - name: UploadEvidenceResult
     - name: UploadReportTemplateResult

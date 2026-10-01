@@ -5,7 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [7.3.0] - 30 September 2026
+
+### Added
+
+* Added a working-context application shell with customizable sidebar navigation and quicker access to active engagements and reports
+* Added a new report email field for user profiles
+  * This field overrides the account's email address for reporting functions
+  * If a report email is set, that email address will appear in reports instead of the account's email address
+
+### Changed
+
+* Upgraded the interface from Bootstrap 4 to Bootstrap 5.3 and replaced legacy components and styles with the refreshed design system
+* Redesigned the dashboard and the primary client, project, infrastructure, reporting, operation log, profile, credential, and administration workflows
+  * Updated cards, tables, forms, tabs, modals, menus, filters, empty states, and status presentations for greater consistency and readability
+  * Improved theme support, keyboard and screen-reader accessibility, and navigation behavior in narrow windows
+* Modernized rich-text editing and preview workflows with the refreshed TipTap-based editors
+
+### Security
+
+* Added a report-only Content Security Policy baseline across Django and Nginx as groundwork for future CSP enforcement
 
 ## [7.2.7] - 22 September 2026
 

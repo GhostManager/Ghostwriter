@@ -1,12 +1,12 @@
 """This contains all of the custom `crispy_forms.layout.LayoutObject` objects used by Ghostwriter."""
 
-# 3rd Party Libraries
-from crispy_forms.bootstrap import Container
-from crispy_forms.layout import TEMPLATE_PACK, Field, LayoutObject
-
 # Django Imports
 from django.template.loader import render_to_string
 from django.utils.text import slugify
+
+# 3rd Party Libraries
+from crispy_forms.bootstrap import Container
+from crispy_forms.layout import TEMPLATE_PACK, Field, LayoutObject
 
 
 class Formset(LayoutObject):
@@ -49,7 +49,9 @@ class Formset(LayoutObject):
         # Form closes prematurely if this isn't explicitly stated
         if helper:
             helper.form_tag = False
-        context.update({"formset": formset, "helper": helper, "object_name": object_name})
+        context.update(
+            {"formset": formset, "helper": helper, "object_name": object_name}
+        )
         return render_to_string(self.template, context.flatten())
 
 
@@ -78,14 +80,20 @@ class CustomTab(Container):
         super().__init__(name, *fields, css_id=f"tab-pane-{tab_hash_id}", **kwargs)
         self.link_css_class = link_css_class
         self.tab_hash = f"#{tab_hash_id}"
+        self.count_badge = None
 
     def render(self, form, context, template_pack=TEMPLATE_PACK, **kwargs):
+        if "extra_fields" in self.fields:
+            self.count_badge = len(form.fields["extra_fields"].specs)
+
         css_classes = self.css_class.split()
         if self.active:
             if "active" not in css_classes:
                 css_classes.append("active")
         else:
-            css_classes = [css_class for css_class in css_classes if css_class != "active"]
+            css_classes = [
+                css_class for css_class in css_classes if css_class != "active"
+            ]
         self.css_class = " ".join(css_classes)
         return super().render(form, context, template_pack, **kwargs)
 
