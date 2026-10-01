@@ -329,6 +329,19 @@
           <a href="{% url 'status:healthcheck' %}">View status</a>
         </div>
       {% endif %}
+    {% else %}
+      {% if has_system_warning %}
+        <div class="operator-system-warning">
+          <i class="fas fa-circle" aria-hidden="true"></i>
+          <span>System warning</span>
+          <span>Contact a manager or admin.</span>
+        </div>
+      {% else %}
+        <div class="operator-system-ready">
+          <i class="fas fa-check-circle" aria-hidden="true"></i>
+          <span>Systems ready</span>
+        </div>
+      {% endif %}
     {% endif %}
   </div>
 {% endblock %}

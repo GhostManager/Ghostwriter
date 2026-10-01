@@ -1,14 +1,16 @@
 # Standard Libraries
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock, patch
+from uuid import uuid4
 
 # Django Imports
-from django.contrib.auth import get_user_model
 from django.test import Client, TestCase, override_settings, tag
 from django.urls import reverse
+from django.utils import timezone
 
 # 3rd Party Libraries
 from asgiref.sync import async_to_sync
+from django_q.models import Task
 from health_check.contrib.psutil import Disk, Memory
 from health_check.exceptions import (
     HealthCheckException,
@@ -18,8 +20,123 @@ from health_check.exceptions import (
 )
 
 # Ghostwriter Libraries
+from ghostwriter.factories import UserFactory
+from ghostwriter.home.models import DashboardExceptionDismissal
 from ghostwriter.modules.health_utils import ConfiguredDisk, HasuraBackend
 from ghostwriter.status.views import HealthCheckCustomView
+
+
+class StatusNotificationSummaryTests(TestCase):
+    """The status page explains failed-job warnings without exposing job details."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(role="user")
+        cls.manager = UserFactory(role="manager")
+        cls.uri = reverse("status:healthcheck")
+        cls.task = Task.objects.create(
+            id=uuid4().hex,
+            name="private-failed-job",
+            func="ghostwriter.shepherd.tasks.check_domains",
+            hook="",
+            args=(),
+            kwargs={},
+            result="Private traceback",
+            group="Private background job",
+            started=timezone.now(),
+            stopped=timezone.now(),
+            success=False,
+        )
+
+    def setUp(self):
+        checks_patcher = patch.object(
+            HealthCheckCustomView, "get_checks", return_value=[]
+        )
+        self.get_checks = checks_patcher.start()
+        self.addCleanup(checks_patcher.stop)
+        self.client.force_login(self.manager)
+
+    def test_privileged_user_sees_failed_job_summary(self):
+        response = self.client.get(self.uri)
+
+        self.assertTrue(response.context["has_failed_tasks"])
+        self.assertTrue(response.context["has_system_warning"])
+        self.assertFalse(response.context["has_check_failures"])
+        self.assertContains(response, "Background jobs need attention")
+        self.assertContains(response, "Attention required")
+        self.assertContains(response, "Review the failed-job notifications")
+        self.assertContains(response, reverse("home:dashboard"))
+        self.assertNotContains(response, "All monitored services are operational")
+        self.assertNotContains(response, self.task.group)
+        self.assertNotContains(response, self.task.result)
+        self.assertNotContains(response, "Clear all")
+
+    def test_cleared_failed_jobs_do_not_warn(self):
+        DashboardExceptionDismissal.objects.create(
+            task_id=self.task.id, dismissed_by=self.manager
+        )
+
+        response = self.client.get(self.uri)
+
+        self.assertFalse(response.context["has_system_warning"])
+        self.assertContains(response, "All monitored services are operational")
+        self.assertNotContains(response, "Contact a manager or admin")
+
+    def test_successful_jobs_do_not_warn(self):
+        self.task.success = True
+        self.task.save(update_fields=["success"])
+
+        response = self.client.get(self.uri)
+
+        self.assertFalse(response.context["has_system_warning"])
+        self.assertContains(response, "All monitored services are operational")
+
+    def test_diagnostic_formats_reject_regular_and_anonymous_users(self):
+        formats = ("", "json", "text", "atom", "rss", "openmetrics")
+        for user in (self.user, None):
+            if user is None:
+                self.client.logout()
+            else:
+                self.client.force_login(user)
+            for response_format in formats:
+                with self.subTest(user=user, response_format=response_format):
+                    response = self.client.get(self.uri, {"format": response_format})
+
+                    self.assertEqual(response.status_code, 403)
+                    self.assertNotIn(self.task.group, response.content.decode())
+                    self.assertNotIn(self.task.result, response.content.decode())
+        self.get_checks.assert_not_called()
+
+    def test_content_negotiation_and_head_reject_regular_users(self):
+        self.client.force_login(self.user)
+        for accept in ("text/html", "application/json", "text/plain"):
+            with self.subTest(accept=accept):
+                response = self.client.get(self.uri, HTTP_ACCEPT=accept)
+                self.assertEqual(response.status_code, 403)
+        self.assertEqual(self.client.head(self.uri).status_code, 403)
+        self.get_checks.assert_not_called()
+
+    def test_admin_can_view_detailed_status(self):
+        self.client.force_login(UserFactory(role="admin"))
+
+        response = self.client.get(self.uri)
+
+        self.assertContains(response, "Service checks")
+        self.assertContains(response, "Background jobs need attention")
+
+    def test_manager_can_view_diagnostic_formats(self):
+        for response_format in ("json", "text", "atom", "rss", "openmetrics"):
+            with self.subTest(response_format=response_format):
+                response = self.client.get(self.uri, {"format": response_format})
+                self.assertEqual(response.status_code, 200)
+
+    def test_inactive_admin_cannot_view_detailed_status(self):
+        self.client.force_login(UserFactory(role="admin", is_active=False))
+
+        response = self.client.get(self.uri)
+
+        self.assertEqual(response.status_code, 403)
+        self.get_checks.assert_not_called()
 
 
 class DashboardHealthSummaryTests(TestCase):
@@ -74,9 +191,11 @@ class HealthCheckCustomViewTests(TestCase):  # pragma: no cover
     @classmethod
     def setUpTestData(cls):
         cls.uri = reverse("status:healthcheck")
+        cls.admin = UserFactory(role="admin")
 
     def setUp(self):
         self.client = Client()
+        self.client.force_login(self.admin)
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client.get(self.uri)
@@ -88,12 +207,6 @@ class HealthCheckCustomViewTests(TestCase):  # pragma: no cover
         self.assertTemplateUsed(response, "health_check.html")
 
     def test_authenticated_view_hides_inherited_top_bar(self):
-        user = get_user_model().objects.create_user(
-            username="status-user",
-            password="status-test-password",
-        )
-        self.client.force_login(user)
-
         response = self.client.get(self.uri)
 
         self.assertNotContains(response, 'class="top-bar')

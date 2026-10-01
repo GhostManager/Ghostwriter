@@ -14,9 +14,9 @@
         <a class="btn btn-sm btn-outline-secondary" href="{% url 'home:dashboard' %}">
           <i class="fas fa-arrow-left" aria-hidden="true"></i> Return home
         </a>
-        <span class="status-overall-state {% if has_check_failures %}is-attention{% else %}is-healthy{% endif %}">
-          <i class="fas {% if has_check_failures %}fa-exclamation-triangle{% else %}fa-check-circle{% endif %}" aria-hidden="true"></i>
-          {% if has_check_failures %}Attention required{% else %}Operational{% endif %}
+        <span class="status-overall-state {% if has_system_warning %}is-attention{% else %}is-healthy{% endif %}">
+          <i class="fas {% if has_system_warning %}fa-exclamation-triangle{% else %}fa-check-circle{% endif %}" aria-hidden="true"></i>
+          {% if has_system_warning %}Attention required{% else %}Operational{% endif %}
         </span>
         <a class="btn btn-sm btn-outline-secondary" href="{% url 'status:healthcheck' %}">
           <i class="fas fa-sync-alt" aria-hidden="true"></i> Refresh checks
@@ -24,16 +24,21 @@
       </div>
     </header>
 
-    <section class="status-summary-card {% if has_check_failures %}is-attention{% else %}is-healthy{% endif %}" aria-labelledby="status-summary-title">
+    <section class="status-summary-card {% if has_system_warning %}is-attention{% else %}is-healthy{% endif %}" aria-labelledby="status-summary-title">
       <span class="status-summary-icon" aria-hidden="true">
-        <i class="fas {% if has_check_failures %}fa-exclamation-triangle{% else %}fa-heartbeat{% endif %}"></i>
+        <i class="fas {% if has_system_warning %}fa-exclamation-triangle{% else %}fa-heartbeat{% endif %}"></i>
       </span>
       <div class="status-summary-copy">
         <span class="detail-eyebrow">Current readout</span>
         <h2 id="status-summary-title">
-          {% if has_check_failures %}One or more checks need attention{% else %}All monitored services are operational{% endif %}
+          {% if has_check_failures %}One or more checks need attention{% elif has_failed_tasks %}Background jobs need attention{% else %}All monitored services are operational{% endif %}
         </h2>
         <p>{{ healthy_check_count }} of {{ status_results|length }} checks returned a healthy result.</p>
+        {% if has_failed_tasks %}
+          <p>
+            Review the failed-job notifications on the <a href="{% url 'home:dashboard' %}">dashboard</a>.
+          </p>
+        {% endif %}
       </div>
     </section>
 
