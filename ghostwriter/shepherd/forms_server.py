@@ -159,22 +159,16 @@ class AuxServerAddressForm(forms.ModelForm):
                         ),
                         css_class="row g-3",
                     ),
-                    Row(
-                        Column(
-                            Button(
-                                "formset-del-button",
-                                "Delete Address",
-                                css_class="btn-outline-danger formset-del-button col-8",
-                            ),
-                            css_class="col-6 offset-3",
+                    Field(
+                        "DELETE", style="display: none;", visibility="hidden", template="delete_checkbox.html"
+                    ),
+                    Div(
+                        Button(
+                            "formset-del-button",
+                            "Delete Address",
+                            css_class="btn-outline-danger formset-del-button formset-action-button",
                         ),
-                        Column(
-                            Field(
-                                "DELETE", style="display: none;", visibility="hidden", template="delete_checkbox.html"
-                            ),
-                            css_class="col-3 text-center",
-                        ),
-                        css_class="row g-3",
+                        css_class="formset-actions",
                     ),
                     css_class="formset",
                 ),

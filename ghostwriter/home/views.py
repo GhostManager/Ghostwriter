@@ -40,6 +40,7 @@ from ghostwriter.home.navigation import (
     get_allowed_optional_ids,
     normalize_sidebar_preferences,
 )
+from ghostwriter.home.notifications import get_uncleared_failed_tasks
 from ghostwriter.home.working_context import (
     PINNABLE_WORK_TYPES,
     build_working_context_catalog,
@@ -455,6 +456,8 @@ class Dashboard(RoleBasedAccessControlMixin, View):
         Current system health based on the full status page check set
     ``system_health_issues``
         Service warnings and failures from those checks for privileged users
+    ``has_system_warning``
+        Whether uncleared failed jobs or current service issues require attention
 
     **Template**
 
@@ -527,22 +530,21 @@ class Dashboard(RoleBasedAccessControlMixin, View):
         )
 
         failed_tasks = []
-        system_health = None
+        uncleared_failed_tasks = get_uncleared_failed_tasks()
         system_health_issues = []
         if request.user.is_privileged:
-            dismissed_task_ids = DashboardExceptionDismissal.objects.values_list(
-                "task_id", flat=True
-            )
-            failed_tasks = list(
-                Task.objects.filter(success=False).exclude(id__in=dismissed_task_ids)[:5]
-            )
-            try:
-                summary = async_to_sync(HealthCheckCustomView().get_dashboard_summary)()
-                system_health = summary["state"]
+            failed_tasks = list(uncleared_failed_tasks[:5])
+            has_failed_tasks = bool(failed_tasks)
+        else:
+            has_failed_tasks = uncleared_failed_tasks.exists()
+        try:
+            summary = async_to_sync(HealthCheckCustomView().get_dashboard_summary)()
+            system_health = summary["state"]
+            if request.user.is_privileged:
                 system_health_issues = summary["issues"]
-            except Exception:  # pragma: no cover
-                logger.exception("Unable to retrieve dashboard system health.")
-                system_health = "ERROR"
+        except Exception:  # pragma: no cover
+            logger.exception("Unable to retrieve dashboard system health.")
+            system_health = "ERROR"
 
         context = {
             "user_projects": user_projects,
@@ -559,6 +561,7 @@ class Dashboard(RoleBasedAccessControlMixin, View):
             "calendar_events": build_dashboard_calendar_events(request.user),
             "system_health": system_health,
             "system_health_issues": system_health_issues,
+            "has_system_warning": has_failed_tasks or system_health != "OK",
         }
         return render(request, "index.html", context=context)
 
@@ -577,6 +580,21 @@ class DashboardExceptionDismiss(RoleBasedAccessControlMixin, View):
         DashboardExceptionDismissal.objects.get_or_create(
             task_id=task.id,
             defaults={"dismissed_by": request.user},
+        )
+        return redirect("home:dashboard")
+
+
+class DashboardExceptionDismissAll(DashboardExceptionDismiss):
+    """Clear all failed-task alerts while retaining their task history."""
+
+    def post(self, request, *args, **kwargs):
+        task_ids = get_uncleared_failed_tasks().values_list("id", flat=True)
+        DashboardExceptionDismissal.objects.bulk_create(
+            [
+                DashboardExceptionDismissal(task_id=task_id, dismissed_by=request.user)
+                for task_id in task_ids
+            ],
+            ignore_conflicts=True,
         )
         return redirect("home:dashboard")
 

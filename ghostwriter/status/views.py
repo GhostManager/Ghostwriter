@@ -7,7 +7,7 @@ import logging
 # Django Imports
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseForbidden
 from django.views.generic.edit import View
 
 # 3rd Party Libraries
@@ -16,6 +16,7 @@ from health_check.views import HealthCheckView
 from redis.asyncio import Redis as RedisClient
 
 # Ghostwriter Libraries
+from ghostwriter.home.notifications import get_uncleared_failed_tasks
 from ghostwriter.modules.health_utils import DjangoHealthChecks
 
 User = get_user_model()
@@ -89,6 +90,16 @@ class HealthCheckCustomView(HealthCheckView):
         "ghostwriter.modules.health_utils.HasuraBackend",
     ]
 
+    async def get(self, request, *args, **kwargs):
+        """Limit diagnostic details to active, authenticated privileged users."""
+        user = await request.auser()
+        if not user.is_authenticated or not user.is_active or not user.is_privileged:
+            return HttpResponseForbidden(
+                "Only managers and admins may view detailed system status."
+            )
+        self.has_failed_tasks = await get_uncleared_failed_tasks().aexists()
+        return await super().get(request, *args, **kwargs)
+
     def get_status_results(self):
         """Describe each check consistently for status and dashboard displays."""
         return [
@@ -141,5 +152,9 @@ class HealthCheckCustomView(HealthCheckView):
         context["has_check_failures"] = any(
             not status_result["is_healthy"]
             for status_result in context["status_results"]
+        )
+        context["has_failed_tasks"] = getattr(self, "has_failed_tasks", False)
+        context["has_system_warning"] = (
+            context["has_check_failures"] or context["has_failed_tasks"]
         )
         return context

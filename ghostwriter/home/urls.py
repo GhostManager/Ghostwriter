@@ -13,6 +13,11 @@ app_name = "home"
 urlpatterns = [
     path("", views.Dashboard.as_view(), name="dashboard"),
     path(
+        "dashboard/exceptions/dismiss-all/",
+        views.DashboardExceptionDismissAll.as_view(),
+        name="dismiss_all_dashboard_exceptions",
+    ),
+    path(
         "dashboard/exceptions/<str:task_id>/dismiss/",
         views.DashboardExceptionDismiss.as_view(),
         name="dismiss_dashboard_exception",

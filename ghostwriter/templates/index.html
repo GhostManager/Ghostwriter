@@ -268,9 +268,21 @@
               <h2 id="operator-exceptions-title">System notifications</h2>
               <p>Only service warnings, unhealthy services, and failed jobs are shown here.</p>
             </div>
-            <a class="btn btn-sm btn-outline-secondary" href="{% url 'status:healthcheck' %}">
-              System status
-            </a>
+            <div class="d-flex flex-wrap align-items-center gap-2 flex-shrink-0">
+              {% if failed_tasks %}
+                <form class="m-0" method="post" action="{% url 'home:dismiss_all_dashboard_exceptions' %}">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-sm btn-outline-secondary"
+                          aria-label="Clear all failed task notifications"
+                          title="Clear all failed task notifications, including older jobs. Current service warnings remain visible.">
+                    Clear all
+                  </button>
+                </form>
+              {% endif %}
+              <a class="btn btn-sm btn-outline-secondary" href="{% url 'status:healthcheck' %}">
+                System status
+              </a>
+            </div>
           </header>
           <div class="operator-exception-list">
             {% for issue in system_health_issues %}
@@ -315,6 +327,19 @@
           <i class="fas fa-check-circle" aria-hidden="true"></i>
           <span>Systems ready</span>
           <a href="{% url 'status:healthcheck' %}">View status</a>
+        </div>
+      {% endif %}
+    {% else %}
+      {% if has_system_warning %}
+        <div class="operator-system-warning">
+          <i class="fas fa-circle" aria-hidden="true"></i>
+          <span>System warning</span>
+          <span>Contact a manager or admin.</span>
+        </div>
+      {% else %}
+        <div class="operator-system-ready">
+          <i class="fas fa-check-circle" aria-hidden="true"></i>
+          <span>Systems ready</span>
         </div>
       {% endif %}
     {% endif %}
