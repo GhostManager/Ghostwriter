@@ -484,6 +484,51 @@ class DashboardExceptionDismissAllTests(TestCase):
         self.assertEqual(DashboardExceptionDismissal.objects.count(), 1)
         self.assertNotContains(self.client.get(self.dashboard_uri), self.uri)
 
+    def test_regular_user_sees_warning_without_failed_job_details(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(self.dashboard_uri)
+
+        self.assertTrue(response.context["has_system_warning"])
+        self.assertEqual(response.context["failed_tasks"], [])
+        self.assertContains(response, 'class="operator-system-warning"')
+        self.assertContains(response, 'class="fas fa-circle"')
+        self.assertContains(response, "System warning")
+        self.assertContains(response, "Contact a manager or admin.")
+        self.assertNotContains(response, "View status")
+        self.assertNotContains(response, reverse("status:healthcheck"))
+        self.assertNotContains(response, "Domain Updates")
+        self.assertNotContains(response, "System notifications")
+        self.assertNotContains(response, "Clear all")
+        self.assertNotContains(response, "operator-exception-dismiss")
+
+    def test_regular_user_warning_disappears_after_clearing_failed_jobs(self):
+        self.client.post(self.uri)
+        self.client.force_login(self.user)
+
+        response = self.client.get(self.dashboard_uri)
+
+        self.assertFalse(response.context["has_system_warning"])
+        self.assertContains(response, "Systems ready")
+        self.assertNotContains(response, "View status")
+        self.assertNotContains(response, "System warning")
+
+    def test_regular_user_still_sees_warning_after_clearing_with_unhealthy_services(
+        self,
+    ):
+        self.healthcheck.return_value.get_dashboard_summary.return_value = {
+            "state": "WARNING",
+            "issues": [],
+        }
+        self.client.post(self.uri)
+        self.client.force_login(self.user)
+
+        response = self.client.get(self.dashboard_uri)
+
+        self.assertTrue(response.context["has_system_warning"])
+        self.assertContains(response, "System warning")
+        self.assertNotContains(response, "Systems ready")
+
     def test_anonymous_user_cannot_clear_all(self):
         self.client.logout()
 
@@ -995,6 +1040,8 @@ class DashboardTests(TestCase):
             active_finding,
         )
         self.assertTrue(response.context["work_items"][0]["is_active_report"])
+        self.assertContains(response, 'class="operator-active-tag"')
+        self.assertContains(response, "Working report")
 
     def test_assigned_finding_uses_configured_severity_color(self):
         finding = self.assigned_findings[0]
@@ -1027,12 +1074,51 @@ class DashboardTests(TestCase):
         self.assertContains(response, 'style="--operator-severity-color: #6C809A;"')
         self.assertNotContains(response, "--operator-severity-color: ZZZZZZ")
 
-    def test_regular_operator_dashboard_skips_system_health_checks(self):
+    def test_regular_operator_sees_healthy_status(self):
         response = self.client_auth.get(self.uri)
 
         self.assertEqual(response.status_code, 200)
-        self.healthcheck.assert_not_called()
-        self.assertIsNone(response.context["system_health"])
+        self.assertEqual(response.context["system_health"], "OK")
+        self.assertFalse(response.context["has_system_warning"])
+        self.assertContains(response, "Systems ready")
+        self.assertNotContains(response, "View status")
+        self.assertNotContains(response, "System warning")
+
+    def test_regular_operator_sees_generic_warning_for_unhealthy_services(self):
+        for state in ("WARNING", "ERROR"):
+            with self.subTest(state=state):
+                self.healthcheck.return_value.get_dashboard_summary.return_value = {
+                    "state": state,
+                    "issues": [
+                        {
+                            "display_name": "Private service",
+                            "result": SimpleNamespace(error="Private failure details"),
+                        }
+                    ],
+                }
+
+                response = self.client_auth.get(self.uri)
+
+                self.assertTrue(response.context["has_system_warning"])
+                self.assertEqual(response.context["system_health_issues"], [])
+                self.assertContains(response, "System warning")
+                self.assertContains(response, "Contact a manager or admin.")
+                self.assertNotContains(response, "View status")
+                self.assertNotContains(response, "Private service")
+                self.assertNotContains(response, "Private failure details")
+                self.assertNotContains(response, "Systems ready")
+
+    def test_regular_operator_sees_warning_when_health_checks_fail(self):
+        self.healthcheck.return_value.get_dashboard_summary.side_effect = RuntimeError(
+            "Check failed"
+        )
+
+        response = self.client_auth.get(self.uri)
+
+        self.assertContains(response, "System warning")
+        self.assertContains(response, "Contact a manager or admin.")
+        self.assertNotContains(response, "View status")
+        self.assertNotContains(response, "Systems ready")
 
     def test_healthy_dashboard_shows_green_ready_state(self):
         response = self.client_admin.get(self.uri)
