@@ -390,6 +390,175 @@ class TemplateTagTests(TestCase):
         self.assertEqual(custom_tags.bhe_percent(None), "--")
 
 
+class DashboardExceptionDismissAllTests(TestCase):
+    """Tests for clearing the complete failed-task notification backlog."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(role="user")
+        cls.manager = UserFactory(role="manager")
+        cls.admin = UserFactory(role="admin")
+        cls.uri = reverse("home:dismiss_all_dashboard_exceptions")
+        cls.dashboard_uri = reverse("home:dashboard")
+        cls.failed_tasks = [cls.create_task(index) for index in range(12)]
+        cls.successful_task = cls.create_task(12, success=True)
+        cls.existing_dismissal = DashboardExceptionDismissal.objects.create(
+            task_id=cls.failed_tasks[0].id, dismissed_by=cls.manager
+        )
+
+    @staticmethod
+    def create_task(index, success=False):
+        stopped = timezone.now() - timedelta(days=365 * 3 + index)
+        return Task.objects.create(
+            id=uuid4().hex,
+            name=f"dashboard-task-{index}",
+            func="ghostwriter.shepherd.tasks.check_domains",
+            hook="",
+            args=(),
+            kwargs={},
+            result="Task completed" if success else "Task failed",
+            group=f"Domain Updates {index}",
+            started=stopped - timedelta(minutes=1),
+            stopped=stopped,
+            success=success,
+        )
+
+    def setUp(self):
+        self.client.force_login(self.admin)
+        healthcheck_patcher = patch("ghostwriter.home.views.HealthCheckCustomView")
+        self.healthcheck = healthcheck_patcher.start()
+        self.addCleanup(healthcheck_patcher.stop)
+        self.healthcheck.return_value.get_dashboard_summary = AsyncMock(
+            return_value={"state": "OK", "issues": []}
+        )
+
+    def test_clears_backlog_beyond_visible_tasks_and_preserves_history(self):
+        response = self.client.get(self.dashboard_uri)
+        self.assertEqual(len(response.context["failed_tasks"]), 5)
+        self.assertContains(response, self.uri)
+        self.assertContains(
+            response, 'aria-label="Clear all failed task notifications"'
+        )
+
+        response = self.client.post(self.uri)
+
+        self.assertRedirects(response, self.dashboard_uri)
+        self.assertEqual(DashboardExceptionDismissal.objects.count(), 12)
+        self.assertEqual(
+            DashboardExceptionDismissal.objects.filter(dismissed_by=self.admin).count(),
+            11,
+        )
+        self.assertFalse(
+            DashboardExceptionDismissal.objects.filter(
+                task_id=self.successful_task.id
+            ).exists()
+        )
+        self.assertEqual(Task.objects.count(), 13)
+        self.assertEqual(
+            Task.objects.filter(success=False, result="Task failed").count(), 12
+        )
+        response = self.client.get(self.dashboard_uri)
+        self.assertEqual(response.context["failed_tasks"], [])
+        self.assertNotContains(response, self.uri)
+        self.assertContains(response, "Systems ready")
+
+    def test_manager_can_clear_all(self):
+        self.client.force_login(self.manager)
+
+        response = self.client.post(self.uri)
+
+        self.assertRedirects(response, self.dashboard_uri)
+        self.assertEqual(
+            DashboardExceptionDismissal.objects.filter(
+                dismissed_by=self.manager
+            ).count(),
+            12,
+        )
+
+    def test_regular_user_cannot_clear_all(self):
+        self.client.force_login(self.user)
+
+        response = self.client.post(self.uri)
+
+        self.assertRedirects(response, self.dashboard_uri)
+        self.assertEqual(DashboardExceptionDismissal.objects.count(), 1)
+        self.assertNotContains(self.client.get(self.dashboard_uri), self.uri)
+
+    def test_anonymous_user_cannot_clear_all(self):
+        self.client.logout()
+
+        response = self.client.post(self.uri)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(reverse("account_login"), response.url)
+        self.assertEqual(DashboardExceptionDismissal.objects.count(), 1)
+
+    def test_get_does_not_clear_notifications(self):
+        response = self.client.get(self.uri)
+
+        self.assertEqual(response.status_code, 405)
+        self.assertEqual(DashboardExceptionDismissal.objects.count(), 1)
+
+    def test_post_requires_csrf_token(self):
+        client = Client(enforce_csrf_checks=True)
+        client.force_login(self.admin)
+
+        response = client.post(self.uri)
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(DashboardExceptionDismissal.objects.count(), 1)
+
+    def test_repeated_clear_preserves_existing_dismissals(self):
+        dismissed_at = self.existing_dismissal.dismissed_at
+        self.client.post(self.uri)
+        self.client.post(self.uri)
+
+        self.assertEqual(DashboardExceptionDismissal.objects.count(), 12)
+        self.existing_dismissal.refresh_from_db()
+        self.assertEqual(self.existing_dismissal.dismissed_by, self.manager)
+        self.assertEqual(self.existing_dismissal.dismissed_at, dismissed_at)
+
+    def test_new_failures_still_appear_after_clearing(self):
+        self.client.post(self.uri)
+        task = self.create_task(30)
+
+        response = self.client.get(self.dashboard_uri)
+
+        self.assertEqual(response.context["failed_tasks"], [task])
+        self.assertContains(response, self.uri)
+        self.assertFalse(
+            DashboardExceptionDismissal.objects.filter(task_id=task.id).exists()
+        )
+
+    def test_current_service_warnings_remain_after_clearing(self):
+        self.healthcheck.return_value.get_dashboard_summary.return_value = {
+            "state": "WARNING",
+            "issues": [
+                {
+                    "display_name": "Disk",
+                    "is_warning": True,
+                    "result": SimpleNamespace(error=ServiceWarning("94.5% disk usage")),
+                }
+            ],
+        }
+
+        self.client.post(self.uri)
+        response = self.client.get(self.dashboard_uri)
+
+        self.assertContains(response, "Disk requires attention")
+        self.assertContains(response, "94.5% disk usage")
+        self.assertNotContains(response, self.uri)
+        self.assertNotContains(response, "Systems ready")
+
+    def test_clear_with_no_failed_tasks_succeeds(self):
+        Task.objects.filter(success=False).delete()
+
+        response = self.client.post(self.uri)
+
+        self.assertRedirects(response, self.dashboard_uri)
+        self.assertEqual(DashboardExceptionDismissal.objects.count(), 1)
+
+
 class DashboardTests(TestCase):
     """Collection of tests for :view:`home.dashboard`."""
 

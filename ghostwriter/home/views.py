@@ -581,6 +581,28 @@ class DashboardExceptionDismiss(RoleBasedAccessControlMixin, View):
         return redirect("home:dashboard")
 
 
+class DashboardExceptionDismissAll(DashboardExceptionDismiss):
+    """Clear all failed-task alerts while retaining their task history."""
+
+    def post(self, request, *args, **kwargs):
+        dismissed_task_ids = DashboardExceptionDismissal.objects.values_list(
+            "task_id", flat=True
+        )
+        task_ids = (
+            Task.objects.filter(success=False)
+            .exclude(id__in=dismissed_task_ids)
+            .values_list("id", flat=True)
+        )
+        DashboardExceptionDismissal.objects.bulk_create(
+            [
+                DashboardExceptionDismissal(task_id=task_id, dismissed_by=request.user)
+                for task_id in task_ids
+            ],
+            ignore_conflicts=True,
+        )
+        return redirect("home:dashboard")
+
+
 class Management(RoleBasedAccessControlMixin, View):
     """
     Display the current Ghostwriter settings.
