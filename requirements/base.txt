@@ -43,7 +43,7 @@ python-nmap==0.7.1
 python-pptx==1.0.2
 requests==2.34.2
 django-timezone-field==7.2.2
-pyjwt[crypto]==2.13.0
+pyjwt[crypto]==2.15.0
 psutil==7.2.2
 django-taggit==6.1.0
 croniter==3.0.3
