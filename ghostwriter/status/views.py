@@ -1,6 +1,7 @@
 """This contains all the views used by the Status application."""
 
 # Standard Libraries
+import asyncio
 import logging
 
 # Django Imports
@@ -10,6 +11,7 @@ from django.http import HttpResponse
 from django.views.generic.edit import View
 
 # 3rd Party Libraries
+from health_check.exceptions import ServiceWarning
 from health_check.views import HealthCheckView
 from redis.asyncio import Redis as RedisClient
 
@@ -87,6 +89,38 @@ class HealthCheckCustomView(HealthCheckView):
         "ghostwriter.modules.health_utils.HasuraBackend",
     ]
 
+    def get_status_results(self):
+        """Describe each check consistently for status and dashboard displays."""
+        return [
+            {
+                "display_name": self.display_names.get(
+                    result.check.__class__.__name__,
+                    result.check.__class__.__name__,
+                ),
+                "is_healthy": not bool(result.error),
+                "is_warning": isinstance(result.error, ServiceWarning),
+                "result": result,
+            }
+            for result in self.results
+        ]
+
+    async def get_dashboard_summary(self):
+        """Run the status page's checks and summarize warnings and failures."""
+        with self.get_executor() as executor:
+            self.results = await asyncio.gather(
+                *(check.get_result(executor) for check in self.get_checks())
+            )
+        issues = [
+            result for result in self.get_status_results() if not result["is_healthy"]
+        ]
+        if any(not issue["is_warning"] for issue in issues):
+            state = "ERROR"
+        elif issues:
+            state = "WARNING"
+        else:
+            state = "OK"
+        return {"state": state, "issues": issues}
+
     def get_context_data(self, **kwargs):
         """Add display-friendly service names for the HTML status page."""
         context = super().get_context_data(**kwargs)
@@ -100,17 +134,7 @@ class HealthCheckCustomView(HealthCheckView):
                 "value": f"{settings.HEALTH_CHECK['MEMORY_MIN']:g} MB",
             },
         ]
-        context["status_results"] = [
-            {
-                "display_name": self.display_names.get(
-                    result.check.__class__.__name__,
-                    result.check.__class__.__name__,
-                ),
-                "is_healthy": not bool(result.error),
-                "result": result,
-            }
-            for result in self.results
-        ]
+        context["status_results"] = self.get_status_results()
         context["healthy_check_count"] = sum(
             status_result["is_healthy"] for status_result in context["status_results"]
         )

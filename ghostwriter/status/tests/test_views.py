@@ -1,5 +1,6 @@
 # Standard Libraries
-from unittest.mock import Mock, patch
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, Mock, patch
 
 # Django Imports
 from django.contrib.auth import get_user_model
@@ -7,12 +8,62 @@ from django.test import Client, TestCase, override_settings, tag
 from django.urls import reverse
 
 # 3rd Party Libraries
+from asgiref.sync import async_to_sync
 from health_check.contrib.psutil import Disk, Memory
-from health_check.exceptions import HealthCheckException, ServiceReturnedUnexpectedResult, ServiceWarning
+from health_check.exceptions import (
+    HealthCheckException,
+    ServiceReturnedUnexpectedResult,
+    ServiceUnavailable,
+    ServiceWarning,
+)
 
 # Ghostwriter Libraries
-from ghostwriter.modules.health_utils import HasuraBackend
+from ghostwriter.modules.health_utils import ConfiguredDisk, HasuraBackend
 from ghostwriter.status.views import HealthCheckCustomView
+
+
+class DashboardHealthSummaryTests(TestCase):
+    """Dashboard health includes configured capacity warnings and service failures."""
+
+    @patch("health_check.contrib.psutil.psutil.disk_usage")
+    def test_disk_threshold_controls_dashboard_warning(self, disk_usage):
+        disk_usage.return_value = SimpleNamespace(percent=94.5)
+        for threshold, expected_state in ((90, "WARNING"), (95, "OK")):
+            with self.subTest(threshold=threshold), override_settings(
+                HEALTH_CHECK={"DISK_USAGE_MAX": threshold, "MEMORY_MIN": 0}
+            ):
+                view = HealthCheckCustomView()
+                with patch.object(view, "get_checks", return_value=[ConfiguredDisk()]):
+                    summary = async_to_sync(view.get_dashboard_summary)()
+
+                self.assertEqual(summary["state"], expected_state)
+                if expected_state == "WARNING":
+                    self.assertEqual(summary["issues"][0]["display_name"], "Disk")
+                    self.assertTrue(summary["issues"][0]["is_warning"])
+                    self.assertIn("94.5", str(summary["issues"][0]["result"].error))
+                else:
+                    self.assertEqual(summary["issues"], [])
+                context = view.get_context_data()
+                self.assertEqual(context["has_check_failures"], expected_state != "OK")
+
+    def test_service_failure_takes_precedence_over_capacity_warning(self):
+        results = [
+            SimpleNamespace(
+                check=ConfiguredDisk(), error=ServiceWarning("94.5% disk usage")
+            ),
+            SimpleNamespace(
+                check=HasuraBackend(), error=ServiceUnavailable("GraphQL unavailable")
+            ),
+        ]
+        checks = [Mock(get_result=AsyncMock(return_value=result)) for result in results]
+        view = HealthCheckCustomView()
+        with patch.object(view, "get_checks", return_value=checks):
+            summary = async_to_sync(view.get_dashboard_summary)()
+
+        self.assertEqual(summary["state"], "ERROR")
+        self.assertEqual(len(summary["issues"]), 2)
+        self.assertEqual(summary["issues"][1]["display_name"], "Hasura GraphQL Engine")
+        self.assertFalse(summary["issues"][1]["is_warning"])
 
 
 # Health checks for RAM and disk cannot be completed successfully in the GitHub CI/CD pipeline

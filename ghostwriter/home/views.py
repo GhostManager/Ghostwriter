@@ -21,6 +21,7 @@ from django.views.decorators.http import require_GET, require_POST
 from django.views.generic.edit import View
 
 # 3rd Party Libraries
+from asgiref.sync import async_to_sync
 from django_q.models import Task
 from django_q.tasks import async_task
 
@@ -45,9 +46,9 @@ from ghostwriter.home.working_context import (
     get_pinned_work,
     toggle_pinned_work,
 )
-from ghostwriter.modules.health_utils import DjangoHealthChecks
 from ghostwriter.reporting.models import Report, ReportFindingLink, ReportObservationLink
 from ghostwriter.rolodex.models import Client, Project, ProjectAssignment
+from ghostwriter.status.views import HealthCheckCustomView
 
 User = get_user_model()
 
@@ -451,7 +452,9 @@ class Dashboard(RoleBasedAccessControlMixin, View):
     ``calendar_events``
         FullCalendar event data for all ongoing projects available to the current user
     ``system_health``
-        Current system health based on :func:`ghostwriter.modules.health_utils.DjangoHealthChecks`
+        Current system health based on the full status page check set
+    ``system_health_issues``
+        Service warnings and failures from those checks for privileged users
 
     **Template**
 
@@ -525,6 +528,7 @@ class Dashboard(RoleBasedAccessControlMixin, View):
 
         failed_tasks = []
         system_health = None
+        system_health_issues = []
         if request.user.is_privileged:
             dismissed_task_ids = DashboardExceptionDismissal.objects.values_list(
                 "task_id", flat=True
@@ -532,13 +536,10 @@ class Dashboard(RoleBasedAccessControlMixin, View):
             failed_tasks = list(
                 Task.objects.filter(success=False).exclude(id__in=dismissed_task_ids)[:5]
             )
-            system_health = "OK"
             try:
-                healthcheck = DjangoHealthChecks()
-                db_status = healthcheck.get_database_status()
-                cache_status = healthcheck.get_cache_status()
-                if not db_status["default"] or not cache_status["default"]:
-                    system_health = "WARNING"
+                summary = async_to_sync(HealthCheckCustomView().get_dashboard_summary)()
+                system_health = summary["state"]
+                system_health_issues = summary["issues"]
             except Exception:  # pragma: no cover
                 logger.exception("Unable to retrieve dashboard system health.")
                 system_health = "ERROR"
@@ -557,6 +558,7 @@ class Dashboard(RoleBasedAccessControlMixin, View):
             "work_item_limit": DASHBOARD_WORK_ITEM_LIMIT,
             "calendar_events": build_dashboard_calendar_events(request.user),
             "system_health": system_health,
+            "system_health_issues": system_health_issues,
         }
         return render(request, "index.html", context=context)
 

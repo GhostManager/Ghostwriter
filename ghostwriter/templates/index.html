@@ -261,27 +261,37 @@
 
     {% if request.user|is_privileged %}
       {% if failed_tasks or system_health != "OK" %}
-        <section class="operator-exceptions-panel" aria-labelledby="operator-exceptions-title">
+        <section class="operator-exceptions-panel{% if system_health == 'WARNING' and not failed_tasks %} is-warning{% endif %}" aria-labelledby="operator-exceptions-title">
           <header class="operator-panel-header">
             <div>
-              <span class="operator-panel-kicker">Admin attention</span>
-              <h2 id="operator-exceptions-title">System exceptions</h2>
-              <p>Only failed jobs and unhealthy services are shown here.</p>
+              <span class="operator-panel-kicker">Admin attention needed</span>
+              <h2 id="operator-exceptions-title">System notifications</h2>
+              <p>Only service warnings, unhealthy services, and failed jobs are shown here.</p>
             </div>
             <a class="btn btn-sm btn-outline-secondary" href="{% url 'status:healthcheck' %}">
               System status
             </a>
           </header>
           <div class="operator-exception-list">
-            {% if system_health != "OK" %}
-              <div class="operator-exception-item is-critical">
+            {% for issue in system_health_issues %}
+              <div class="operator-exception-item {% if issue.is_warning %}is-warning{% else %}is-critical{% endif %}">
                 <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
                 <div class="operator-exception-copy">
-                  <strong>System health requires attention</strong>
-                  <span>Database or cache checks did not return a healthy result.</span>
+                  <strong>{{ issue.display_name }} requires attention</strong>
+                  <span>{{ issue.result.error }}</span>
                 </div>
               </div>
-            {% endif %}
+            {% empty %}
+              {% if system_health != "OK" %}
+                <div class="operator-exception-item is-critical">
+                  <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+                  <div class="operator-exception-copy">
+                    <strong>System health requires attention</strong>
+                    <span>System checks could not be completed. Review the system status page.</span>
+                  </div>
+                </div>
+              {% endif %}
+            {% endfor %}
             {% for task in failed_tasks %}
               <div class="operator-exception-item">
                 <i class="fas fa-times-circle" aria-hidden="true"></i>

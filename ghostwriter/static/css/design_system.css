@@ -12825,6 +12825,10 @@ a.report-item-title {
   border-color: color-mix(in srgb, var(--gw-accent-coral) 30%, var(--gw-border));
 }
 
+.operator-exceptions-panel.is-warning {
+  border-color: color-mix(in srgb, var(--gw-signal-amber) 30%, var(--gw-border));
+}
+
 .operator-exception-list {
   display: grid;
 }
@@ -12844,6 +12848,10 @@ a.report-item-title {
 .operator-exception-item > i {
   margin-top: 0.2rem;
   color: var(--gw-accent-coral);
+}
+
+.operator-exception-item.is-warning > i {
+  color: var(--gw-signal-amber);
 }
 
 .operator-exception-copy {

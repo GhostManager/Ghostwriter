@@ -3,7 +3,8 @@ import logging
 from datetime import date, datetime, timedelta
 from datetime import timezone as datetime_timezone
 from io import StringIO
-from unittest.mock import patch
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 from zoneinfo import ZoneInfo
 
@@ -19,6 +20,7 @@ from django.utils import timezone
 # 3rd Party Libraries
 from allauth.mfa.totp.internal.auth import TOTP, generate_totp_secret
 from django_q.models import Task
+from health_check.exceptions import ServiceUnavailable, ServiceWarning
 
 # Ghostwriter Libraries
 from ghostwriter.factories import (
@@ -496,6 +498,12 @@ class DashboardTests(TestCase):
         cls.uri = reverse("home:dashboard")
 
     def setUp(self):
+        healthcheck_patcher = patch("ghostwriter.home.views.HealthCheckCustomView")
+        self.healthcheck = healthcheck_patcher.start()
+        self.addCleanup(healthcheck_patcher.stop)
+        self.healthcheck.return_value.get_dashboard_summary = AsyncMock(
+            return_value={"state": "OK", "issues": []}
+        )
         self.client = Client()
         self.client_auth = Client()
         self.client_manager = Client()
@@ -720,7 +728,7 @@ class DashboardTests(TestCase):
         )
 
         response = self.client_auth.get(self.uri)
-        self.assertNotContains(response, "System exceptions")
+        self.assertNotContains(response, "System notifications")
 
         response = self.client_auth.post(dismiss_uri)
         self.assertRedirects(response, self.uri)
@@ -729,9 +737,11 @@ class DashboardTests(TestCase):
         )
 
         response = self.client_manager.get(self.uri)
-        self.assertContains(response, "System exceptions")
+        self.assertContains(response, "System notifications")
         self.assertContains(response, "Domain Updates")
         self.assertContains(response, dismiss_uri)
+        self.assertNotContains(response, "operator-system-ready")
+        self.assertNotContains(response, "View status")
 
         response = self.client_manager.post(dismiss_uri)
         self.assertRedirects(response, self.uri)
@@ -848,13 +858,80 @@ class DashboardTests(TestCase):
         self.assertContains(response, 'style="--operator-severity-color: #6C809A;"')
         self.assertNotContains(response, "--operator-severity-color: ZZZZZZ")
 
-    @patch("ghostwriter.home.views.DjangoHealthChecks")
-    def test_regular_operator_dashboard_skips_system_health_checks(self, healthcheck):
+    def test_regular_operator_dashboard_skips_system_health_checks(self):
         response = self.client_auth.get(self.uri)
 
         self.assertEqual(response.status_code, 200)
-        healthcheck.assert_not_called()
+        self.healthcheck.assert_not_called()
         self.assertIsNone(response.context["system_health"])
+
+    def test_healthy_dashboard_shows_green_ready_state(self):
+        response = self.client_admin.get(self.uri)
+
+        self.assertEqual(response.context["system_health"], "OK")
+        self.assertContains(response, 'class="operator-system-ready"')
+        self.assertContains(response, "Systems ready")
+        self.assertContains(response, "View status")
+        self.assertNotContains(response, "System notifications")
+        self.assertNotContains(response, "System warning")
+
+    def test_disk_warning_replaces_ready_state_and_displays_check_message(self):
+        issue = {
+            "display_name": "Disk",
+            "is_warning": True,
+            "result": SimpleNamespace(error=ServiceWarning("94.5% disk usage")),
+        }
+        self.healthcheck.return_value.get_dashboard_summary.return_value = {
+            "state": "WARNING",
+            "issues": [issue],
+        }
+
+        response = self.client_admin.get(self.uri)
+
+        self.assertEqual(response.context["system_health"], "WARNING")
+        self.assertNotContains(response, "operator-system-ready")
+        self.assertContains(response, 'class="operator-exception-item is-warning"')
+        self.assertContains(response, "System notifications")
+        self.assertContains(response, "System status")
+        self.assertNotContains(response, "System warning")
+        self.assertNotContains(response, "View status")
+        self.assertContains(response, "Disk requires attention")
+        self.assertContains(response, "94.5% disk usage")
+        self.assertNotContains(response, "Systems ready")
+
+    def test_failed_service_uses_attention_state_instead_of_ready(self):
+        issue = {
+            "display_name": "Database",
+            "is_warning": False,
+            "result": SimpleNamespace(error=ServiceUnavailable("Database unavailable")),
+        }
+        self.healthcheck.return_value.get_dashboard_summary.return_value = {
+            "state": "ERROR",
+            "issues": [issue],
+        }
+
+        response = self.client_admin.get(self.uri)
+
+        self.assertNotContains(response, "operator-system-ready")
+        self.assertContains(response, 'class="operator-exception-item is-critical"')
+        self.assertContains(response, "System status")
+        self.assertNotContains(response, "View status")
+        self.assertContains(response, "Database unavailable")
+        self.assertNotContains(response, "Systems ready")
+
+    def test_failed_health_checks_do_not_claim_ready(self):
+        self.healthcheck.return_value.get_dashboard_summary.side_effect = RuntimeError(
+            "Check failed"
+        )
+
+        response = self.client_admin.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["system_health"], "ERROR")
+        self.assertContains(response, "System checks could not be completed")
+        self.assertNotContains(response, "operator-system-ready")
+        self.assertNotContains(response, "View status")
+        self.assertNotContains(response, "Systems ready")
 
     def assert_privileged_calendar_shows_ongoing_projects(self, client):
         response = client.get(self.uri)
