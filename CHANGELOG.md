@@ -10,6 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 * Added a Clear all action for failed-task system notifications, preserving task history and current service warnings
+* Added a yellow system warning for regular users with guidance to contact a manager or admin when failed jobs or service issues require attention
+* Added matching Add actions beside every Delete button in project, client, and server form entries to make repeated entry easier, with balanced action-bar spacing
+
+### Fixed
+
+* Placed the scroll-to-top control in compact, balanced page gutters so it cannot cover messages or table actions, with keyboard access and reduced-motion support
+* Made dashboard work rows consistent, using the Working report badge to identify items from the current report
+* Kept collaborative editor formatting controls visible below the working engagement bar, with report-field writing panes that fill available space and compact help/status footers on larger screens
 
 ## [7.3.0] - 30 September 2026
 
