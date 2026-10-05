@@ -19,9 +19,11 @@ import django_q.worker as q_worker
 # Ghostwriter Libraries
 from ghostwriter.home.django_q_policy import (
     TaskPolicyError,
+    get_schedule_policy,
     validate_schedule,
     validate_task,
 )
+from ghostwriter.status.health import ensure_dashboard_health_schedule
 
 
 def restricted_scheduler(broker=None):
@@ -36,6 +38,13 @@ def restricted_scheduler(broker=None):
         else q_scheduler.db.models.Q(pk__in=[])
     )
     try:
+        try:
+            ensure_dashboard_health_schedule(
+                using=q_scheduler.db.router.db_for_write(q_scheduler.Schedule)
+            )
+        except Exception:  # pylint: disable=broad-exception-caught
+            # Monitoring recovery must not prevent other scheduled jobs from running.
+            q_scheduler.logger.exception("Could not restore dashboard health schedule")
         with q_scheduler.db.transaction.atomic(
             using=q_scheduler.db.router.db_for_write(q_scheduler.Schedule)
         ):
@@ -77,15 +86,21 @@ def restricted_scheduler(broker=None):
 def _enqueue_schedule(schedule, broker):
     """Enqueue one locked schedule and calculate its following run."""
     args, kwargs = validate_schedule(schedule)
-    q_options = {}
+    policy = get_schedule_policy()[schedule.func]
+    # Options come from server policy, never from editable schedule arguments.
+    q_options = dict(policy.get("q_options", {}))
     if schedule.hook:
         q_options["hook"] = schedule.hook
 
     if schedule.schedule_type != schedule.ONCE:
         next_run = schedule.next_run
+        catch_up = policy.get("catch_up", q_scheduler.Conf.CATCH_UP)
+        if policy.get("catch_up") is False:
+            # Start from now instead of walking every missed monitoring interval.
+            next_run = q_scheduler.localtime()
         while True:
             next_run = schedule.calculate_next_run(next_run)
-            if q_scheduler.Conf.CATCH_UP or next_run > q_scheduler.localtime():
+            if catch_up or next_run > q_scheduler.localtime():
                 break
         schedule.next_run = next_run
         if schedule.repeats < -1:

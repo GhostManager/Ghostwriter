@@ -540,6 +540,15 @@ GHOSTWRITER_DJANGO_Q_SCHEDULE_TASKS = {
         "args": [],
         "kwargs": {},
     },
+    "ghostwriter.status.tasks.refresh_dashboard_health": {
+        "label": "Refresh Dashboard System Health",
+        "args": [],
+        "kwargs": {},
+        # Historical health samples cannot be recovered by running checks now.
+        "catch_up": False,
+        # Bound monitoring work and avoid displacing useful successful-job history.
+        "q_options": {"timeout": 30, "save": False, "ack_failure": True},
+    },
 }
 
 # These tasks are queued by Ghostwriter itself. They are accepted by the queue

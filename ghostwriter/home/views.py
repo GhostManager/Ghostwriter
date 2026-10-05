@@ -21,7 +21,6 @@ from django.views.decorators.http import require_GET, require_POST
 from django.views.generic.edit import View
 
 # 3rd Party Libraries
-from asgiref.sync import async_to_sync
 from django_q.models import Task
 from django_q.tasks import async_task
 
@@ -49,7 +48,7 @@ from ghostwriter.home.working_context import (
 )
 from ghostwriter.reporting.models import Report, ReportFindingLink, ReportObservationLink
 from ghostwriter.rolodex.models import Client, Project, ProjectAssignment
-from ghostwriter.status.views import HealthCheckCustomView
+from ghostwriter.status.health import get_dashboard_health_summary
 
 User = get_user_model()
 
@@ -453,7 +452,7 @@ class Dashboard(RoleBasedAccessControlMixin, View):
     ``calendar_events``
         FullCalendar event data for all ongoing projects available to the current user
     ``system_health``
-        Current system health based on the full status page check set
+        Latest background result from the full status page check set, or UNKNOWN
     ``system_health_issues``
         Service warnings and failures from those checks for privileged users
     ``has_system_warning``
@@ -538,13 +537,13 @@ class Dashboard(RoleBasedAccessControlMixin, View):
         else:
             has_failed_tasks = uncleared_failed_tasks.exists()
         try:
-            summary = async_to_sync(HealthCheckCustomView().get_dashboard_summary)()
+            summary = get_dashboard_health_summary()
             system_health = summary["state"]
             if request.user.is_privileged:
                 system_health_issues = summary["issues"]
         except Exception:  # pragma: no cover
             logger.exception("Unable to retrieve dashboard system health.")
-            system_health = "ERROR"
+            system_health = "UNKNOWN"
 
         context = {
             "user_projects": user_projects,
@@ -561,7 +560,8 @@ class Dashboard(RoleBasedAccessControlMixin, View):
             "calendar_events": build_dashboard_calendar_events(request.user),
             "system_health": system_health,
             "system_health_issues": system_health_issues,
-            "has_system_warning": has_failed_tasks or system_health != "OK",
+            "has_system_warning": has_failed_tasks
+            or system_health in ("WARNING", "ERROR"),
         }
         return render(request, "index.html", context=context)
 

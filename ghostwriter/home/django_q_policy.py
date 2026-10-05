@@ -408,6 +408,24 @@ def _validate_task_policy_entry(path, specification):
     """Validate one configured task path and its argument schema."""
     callable_path(path)
     _validate_policy_schema(path, specification)
+    if "catch_up" in specification and type(specification["catch_up"]) is not bool:
+        raise TaskPolicyError(f"Policy for {path} has an invalid catch_up setting")
+    options = specification.get("q_options", {})
+    if not isinstance(options, Mapping) or set(options) - {
+        "timeout",
+        "save",
+        "ack_failure",
+    }:
+        raise TaskPolicyError(f"Policy for {path} has unsupported queue options")
+    for name, value in options.items():
+        if name == "timeout":
+            valid = type(value) is int and value > 0
+        else:
+            valid = type(value) is bool
+        if not valid:
+            raise TaskPolicyError(
+                f"Policy for {path} has an invalid queue option: {name}"
+            )
 
 
 def _validate_hook_policy_entry(path, specification):

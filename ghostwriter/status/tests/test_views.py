@@ -1,4 +1,7 @@
 # Standard Libraries
+import json
+from asgiref.sync import async_to_sync
+from datetime import timedelta
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock, patch
 from uuid import uuid4
@@ -9,7 +12,6 @@ from django.urls import reverse
 from django.utils import timezone
 
 # 3rd Party Libraries
-from asgiref.sync import async_to_sync
 from django_q.models import Task
 from health_check.contrib.psutil import Disk, Memory
 from health_check.exceptions import (
@@ -23,6 +25,9 @@ from health_check.exceptions import (
 from ghostwriter.factories import UserFactory
 from ghostwriter.home.models import DashboardExceptionDismissal
 from ghostwriter.modules.health_utils import ConfiguredDisk, HasuraBackend
+from ghostwriter.status.health import get_dashboard_health_summary
+from ghostwriter.status.models import DashboardHealthSnapshot
+from ghostwriter.status.tasks import refresh_dashboard_health
 from ghostwriter.status.views import HealthCheckCustomView
 
 
@@ -142,6 +147,9 @@ class StatusNotificationSummaryTests(TestCase):
 class DashboardHealthSummaryTests(TestCase):
     """Dashboard health includes configured capacity warnings and service failures."""
 
+    def setUp(self):
+        DashboardHealthSnapshot.objects.all().delete()
+
     @patch("health_check.contrib.psutil.psutil.disk_usage")
     def test_disk_threshold_controls_dashboard_warning(self, disk_usage):
         disk_usage.return_value = SimpleNamespace(percent=94.5)
@@ -151,13 +159,13 @@ class DashboardHealthSummaryTests(TestCase):
             ):
                 view = HealthCheckCustomView()
                 with patch.object(view, "get_checks", return_value=[ConfiguredDisk()]):
-                    summary = async_to_sync(view.get_dashboard_summary)()
+                    summary = async_to_sync(view.collect_health_summary)()
 
                 self.assertEqual(summary["state"], expected_state)
                 if expected_state == "WARNING":
                     self.assertEqual(summary["issues"][0]["display_name"], "Disk")
                     self.assertTrue(summary["issues"][0]["is_warning"])
-                    self.assertIn("94.5", str(summary["issues"][0]["result"].error))
+                    self.assertIn("94.5", summary["issues"][0]["result"]["error"])
                 else:
                     self.assertEqual(summary["issues"], [])
                 context = view.get_context_data()
@@ -175,12 +183,83 @@ class DashboardHealthSummaryTests(TestCase):
         checks = [Mock(get_result=AsyncMock(return_value=result)) for result in results]
         view = HealthCheckCustomView()
         with patch.object(view, "get_checks", return_value=checks):
-            summary = async_to_sync(view.get_dashboard_summary)()
+            summary = async_to_sync(view.collect_health_summary)()
 
         self.assertEqual(summary["state"], "ERROR")
         self.assertEqual(len(summary["issues"]), 2)
         self.assertEqual(summary["issues"][1]["display_name"], "Hasura GraphQL Engine")
         self.assertFalse(summary["issues"][1]["is_warning"])
+
+    def test_background_failure_is_shared_and_next_run_records_recovery(self):
+        result = SimpleNamespace(
+            check=HasuraBackend(), error=ServiceUnavailable("GraphQL unavailable")
+        )
+        check = Mock(get_result=AsyncMock(return_value=result))
+        with patch.object(HealthCheckCustomView, "get_checks", return_value=[check]):
+            refresh_dashboard_health()
+            with self.assertNumQueries(1):
+                summary = get_dashboard_health_summary()
+            self.assertEqual(get_dashboard_health_summary(), summary)
+            check.get_result.assert_awaited_once()
+            self.assertEqual(summary["state"], "ERROR")
+            self.assertIn(
+                "GraphQL unavailable", summary["issues"][0]["result"]["error"]
+            )
+            self.assertEqual(json.loads(json.dumps(summary)), summary)
+            result.error = None
+            refresh_dashboard_health()
+
+        self.assertEqual(check.get_result.await_count, 2)
+        self.assertEqual(get_dashboard_health_summary(), {"state": "OK", "issues": []})
+        self.assertEqual(DashboardHealthSnapshot.objects.count(), 1)
+
+    def test_unexpected_monitor_error_records_unknown_instead_of_ready(self):
+        DashboardHealthSnapshot.objects.create(
+            checked_at=timezone.now(), summary={"state": "OK", "issues": []}
+        )
+        with patch.object(
+            HealthCheckCustomView,
+            "collect_health_summary",
+            side_effect=RuntimeError("Unavailable"),
+        ):
+            refresh_dashboard_health()
+
+        self.assertEqual(
+            get_dashboard_health_summary(), {"state": "UNKNOWN", "issues": []}
+        )
+
+    def test_status_page_runs_fresh_checks_without_replacing_background_snapshot(self):
+        DashboardHealthSnapshot.objects.create(
+            checked_at=timezone.now(), summary={"state": "ERROR", "issues": []}
+        )
+        self.client.force_login(UserFactory(role="admin"))
+        with patch.object(
+            HealthCheckCustomView, "get_checks", return_value=[]
+        ) as checks:
+            response = self.client.get(reverse("status:healthcheck"))
+
+        checks.assert_called_once()
+        self.assertFalse(response.context["has_check_failures"])
+        self.assertContains(response, "All monitored services are operational")
+        self.assertEqual(get_dashboard_health_summary()["state"], "ERROR")
+
+    def test_older_monitor_run_cannot_overwrite_a_newer_result(self):
+        now = timezone.now()
+        DashboardHealthSnapshot.objects.create(
+            checked_at=now, summary={"state": "ERROR", "issues": []}
+        )
+        with patch(
+            "ghostwriter.status.tasks.timezone.now",
+            return_value=now - timedelta(seconds=1),
+        ), patch.object(
+            HealthCheckCustomView,
+            "collect_health_summary",
+            return_value={"state": "OK", "issues": []},
+        ):
+            refresh_dashboard_health()
+
+        self.assertEqual(get_dashboard_health_summary()["state"], "ERROR")
+        self.assertEqual(DashboardHealthSnapshot.objects.get(pk=1).checked_at, now)
 
 
 # Health checks for RAM and disk cannot be completed successfully in the GitHub CI/CD pipeline
@@ -266,7 +345,9 @@ class HasuraBackendTests(TestCase):
 
         HasuraBackend().run()
 
-        mock_get.assert_called_once_with("http://graphql_engine:8080/healthz", timeout=5)
+        mock_get.assert_called_once_with(
+            "http://graphql_engine:8080/healthz", timeout=5
+        )
 
     @patch("ghostwriter.modules.health_utils.requests.get")
     def test_run_raises_warning_for_warn_response(self, mock_get):
@@ -276,7 +357,9 @@ class HasuraBackendTests(TestCase):
             HasuraBackend().run()
 
     @patch("ghostwriter.modules.health_utils.requests.get")
-    def test_run_raises_unexpected_result_for_unrecognized_success_response(self, mock_get):
+    def test_run_raises_unexpected_result_for_unrecognized_success_response(
+        self, mock_get
+    ):
         mock_get.return_value = Mock(ok=True, text="STARTING")
 
         with self.assertRaises(ServiceReturnedUnexpectedResult):

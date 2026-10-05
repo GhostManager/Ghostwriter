@@ -39,7 +39,7 @@ Ghostwriter also tests each service more thoroughly with two API endpoints:
 
 * /status/simple/
 
-The first endpoint, */status*, tests critical services and displays a table of results:
+The first endpoint, */status/*, is available to active managers and admins. It tests critical services and displays a table of fresh results:
 
 <Frame>
   <img src="/images/features/image-63.avif" alt=""/>
@@ -51,7 +51,7 @@ These tests are more thorough than the Docker health checks. For example, Docker
 This endpoint can also return a JSON version of the test results if you set the `Accept: application/json` header.
 </Check>
 
-Running these tests constantly could be a strain on the server, so the tests run on-demand when you visit this page.
+Visiting this page runs fresh checks on demand. The dashboard uses a separate background monitor described below.
 
 You can visit the simplified endpoint, */status/simple/*, to run lightweight checks. This endpoint checks the web server, database status, and cache status and returns one of the following responses:
 
@@ -62,7 +62,21 @@ You can visit the simplified endpoint, */status/simple/*, to run lightweight che
 | ERROR        | 500                | There was an unexpected error indicating a critical issue                                        |
 
 
-The home dashboard displays a basic system health status. The status is based on the results from the simplified endpoint.
+### Dashboard Monitoring
+
+The home dashboard reads the latest background result from a single shared database record. It never runs diagnostic checks or queues monitoring work while loading, including when the record is missing or stale. There is no diagnostic loading delay for dashboard visitors.
+
+A Django Q schedule named **Dashboard system health** runs every minute and checks the cache, database, storage, disk, memory, Redis, and Hasura. The schedule is installed by the database migration and requires the queue service to be running. Each scheduled run has a 30-second worker timeout. Successful monitor runs are not saved in the background-job history.
+
+The queue scheduler restores this required schedule on its next tick if it is missing, including after database resets or deletion while the application is running. Existing names, intervals, and intentional pauses are preserved. To disable monitoring, pause the schedule by setting its repeats to zero. Missing schedules are restored with the default one-minute interval.
+
+The monitor skips missed intervals after downtime and runs one current check before scheduling its next future run. It does not replay historical checks, even when catch-up is enabled for other scheduled tasks.
+
+Results remain current for three minutes from the start of the checks. Missing results, incomplete checks, or older results display **System status unavailable** instead of claiming the services are ready. If the queue stops or falls behind, the dashboard continues loading and the summary becomes unavailable. Managers and admins can visit the detailed status page to run fresh checks independently; those checks do not replace the background snapshot.
+
+Every user sees the same compact health indicator: green for **Systems ready**, yellow for **System warning**, red for **System error**, and a neutral indicator for **System status unavailable**. Uncleared failed jobs also produce a warning indicator, without hiding current service errors or unavailable health results. Regular users receive guidance to contact a manager or admin when attention is needed. Diagnostic details and the **View status** link are limited to managers and admins. The indicator never blocks normal navigation or editing. Changes in service health normally appear after the next background run; detection may take longer if the queue is busy.
+
+Failed-job notifications are queried separately on each dashboard load, so clearing them takes effect immediately. Clearing notifications preserves task history and does not clear current service warnings.
 
 ### Configuration
 
@@ -98,7 +112,7 @@ You can automate monitoring with something like Uptime Kuma or a similar tool. T
 
 * If `OK` is not in the response or the response code is not `200`, send an alert with a link to */status/* for details
 
-If the tool is capable of triggering a secondary action, you could have the tool pull the JSON data from */status/*:
+If the tool is capable of triggering a secondary action, it can pull JSON data from */status/* using an authenticated manager or admin session:
 
 ```log
 $ curl -k https://ghostwriter.local/status/ -H "Accept: application/json"

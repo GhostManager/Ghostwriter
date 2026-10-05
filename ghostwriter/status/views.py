@@ -115,14 +115,21 @@ class HealthCheckCustomView(HealthCheckView):
             for result in self.results
         ]
 
-    async def get_dashboard_summary(self):
-        """Run the status page's checks and summarize warnings and failures."""
+    async def collect_health_summary(self):
+        """Run diagnostics for the background monitor and return only display data."""
         with self.get_executor() as executor:
             self.results = await asyncio.gather(
                 *(check.get_result(executor) for check in self.get_checks())
             )
+        # Persist display data only; health check objects can hold live connections.
         issues = [
-            result for result in self.get_status_results() if not result["is_healthy"]
+            {
+                "display_name": result["display_name"],
+                "is_warning": result["is_warning"],
+                "result": {"error": str(result["result"].error)},
+            }
+            for result in self.get_status_results()
+            if not result["is_healthy"]
         ]
         if any(not issue["is_warning"] for issue in issues):
             state = "ERROR"

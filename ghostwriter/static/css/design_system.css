@@ -17,6 +17,7 @@
   --gw-accent-coral: #f46036;
   --gw-information-slate: #6c809a;
   --gw-signal-amber: #d7a449;
+  --gw-signal-red: #dc3545;
   --gw-font-display: "Metrophobic", sans-serif;
   --gw-font-interface: "Poppins", sans-serif;
   --gw-font-data: "Roboto Mono", monospace;
@@ -12944,8 +12945,7 @@ a.report-item-title {
   font-size: 0.74rem;
 }
 
-.operator-system-ready,
-.operator-system-warning {
+.operator-system-status {
   display: flex;
   flex-wrap: wrap;
   gap: 0.45rem;
@@ -12956,15 +12956,28 @@ a.report-item-title {
   font-size: 0.7rem;
 }
 
-.operator-system-ready > i {
+.operator-system-status > i {
+  color: var(--gw-information-slate);
+  font-size: 0.6rem;
+}
+
+.operator-system-status.is-ready > i {
   color: var(--gw-signal-green);
 }
 
-.operator-system-warning > i {
+.operator-system-status.is-warning > i {
   color: var(--gw-signal-amber);
 }
 
-.operator-system-ready a {
+.operator-system-status.is-error > i {
+  color: var(--gw-signal-red);
+}
+
+.operator-system-status:not(.is-unknown) > i {
+  filter: drop-shadow(0 0 3px currentColor);
+}
+
+.operator-system-status a {
   margin-left: 0.25rem;
   color: var(--gw-information-slate);
 }
