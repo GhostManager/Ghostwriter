@@ -7,10 +7,18 @@
 
 {% block content %}
   <div class="report-field-workspace">
-    <header class="resource-form-page-heading mb-2">
-      <span class="detail-eyebrow">Report Extra Field</span>
-      <h1>Edit {{ target_field.display_name }}</h1>
-      <p>Changes to this field on {{ report }} save automatically while collaboration is connected.</p>
+    <header class="detail-page-heading resource-detail-heading mb-2">
+      <div class="resource-form-page-heading">
+        <span class="detail-eyebrow">Report Extra Field</span>
+        <h1>Edit {{ target_field.display_name }}</h1>
+        <p>Changes to this field on {{ report }} save automatically while collaboration is connected.</p>
+      </div>
+      <div class="detail-page-heading-actions">
+        <a class="btn btn-outline-primary btn-sm"
+           href="{% url 'reporting:report_detail' pk=report.pk %}#extra-fields">
+          <i class="fas fa-arrow-left me-1" aria-hidden="true"></i>Back to report
+        </a>
+      </div>
     </header>
     <div class="resource-form-shell">
       {{ block.super }}
