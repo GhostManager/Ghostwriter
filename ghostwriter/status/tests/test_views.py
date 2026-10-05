@@ -10,6 +10,7 @@ from uuid import uuid4
 from django.test import Client, TestCase, override_settings, tag
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.feedgenerator import rfc2822_date
 
 # 3rd Party Libraries
 from django_q.models import Task
@@ -96,8 +97,8 @@ class StatusNotificationSummaryTests(TestCase):
         self.assertFalse(response.context["has_system_warning"])
         self.assertContains(response, "All monitored services are operational")
 
-    def test_diagnostic_formats_reject_regular_and_anonymous_users(self):
-        formats = ("", "json", "text", "atom", "rss", "openmetrics")
+    def test_html_rejects_regular_and_anonymous_users(self):
+        formats = ("", "html", "unknown")
         for user in (self.user, None):
             if user is None:
                 self.client.logout()
@@ -112,9 +113,9 @@ class StatusNotificationSummaryTests(TestCase):
                     self.assertNotIn(self.task.result, response.content.decode())
         self.get_checks.assert_not_called()
 
-    def test_content_negotiation_and_head_reject_regular_users(self):
+    def test_html_content_negotiation_and_head_reject_regular_users(self):
         self.client.force_login(self.user)
-        for accept in ("text/html", "application/json", "text/plain"):
+        for accept in ("text/html", "application/xhtml+xml", "text/*", "*/*"):
             with self.subTest(accept=accept):
                 response = self.client.get(self.uri, HTTP_ACCEPT=accept)
                 self.assertEqual(response.status_code, 403)
@@ -129,7 +130,7 @@ class StatusNotificationSummaryTests(TestCase):
         self.assertContains(response, "Service checks")
         self.assertContains(response, "Background jobs need attention")
 
-    def test_manager_can_view_diagnostic_formats(self):
+    def test_manager_can_view_public_monitoring_formats(self):
         for response_format in ("json", "text", "atom", "rss", "openmetrics"):
             with self.subTest(response_format=response_format):
                 response = self.client.get(self.uri, {"format": response_format})
@@ -142,6 +143,217 @@ class StatusNotificationSummaryTests(TestCase):
 
         self.assertEqual(response.status_code, 403)
         self.get_checks.assert_not_called()
+
+
+class PublicHealthStatusTests(TestCase):
+    """Public monitoring exposes status without diagnostics or configuration."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(role="user")
+        cls.admin = UserFactory(role="admin")
+        cls.uri = reverse("status:healthcheck")
+
+    def setUp(self):
+        self.results = [
+            SimpleNamespace(check=HasuraBackend(), error=None, time_taken=0.01),
+            SimpleNamespace(
+                check=ConfiguredDisk(),
+                error=ServiceWarning("private disk path /srv/private-volume"),
+                time_taken=0.02,
+            ),
+            SimpleNamespace(
+                check=SimpleNamespace(
+                    endpoint="http://private-host:8080",
+                    labels={"credential": "private-service-secret"},
+                ),
+                error=ServiceUnavailable("private connection error and traceback"),
+                time_taken=0.03,
+            ),
+        ]
+        self.checks = [
+            Mock(get_result=AsyncMock(return_value=result)) for result in self.results
+        ]
+        patcher = patch.object(
+            HealthCheckCustomView, "get_checks", return_value=self.checks
+        )
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def assert_basic_response(self, response):
+        for private_value in (
+            "/srv/private-volume",
+            "private-host",
+            "private-service-secret",
+            "private connection error",
+            "traceback",
+            "credential",
+        ):
+            self.assertNotIn(private_value, response.content.decode())
+
+    def test_machine_formats_are_public_and_hide_diagnostics_for_all_roles(self):
+        for user in (None, self.user, self.admin):
+            if user is None:
+                self.client.logout()
+            else:
+                self.client.force_login(user)
+            for response_format in ("json", "text", "atom", "rss", "openmetrics"):
+                with self.subTest(user=user, response_format=response_format):
+                    response = self.client.get(self.uri, {"format": response_format})
+
+                    expected_status = (
+                        500 if response_format in ("json", "text") else 200
+                    )
+                    self.assertEqual(response.status_code, expected_status)
+                    self.assert_basic_response(response)
+                    self.assertIn("Accept", response.headers["Vary"])
+                    self.assertIn("no-store", response.headers["Cache-Control"])
+
+    def test_json_contains_only_basic_service_statuses(self):
+        response = self.client.get(self.uri, HTTP_ACCEPT="application/json")
+
+        self.assertEqual(response.status_code, 500)
+        self.assertEqual(
+            response.json(),
+            {
+                "Hasura GraphQL Engine": "working",
+                "Disk": "warning",
+                "SimpleNamespace": "error",
+            },
+        )
+
+    def test_healthy_json_returns_working_and_http_200(self):
+        for result in self.results:
+            result.error = None
+
+        response = self.client.get(self.uri, {"format": "json"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(set(response.json().values()), {"working"})
+
+    def test_machine_content_negotiation_and_query_overrides_are_public(self):
+        for accept in (
+            "application/json",
+            "application/*",
+            "text/plain",
+            "application/atom+xml",
+            "application/rss+xml",
+            "application/openmetrics-text; version=1.0.0",
+            "text/html;q=0.1, application/json;q=0.9",
+        ):
+            with self.subTest(accept=accept):
+                response = self.client.get(self.uri, HTTP_ACCEPT=accept)
+                self.assertIn(response.status_code, (200, 500))
+                self.assert_basic_response(response)
+        response = self.client.get(
+            self.uri, {"format": "json"}, HTTP_ACCEPT="text/html"
+        )
+        self.assertEqual(response.status_code, 500)
+        self.assertEqual(response.headers["Content-Type"], "application/json")
+
+    def test_html_preference_stays_restricted_before_running_checks(self):
+        for accept in (
+            "application/json;q=0.1, text/html;q=0.9",
+            "text/html, application/json",
+        ):
+            with self.subTest(accept=accept):
+                response = self.client.get(self.uri, HTTP_ACCEPT=accept)
+                self.assertEqual(response.status_code, 403)
+        for check in self.checks:
+            check.get_result.assert_not_called()
+
+    def test_unknown_media_types_are_not_public(self):
+        response = self.client.get(self.uri, HTTP_ACCEPT="application/yaml")
+
+        self.assertEqual(response.status_code, 403)
+        for check in self.checks:
+            check.get_result.assert_not_called()
+
+    @patch("ghostwriter.status.views.is_public_status_request", return_value=True)
+    def test_html_renderer_stays_restricted_if_format_selection_changes(
+        self, public_request
+    ):
+        response = self.client.get(self.uri, HTTP_ACCEPT="text/html")
+
+        self.assertEqual(response.status_code, 403)
+        self.assert_basic_response(response)
+
+    def test_openmetrics_preserves_health_metrics_without_configuration_labels(self):
+        response = self.client.get(self.uri, {"format": "openmetrics"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response, 'django_health_check_status{check="HasuraBackend"} 1'
+        )
+        self.assertContains(
+            response, 'django_health_check_status{check="ConfiguredDisk"} 0'
+        )
+        self.assertContains(response, "django_health_check_overall_status 0")
+        self.assertContains(
+            response,
+            'django_health_check_response_time_seconds{check="ConfiguredDisk"} 0.020000',
+        )
+        self.assert_basic_response(response)
+
+    def test_feeds_keep_only_basic_status_descriptions(self):
+        for response_format in ("atom", "rss"):
+            with self.subTest(response_format=response_format):
+                response = self.client.get(self.uri, {"format": response_format})
+                for status in ("working", "warning", "error"):
+                    self.assertContains(response, status)
+                self.assert_basic_response(response)
+
+    def test_rss_preserves_existing_failure_timestamps_and_categories(self):
+        response = self.client.get(self.uri, {"format": "rss"})
+
+        self.assertContains(response, "<category>error</category>")
+        self.assertContains(response, "<category>unhealthy</category>")
+        self.assertContains(
+            response, "<pubDate>Thu, 01 Jan 1970 00:00:00 +0000</pubDate>"
+        )
+        self.assertContains(
+            response,
+            f"<pubDate>{rfc2822_date(self.results[1].error.timestamp)}</pubDate>",
+        )
+
+    def test_public_monitoring_does_not_query_failed_job_notifications(self):
+        with patch(
+            "ghostwriter.status.views.get_uncleared_failed_tasks"
+        ) as failed_tasks:
+            response = self.client.get(self.uri, {"format": "json"})
+
+        self.assertEqual(response.status_code, 500)
+        failed_tasks.assert_not_called()
+
+    def test_head_supports_public_monitoring_without_response_body(self):
+        response = self.client.head(self.uri, {"format": "json"})
+
+        self.assertEqual(response.status_code, 500)
+        self.assertEqual(response.content, b"")
+
+    def test_machine_formats_remain_public_during_mfa_enrollment(self):
+        self.user.require_mfa = True
+        self.user.save(update_fields=["require_mfa"])
+        self.client.force_login(self.user)
+
+        response = self.client.get(self.uri, {"format": "json"})
+
+        self.assertEqual(response.status_code, 500)
+        self.assert_basic_response(response)
+        response = self.client.get(self.uri)
+        self.assertRedirects(
+            response, reverse("mfa_activate_totp"), fetch_redirect_response=False
+        )
+
+    def test_privileged_html_retains_diagnostic_messages(self):
+        self.client.force_login(self.admin)
+
+        response = self.client.get(self.uri)
+
+        self.assertContains(response, "/srv/private-volume", status_code=500)
+        self.assertContains(
+            response, "private connection error and traceback", status_code=500
+        )
 
 
 class DashboardHealthSummaryTests(TestCase):
@@ -388,3 +600,29 @@ class HealthCheckSimpleViewTests(TestCase):
         response = self.client.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"OK", response.content)
+
+    def test_basic_status_stays_public_for_anonymous_and_regular_users(self):
+        user = UserFactory(role="user", require_mfa=True)
+        for current_user in (None, user):
+            if current_user is not None:
+                self.client.force_login(current_user)
+            with self.subTest(user=current_user):
+                response = self.client.get(self.uri)
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.content, b"OK")
+
+    @patch("ghostwriter.status.views.DjangoHealthChecks")
+    def test_warning_and_error_responses_never_include_diagnostics(self, health_checks):
+        checks = health_checks.return_value
+        checks.get_database_status.return_value = {"default": False}
+        checks.get_cache_status.return_value = {"default": True}
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content, b"WARNING")
+
+        checks.get_database_status.side_effect = RuntimeError(
+            "private connection error"
+        )
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 500)
+        self.assertEqual(response.content, b"ERROR")

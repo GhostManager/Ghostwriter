@@ -39,7 +39,7 @@ Ghostwriter also tests each service more thoroughly with two API endpoints:
 
 * /status/simple/
 
-The first endpoint, */status/*, is available to active managers and admins. It tests critical services and displays a table of fresh results:
+The HTML page at */status/* is available to active managers and admins. It tests critical services and displays a table of fresh results, including diagnostic messages:
 
 <Frame>
   <img src="/images/features/image-63.avif" alt=""/>
@@ -48,12 +48,12 @@ The first endpoint, */status/*, is available to active managers and admins. It t
 These tests are more thorough than the Docker health checks. For example, Docker will verify the database back end is listening and accepting connections, but Ghostwriter runs tests to ensure the database is accepting connections and reading and writing are working as expected.
 
 <Check>
-This endpoint can also return a JSON version of the test results if you set the `Accept: application/json` header.
+This endpoint also provides public machine-readable status if you set the `Accept: application/json` header or request */status/?format=json*. Authentication is not required. These responses contain only service names and basic values: `working`, `warning`, or `error`. Diagnostic messages and check configuration are limited to the privileged HTML page.
 </Check>
 
 Visiting this page runs fresh checks on demand. The dashboard uses a separate background monitor described below.
 
-You can visit the simplified endpoint, */status/simple/*, to run lightweight checks. This endpoint checks the web server, database status, and cache status and returns one of the following responses:
+You can visit the public simplified endpoint, */status/simple/*, to run lightweight checks without authentication. This endpoint checks the web server, database status, and cache status and returns one of the following responses:
 
 | **Response** | **Response Code** | **Description**                                                                                   |
 |--------------|--------------------|---------------------------------------------------------------------------------------------------|
@@ -112,11 +112,15 @@ You can automate monitoring with something like Uptime Kuma or a similar tool. T
 
 * If `OK` is not in the response or the response code is not `200`, send an alert with a link to */status/* for details
 
-If the tool is capable of triggering a secondary action, it can pull JSON data from */status/* using an authenticated manager or admin session:
+If the tool is capable of triggering a secondary action, it can pull basic per-service JSON data from */status/* without authentication:
 
 ```log
 $ curl -k https://ghostwriter.local/status/ -H "Accept: application/json"
-{"Cache backend: default": "working", "DatabaseBackend": "working", "DefaultFileStorageHealthCheck": "working", "DiskUsage": "working", "MemoryUsage": "working", "MigrationsHealthCheck": "working", "RedisHealthCheck": "working"}
+{"Cache": "working", "Database": "working", "Storage": "working", "Disk": "working", "Memory": "working", "Redis": "working", "Hasura GraphQL Engine": "working"}
 ```
 
-Working services will have a `working` status. A service experiencing a problem will have a descriptive warning or error message that will tell you why it failed the test. You can use this information to customize your monitoring alert.
+Working services have a `working` status. A service experiencing a problem reports only `warning` or `error`. JSON and text responses return HTTP `200` when all checks pass and `500` when a check warns or fails. Link alerts to */status/* so a manager or admin can sign in and inspect the diagnostic messages.
+
+Public monitoring also supports `format=text`, `format=atom`, `format=rss`, and `format=openmetrics`, or the corresponding `Accept` headers. These formats omit raw errors and configured URLs, paths, and credentials. OpenMetrics retains the package's metric names and `check` label values, but omits configuration labels. Feeds and OpenMetrics retain HTTP `200` when checks fail; their contents carry the health result.
+
+Opening */status/* in a browser still requires an active manager or admin session. All machine-readable responses remain basic, including when requested by a privileged user.

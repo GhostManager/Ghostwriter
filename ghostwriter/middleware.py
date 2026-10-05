@@ -23,6 +23,7 @@ class ContentSecurityPolicyMiddleware:
         response.headers.setdefault(self.header_name, policy)
         return response
 
+
 class RequireMFAMiddleware(MiddlewareMixin):
     allowed_pages = [
         # Allowing changing passwords and logging out without MFA
@@ -65,6 +66,15 @@ class RequireMFAMiddleware(MiddlewareMixin):
         return redirect("mfa_activate_totp")
 
     def is_allowed_page(self, request: HttpRequest) -> bool:
+        # Public monitoring responses must remain usable during MFA enrollment.
+        if request.resolver_match.view_name == "status:healthcheck_simple":
+            return True
+        if request.resolver_match.view_name == "status:healthcheck":
+            # Ghostwriter Libraries
+            from ghostwriter.status.views import is_public_status_request
+
+            if is_public_status_request(request):
+                return True
         # Allowing `None` allows static URLs for CSS and JS
         return request.resolver_match.url_name in self.allowed_pages or request.resolver_match.url_name is None
 
