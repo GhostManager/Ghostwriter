@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [7.3.1] - 5 October 2026
+
 ### Added
 
 * Added a Clear all action for failed-task system notifications, preserving task history and current service warnings
@@ -15,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+* Hid legacy TOTP and static recovery-code devices from Django Admin so administrators manage current MFA records under Authenticators
+* Added Back to report navigation to report finding, observation, and extra-field editors, independent of working report selection or pinned navigation
+* Refreshed heading and table caption bookmark dialogs, corrected the table dialog title, and enabled keyboard saving with reliable input focus
+* Refreshed the rich-text Edit Link dialog and kept editor modal backdrops above the working engagement bar and its sticky background strip
+* Moved dashboard health checks to the background with automatic schedule recovery and skipped missed intervals; all users see green, yellow, red, or unavailable indicators, while diagnostics remain restricted to managers and admins
+* Made the entire report-field writing pane editable
 * Placed the scroll-to-top control in compact, balanced page gutters so it cannot cover messages or table actions, with keyboard access and reduced-motion support
 * Made dashboard work rows consistent, using the Working report badge to identify items from the current report
 * Kept collaborative editor formatting controls visible below the working engagement bar, with report-field writing panes that fill available space and compact help/status footers on larger screens
