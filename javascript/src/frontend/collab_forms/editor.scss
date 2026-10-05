@@ -165,6 +165,10 @@
                 min-height: 0;
                 overflow: auto;
                 scrollbar-gutter: stable;
+
+                > .tiptap {
+                    min-height: 100%;
+                }
             }
         }
     }
