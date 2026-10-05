@@ -8,6 +8,9 @@ from django.utils.deprecation import MiddlewareMixin
 # 3rd Party Libraries
 from allauth.mfa.utils import is_mfa_enabled
 
+# Ghostwriter Libraries
+from ghostwriter.status.views import is_public_status_request
+
 
 class ContentSecurityPolicyMiddleware:
     """Attach the application's report-only Content Security Policy."""
@@ -70,9 +73,6 @@ class RequireMFAMiddleware(MiddlewareMixin):
         if request.resolver_match.view_name == "status:healthcheck_simple":
             return True
         if request.resolver_match.view_name == "status:healthcheck":
-            # Ghostwriter Libraries
-            from ghostwriter.status.views import is_public_status_request
-
             if is_public_status_request(request):
                 return True
         # Allowing `None` allows static URLs for CSS and JS
