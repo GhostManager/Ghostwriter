@@ -903,7 +903,10 @@ ul.collab-focused-users {
 }
 
 .ReactModal__Overlay {
-    z-index: 50;
+    // Keep editor dialogs above the sticky engagement bar and Bootstrap modals.
+    z-index: 1060;
+    // Override react-modal's inline white backdrop in both themes.
+    background-color: rgba(21, 23, 24, 0.55) !important;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -922,6 +925,7 @@ ul.collab-focused-users {
     max-height: calc(100vh - 2rem);
     color: var(--main-txt-color, #202428);
     outline: none;
+    text-align: left;
 
     &.gw-editor-dialog-wide {
         width: min(46rem, calc(100vw - 2rem));
@@ -1233,6 +1237,10 @@ ul.collab-focused-users {
         .gw-editor-dialog-footer {
             display: grid;
             grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr);
+
+            .btn-outline-danger {
+                grid-column: 1 / -1;
+            }
 
             .btn {
                 width: 100%;
