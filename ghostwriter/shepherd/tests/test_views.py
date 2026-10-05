@@ -507,14 +507,6 @@ class DomainCreateViewTests(TestCase):
         self.assertTemplateUsed(response, "shepherd/domain_form.html")
         self.assertContains(response, 'id="id_description"')
         self.assertNotContains(response, "Operator context")
-        soup = BeautifulSoup(response.content, "html.parser")
-        prefix = response.context["addresses"].prefix
-        self.assertEqual(soup.find(id=f"formset-{prefix}").get("data-formset-prefix"), prefix)
-        prototype = soup.find(id=f"empty-form-{prefix}")
-        delete_button = prototype.select_one(".formset-actions .formset-del-button")
-        self.assertIsNotNone(delete_button)
-        self.assertNotIn("col-8", delete_button.get("class", []))
-        self.assertContains(response, "js/collection-add-footer.js")
 
     def test_custom_context_exists(self):
         response = self.client_auth.get(self.uri)
@@ -1167,6 +1159,16 @@ class ServerCreateViewTests(TestCase):
         self.assertTemplateUsed(response, "shepherd/server_form.html")
         self.assertContains(response, 'id="id_description"')
         self.assertNotContains(response, "Operator context")
+        soup = BeautifulSoup(response.content, "html.parser")
+        prefix = response.context["addresses"].prefix
+        self.assertEqual(
+            soup.find(id=f"formset-{prefix}").get("data-formset-prefix"), prefix
+        )
+        prototype = soup.find(id=f"empty-form-{prefix}")
+        delete_button = prototype.select_one(".formset-actions .formset-del-button")
+        self.assertIsNotNone(delete_button)
+        self.assertNotIn("col-8", delete_button.get("class", []))
+        self.assertContains(response, "js/collection-add-footer.js")
 
     def test_custom_context_exists(self):
         response = self.client_auth.get(self.uri)
