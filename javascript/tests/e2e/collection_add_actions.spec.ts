@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { Window } from "happy-dom";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -11,11 +12,16 @@ const staticRoot = path.join(repositoryRoot, "ghostwriter/static");
 
 function templateScript(filename: string, marker: string) {
     const template = readFileSync(path.join(repositoryRoot, filename), "utf8");
-    const script = Array.from(
-        template.matchAll(/<script>([\s\S]*?)<\/script>/g)
-    ).find((match) => match[1].includes(marker));
+    const window = new Window();
+    const document = new window.DOMParser().parseFromString(
+        template,
+        "text/html"
+    );
+    const script = Array.from(document.querySelectorAll("script")).find(
+        (script) => script.textContent.includes(marker)
+    );
     if (!script) throw new Error(`Missing production handler: ${marker}`);
-    return script[1];
+    return script.textContent;
 }
 
 const addHandler = templateScript(
