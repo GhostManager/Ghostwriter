@@ -13198,6 +13198,7 @@ a.report-item-title {
 
 .status-check-table .table {
   margin-bottom: 0;
+  border-radius: 0;
 }
 
 .status-check-table .table th,
