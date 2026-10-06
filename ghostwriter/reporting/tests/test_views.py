@@ -3034,6 +3034,27 @@ class ReportFindingLinkUpdateViewTests(TestCase):
         self.assertContains(response, "Finding Guidance")
         self.assertNotContains(response, 'class="finding-accordion mb-3"')
 
+    def test_back_to_report_uses_parent_without_changing_working_report(self):
+        ProjectAssignmentFactory(project=self.report.project, operator=self.user)
+        other_report = ReportFactory(project=self.report.project)
+        return_url = reverse("reporting:report_detail", kwargs={"pk": self.report.pk})
+        for client in (self.client_mgr, self.client_auth):
+            for active_report in (
+                None,
+                {"id": other_report.pk, "title": other_report.title},
+            ):
+                with self.subTest(user=client, active_report=active_report):
+                    session = client.session
+                    session["active_report"] = active_report
+                    session.save()
+
+                    response = client.get(self.uri)
+
+                    self.assertContains(response, f'href="{return_url}#findings"')
+                    self.assertContains(response, "Back to report", count=1)
+                    self.assertEqual(client.session["active_report"], active_report)
+                    self.assertEqual(response.context["pinned_work"], [])
+
     def test_view_uses_versioned_collaboration_assets(self):
         response = self.client_mgr.get(self.uri)
 
@@ -3160,6 +3181,27 @@ class ReportObservationLinkUpdateViewTests(TestCase):
             response, "reporting/report_observation_link_update.html"
         )
 
+    def test_back_to_report_uses_parent_without_changing_working_report(self):
+        ProjectAssignmentFactory(project=self.report.project, operator=self.user)
+        other_report = ReportFactory(project=self.report.project)
+        return_url = reverse("reporting:report_detail", kwargs={"pk": self.report.pk})
+        for client in (self.client_mgr, self.client_auth):
+            for active_report in (
+                None,
+                {"id": other_report.pk, "title": other_report.title},
+            ):
+                with self.subTest(user=client, active_report=active_report):
+                    session = client.session
+                    session["active_report"] = active_report
+                    session.save()
+
+                    response = client.get(self.uri)
+
+                    self.assertContains(response, f'href="{return_url}#observations"')
+                    self.assertContains(response, "Back to report", count=1)
+                    self.assertEqual(client.session["active_report"], active_report)
+                    self.assertEqual(response.context["pinned_work"], [])
+
     def test_view_renders_numeric_evidence_report_id(self):
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
@@ -3238,6 +3280,29 @@ class ReportExtraFieldEditViewTests(TestCase):
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "reporting/report_update_extra_field.html")
+        self.assertContains(response, 'class="report-field-workspace"')
+        self.assertContains(response, "js/page-sticky-offset.js")
+
+    def test_back_to_report_uses_parent_without_changing_working_report(self):
+        ProjectAssignmentFactory(project=self.report.project, operator=self.user)
+        other_report = ReportFactory(project=self.report.project)
+        return_url = reverse("reporting:report_detail", kwargs={"pk": self.report.pk})
+        for client in (self.client_mgr, self.client_auth):
+            for active_report in (
+                None,
+                {"id": other_report.pk, "title": other_report.title},
+            ):
+                with self.subTest(user=client, active_report=active_report):
+                    session = client.session
+                    session["active_report"] = active_report
+                    session.save()
+
+                    response = client.get(self.uri)
+
+                    self.assertContains(response, f'href="{return_url}#extra-fields"')
+                    self.assertContains(response, "Back to report", count=1)
+                    self.assertEqual(client.session["active_report"], active_report)
+                    self.assertEqual(response.context["pinned_work"], [])
 
     def test_view_renders_numeric_evidence_report_id(self):
         response = self.client_mgr.get(self.uri)

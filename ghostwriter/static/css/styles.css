@@ -355,42 +355,6 @@ h6 {
   cursor: copy;
 }
 
-#scroll-button {
-  display: inline-block;
-  background-color: var(--button-primary-color);
-  width: 30px;
-  height: 30px;
-  text-align: center;
-  border-radius: 50%;
-  margin: 30px;
-  position: fixed;
-  bottom: 0;
-  right: 0;
-  transition: background-color .3s;
-  z-index: 1000;
-  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
-}
-
-#scroll-button:hover {
-  cursor: pointer;
-  background-color: #333;
-}
-
-#scroll-button:active {
-  background-color: #555;
-}
-
-#scroll-button::before {
-  font-family: 'Font Awesome 5 Free';
-  content: '\f062';
-  font-weight: 600;
-  font-style: normal;
-  text-rendering: auto;
-  font-size: 1.25em;
-  line-height: 30px;
-  color: #fff;
-}
-
 /* ---------------------------------------------------
     MODAL STYLES
 ----------------------------------------------------- */

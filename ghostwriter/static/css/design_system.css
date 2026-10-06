@@ -17,6 +17,7 @@
   --gw-accent-coral: #f46036;
   --gw-information-slate: #6c809a;
   --gw-signal-amber: #d7a449;
+  --gw-signal-red: #dc3545;
   --gw-font-display: "Metrophobic", sans-serif;
   --gw-font-interface: "Poppins", sans-serif;
   --gw-font-data: "Roboto Mono", monospace;
@@ -32,6 +33,8 @@
   --gw-radius-md: 0.625rem;
   --gw-radius-lg: 0.875rem;
   --gw-focus-ring: 0 0 0 0.2rem rgba(80, 176, 113, 0.28);
+  --gw-scroll-control-size: 2rem;
+  --gw-scroll-control-gap: 0.25rem;
 }
 
 [data-theme="dark"] {
@@ -296,6 +299,64 @@ body,
   background-color: var(--gw-canvas);
 }
 
+/* Balance page edges and keep the fixed control outside messages and table actions. */
+.has-scroll-to-top #content {
+  padding-left: calc(var(--gw-scroll-control-size) + 2 * var(--gw-scroll-control-gap) + env(safe-area-inset-left, 0px));
+  padding-right: calc(var(--gw-scroll-control-size) + 2 * var(--gw-scroll-control-gap) + env(safe-area-inset-right, 0px));
+  transition-property: background-color, color, border-color, box-shadow;
+}
+
+#scroll-button {
+  position: fixed;
+  right: calc(var(--gw-scroll-control-gap) + env(safe-area-inset-right, 0px));
+  bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  display: grid;
+  place-items: center;
+  width: var(--gw-scroll-control-size);
+  height: var(--gw-scroll-control-size);
+  margin: 0;
+  padding: 0;
+  color: var(--gw-information-slate);
+  background-color: var(--gw-surface);
+  border: 1px solid var(--gw-border);
+  border-radius: 50%;
+  box-shadow: var(--gw-shadow-sm);
+  cursor: pointer;
+  z-index: 1000;
+}
+
+#scroll-button[hidden] {
+  display: none;
+}
+
+#scroll-button:hover,
+#scroll-button:focus-visible {
+  color: var(--gw-engagement-violet);
+  background-color: var(--gw-surface-muted);
+  border-color: var(--gw-engagement-violet);
+}
+
+#scroll-button:focus-visible {
+  outline: 2px solid var(--gw-engagement-violet);
+  outline-offset: 2px;
+}
+
+body.modal-open #scroll-button,
+body.sidebar-open #scroll-button {
+  visibility: hidden;
+}
+
+@media (pointer: coarse) {
+  :root {
+    --gw-scroll-control-size: 2.75rem;
+    --gw-scroll-control-gap: 0.125rem;
+  }
+
+  #scroll-button:focus-visible {
+    outline-offset: 0;
+  }
+}
+
 /* Cards and layered surfaces */
 .card,
 .task-card {
@@ -344,6 +405,9 @@ body,
 
 .formset-actions {
   display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
   justify-content: flex-end;
   width: 100%;
   margin-top: 1rem;
@@ -967,6 +1031,10 @@ textarea.form-control {
   flex: 0 0 auto;
 }
 
+.collection-add-button {
+  max-width: 100%;
+}
+
 .collection-empty-state {
   margin-bottom: 1rem;
   padding: 2rem 1rem;
@@ -1078,6 +1146,7 @@ textarea.form-control {
 }
 
 .collection-form-card-chevron {
+  grid-column: -2 / -1;
   color: color-mix(in srgb, var(--main-txt-color) 64%, transparent);
   transition: transform 160ms ease;
 }
@@ -1091,7 +1160,7 @@ textarea.form-control {
 }
 
 .collection-form-card-fields > .formset-actions {
-  padding-top: 0.25rem;
+  padding-top: 1rem;
   border-top: 1px solid var(--gw-border);
 }
 
@@ -12410,11 +12479,6 @@ a.report-item-title {
   text-decoration: none;
 }
 
-.operator-work-item.is-active-report {
-  background: color-mix(in srgb, var(--gw-engagement-violet) 8%, var(--gw-surface));
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gw-engagement-violet) 24%, transparent);
-}
-
 .operator-work-kind-icon {
   display: inline-flex;
   align-items: center;
@@ -12881,8 +12945,9 @@ a.report-item-title {
   font-size: 0.74rem;
 }
 
-.operator-system-ready {
+.operator-system-status {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.45rem;
   align-items: center;
   justify-content: flex-end;
@@ -12891,11 +12956,28 @@ a.report-item-title {
   font-size: 0.7rem;
 }
 
-.operator-system-ready > i {
+.operator-system-status > i {
+  color: var(--gw-information-slate);
+  font-size: 0.6rem;
+}
+
+.operator-system-status.is-ready > i {
   color: var(--gw-signal-green);
 }
 
-.operator-system-ready a {
+.operator-system-status.is-warning > i {
+  color: var(--gw-signal-amber);
+}
+
+.operator-system-status.is-error > i {
+  color: var(--gw-signal-red);
+}
+
+.operator-system-status:not(.is-unknown) > i {
+  filter: drop-shadow(0 0 3px currentColor);
+}
+
+.operator-system-status a {
   margin-left: 0.25rem;
   color: var(--gw-information-slate);
 }

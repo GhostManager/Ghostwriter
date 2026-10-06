@@ -260,7 +260,7 @@
     {% endif %}
 
     {% if request.user|is_privileged %}
-      {% if failed_tasks or system_health != "OK" %}
+      {% if has_system_warning %}
         <section class="operator-exceptions-panel{% if system_health == 'WARNING' and not failed_tasks %} is-warning{% endif %}" aria-labelledby="operator-exceptions-title">
           <header class="operator-panel-header">
             <div>
@@ -268,9 +268,21 @@
               <h2 id="operator-exceptions-title">System notifications</h2>
               <p>Only service warnings, unhealthy services, and failed jobs are shown here.</p>
             </div>
-            <a class="btn btn-sm btn-outline-secondary" href="{% url 'status:healthcheck' %}">
-              System status
-            </a>
+            <div class="d-flex flex-wrap align-items-center gap-2 flex-shrink-0">
+              {% if failed_tasks %}
+                <form class="m-0" method="post" action="{% url 'home:dismiss_all_dashboard_exceptions' %}">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-sm btn-outline-secondary"
+                          aria-label="Clear all failed task notifications"
+                          title="Clear all failed task notifications, including older jobs. Current service warnings remain visible.">
+                    Clear all
+                  </button>
+                </form>
+              {% endif %}
+              <a class="btn btn-sm btn-outline-secondary" href="{% url 'status:healthcheck' %}">
+                System status
+              </a>
+            </div>
           </header>
           <div class="operator-exception-list">
             {% for issue in system_health_issues %}
@@ -282,7 +294,7 @@
                 </div>
               </div>
             {% empty %}
-              {% if system_health != "OK" %}
+              {% if system_health == "WARNING" or system_health == "ERROR" %}
                 <div class="operator-exception-item is-critical">
                   <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
                   <div class="operator-exception-copy">
@@ -310,14 +322,29 @@
             {% endfor %}
           </div>
         </section>
-      {% else %}
-        <div class="operator-system-ready">
-          <i class="fas fa-check-circle" aria-hidden="true"></i>
-          <span>Systems ready</span>
-          <a href="{% url 'status:healthcheck' %}">View status</a>
-        </div>
       {% endif %}
     {% endif %}
+
+    <div class="operator-system-status {% if system_health == 'ERROR' %}is-error{% elif has_system_warning %}is-warning{% elif system_health == 'OK' %}is-ready{% else %}is-unknown{% endif %}">
+      <i class="fas fa-circle" aria-hidden="true"></i>
+      {% if system_health == "ERROR" %}
+        <span>System error</span>
+      {% elif has_system_warning %}
+        <span>System warning</span>
+      {% elif system_health == "OK" %}
+        <span>Systems ready</span>
+      {% else %}
+        <span>System status unavailable</span>
+      {% endif %}
+      {% if system_health == "UNKNOWN" and has_system_warning %}
+        <span>System status unavailable</span>
+      {% endif %}
+      {% if request.user|is_privileged %}
+        <a href="{% url 'status:healthcheck' %}">View status</a>
+      {% elif has_system_warning %}
+        <span>Contact a manager or admin.</span>
+      {% endif %}
+    </div>
   </div>
 {% endblock %}
 

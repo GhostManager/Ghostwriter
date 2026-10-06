@@ -79,6 +79,19 @@ def assert_active_tab(test_case, response, tab_id):
     test_case.assertIn("active", tab_pane.get("class", []))
 
 
+def assert_collection_add_actions(test_case, response, context_names):
+    soup = BeautifulSoup(response.content, "html.parser")
+    test_case.assertContains(response, "js/collection-add-footer.js")
+    for context_name in context_names:
+        prefix = response.context[context_name].prefix
+        live_formset = soup.find(id=f"formset-{prefix}")
+        test_case.assertEqual(live_formset.get("data-formset-prefix"), prefix)
+        test_case.assertEqual(live_formset.find_next_sibling("div").get("id"), f"empty-form-{prefix}")
+        test_case.assertIsNone(soup.select_one(".collection-add-footer"))
+        # The original action remains the only field/handler for this collection.
+        test_case.assertEqual(len(soup.select(f".formset-add-{prefix}")), 1)
+
+
 class IndexViewTests(TestCase):
     """Collection of tests for :view:`rolodex.index`."""
 
@@ -697,6 +710,7 @@ class ProjectUpdateTests(TestCase):
 
     def test_view_uses_modern_project_form_layout(self):
         response = self.client_mgr.get(self.uri)
+        assert_collection_add_actions(self, response, ["assignments", "invites"])
 
         self.assertContains(response, 'id="tab-bar"')
         self.assertContains(response, 'class="project-form-shell"')
@@ -753,6 +767,9 @@ class ProjectComponentsUpdateTests(TestCase):
 
     def test_view_uses_modern_component_form_layout(self):
         response = self.client_mgr.get(self.uri)
+        assert_collection_add_actions(
+            self, response, ["contacts", "whitecards", "scopes", "objectives", "targets"]
+        )
 
         self.assertContains(response, 'id="tab-bar"')
         self.assertContains(response, 'class="project-form-shell"')
@@ -912,6 +929,7 @@ class ClientCreateViewTests(TestCase):
 
     def test_view_uses_modern_tabs_and_native_logo_input(self):
         response = self.client_mgr.get(self.uri)
+        assert_collection_add_actions(self, response, ["contacts", "invites"])
         soup = BeautifulSoup(response.content, "html.parser")
 
         tab_bar = soup.select_one("ul#tab-bar.nav.nav-tabs")
@@ -1056,6 +1074,7 @@ class ClientUpdateViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "rolodex/client_form.html")
         self.assertContains(response, "assets/standalone_tiptap_loader.js?v=")
+        assert_collection_add_actions(self, response, ["contacts", "invites"])
 
     def test_view_selects_initial_tab(self):
         response = self.client_mgr.get(self.uri)

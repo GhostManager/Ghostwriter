@@ -4,7 +4,7 @@ import tempfile
 from datetime import date
 from io import StringIO
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 # Django Imports
 from django.contrib.auth import get_user_model
@@ -13,6 +13,9 @@ from django.core.management.base import CommandError
 from django.test import TransactionTestCase, override_settings
 from django.urls import reverse
 
+# 3rd Party Libraries
+from django_q.models import Schedule
+
 # Ghostwriter Libraries
 from ghostwriter.commandcenter.models import (
     BloodHoundConfiguration,
@@ -20,7 +23,7 @@ from ghostwriter.commandcenter.models import (
     ExtraFieldSpec,
     ReportConfiguration,
 )
-from ghostwriter.home.models import UserProfile
+from ghostwriter.home.django_q_cluster import restricted_scheduler
 from ghostwriter.home.management.commands.generate_test_data import (
     COMPANY_INFORMATION,
     DEMO_EVIDENCE_TEXT_SAMPLES,
@@ -28,8 +31,11 @@ from ghostwriter.home.management.commands.generate_test_data import (
     EXTRA_FIELD_SPECS,
     EXTRA_FIELD_SPECS_BY_MODEL,
     REPORT_CONFIGURATION,
+)
+from ghostwriter.home.management.commands.generate_test_data import (
     Command as GenerateTestDataCommand,
 )
+from ghostwriter.home.models import UserProfile
 from ghostwriter.modules.reportwriter.report.docx import ExportReportDocx
 from ghostwriter.oplog.models import Oplog, OplogEntry
 from ghostwriter.reporting.models import (
@@ -69,14 +75,15 @@ from ghostwriter.shepherd.models import (
     DomainStatus,
     HealthStatus,
     History,
-    ServerProvider,
     ServerHistory,
+    ServerProvider,
     ServerRole,
     ServerStatus,
     StaticServer,
     TransientServer,
     WhoisStatus,
 )
+from ghostwriter.status.health import HEALTH_TASK
 
 
 class GenerateTestDataCommandTests(TransactionTestCase):
@@ -114,6 +121,13 @@ class GenerateTestDataCommandTests(TransactionTestCase):
         output = self.call_seed("--quick")
 
         self.assertIn("Demo data seed complete", output)
+        self.assertFalse(Schedule.objects.filter(func=HEALTH_TASK).exists())
+        with patch(
+            "ghostwriter.home.django_q_cluster.q_scheduler.async_task",
+            return_value="0123456789abcdef0123456789abcdef",
+        ):
+            restricted_scheduler(broker=Mock())
+        self.assertEqual(Schedule.objects.filter(func=HEALTH_TASK).count(), 1)
         self.assertEqual(Client.objects.count(), 1)
         self.assertEqual(Project.objects.count(), 1)
         self.assertGreaterEqual(ClientContact.objects.count(), 3)
@@ -161,7 +175,10 @@ class GenerateTestDataCommandTests(TransactionTestCase):
         exporter = ExportReportDocx(report, report_template=docx_template)
         document = exporter.run()
         self.assertGreater(len(document.getvalue()), 0)
-        self.assertIn("Red Team Report", exporter.render_filename(REPORT_CONFIGURATION["report_filename"]))
+        self.assertIn(
+            "Red Team Report",
+            exporter.render_filename(REPORT_CONFIGURATION["report_filename"]),
+        )
         self.assertFalse(
             any("demo-seed" in entry.tags.names() for entry in OplogEntry.objects.all())
         )
