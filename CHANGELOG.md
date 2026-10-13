@@ -7,9 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [7.3.2] - 13 October 2026
+
 ### Fixed
 
-* Kept the activity log Columns button horizontal when expanded so only its disclosure icon rotates
+* Fixed Word and PowerPoint report exports failing on text outside paragraphs or dropping content in ordinary pasted HTML containers, while preserving supported inline formatting (Fixes #992)
+* Fixed evidence not appearing in generated PPTX reports (Fixes #990)
+* Fixed finding exports not working from the Django admin console after Django upgrades (Fixes #991)
+* Fixed the activity log Columns button from rotating with its icon rotates when expanded
 
 ## [7.3.1] - 5 October 2026
 
