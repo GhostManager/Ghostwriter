@@ -106,10 +106,27 @@ class RichTextNormalizationTests(SimpleTestCase):
         table = next(shape.table for shape in slide.shapes if shape.has_table)
         self.assertEqual(table.cell(0, 0).text, "Before\nNested bold\nAfter")
 
+    def test_mixed_table_cell_blocks_preserve_text_order(self):
+        cases = (
+            ("<td>Before<p>Middle</p>After</td>", "Before\nMiddle\nAfter"),
+            (
+                "<td><div>Before<blockquote>Quoted</blockquote>After</div></td>",
+                "Before\nQuoted\nAfter",
+            ),
+        )
+        for cell, expected in cases:
+            with self.subTest(cell=cell):
+                document, slide, _ = self.convert(f"<table><tr>{cell}</tr></table>")
+                self.assertEqual(document.tables[0].cell(0, 0).text, expected)
+                table = next(shape.table for shape in slide.shapes if shape.has_table)
+                self.assertEqual(table.cell(0, 0).text.replace("\v", "\n"), expected)
+
     def test_nested_blocks_preserve_text_order(self):
         for html in (
             "<blockquote>Before<div>Nested</div>After</blockquote>",
+            "<blockquote>Before<p>Nested</p>After</blockquote>",
             "<ul><li>Before<div>Nested</div>After</li></ul>",
+            "<ul><li>Before<p>Nested</p>After</li></ul>",
         ):
             with self.subTest(html=html):
                 document, _, shape = self.convert(html)

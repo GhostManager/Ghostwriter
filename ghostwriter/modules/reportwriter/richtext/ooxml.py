@@ -142,10 +142,7 @@ class BaseHtmlToOOXML:
             # Normalize rendered block containers once, before document conversion.
             _wrap_inline_children(tag)
             for container in tag.find_all(["div", "blockquote", "li", "td", "th"]):
-                # Cells, quotes, and list items already supply a paragraph unless
-                # a pasted div introduces another block among their inline text.
-                if container.name == "div" or container.find("div", recursive=False):
-                    _wrap_inline_children(container)
+                _wrap_inline_children(container)
             remove_trailing_empty_paragraphs(tag)
             instance.process_children(tag.children)
         return instance
