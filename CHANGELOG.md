@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Fixed Word and PowerPoint report exports failing on text outside paragraphs or dropping content in ordinary pasted HTML containers, while preserving supported inline formatting (Fixes #992)
 * Fixed evidence not appearing in generated PPTX reports (Fixes #990)
-* Fixed finding exports not working from the Django admin console after DJango upgrades (Fixes #991)
+* Fixed finding exports not working from the Django admin console after Django upgrades (Fixes #991)
 
 ## [7.3.1] - 5 October 2026
 
