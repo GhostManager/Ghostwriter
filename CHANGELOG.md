@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+* Kept the activity log Columns button horizontal when expanded so only its disclosure icon rotates
+
 ## [7.3.1] - 5 October 2026
 
 ### Added
