@@ -113,6 +113,10 @@ class RichTextNormalizationTests(SimpleTestCase):
                 "<td><div>Before<blockquote>Quoted</blockquote>After</div></td>",
                 "Before\nQuoted\nAfter",
             ),
+            (
+                "<td>Before<blockquote><div>Nested</div></blockquote>After</td>",
+                "Before\nNested\nAfter",
+            ),
         )
         for cell, expected in cases:
             with self.subTest(cell=cell):
@@ -138,6 +142,16 @@ class RichTextNormalizationTests(SimpleTestCase):
                     "\n".join(p.text for p in shape.text_frame.paragraphs),
                     "Before\nNested\nAfter",
                 )
+
+    def test_leading_block_whitespace_preserves_list_paragraph(self):
+        for list_tag in ("ul", "ol"):
+            with self.subTest(list_tag=list_tag):
+                document, _, shape = self.assert_paragraphs(
+                    f"<{list_tag}><li>\n<div>Item</div>\n</li></{list_tag}>",
+                    ["Item"],
+                )
+                self.assertTrue(document.paragraphs[0]._p.xpath("./w:pPr/w:numPr"))
+                self.assertEqual(shape.text_frame.paragraphs[0].level, 1)
 
     def test_collaborative_table_wrapper_preserves_the_table(self):
         document, slide, _ = self.assert_paragraphs(
