@@ -17,7 +17,8 @@
     border: 1px solid var(--gw-border, #aaa);
     border-radius: var(--gw-radius-md, 0.625rem);
     background-color: var(--gw-surface, #fafafa);
-    overflow: hidden;
+    // Clip rounded edges without creating a scroll ancestor for the toolbar.
+    overflow: clip;
 
     text-align: left;
 
@@ -42,7 +43,7 @@
         z-index: 3;
 
         position: sticky;
-        top: 0;
+        top: var(--gw-page-sticky-top, 0px);
     }
 
     .button-group {
@@ -85,6 +86,90 @@
                 var(--main-txt-color, #202428) 12%,
                 transparent
             );
+        }
+    }
+}
+
+.report-field-form-group {
+    margin-bottom: 0;
+}
+
+.report-field-footer {
+    margin-bottom: 1.5rem;
+}
+
+// Dedicated report fields use a viewport-sized writing pane when there is room.
+// Small or short windows keep page scrolling and the sticky toolbar instead.
+@media (min-width: 768px) and (min-height: 700px) {
+    .report-field-workspace:has(.collab-editor) {
+        display: flex;
+        flex-direction: column;
+        height: calc(
+            100dvh - var(--gw-report-workspace-top, 0px) - var(
+                    --gw-report-workspace-bottom,
+                    1.25rem
+                )
+        );
+        min-height: 20rem;
+
+        > .resource-form-shell,
+        #collab-form-container,
+        #collab-form-container > .form-group {
+            display: flex;
+            flex: 1 1 auto;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        #collab-form-container {
+            padding-bottom: 0;
+        }
+
+        .report-field-footer {
+            display: flex;
+            flex: 0 0 auto;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.375rem 0.75rem;
+            padding-top: 0.375rem;
+            margin-bottom: 0;
+
+            .form-text {
+                flex: 1 1 16rem;
+                min-width: 0;
+                margin: 0;
+            }
+
+            .collab-connection-status {
+                position: static;
+                flex: 0 0 auto;
+                margin-left: auto;
+                max-width: 100%;
+                padding: 0.45rem 0.75rem;
+            }
+        }
+
+        .collab-editor {
+            flex: 1 1 auto;
+            min-height: 0;
+
+            .control-group {
+                flex: 0 0 auto;
+                position: relative;
+                top: 0;
+            }
+
+            > .collab-editor-content {
+                flex: 1 1 auto;
+                min-height: 0;
+                overflow: auto;
+                scrollbar-gutter: stable;
+
+                > .tiptap {
+                    min-height: 100%;
+                }
+            }
         }
     }
 }
@@ -818,7 +903,10 @@ ul.collab-focused-users {
 }
 
 .ReactModal__Overlay {
-    z-index: 50;
+    // Keep editor dialogs above the sticky engagement bar and Bootstrap modals.
+    z-index: 1060;
+    // Override react-modal's inline white backdrop in both themes.
+    background-color: rgba(21, 23, 24, 0.55) !important;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -837,6 +925,7 @@ ul.collab-focused-users {
     max-height: calc(100vh - 2rem);
     color: var(--main-txt-color, #202428);
     outline: none;
+    text-align: left;
 
     &.gw-editor-dialog-wide {
         width: min(46rem, calc(100vw - 2rem));
@@ -1148,6 +1237,10 @@ ul.collab-focused-users {
         .gw-editor-dialog-footer {
             display: grid;
             grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr);
+
+            .btn-outline-danger {
+                grid-column: 1 / -1;
+            }
 
             .btn {
                 width: 100%;

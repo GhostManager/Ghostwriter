@@ -134,6 +134,12 @@ confirm that opening one card creates one editor, switching tabs does not change
   green is reserved for successful or healthy state.
 - Add buttons belong beside the section heading on wider screens and below it on
   narrow screens.
+- Repeat the same Add action beside Remove/Delete in every entry's action bar.
+  Collapsing a card hides its actions; keep summaries focused on entry details.
+  Keep actions within the card boundary and use equal vertical padding around
+  the action bar.
+  The shared `collection-add-footer.js` forwards the action to the header button
+  without duplicating formset handlers or IDs.
 - Tab counts are neutral metadata, not bright notification badges.
 - Summaries truncate safely on desktop and retain all actions on narrow screens.
 - Use a sticky Save/Cancel surface when an open card makes the form substantially

@@ -102,9 +102,13 @@ class HtmlToPptx(BaseHtmlToOOXML):
             if "justify" in par_classes:
                 par.alignment = PP_ALIGN.JUSTIFY
         elif any(r.text for r in par.runs):
-            # Might be in a table or something, add a break to simulate another paragraph.
-            run = par.add_run()
-            run.text = "\n"
+            if par._p is par._parent.paragraphs[-1]._p:
+                # Consecutive paragraphs can share the supplied cell/list paragraph.
+                par.add_run().text = "\n"
+            else:
+                # A nested block appended a paragraph after this one. Continue at
+                # the end of the container so the rendered text remains ordered.
+                par = par._parent.add_paragraph()
 
         self.process_children(el, par=par, **kwargs)
 

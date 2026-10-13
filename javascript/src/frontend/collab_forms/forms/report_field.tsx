@@ -30,8 +30,7 @@ function ReportExtraFieldForm(props: { field: string }) {
 
     return (
         <>
-            <ConnectionStatus status={status} />
-            <div className="form-group col-md-12">
+            <div className="form-group col-md-12 report-field-form-group">
                 <ExtraFieldInput
                     connected={connected}
                     provider={provider}
@@ -39,12 +38,15 @@ function ReportExtraFieldForm(props: { field: string }) {
                     toolbarExtra={renderToolbarExtra}
                     setEditing={setEditing}
                 />
+            </div>
+            <footer className="report-field-footer">
                 {extraField.description && (
                     <small className="form-text text-muted">
                         {extraField.description}
                     </small>
                 )}
-            </div>
+                <ConnectionStatus status={status} />
+            </footer>
         </>
     );
 }

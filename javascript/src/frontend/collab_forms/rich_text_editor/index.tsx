@@ -618,7 +618,10 @@ export default function RichTextEditor(props: {
         >
             <EditorContext.Provider value={{ editor }}>
                 <Toolbar editor={editor} extra={props.toolbarExtra} />
-                <EditorContent editor={editor} />
+                <EditorContent
+                    editor={editor}
+                    className="collab-editor-content"
+                />
             </EditorContext.Provider>
         </div>
     );

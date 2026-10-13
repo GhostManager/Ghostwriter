@@ -21,7 +21,6 @@ from django.views.decorators.http import require_GET, require_POST
 from django.views.generic.edit import View
 
 # 3rd Party Libraries
-from asgiref.sync import async_to_sync
 from django_q.models import Task
 from django_q.tasks import async_task
 
@@ -40,6 +39,7 @@ from ghostwriter.home.navigation import (
     get_allowed_optional_ids,
     normalize_sidebar_preferences,
 )
+from ghostwriter.home.notifications import get_uncleared_failed_tasks
 from ghostwriter.home.working_context import (
     PINNABLE_WORK_TYPES,
     build_working_context_catalog,
@@ -48,7 +48,7 @@ from ghostwriter.home.working_context import (
 )
 from ghostwriter.reporting.models import Report, ReportFindingLink, ReportObservationLink
 from ghostwriter.rolodex.models import Client, Project, ProjectAssignment
-from ghostwriter.status.views import HealthCheckCustomView
+from ghostwriter.status.health import get_dashboard_health_summary
 
 User = get_user_model()
 
@@ -452,9 +452,11 @@ class Dashboard(RoleBasedAccessControlMixin, View):
     ``calendar_events``
         FullCalendar event data for all ongoing projects available to the current user
     ``system_health``
-        Current system health based on the full status page check set
+        Latest background result from the full status page check set, or UNKNOWN
     ``system_health_issues``
         Service warnings and failures from those checks for privileged users
+    ``has_system_warning``
+        Whether uncleared failed jobs or current service issues require attention
 
     **Template**
 
@@ -527,22 +529,21 @@ class Dashboard(RoleBasedAccessControlMixin, View):
         )
 
         failed_tasks = []
-        system_health = None
+        uncleared_failed_tasks = get_uncleared_failed_tasks()
         system_health_issues = []
         if request.user.is_privileged:
-            dismissed_task_ids = DashboardExceptionDismissal.objects.values_list(
-                "task_id", flat=True
-            )
-            failed_tasks = list(
-                Task.objects.filter(success=False).exclude(id__in=dismissed_task_ids)[:5]
-            )
-            try:
-                summary = async_to_sync(HealthCheckCustomView().get_dashboard_summary)()
-                system_health = summary["state"]
+            failed_tasks = list(uncleared_failed_tasks[:5])
+            has_failed_tasks = bool(failed_tasks)
+        else:
+            has_failed_tasks = uncleared_failed_tasks.exists()
+        try:
+            summary = get_dashboard_health_summary()
+            system_health = summary["state"]
+            if request.user.is_privileged:
                 system_health_issues = summary["issues"]
-            except Exception:  # pragma: no cover
-                logger.exception("Unable to retrieve dashboard system health.")
-                system_health = "ERROR"
+        except Exception:  # pragma: no cover
+            logger.exception("Unable to retrieve dashboard system health.")
+            system_health = "UNKNOWN"
 
         context = {
             "user_projects": user_projects,
@@ -559,6 +560,8 @@ class Dashboard(RoleBasedAccessControlMixin, View):
             "calendar_events": build_dashboard_calendar_events(request.user),
             "system_health": system_health,
             "system_health_issues": system_health_issues,
+            "has_system_warning": has_failed_tasks
+            or system_health in ("WARNING", "ERROR"),
         }
         return render(request, "index.html", context=context)
 
@@ -577,6 +580,21 @@ class DashboardExceptionDismiss(RoleBasedAccessControlMixin, View):
         DashboardExceptionDismissal.objects.get_or_create(
             task_id=task.id,
             defaults={"dismissed_by": request.user},
+        )
+        return redirect("home:dashboard")
+
+
+class DashboardExceptionDismissAll(DashboardExceptionDismiss):
+    """Clear all failed-task alerts while retaining their task history."""
+
+    def post(self, request, *args, **kwargs):
+        task_ids = get_uncleared_failed_tasks().values_list("id", flat=True)
+        DashboardExceptionDismissal.objects.bulk_create(
+            [
+                DashboardExceptionDismissal(task_id=task_id, dismissed_by=request.user)
+                for task_id in task_ids
+            ],
+            ignore_conflicts=True,
         )
         return redirect("home:dashboard")
 

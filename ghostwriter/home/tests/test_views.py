@@ -4,7 +4,7 @@ from datetime import date, datetime, timedelta
 from datetime import timezone as datetime_timezone
 from io import StringIO
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 from uuid import uuid4
 from zoneinfo import ZoneInfo
 
@@ -36,21 +36,27 @@ from ghostwriter.factories import (
     ReportObservationLinkFactory,
     UserFactory,
 )
+from ghostwriter.home.models import DashboardExceptionDismissal
 from ghostwriter.home.navigation import (
-    DEFAULT_PANEL_ORDER,
     DEFAULT_OPTIONAL_ORDER,
+    DEFAULT_PANEL_ORDER,
     DEFAULT_PINNED,
     DEFAULT_VISIBLE_PANELS,
     SIDEBAR_PREFERENCES_VERSION,
 )
-from ghostwriter.home.models import DashboardExceptionDismissal
+from ghostwriter.home.templatetags import custom_tags
 from ghostwriter.home.working_context import (
     WORKSPACE_PREFERENCES_VERSION,
     build_working_context_catalog,
 )
-from ghostwriter.home.templatetags import custom_tags
-from ghostwriter.reporting.models import Report, ReportTemplate
+from ghostwriter.reporting.models import ReportTemplate
 from ghostwriter.rolodex.models import Project
+from ghostwriter.status.health import (
+    DASHBOARD_HEALTH_MAX_AGE,
+    get_dashboard_health_summary,
+)
+from ghostwriter.status.models import DashboardHealthSnapshot
+from ghostwriter.status.views import HealthCheckCustomView
 
 logging.disable(logging.CRITICAL)
 
@@ -390,6 +396,220 @@ class TemplateTagTests(TestCase):
         self.assertEqual(custom_tags.bhe_percent(None), "--")
 
 
+class DashboardExceptionDismissAllTests(TestCase):
+    """Tests for clearing the complete failed-task notification backlog."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(role="user")
+        cls.manager = UserFactory(role="manager")
+        cls.admin = UserFactory(role="admin")
+        cls.uri = reverse("home:dismiss_all_dashboard_exceptions")
+        cls.dashboard_uri = reverse("home:dashboard")
+        cls.failed_tasks = [cls.create_task(index) for index in range(12)]
+        cls.successful_task = cls.create_task(12, success=True)
+        cls.existing_dismissal = DashboardExceptionDismissal.objects.create(
+            task_id=cls.failed_tasks[0].id, dismissed_by=cls.manager
+        )
+
+    @staticmethod
+    def create_task(index, success=False):
+        stopped = timezone.now() - timedelta(days=365 * 3 + index)
+        return Task.objects.create(
+            id=uuid4().hex,
+            name=f"dashboard-task-{index}",
+            func="ghostwriter.shepherd.tasks.check_domains",
+            hook="",
+            args=(),
+            kwargs={},
+            result="Task completed" if success else "Task failed",
+            group=f"Domain Updates {index}",
+            started=stopped - timedelta(minutes=1),
+            stopped=stopped,
+            success=success,
+        )
+
+    def setUp(self):
+        self.client.force_login(self.admin)
+        healthcheck_patcher = patch(
+            "ghostwriter.home.views.get_dashboard_health_summary"
+        )
+        self.healthcheck = healthcheck_patcher.start()
+        self.addCleanup(healthcheck_patcher.stop)
+        self.healthcheck.return_value = {"state": "OK", "issues": []}
+
+    def test_clears_backlog_beyond_visible_tasks_and_preserves_history(self):
+        response = self.client.get(self.dashboard_uri)
+        self.assertEqual(len(response.context["failed_tasks"]), 5)
+        self.assertContains(response, self.uri)
+        self.assertContains(
+            response, 'aria-label="Clear all failed task notifications"'
+        )
+
+        response = self.client.post(self.uri)
+
+        self.assertRedirects(response, self.dashboard_uri)
+        self.assertEqual(DashboardExceptionDismissal.objects.count(), 12)
+        self.assertEqual(
+            DashboardExceptionDismissal.objects.filter(dismissed_by=self.admin).count(),
+            11,
+        )
+        self.assertFalse(
+            DashboardExceptionDismissal.objects.filter(
+                task_id=self.successful_task.id
+            ).exists()
+        )
+        self.assertEqual(Task.objects.count(), 13)
+        self.assertEqual(
+            Task.objects.filter(success=False, result="Task failed").count(), 12
+        )
+        response = self.client.get(self.dashboard_uri)
+        self.assertEqual(response.context["failed_tasks"], [])
+        self.assertNotContains(response, self.uri)
+        self.assertContains(response, "Systems ready")
+
+    def test_manager_can_clear_all(self):
+        self.client.force_login(self.manager)
+
+        response = self.client.post(self.uri)
+
+        self.assertRedirects(response, self.dashboard_uri)
+        self.assertEqual(
+            DashboardExceptionDismissal.objects.filter(
+                dismissed_by=self.manager
+            ).count(),
+            12,
+        )
+
+    def test_regular_user_cannot_clear_all(self):
+        self.client.force_login(self.user)
+
+        response = self.client.post(self.uri)
+
+        self.assertRedirects(response, self.dashboard_uri)
+        self.assertEqual(DashboardExceptionDismissal.objects.count(), 1)
+        self.assertNotContains(self.client.get(self.dashboard_uri), self.uri)
+
+    def test_regular_user_sees_warning_without_failed_job_details(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(self.dashboard_uri)
+
+        self.assertTrue(response.context["has_system_warning"])
+        self.assertEqual(response.context["failed_tasks"], [])
+        self.assertContains(response, 'class="operator-system-status is-warning"')
+        self.assertContains(response, 'class="fas fa-circle"')
+        self.assertContains(response, "System warning")
+        self.assertContains(response, "Contact a manager or admin.")
+        self.assertNotContains(response, "View status")
+        self.assertNotContains(response, reverse("status:healthcheck"))
+        self.assertNotContains(response, "Domain Updates")
+        self.assertNotContains(response, "System notifications")
+        self.assertNotContains(response, "Clear all")
+        self.assertNotContains(response, "operator-exception-dismiss")
+
+    def test_regular_user_warning_disappears_after_clearing_failed_jobs(self):
+        self.client.post(self.uri)
+        self.client.force_login(self.user)
+
+        response = self.client.get(self.dashboard_uri)
+
+        self.assertFalse(response.context["has_system_warning"])
+        self.assertContains(response, "Systems ready")
+        self.assertNotContains(response, "View status")
+        self.assertNotContains(response, "System warning")
+
+    def test_regular_user_still_sees_warning_after_clearing_with_unhealthy_services(
+        self,
+    ):
+        self.healthcheck.return_value = {
+            "state": "WARNING",
+            "issues": [],
+        }
+        self.client.post(self.uri)
+        self.client.force_login(self.user)
+
+        response = self.client.get(self.dashboard_uri)
+
+        self.assertTrue(response.context["has_system_warning"])
+        self.assertContains(response, "System warning")
+        self.assertNotContains(response, "Systems ready")
+
+    def test_anonymous_user_cannot_clear_all(self):
+        self.client.logout()
+
+        response = self.client.post(self.uri)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(reverse("account_login"), response.url)
+        self.assertEqual(DashboardExceptionDismissal.objects.count(), 1)
+
+    def test_get_does_not_clear_notifications(self):
+        response = self.client.get(self.uri)
+
+        self.assertEqual(response.status_code, 405)
+        self.assertEqual(DashboardExceptionDismissal.objects.count(), 1)
+
+    def test_post_requires_csrf_token(self):
+        client = Client(enforce_csrf_checks=True)
+        client.force_login(self.admin)
+
+        response = client.post(self.uri)
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(DashboardExceptionDismissal.objects.count(), 1)
+
+    def test_repeated_clear_preserves_existing_dismissals(self):
+        dismissed_at = self.existing_dismissal.dismissed_at
+        self.client.post(self.uri)
+        self.client.post(self.uri)
+
+        self.assertEqual(DashboardExceptionDismissal.objects.count(), 12)
+        self.existing_dismissal.refresh_from_db()
+        self.assertEqual(self.existing_dismissal.dismissed_by, self.manager)
+        self.assertEqual(self.existing_dismissal.dismissed_at, dismissed_at)
+
+    def test_new_failures_still_appear_after_clearing(self):
+        self.client.post(self.uri)
+        task = self.create_task(30)
+
+        response = self.client.get(self.dashboard_uri)
+
+        self.assertEqual(response.context["failed_tasks"], [task])
+        self.assertContains(response, self.uri)
+        self.assertFalse(
+            DashboardExceptionDismissal.objects.filter(task_id=task.id).exists()
+        )
+
+    def test_current_service_warnings_remain_after_clearing(self):
+        self.healthcheck.return_value = {
+            "state": "WARNING",
+            "issues": [
+                {
+                    "display_name": "Disk",
+                    "is_warning": True,
+                    "result": SimpleNamespace(error=ServiceWarning("94.5% disk usage")),
+                }
+            ],
+        }
+
+        self.client.post(self.uri)
+        response = self.client.get(self.dashboard_uri)
+
+        self.assertContains(response, "Disk requires attention")
+        self.assertContains(response, "94.5% disk usage")
+        self.assertNotContains(response, self.uri)
+        self.assertNotContains(response, "Systems ready")
+
+    def test_clear_with_no_failed_tasks_succeeds(self):
+        Task.objects.filter(success=False).delete()
+
+        response = self.client.post(self.uri)
+
+        self.assertRedirects(response, self.dashboard_uri)
+        self.assertEqual(DashboardExceptionDismissal.objects.count(), 1)
+
+
 class DashboardTests(TestCase):
     """Collection of tests for :view:`home.dashboard`."""
 
@@ -498,12 +718,13 @@ class DashboardTests(TestCase):
         cls.uri = reverse("home:dashboard")
 
     def setUp(self):
-        healthcheck_patcher = patch("ghostwriter.home.views.HealthCheckCustomView")
+        DashboardHealthSnapshot.objects.all().delete()
+        healthcheck_patcher = patch(
+            "ghostwriter.home.views.get_dashboard_health_summary"
+        )
         self.healthcheck = healthcheck_patcher.start()
         self.addCleanup(healthcheck_patcher.stop)
-        self.healthcheck.return_value.get_dashboard_summary = AsyncMock(
-            return_value={"state": "OK", "issues": []}
-        )
+        self.healthcheck.return_value = {"state": "OK", "issues": []}
         self.client = Client()
         self.client_auth = Client()
         self.client_manager = Client()
@@ -579,8 +800,7 @@ class DashboardTests(TestCase):
         self.assertContains(response, "data-working-context-tooltip")
         self.assertContains(
             response,
-            "data-working-context-tooltip\n"
-            '                  data-bs-toggle="modal"',
+            "data-working-context-tooltip\n" '                  data-bs-toggle="modal"',
         )
         self.assertNotContains(response, "/static/css/bootstrap.min.css")
         self.assertNotContains(response, "/static/js/bootstrap.min.js")
@@ -691,8 +911,12 @@ class DashboardTests(TestCase):
         response = self.client_auth.get(self.uri)
 
         self.assertContains(response, 'class="operator-dashboard"')
-        self.assertContains(response, 'class="operator-dashboard-panel operator-work-panel"')
-        self.assertContains(response, 'class="operator-dashboard-panel operator-runway-panel"')
+        self.assertContains(
+            response, 'class="operator-dashboard-panel operator-work-panel"'
+        )
+        self.assertContains(
+            response, 'class="operator-dashboard-panel operator-runway-panel"'
+        )
         self.assertNotContains(response, 'class="card operator-dashboard-panel')
         self.assertContains(response, ">Operator Brief<")
         self.assertContains(response, ">Your work<")
@@ -740,8 +964,8 @@ class DashboardTests(TestCase):
         self.assertContains(response, "System notifications")
         self.assertContains(response, "Domain Updates")
         self.assertContains(response, dismiss_uri)
-        self.assertNotContains(response, "operator-system-ready")
-        self.assertNotContains(response, "View status")
+        self.assertNotContains(response, "operator-system-status is-ready")
+        self.assertContains(response, "View status")
 
         response = self.client_manager.post(dismiss_uri)
         self.assertRedirects(response, self.uri)
@@ -826,6 +1050,8 @@ class DashboardTests(TestCase):
             active_finding,
         )
         self.assertTrue(response.context["work_items"][0]["is_active_report"])
+        self.assertContains(response, 'class="operator-active-tag"')
+        self.assertContains(response, "Working report")
 
     def test_assigned_finding_uses_configured_severity_color(self):
         finding = self.assigned_findings[0]
@@ -858,18 +1084,173 @@ class DashboardTests(TestCase):
         self.assertContains(response, 'style="--operator-severity-color: #6C809A;"')
         self.assertNotContains(response, "--operator-severity-color: ZZZZZZ")
 
-    def test_regular_operator_dashboard_skips_system_health_checks(self):
+    def test_regular_operator_sees_healthy_status(self):
         response = self.client_auth.get(self.uri)
 
         self.assertEqual(response.status_code, 200)
-        self.healthcheck.assert_not_called()
-        self.assertIsNone(response.context["system_health"])
+        self.assertEqual(response.context["system_health"], "OK")
+        self.assertFalse(response.context["has_system_warning"])
+        self.assertContains(response, "Systems ready")
+        self.assertNotContains(response, "View status")
+        self.assertNotContains(response, "System warning")
+
+    def test_health_indicator_states_and_links_match_for_all_roles(self):
+        for state, indicator, label in (
+            ("OK", "is-ready", "Systems ready"),
+            ("WARNING", "is-warning", "System warning"),
+            ("ERROR", "is-error", "System error"),
+            ("UNKNOWN", "is-unknown", "System status unavailable"),
+        ):
+            self.healthcheck.return_value = {
+                "state": state,
+                "issues": [
+                    {
+                        "display_name": "Private service",
+                        "is_warning": state == "WARNING",
+                        "result": {"error": "Private failure details"},
+                    }
+                ]
+                if state in ("WARNING", "ERROR")
+                else [],
+            }
+            for role, client in (
+                ("operator", self.client_auth),
+                ("manager", self.client_manager),
+                ("admin", self.client_admin),
+            ):
+                with self.subTest(state=state, role=role):
+                    response = client.get(self.uri)
+                    self.assertContains(
+                        response, f'class="operator-system-status {indicator}"', count=1
+                    )
+                    self.assertContains(response, label)
+                    self.assertContains(response, 'class="fas fa-circle"')
+                    self.assertEqual(
+                        response.context["has_system_warning"],
+                        state in ("WARNING", "ERROR"),
+                    )
+                    if role == "operator":
+                        self.assertEqual(response.context["system_health_issues"], [])
+                        self.assertNotContains(response, "View status")
+                        self.assertNotContains(response, reverse("status:healthcheck"))
+                        self.assertNotContains(response, "Private service")
+                        self.assertNotContains(response, "Private failure details")
+                        if state in ("WARNING", "ERROR"):
+                            self.assertContains(response, "Contact a manager or admin.")
+                    else:
+                        self.assertContains(response, "View status", count=1)
+
+    def test_service_error_remains_red_when_failed_jobs_exist(self):
+        self.healthcheck.return_value = {"state": "ERROR", "issues": []}
+        Task.objects.create(
+            id=uuid4().hex,
+            name="Failure",
+            func="test.failure",
+            group="Private job",
+            started=timezone.now(),
+            stopped=timezone.now(),
+            success=False,
+        )
+
+        response = self.client_auth.get(self.uri)
+
+        self.assertContains(response, 'class="operator-system-status is-error"')
+        self.assertContains(response, "System error")
+        self.assertNotContains(response, 'class="operator-system-status is-warning"')
+        self.assertNotContains(response, "Private job")
+
+    def test_regular_operator_sees_unavailable_when_snapshot_read_fails(self):
+        self.healthcheck.side_effect = RuntimeError("Snapshot unavailable")
+
+        response = self.client_auth.get(self.uri)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "System status unavailable")
+        self.assertNotContains(response, "System warning")
+        self.assertNotContains(response, "View status")
+        self.assertNotContains(response, "Systems ready")
+
+    def test_snapshot_is_shared_without_exposing_details_to_regular_users(self):
+        DashboardHealthSnapshot.objects.create(
+            checked_at=timezone.now(),
+            summary={
+                "state": "WARNING",
+                "issues": [
+                    {
+                        "display_name": "Private service",
+                        "is_warning": True,
+                        "result": {"error": "Private failure details"},
+                    }
+                ],
+            },
+        )
+        with patch(
+            "ghostwriter.home.views.get_dashboard_health_summary",
+            get_dashboard_health_summary,
+        ), patch.object(HealthCheckCustomView, "get_checks") as checks:
+            operator_response = self.client_auth.get(self.uri)
+            admin_response = self.client_admin.get(self.uri)
+
+        checks.assert_not_called()
+        self.assertContains(operator_response, "System warning")
+        self.assertNotContains(operator_response, "Private service")
+        self.assertNotContains(operator_response, "Private failure details")
+        self.assertContains(admin_response, "Private service requires attention")
+        self.assertContains(admin_response, "Private failure details")
+
+    def test_missing_or_stale_snapshot_never_runs_or_queues_checks(self):
+        for age in (None, DASHBOARD_HEALTH_MAX_AGE + timedelta(seconds=1)):
+            with self.subTest(age=age):
+                DashboardHealthSnapshot.objects.all().delete()
+                if age is not None:
+                    DashboardHealthSnapshot.objects.create(
+                        checked_at=timezone.now() - age,
+                        summary={"state": "OK", "issues": []},
+                    )
+                with patch(
+                    "ghostwriter.home.views.get_dashboard_health_summary",
+                    get_dashboard_health_summary,
+                ), patch.object(HealthCheckCustomView, "get_checks") as checks, patch(
+                    "django_q.tasks.async_task"
+                ) as enqueue:
+                    for client in (self.client_auth, self.client_admin):
+                        response = client.get(self.uri)
+                        self.assertEqual(response.status_code, 200)
+                        self.assertContains(response, "System status unavailable")
+                        self.assertNotContains(response, "Systems ready")
+                        self.assertNotContains(response, "System warning")
+                        self.assertFalse(response.context["has_system_warning"])
+                checks.assert_not_called()
+                enqueue.assert_not_called()
+
+    def test_unknown_health_does_not_hide_failed_job_notifications(self):
+        self.healthcheck.return_value = {"state": "UNKNOWN", "issues": []}
+        task = Task.objects.create(
+            id=uuid4().hex,
+            name="Failure",
+            func="test.failure",
+            group="Private job",
+            started=timezone.now(),
+            stopped=timezone.now(),
+            success=False,
+        )
+        operator_response = self.client_auth.get(self.uri)
+        admin_response = self.client_admin.get(self.uri)
+
+        self.assertContains(operator_response, "System warning")
+        self.assertContains(operator_response, "Contact a manager or admin.")
+        self.assertNotContains(operator_response, "Private job")
+        self.assertContains(admin_response, "Private job")
+        for response in (operator_response, admin_response):
+            self.assertContains(response, "System status unavailable")
+            self.assertNotContains(response, "Systems ready")
+        self.assertTrue(Task.objects.filter(pk=task.pk).exists())
 
     def test_healthy_dashboard_shows_green_ready_state(self):
         response = self.client_admin.get(self.uri)
 
         self.assertEqual(response.context["system_health"], "OK")
-        self.assertContains(response, 'class="operator-system-ready"')
+        self.assertContains(response, 'class="operator-system-status is-ready"')
         self.assertContains(response, "Systems ready")
         self.assertContains(response, "View status")
         self.assertNotContains(response, "System notifications")
@@ -881,7 +1262,7 @@ class DashboardTests(TestCase):
             "is_warning": True,
             "result": SimpleNamespace(error=ServiceWarning("94.5% disk usage")),
         }
-        self.healthcheck.return_value.get_dashboard_summary.return_value = {
+        self.healthcheck.return_value = {
             "state": "WARNING",
             "issues": [issue],
         }
@@ -889,12 +1270,13 @@ class DashboardTests(TestCase):
         response = self.client_admin.get(self.uri)
 
         self.assertEqual(response.context["system_health"], "WARNING")
-        self.assertNotContains(response, "operator-system-ready")
+        self.assertNotContains(response, "operator-system-status is-ready")
         self.assertContains(response, 'class="operator-exception-item is-warning"')
         self.assertContains(response, "System notifications")
         self.assertContains(response, "System status")
-        self.assertNotContains(response, "System warning")
-        self.assertNotContains(response, "View status")
+        self.assertContains(response, "System warning")
+        self.assertContains(response, 'class="operator-system-status is-warning"')
+        self.assertContains(response, "View status")
         self.assertContains(response, "Disk requires attention")
         self.assertContains(response, "94.5% disk usage")
         self.assertNotContains(response, "Systems ready")
@@ -905,32 +1287,31 @@ class DashboardTests(TestCase):
             "is_warning": False,
             "result": SimpleNamespace(error=ServiceUnavailable("Database unavailable")),
         }
-        self.healthcheck.return_value.get_dashboard_summary.return_value = {
+        self.healthcheck.return_value = {
             "state": "ERROR",
             "issues": [issue],
         }
 
         response = self.client_admin.get(self.uri)
 
-        self.assertNotContains(response, "operator-system-ready")
+        self.assertNotContains(response, "operator-system-status is-ready")
         self.assertContains(response, 'class="operator-exception-item is-critical"')
         self.assertContains(response, "System status")
-        self.assertNotContains(response, "View status")
+        self.assertContains(response, "View status")
+        self.assertContains(response, 'class="operator-system-status is-error"')
         self.assertContains(response, "Database unavailable")
         self.assertNotContains(response, "Systems ready")
 
-    def test_failed_health_checks_do_not_claim_ready(self):
-        self.healthcheck.return_value.get_dashboard_summary.side_effect = RuntimeError(
-            "Check failed"
-        )
+    def test_snapshot_read_failure_does_not_claim_ready(self):
+        self.healthcheck.side_effect = RuntimeError("Snapshot unavailable")
 
         response = self.client_admin.get(self.uri)
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.context["system_health"], "ERROR")
-        self.assertContains(response, "System checks could not be completed")
-        self.assertNotContains(response, "operator-system-ready")
-        self.assertNotContains(response, "View status")
+        self.assertEqual(response.context["system_health"], "UNKNOWN")
+        self.assertContains(response, "System status unavailable")
+        self.assertNotContains(response, "operator-system-status is-ready")
+        self.assertContains(response, "View status")
         self.assertNotContains(response, "Systems ready")
 
     def assert_privileged_calendar_shows_ongoing_projects(self, client):
@@ -1327,9 +1708,7 @@ class WorkingContextTests(TestCase):
             self.client_auth.login(username=self.user.username, password=PASSWORD)
         )
         self.assertTrue(
-            self.client_mgr.login(
-                username=self.manager.username, password=PASSWORD
-            )
+            self.client_mgr.login(username=self.manager.username, password=PASSWORD)
         )
 
     def test_views_require_login(self):
@@ -1347,9 +1726,7 @@ class WorkingContextTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["groups"], [])
 
-        ProjectAssignmentFactory(
-            project=self.report.project, operator=self.user
-        )
+        ProjectAssignmentFactory(project=self.report.project, operator=self.user)
         response = self.client_auth.get(self.catalog_uri)
         report_ids = [
             report["id"]
@@ -1399,18 +1776,14 @@ class WorkingContextTests(TestCase):
 
         response = self.client_mgr.get(self.catalog_uri)
         reports = [
-            report
-            for group in response.json()["groups"]
-            for report in group["reports"]
+            report for group in response.json()["groups"] for report in group["reports"]
         ]
         working_report = next(
             report for report in reports if report["id"] == self.report.id
         )
 
         self.assertTrue(working_report["working"])
-        self.assertEqual(
-            response.json()["active_report_id"], self.report.id
-        )
+        self.assertEqual(response.json()["active_report_id"], self.report.id)
 
     def test_user_can_toggle_visible_pinned_work(self):
         response = self.client_mgr.post(

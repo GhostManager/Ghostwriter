@@ -39,7 +39,7 @@ Ghostwriter also tests each service more thoroughly with two API endpoints:
 
 * /status/simple/
 
-The first endpoint, */status*, tests critical services and displays a table of results:
+The HTML page at */status/* is available to active managers and admins. It tests critical services and displays a table of fresh results, including diagnostic messages:
 
 <Frame>
   <img src="/images/features/image-63.avif" alt=""/>
@@ -48,12 +48,12 @@ The first endpoint, */status*, tests critical services and displays a table of r
 These tests are more thorough than the Docker health checks. For example, Docker will verify the database back end is listening and accepting connections, but Ghostwriter runs tests to ensure the database is accepting connections and reading and writing are working as expected.
 
 <Check>
-This endpoint can also return a JSON version of the test results if you set the `Accept: application/json` header.
+This endpoint also provides public machine-readable status if you set the `Accept: application/json` header or request */status/?format=json*. Authentication is not required. These responses contain only service names and basic values: `working`, `warning`, or `error`. Diagnostic messages and check configuration are limited to the privileged HTML page.
 </Check>
 
-Running these tests constantly could be a strain on the server, so the tests run on-demand when you visit this page.
+Visiting this page runs fresh checks on demand. The dashboard uses a separate background monitor described below.
 
-You can visit the simplified endpoint, */status/simple/*, to run lightweight checks. This endpoint checks the web server, database status, and cache status and returns one of the following responses:
+You can visit the public simplified endpoint, */status/simple/*, to run lightweight checks without authentication. This endpoint checks the web server, database status, and cache status and returns one of the following responses:
 
 | **Response** | **Response Code** | **Description**                                                                                   |
 |--------------|--------------------|---------------------------------------------------------------------------------------------------|
@@ -62,7 +62,21 @@ You can visit the simplified endpoint, */status/simple/*, to run lightweight che
 | ERROR        | 500                | There was an unexpected error indicating a critical issue                                        |
 
 
-The home dashboard displays a basic system health status. The status is based on the results from the simplified endpoint.
+### Dashboard Monitoring
+
+The home dashboard reads the latest background result from a single shared database record. It never runs diagnostic checks or queues monitoring work while loading, including when the record is missing or stale. There is no diagnostic loading delay for dashboard visitors.
+
+A Django Q schedule named **Dashboard system health** runs every minute and checks the cache, database, storage, disk, memory, Redis, and Hasura. The schedule is installed by the database migration and requires the queue service to be running. Each scheduled run has a 30-second worker timeout. Successful monitor runs are not saved in the background-job history.
+
+The queue scheduler restores this required schedule on its next tick if it is missing, including after database resets or deletion while the application is running. Existing names, intervals, and intentional pauses are preserved. To disable monitoring, pause the schedule by setting its repeats to zero. Missing schedules are restored with the default one-minute interval.
+
+The monitor skips missed intervals after downtime and runs one current check before scheduling its next future run. It does not replay historical checks, even when catch-up is enabled for other scheduled tasks.
+
+Results remain current for three minutes from the start of the checks. Missing results, incomplete checks, or older results display **System status unavailable** instead of claiming the services are ready. If the queue stops or falls behind, the dashboard continues loading and the summary becomes unavailable. Managers and admins can visit the detailed status page to run fresh checks independently; those checks do not replace the background snapshot.
+
+Every user sees the same compact health indicator: green for **Systems ready**, yellow for **System warning**, red for **System error**, and a neutral indicator for **System status unavailable**. Uncleared failed jobs also produce a warning indicator, without hiding current service errors or unavailable health results. Regular users receive guidance to contact a manager or admin when attention is needed. Diagnostic details and the **View status** link are limited to managers and admins. The indicator never blocks normal navigation or editing. Changes in service health normally appear after the next background run; detection may take longer if the queue is busy.
+
+Failed-job notifications are queried separately on each dashboard load, so clearing them takes effect immediately. Clearing notifications preserves task history and does not clear current service warnings.
 
 ### Configuration
 
@@ -98,11 +112,15 @@ You can automate monitoring with something like Uptime Kuma or a similar tool. T
 
 * If `OK` is not in the response or the response code is not `200`, send an alert with a link to */status/* for details
 
-If the tool is capable of triggering a secondary action, you could have the tool pull the JSON data from */status/*:
+If the tool is capable of triggering a secondary action, it can pull basic per-service JSON data from */status/* without authentication:
 
 ```log
 $ curl -k https://ghostwriter.local/status/ -H "Accept: application/json"
-{"Cache backend: default": "working", "DatabaseBackend": "working", "DefaultFileStorageHealthCheck": "working", "DiskUsage": "working", "MemoryUsage": "working", "MigrationsHealthCheck": "working", "RedisHealthCheck": "working"}
+{"Cache": "working", "Database": "working", "Storage": "working", "Disk": "working", "Memory": "working", "Redis": "working", "Hasura GraphQL Engine": "working"}
 ```
 
-Working services will have a `working` status. A service experiencing a problem will have a descriptive warning or error message that will tell you why it failed the test. You can use this information to customize your monitoring alert.
+Working services have a `working` status. A service experiencing a problem reports only `warning` or `error`. JSON and text responses return HTTP `200` when all checks pass and `500` when a check warns or fails. Link alerts to */status/* so a manager or admin can sign in and inspect the diagnostic messages.
+
+Public monitoring also supports `format=text`, `format=atom`, `format=rss`, and `format=openmetrics`, or the corresponding `Accept` headers. These formats omit raw errors and configured URLs, paths, and credentials. OpenMetrics retains the package's metric names and `check` label values, but omits configuration labels. Feeds and OpenMetrics retain HTTP `200` when checks fail; their contents carry the health result.
+
+Opening */status/* in a browser still requires an active manager or admin session. All machine-readable responses remain basic, including when requested by a privileged user.

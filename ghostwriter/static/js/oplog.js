@@ -1417,7 +1417,7 @@ $(document).ready(function () {
         let $button = $(this);
         let $columnSelect = $('#columnSelect').stop(true, true);
         let isOpen = !$columnSelect.is(':visible');
-        $button.toggleClass('open', isOpen).attr('aria-expanded', String(isOpen));
+        $button.attr('aria-expanded', String(isOpen));
         $columnSelect.slideToggle(120);
     });
 

@@ -6,10 +6,18 @@
 
 
 {% block content %}
-    <header class="resource-form-page-heading mb-4">
-        <span class="detail-eyebrow">Report Observation</span>
-        <h1>Edit {{ object.title|default:"Untitled Observation" }}</h1>
-        <p>Tailor this observation for {{ object.report }}. Changes save automatically while collaboration is connected.</p>
+    <header class="detail-page-heading resource-detail-heading mb-4">
+        <div class="resource-form-page-heading">
+            <span class="detail-eyebrow">Report Observation</span>
+            <h1>Edit {{ object.title|default:"Untitled Observation" }}</h1>
+            <p>Tailor this observation for {{ object.report }}. Changes save automatically while collaboration is connected.</p>
+        </div>
+        <div class="detail-page-heading-actions">
+            <a class="btn btn-outline-primary btn-sm"
+               href="{% url 'reporting:report_detail' pk=object.report.pk %}#observations">
+                <i class="fas fa-arrow-left me-1" aria-hidden="true"></i>Back to report
+            </a>
+        </div>
     </header>
     <div class="resource-form-shell">
         {{ block.super }}
