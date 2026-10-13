@@ -222,8 +222,12 @@ class HtmlToDocx(BaseHtmlToOOXML):
 
     def tag_p(self, el, *, par=None, **kwargs):
         self.text_tracking.new_block()
-        style = par.style if par is not None else self.p_style
-        par = self._paragraph_for_block(par, style=style)
+        if par is not None and not self._paragraph_has_content(par):
+            # Parent blocks and cells have already prepared this paragraph.
+            par = self._paragraph_for_block(par)
+        else:
+            style = par.style if par is not None else self.p_style
+            par = self._paragraph_for_block(par, style=style)
 
         par_classes = set(el.attrs.get("class", []))
         if "left" in par_classes:
