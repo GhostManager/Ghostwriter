@@ -1,11 +1,25 @@
-import pptx
+# Standard Libraries
+import base64
+import os
+import tempfile
 from io import BytesIO
+from unittest.mock import call, patch
 from zipfile import ZipFile
 
-from django.test import SimpleTestCase
-from .test_rich_text_docx import clean_xml
+# Django Imports
+from django.test import SimpleTestCase, override_settings
 
-from ghostwriter.modules.reportwriter.richtext.pptx import HtmlToPptx
+# 3rd Party Libraries
+import pptx
+from pptx.enum.shapes import MSO_SHAPE_TYPE
+
+# Ghostwriter Libraries
+from ghostwriter.modules.reportwriter.richtext.pptx import (
+    HtmlToPptx,
+    HtmlToPptxWithEvidence,
+)
+
+from .test_rich_text_docx import clean_xml
 
 PPTX_PREFIX = """<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
 <p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
@@ -705,3 +719,111 @@ class RichTextToPptxTests(SimpleTestCase):
             </a:p>
         """,
     )
+
+
+class HtmlToPptxWithEvidenceTests(SimpleTestCase):
+    """Cover editor and legacy evidence markers during PowerPoint conversion."""
+
+    ONE_PIXEL_PNG = base64.b64decode(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+yF9kAAAAASUVORK5CYII="
+    )
+
+    def test_editor_evidence_node_adds_picture_to_slide(self):
+        presentation = pptx.Presentation()
+        slide = presentation.slides.add_slide(
+            presentation.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
+        )
+        shape = slide.shapes.placeholders[1]
+        evidence_id = 42
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            evidence_name = "evidence.png"
+            evidence_path = os.path.join(temp_dir, evidence_name)
+            with open(evidence_path, "wb") as evidence_file:
+                evidence_file.write(self.ONE_PIXEL_PNG)
+
+            initial_shape_count = len(slide.shapes)
+            with override_settings(MEDIA_ROOT=temp_dir):
+                HtmlToPptxWithEvidence.run(
+                    '<div class="richtext-evidence" data-evidence-id="42"></div>',
+                    slide,
+                    shape,
+                    evidences={evidence_id: {"path": evidence_name}},
+                )
+
+        self.assertEqual(len(slide.shapes), initial_shape_count + 1)
+        self.assertEqual(slide.shapes[-1].shape_type, MSO_SHAPE_TYPE.PICTURE)
+
+    def test_missing_editor_evidence_is_logged_and_ignored(self):
+        presentation = pptx.Presentation()
+        slide = presentation.slides.add_slide(
+            presentation.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
+        )
+        shape = slide.shapes.placeholders[1]
+        initial_shape_count = len(slide.shapes)
+
+        with patch(
+            "ghostwriter.modules.reportwriter.richtext.pptx.logger.exception"
+        ) as log_exception:
+            HtmlToPptxWithEvidence.run(
+                '<div class="richtext-evidence" data-evidence-id="999"></div>',
+                slide,
+                shape,
+                evidences={},
+            )
+
+        self.assertEqual(len(slide.shapes), initial_shape_count)
+        log_exception.assert_called_once_with("Could not get evidence")
+
+    def test_adjacent_legacy_markers_preserve_surrounding_text(self):
+        presentation = pptx.Presentation()
+        slide = presentation.slides.add_slide(presentation.slide_layouts[1])
+        shape = slide.shapes.placeholders[1]
+        evidences = {1: {"path": "first.png"}, 2: {"path": "second.png"}}
+        with patch.object(HtmlToPptxWithEvidence, "make_evidence") as make_evidence:
+            HtmlToPptxWithEvidence.run(
+                '<div>Before<span data-gw-evidence="1"></span>'
+                '<span data-gw-evidence="2"></span>After</div>',
+                slide,
+                shape,
+                evidences=evidences,
+            )
+        self.assertEqual(
+            make_evidence.call_args_list,
+            [call(slide, evidences[1]), call(slide, evidences[2])],
+        )
+        self.assertEqual(shape.text_frame.paragraphs[-1].text, "BeforeAfter")
+
+    def test_invalid_editor_evidence_does_not_abort_following_text(self):
+        for attributes in ("", 'data-evidence-id="bad"', 'data-evidence-id="999"'):
+            with self.subTest(attributes=attributes):
+                presentation = pptx.Presentation()
+                slide = presentation.slides.add_slide(presentation.slide_layouts[1])
+                shape = slide.shapes.placeholders[1]
+                with patch(
+                    "ghostwriter.modules.reportwriter.richtext.pptx.logger.exception"
+                ) as log_exception:
+                    HtmlToPptxWithEvidence.run(
+                        f'<div class="richtext-evidence" {attributes}></div><p>After</p>',
+                        slide,
+                        shape,
+                        evidences={},
+                    )
+                self.assertEqual(shape.text_frame.paragraphs[-1].text, "After")
+                log_exception.assert_called_once_with("Could not get evidence")
+
+    def test_editor_text_evidence_adds_textbox(self):
+        presentation = pptx.Presentation()
+        slide = presentation.slides.add_slide(presentation.slide_layouts[1])
+        shape = slide.shapes.placeholders[1]
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with open(os.path.join(temp_dir, "evidence.txt"), "w") as evidence_file:
+                evidence_file.write("Command output")
+            with override_settings(MEDIA_ROOT=temp_dir):
+                HtmlToPptxWithEvidence.run(
+                    '<div class="richtext-evidence" data-evidence-id="42"></div>',
+                    slide,
+                    shape,
+                    evidences={42: {"path": "evidence.txt"}},
+                )
+        self.assertEqual(slide.shapes[-1].text, "Command output")
