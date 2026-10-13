@@ -1,4 +1,5 @@
 # Standard Libraries
+import base64
 import io
 import json
 import logging
@@ -5862,6 +5863,38 @@ class GenerateReportTests(TestCase):
             repr(response)
             + repr([str(msg) for msg in get_messages(response.wsgi_request)]),
         )
+
+    def test_view_pptx_includes_editor_evidence_node(self):
+        image_contents = base64.b64decode(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+yF9kAAAAASUVORK5CYII="
+        )
+        evidence = EvidenceFactory(
+            report=self.report,
+            document=SimpleUploadedFile(
+                "pptx-evidence.png",
+                image_contents,
+                content_type="image/png",
+            ),
+        )
+        ReportFindingLinkFactory(
+            report=self.report,
+            title="Finding with PPTX evidence",
+            description=(
+                '<div class="richtext-evidence" '
+                f'data-evidence-id="{evidence.pk}"></div>'
+            ),
+        )
+
+        response = self.client_mgr.get(self.pptx_uri)
+
+        self.assertEqual(response.status_code, 200, response.content)
+        with zipfile.ZipFile(io.BytesIO(response.content)) as presentation:
+            embedded_media = [
+                presentation.read(name)
+                for name in presentation.namelist()
+                if name.startswith("ppt/media/")
+            ]
+        self.assertIn(image_contents, embedded_media)
 
     def test_view_all_uri_exists_at_desired_location(self):
         response = self.client_mgr.get(self.all_uri)

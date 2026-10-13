@@ -1,5 +1,6 @@
 
 # Standard Libraries
+import logging
 import os
 
 # Django Imports
@@ -14,6 +15,8 @@ from pptx.util import Inches, Pt
 # Ghostwriter Libraries
 from ghostwriter.modules.reportwriter.extensions import IMAGE_EXTENSIONS, TEXT_EXTENSIONS
 from ghostwriter.modules.reportwriter.richtext.ooxml import BaseHtmlToOOXML
+
+logger = logging.getLogger(__name__)
 
 
 class HtmlToPptx(BaseHtmlToOOXML):
@@ -174,9 +177,10 @@ class HtmlToPptx(BaseHtmlToOOXML):
 
 class HtmlToPptxWithEvidence(HtmlToPptx):
     """
-    Augments `HtmlToPptx`, replacing marked spans with evidence figures, captions,
-    and references.
+    Augments `HtmlToPptx`, replacing marked elements with evidence figures,
+    captions, and references.
     """
+
     def __init__(self, slide, shape, evidences):
         super().__init__(slide, shape)
         self.evidences = evidences
@@ -207,6 +211,17 @@ class HtmlToPptxWithEvidence(HtmlToPptx):
             self.tag_footnote(el, par=par, **kwargs)
         else:
             super().tag_span(el, par=par, **kwargs)
+
+    def tag_div(self, el, *, par=None, **kwargs):
+        if "richtext-evidence" in el.attrs.get("class", []):
+            try:
+                evidence = self.evidences[int(el.attrs["data-evidence-id"])]
+            except (KeyError, ValueError):
+                logger.exception("Could not get evidence")
+                return
+            self.make_evidence(self.slide, evidence)
+        else:
+            super().tag_div(el, par=par, **kwargs)
 
     @staticmethod
     def make_evidence(slide, evidence):
