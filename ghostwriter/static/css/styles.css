@@ -1453,7 +1453,7 @@ table.table-oplog tbody tr {
   text-align: left;
 }
 
-#columnSelectDropdown.open {
+#columnSelectDropdown[aria-expanded="true"] {
   color: var(--gw-engagement-violet);
   background: color-mix(in srgb, var(--gw-engagement-violet) 9%, var(--gw-surface));
   border-color: color-mix(in srgb, var(--gw-engagement-violet) 45%, var(--gw-border));
@@ -1547,7 +1547,7 @@ table.table-oplog tbody tr {
   transition: transform 120ms ease-out;
 }
 
-#columnSelectDropdown.open .oplog-columns-icon {
+#columnSelectDropdown[aria-expanded="true"] .oplog-columns-icon {
   transform: rotate(90deg);
 }
 
