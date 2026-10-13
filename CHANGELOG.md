@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+* Fixed Word and PowerPoint report exports failing on text outside paragraphs or dropping content in ordinary pasted HTML containers, while preserving supported inline formatting
+
 ## [7.3.1] - 5 October 2026
 
 ### Added
