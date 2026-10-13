@@ -111,7 +111,11 @@ class HtmlToPptx(BaseHtmlToOOXML):
             else:
                 # A nested block appended a paragraph after this one. Continue at
                 # the end of the container so the rendered text remains ordered.
+                level = par.level
                 par = par._parent.add_paragraph()
+                par.level = level
+                if kwargs.get("list_level") is not None:
+                    par._p.get_or_add_pPr().append(OxmlElement("a:buNone"))
 
         self.process_children(el, par=par, **kwargs)
 

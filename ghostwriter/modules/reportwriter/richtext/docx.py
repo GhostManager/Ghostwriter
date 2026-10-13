@@ -222,12 +222,19 @@ class HtmlToDocx(BaseHtmlToOOXML):
 
     def tag_p(self, el, *, par=None, **kwargs):
         self.text_tracking.new_block()
+        parent_par = par
         if par is not None and not self._paragraph_has_content(par):
             # Parent blocks and cells have already prepared this paragraph.
             par = self._paragraph_for_block(par)
         else:
             style = par.style if par is not None else self.p_style
             par = self._paragraph_for_block(par, style=style)
+
+        list_level = kwargs.get("list_level")
+        if list_level is not None and par is not parent_par:
+            # Match ListTracking's text indent without adding another bullet or number.
+            par.paragraph_format.left_indent = Inches((list_level + 1) * 0.5)
+            par.paragraph_format.first_line_indent = Inches(0)
 
         par_classes = set(el.attrs.get("class", []))
         if "left" in par_classes:

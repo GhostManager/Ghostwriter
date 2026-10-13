@@ -145,13 +145,43 @@ class RichTextNormalizationTests(SimpleTestCase):
 
     def test_leading_block_whitespace_preserves_list_paragraph(self):
         for list_tag in ("ul", "ol"):
+            for item in ("<div>Item</div>", "<b>Item</b>"):
+                with self.subTest(list_tag=list_tag, item=item):
+                    document, _, shape = self.assert_paragraphs(
+                        f"<{list_tag}><li>\n{item}\n</li></{list_tag}>",
+                        ["Item"],
+                    )
+                    self.assertTrue(document.paragraphs[0]._p.xpath("./w:pPr/w:numPr"))
+                    self.assertEqual(shape.text_frame.paragraphs[0].level, 1)
+
+    def test_nested_list_continuations_keep_the_enclosing_indent(self):
+        for list_tag in ("ul", "ol"):
             with self.subTest(list_tag=list_tag):
                 document, _, shape = self.assert_paragraphs(
-                    f"<{list_tag}><li>\n<div>Item</div>\n</li></{list_tag}>",
-                    ["Item"],
+                    f"<{list_tag}><li>Before<{list_tag}><li>Nested</li>"
+                    f"</{list_tag}>After</li><li>Next</li></{list_tag}>",
+                    ["Before", "Nested", "After", "Next"],
                 )
-                self.assertTrue(document.paragraphs[0]._p.xpath("./w:pPr/w:numPr"))
-                self.assertEqual(shape.text_frame.paragraphs[0].level, 1)
+                continuation = document.paragraphs[2]
+                self.assertEqual(continuation.paragraph_format.left_indent.twips, 720)
+                self.assertEqual(
+                    continuation.paragraph_format.first_line_indent.twips, 0
+                )
+                self.assertFalse(continuation._p.xpath("./w:pPr/w:numPr"))
+                self.assertEqual(
+                    [
+                        p._p.pPr.numPr.ilvl.val
+                        for p in document.paragraphs
+                        if p._p.pPr.numPr is not None
+                    ],
+                    [0, 1, 0],
+                )
+                self.assertEqual(
+                    [p.level for p in shape.text_frame.paragraphs], [1, 2, 1, 1]
+                )
+                self.assertTrue(
+                    shape.text_frame.paragraphs[2]._p.xpath("./a:pPr/a:buNone")
+                )
 
     def test_collaborative_table_wrapper_preserves_the_table(self):
         document, slide, _ = self.assert_paragraphs(
