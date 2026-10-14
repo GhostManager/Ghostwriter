@@ -52,8 +52,6 @@ class UserAdmin(auth_admin.UserAdmin):
         "is_active",
     )
     list_filter = ("role",)
-    search_fields = ("username", "name", "email")
-
     fieldsets = (
         (_("User Information"), {"fields": ("username", "password", "require_mfa")}),
         (_("Personal Information"), {"fields": ("name", "email", "report_email", "phone", "timezone")}),

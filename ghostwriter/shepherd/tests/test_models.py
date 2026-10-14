@@ -629,8 +629,6 @@ class DomainServerConnectionModelTests(TestCase):
         self.assertEqual(entry.subdomain, "wiki")
         self.assertEqual(entry.pk, entry.id)
 
-        server = f"{entry.static_server}{entry.transient_server}"
-
         # Update
         entry.ip_address = "192.168.2.200"
         entry.save()

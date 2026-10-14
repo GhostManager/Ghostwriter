@@ -290,8 +290,7 @@ class ReportObservationLinkPreview(RoleBasedAccessControlMixin, SingleObjectMixi
         parts = [
             '<article class="report-preview report-observation-preview">',
             '<header class="report-preview-hero">',
-            '<span class="report-preview-kind"><i class="far fa-eye" '
-            'aria-hidden="true"></i> Observation</span>',
+            '<span class="report-preview-kind"><i class="far fa-eye" aria-hidden="true"></i> Observation</span>',
             f'<h2 class="report-preview-title">{title}</h2>',
             '<p class="report-preview-deck">Context and noteworthy conditions recorded for this assessment.</p>',
             "</header>",

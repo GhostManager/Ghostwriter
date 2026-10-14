@@ -265,6 +265,22 @@ class DomainFormTests(TestCase):
 
         self.assertEqual(form.errors["name"].as_data()[0].code, "invalid_domain_name")
 
+    def test_rejects_existing_domain_name(self):
+        domain = DomainFactory(name="existing.example")
+        domain_dict = domain.__dict__.copy()
+        domain_dict["name"] = "EXISTING.EXAMPLE"
+
+        form = self.form_data(**domain_dict)
+
+        self.assertEqual(form.errors["name"].as_data()[0].code, "unique")
+
+    def test_allows_unchanged_domain_name(self):
+        domain = DomainFactory(name="existing.example")
+        form = self.form_data(**domain.__dict__)
+        form.instance = domain
+
+        self.assertTrue(form.is_valid(), form.errors)
+
     def test_invalid_dates(self):
         end_date = date.today()
         start_date = date.today() + timedelta(days=360)

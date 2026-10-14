@@ -343,8 +343,7 @@ class ReportFindingLinkPreview(RoleBasedAccessControlMixin, SingleObjectMixin, V
         parts = [
             f'<article class="report-preview report-finding-preview {severity_class}">',
             '<header class="report-preview-hero">',
-            '<span class="report-preview-kind"><i class="fas fa-shield-alt" '
-            'aria-hidden="true"></i> Finding</span>',
+            '<span class="report-preview-kind"><i class="fas fa-shield-alt" aria-hidden="true"></i> Finding</span>',
             f'<h2 class="report-preview-title">{title}</h2>',
             '<div class="report-preview-facts" aria-label="Finding summary">',
         ]

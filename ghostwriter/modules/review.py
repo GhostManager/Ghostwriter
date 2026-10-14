@@ -171,17 +171,14 @@ class DomainReview:
                 domain_name = domain.name
                 health = domain.health_status
 
-                # For notifications, track date of the last health check-up
+                # Log the previous check date for context during the review.
                 if domain.last_health_check:
                     logger.info(
                         "Domain has a prior health check-up date: %s",
                         domain.last_health_check,
                     )
-                    last_health_check = domain.last_health_check
-                # If the date is empty (no past checks), limit notifications with the purchase date
                 else:
-                    last_health_check = domain.creation
-                    logger.info("No prior health check so set date to %s", last_health_check)
+                    logger.info("No prior health check; domain purchased on %s", domain.creation)
                 logger.info("Domain is currently considered to be %s", health)
 
                 # Check domain name with VT's Domain Report

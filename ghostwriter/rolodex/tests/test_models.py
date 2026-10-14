@@ -871,10 +871,10 @@ class DeconflictionModelTests(TestCase):
         entry_recent = OplogEntryFactory(oplog_id=oplog, start_date=datetime.now(timezone.utc) + timedelta(minutes=5))
 
         self.assertEqual(len(deconfliction.log_entries), 2)
-        self.assertTrue(entry_hour_old in deconfliction.log_entries)
-        self.assertTrue(entry_within_hour in deconfliction.log_entries)
-        self.assertFalse(entry_too_old in deconfliction.log_entries)
-        self.assertFalse(entry_recent in deconfliction.log_entries)
+        self.assertIn(entry_hour_old, deconfliction.log_entries)
+        self.assertIn(entry_within_hour, deconfliction.log_entries)
+        self.assertNotIn(entry_too_old, deconfliction.log_entries)
+        self.assertNotIn(entry_recent, deconfliction.log_entries)
 
 
 class WhiteCardModelTests(TestCase):

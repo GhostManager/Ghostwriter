@@ -92,10 +92,6 @@ def mk_test_pptx(name, input, expected_output, add_suffix=True):
         out = BytesIO()
         ppt.part.save(out)
 
-        # Uncomment to write generates pptx files for manual inspection
-        # with open(name + ".pptx", "wb") as f:
-        #     f.write(out.getvalue())
-
         with ZipFile(out) as zip:
             with zip.open("ppt/slides/slide1.xml") as file:
                 contents = file.read()
