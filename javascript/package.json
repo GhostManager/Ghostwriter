@@ -22,8 +22,8 @@
         "run-collab-server-prod": "node ./dist_collab_server/index.js"
     },
     "devDependencies": {
-        "@graphql-codegen/cli": "^6.0.0",
-        "@graphql-codegen/client-preset": "^5.0.0",
+        "@graphql-codegen/cli": "^7.4.6",
+        "@graphql-codegen/client-preset": "^6.2.3",
         "@graphql-typed-document-node/core": "^3.2.0",
         "@playwright/test": "^1.61.0",
         "@types/node": "^22.8.1",
