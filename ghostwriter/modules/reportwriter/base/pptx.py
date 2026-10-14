@@ -87,6 +87,17 @@ class ExportBasePptx(ExportBase):
             getattr(rich_text, "location", None)
         )
 
+    def render_evidence_pptx(self, rich_text: LazilyRenderedTemplate, slide):
+        """Insert evidence from a notes section without adding its prose to the slide."""
+
+        def render():
+            soup = BeautifulSoup(rich_text.render_html(), "lxml")
+            converter = HtmlToPptxWithEvidence(slide, None, self.evidences_by_id)
+            for element in soup.select("div.richtext-evidence, span[data-gw-evidence]"):
+                converter.process(element)
+
+        ReportExportTemplateError.map_errors(render, getattr(rich_text, "location", None))
+
     def process_footers(self):
         """
         Add footer elements (if there is one) to all slides based on the footer placeholder in the template

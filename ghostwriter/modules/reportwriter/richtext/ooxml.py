@@ -33,6 +33,7 @@ def _wrap_inline_children(container: bs4.Tag) -> None:
         if paragraph is None:
             # Whitespace between blocks is not an empty paragraph.
             if is_text and not child.strip():
+                child.extract()
                 continue
             paragraph = bs4.Tag(name="p")
             child.insert_before(paragraph)
