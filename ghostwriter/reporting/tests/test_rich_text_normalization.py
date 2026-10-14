@@ -183,6 +183,49 @@ class RichTextNormalizationTests(SimpleTestCase):
                     shape.text_frame.paragraphs[2]._p.xpath("./a:pPr/a:buNone")
                 )
 
+    def test_pptx_list_continuations_align_with_template_text_margin(self):
+        for list_tag in ("ul", "ol"):
+            for depth in (1, 2, 3):
+                for custom_style in (False, True):
+                    with self.subTest(
+                        list_tag=list_tag, depth=depth, custom_style=custom_style
+                    ):
+                        presentation = pptx.Presentation()
+                        slide = presentation.slides.add_slide(
+                            presentation.slide_layouts[1]
+                        )
+                        shape = slide.shapes.placeholders[1]
+                        style = slide.slide_layout.slide_master.element.xpath(
+                            f"./p:txStyles/p:bodyStyle/a:lvl{depth + 1}pPr"
+                        )[0]
+                        if custom_style:
+                            style.set("marL", str(depth * 914400))
+                            style.set("indent", "-137160")
+                        self.assertLess(int(style.get("indent")), 0)
+
+                        html = (
+                            f"<{list_tag}><li>Before<{list_tag}><li>Nested</li>"
+                            f"</{list_tag}>After</li><li>Next</li></{list_tag}>"
+                        )
+                        for _ in range(depth - 1):
+                            html = f"<{list_tag}><li>Outer{html}</li></{list_tag}>"
+                        HtmlToPptx.run(html, slide, shape)
+                        continuation = next(
+                            p for p in shape.text_frame.paragraphs if p.text == "After"
+                        )
+                        properties = continuation._p.pPr
+                        text_margin = int(properties.get("marL", style.get("marL")))
+                        first_line_indent = int(
+                            properties.get("indent", style.get("indent"))
+                        )
+
+                        self.assertEqual(continuation.level, depth)
+                        self.assertTrue(properties.xpath("./a:buNone"))
+                        # Without a bullet, the first line starts at margin + indent.
+                        self.assertEqual(
+                            text_margin + first_line_indent, int(style.get("marL"))
+                        )
+
     def test_collaborative_table_wrapper_preserves_the_table(self):
         document, slide, _ = self.assert_paragraphs(
             'Before<div class="collab-table-wrapper">'

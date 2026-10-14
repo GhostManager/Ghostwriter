@@ -115,7 +115,10 @@ class HtmlToPptx(BaseHtmlToOOXML):
                 par = par._parent.add_paragraph()
                 par.level = level
                 if kwargs.get("list_level") is not None:
-                    par._p.get_or_add_pPr().append(OxmlElement("a:buNone"))
+                    properties = par._p.get_or_add_pPr()
+                    # Align with list text, clearing the master's hanging indent.
+                    properties.set("indent", "0")
+                    properties.append(OxmlElement("a:buNone"))
 
         self.process_children(el, par=par, **kwargs)
 
