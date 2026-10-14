@@ -1,8 +1,10 @@
 import { CodegenConfig } from "@graphql-codegen/cli";
 import { env } from "node:process";
 
-const graphql_engine_hostname: string = env["HASURA_GRAPHQL_SERVER_HOSTNAME"] || "graphql_engine";
-const graphqlEngineUrl: string = "http://" + graphql_engine_hostname + ":8080/v1/graphql";
+const graphql_engine_hostname: string =
+    env["HASURA_GRAPHQL_SERVER_HOSTNAME"] || "graphql_engine";
+const graphqlEngineUrl: string =
+    "http://" + graphql_engine_hostname + ":8080/v1/graphql";
 
 const config: CodegenConfig = {
     schema: [
@@ -24,7 +26,17 @@ const config: CodegenConfig = {
             },
             config: {
                 useTypeImports: true,
-                scalars: {},
+                strictScalars: true,
+                scalars: {
+                    bigint: "number",
+                    smallint: "number",
+                    float8: "number",
+                    date: "string",
+                    time: "string",
+                    timestamptz: "string",
+                    inet: "string",
+                    jsonb: "Record<string, unknown>",
+                },
             },
         },
     },

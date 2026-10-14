@@ -65,6 +65,9 @@ jobs:
             exit 1
           fi
 
+      - name: Check TypeScript sources
+        run: docker compose -f local.yml run --rm frontend npm run check
+
       - name: Get GraphQL service logs
         if: failure()
         run: |
