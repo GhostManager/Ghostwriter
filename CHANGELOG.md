@@ -15,6 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Fixed evidence not appearing in generated PPTX reports, including references in supporting finding sections and rich-text extra fields (Fixes #990)
 * Fixed tagged findings, observations, domains, static servers, and activity log entries failing to export from the Django admin console after dependency upgrades (Fixes #991)
 * Fixed the activity log Columns button from rotating with its icon rotates when expanded
+* Fixed ARM64 production image builds by compiling frontend and collaboration bundles on the native build platform
+
+### Changed
+
+* Updated JavaScript dependencies and migrated GraphQL generation to explicit Hasura scalar types
 
 ## [7.3.1] - 5 October 2026
 
