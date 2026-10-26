@@ -15,6 +15,7 @@ from pptx.util import Inches, Pt
 # Ghostwriter Libraries
 from ghostwriter.modules.reportwriter.extensions import IMAGE_EXTENSIONS, TEXT_EXTENSIONS
 from ghostwriter.modules.reportwriter.richtext.ooxml import BaseHtmlToOOXML
+from ghostwriter.reporting.models import Evidence
 
 logger = logging.getLogger(__name__)
 
@@ -262,5 +263,9 @@ class HtmlToPptxWithEvidence(HtmlToPptx):
             # Place new textbox to the mid-right
             top = Inches(1.65)
             left = Inches(8)
-            width = Inches(4.5)
+            width = Inches(
+                Evidence.scaled_report_width(
+                    evidence.get("report_width_unit"), evidence.get("report_width_value"), 4.5
+                )
+            )
             slide.shapes.add_picture(file_path, left, top, width=width)

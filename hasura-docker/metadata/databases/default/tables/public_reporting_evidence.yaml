@@ -7,6 +7,10 @@ configuration:
       custom_name: friendlyName
     report_id:
       custom_name: reportId
+    report_width_unit:
+      custom_name: reportWidthUnit
+    report_width_value:
+      custom_name: reportWidthValue
     upload_date:
       custom_name: uploadDate
     uploaded_by_id:
@@ -14,6 +18,8 @@ configuration:
   custom_column_names:
     friendly_name: friendlyName
     report_id: reportId
+    report_width_unit: reportWidthUnit
+    report_width_value: reportWidthValue
     upload_date: uploadDate
     uploaded_by_id: uploadedById
   custom_name: evidence
@@ -37,6 +43,8 @@ insert_permissions:
         - document
         - friendly_name
         - report_id
+        - report_width_unit
+        - report_width_value
   - role: user
     permission:
       check:
@@ -61,6 +69,8 @@ insert_permissions:
         - document
         - friendly_name
         - report_id
+        - report_width_unit
+        - report_width_value
 select_permissions:
   - role: collab
     permission:
@@ -71,6 +81,8 @@ select_permissions:
         - friendly_name
         - id
         - report_id
+        - report_width_unit
+        - report_width_value
       filter:
         _and:
           - _or:
@@ -115,6 +127,8 @@ select_permissions:
         - friendly_name
         - id
         - report_id
+        - report_width_unit
+        - report_width_value
         - upload_date
         - uploaded_by_id
       filter: {}
@@ -127,6 +141,8 @@ select_permissions:
         - friendly_name
         - id
         - report_id
+        - report_width_unit
+        - report_width_value
         - upload_date
         - uploaded_by_id
       filter:
@@ -160,6 +176,8 @@ update_permissions:
         - description
         - friendly_name
         - report_id
+        - report_width_unit
+        - report_width_value
       filter: {}
       check: {}
   - role: user
@@ -169,6 +187,8 @@ update_permissions:
         - description
         - friendly_name
         - report_id
+        - report_width_unit
+        - report_width_value
       filter:
         report:
           project:

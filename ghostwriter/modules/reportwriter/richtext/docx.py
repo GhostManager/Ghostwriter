@@ -29,7 +29,7 @@ from ghostwriter.modules.reportwriter.richtext.ooxml import (
     BaseHtmlToOOXML,
     parse_styles,
 )
-from ghostwriter.reporting.models import EvidenceImageAlignment, ReportTemplate
+from ghostwriter.reporting.models import Evidence, EvidenceImageAlignment, ReportTemplate
 
 logger = logging.getLogger(__name__)
 
@@ -675,8 +675,11 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
                 self._mk_figure_caption(par, evidence["friendly_name"], evidence["caption"])
                 par = self._paragraph_for_block(par)
 
+            width = Evidence.scaled_report_width(
+                evidence.get("report_width_unit"), evidence.get("report_width_value"), self.image_width
+            )
             try:
-                self._make_image(par, file_path)
+                self._make_image(par, file_path, width)
             except UnrecognizedImageError as e:
                 logger.exception(
                     "Evidence file known as %s (%s) was not recognized as a %s file.",
@@ -706,10 +709,10 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
             logger.exception("Image file at %s was not recognized as an image file", file_path)
             raise ReportExportTemplateError("Image %s was not recognized as an image file. Try opening it, exporting as desired type, and re-uploading it.", name)
 
-    def _make_image(self, par, file_path: str):
+    def _make_image(self, par, file_path: str, width: float | None = None):
         par.alignment = self.image_alignment
         run = par.add_run()
-        run.add_picture(file_path, width=Inches(self.image_width))
+        run.add_picture(file_path, width=Inches(self.image_width if width is None else width))
 
         if self.global_report_config.enable_borders:
             border_color = self.global_report_config.border_color

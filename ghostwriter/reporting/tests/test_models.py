@@ -8,6 +8,7 @@ import json
 import factory
 
 # Django Imports
+from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import transaction
 from django.test import TestCase, Client
@@ -810,6 +811,32 @@ class EvidenceModelTests(TestCase):
         # Delete
         evidence.delete()
         assert not self.Evidence.objects.all().exists()
+
+    def test_scaled_report_width(self):
+        scaled = self.Evidence.scaled_report_width
+        self.assertEqual(scaled("", None, 6.5), 6.5)
+        self.assertEqual(scaled("percent", 50, 6.0), 3.0)
+        self.assertEqual(scaled("percent", 100, 6.0), 6.0)
+        self.assertEqual(scaled("px", 288, 6.5), 3.0)
+        self.assertEqual(scaled("px", 10000, 6.5), 6.5)
+        self.assertEqual(scaled("unknown", 50, 6.5), 6.5)
+
+    def test_clean_validates_report_width(self):
+        evidence = EvidenceFactory()
+        for unit, value in (("percent", None), ("percent", 0), ("percent", 101), ("px", None)):
+            evidence.report_width_unit = unit
+            evidence.report_width_value = value
+            with self.subTest(unit=unit, value=value), self.assertRaises(ValidationError):
+                evidence.full_clean()
+
+        evidence.report_width_unit = "px"
+        evidence.report_width_value = 800
+        evidence.full_clean()
+
+        # Clearing the unit also clears a leftover value
+        evidence.report_width_unit = ""
+        evidence.full_clean()
+        self.assertIsNone(evidence.report_width_value)
 
     def test_get_absolute_url(self):
         evidence = EvidenceFactory()

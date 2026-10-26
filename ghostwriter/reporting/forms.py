@@ -286,6 +286,8 @@ class EvidenceForm(forms.ModelForm):
             "document",
             "description",
             "caption",
+            "report_width_unit",
+            "report_width_value",
             "tags",
         )
         widgets = {
@@ -307,6 +309,10 @@ class EvidenceForm(forms.ModelForm):
         self.fields["friendly_name"].widget.attrs["placeholder"] = "Friendly Name"
         self.fields["description"].widget.attrs["placeholder"] = "Brief Description or Note"
         self.fields["document"].label = ""
+        self.fields["report_width_unit"].choices = [("", "Full evidence width")] + [
+            choice for choice in self.fields["report_width_unit"].choices if choice[0]
+        ]
+        self.fields["report_width_value"].widget.attrs["placeholder"] = "e.g., 50"
         submit_label = "Save Changes" if self.instance.pk else "Upload Evidence"
         submit = Submit("submit-button", submit_label, css_class="btn btn-primary")
         cancel_button = HTML(
@@ -341,6 +347,11 @@ class EvidenceForm(forms.ModelForm):
                         css_class="row g-3",
                     ),
                     "caption",
+                    Row(
+                        Column("report_width_unit", css_class="col-md-6"),
+                        Column("report_width_value", css_class="col-md-6"),
+                        css_class="row g-3",
+                    ),
                     "description",
                     css_class="resource-form-card",
                 ),

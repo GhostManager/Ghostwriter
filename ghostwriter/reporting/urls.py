@@ -283,6 +283,21 @@ urlpatterns += [
         name="evidence_update",
     ),
     path(
+        "reports/evidence/caption/<int:pk>",
+        views.EvidenceCaptionUpdate.as_view(),
+        name="evidence_caption_update",
+    ),
+    path(
+        "reports/evidence/size/<int:pk>",
+        views.EvidenceReportSizeUpdate.as_view(),
+        name="evidence_report_size_update",
+    ),
+    path(
+        "reports/evidence/image/<int:pk>",
+        views.EvidenceImageReplace.as_view(),
+        name="evidence_image_replace",
+    ),
+    path(
         "reports/evidence/delete/<int:pk>",
         views.EvidenceDelete.as_view(),
         name="evidence_delete",

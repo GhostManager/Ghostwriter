@@ -28,7 +28,7 @@ type Documents = {
     "\n    mutation SET_REPORT_OBSERVATION_LINK(\n        $id:bigint!,\n        $title:String!,\n        $description:String!,\n        $tags:[String!]!,\n        $extraFields:jsonb!,\n    ) {\n        update_reportedObservation_by_pk(pk_columns:{id:$id}, _set:{\n            title: $title,\n            description: $description,\n            extraFields: $extraFields,\n        }) {\n            id\n        }\n        setTags(model: \"report_observation_link\", id: $id, tags: $tags) {\n            tags\n        }\n    }\n": typeof types.Set_Report_Observation_LinkDocument,
     "\n    query GET_FINDING_TYPES {\n        findingType(order_by:[{id: asc}]) {\n            id, findingType\n        }\n    }\n": typeof types.Get_Finding_TypesDocument,
     "\n    query GET_SEVERITIES {\n        findingSeverity(order_by:[{id: asc}]) {\n            id, severity\n        }\n    }\n": typeof types.Get_SeveritiesDocument,
-    "\n    query QUERY_EVIDENCE($where: evidence_bool_exp!) {\n        evidence(where:$where) {\n            id, caption, description, friendlyName, document\n        }\n    }\n": typeof types.Query_EvidenceDocument,
+    "\n    query QUERY_EVIDENCE($where: evidence_bool_exp!) {\n        evidence(where:$where) {\n            id, caption, description, friendlyName, document, reportWidthUnit, reportWidthValue\n        }\n    }\n": typeof types.Query_EvidenceDocument,
 };
 const documents: Documents = {
     "\n    query GET_FINDING($id: bigint!) {\n        finding_by_pk(id: $id) {\n            title,\n            description,\n            impact,\n            mitigation,\n            replication_steps,\n            hostDetectionTechniques,\n            networkDetectionTechniques,\n            references,\n            findingGuidance,\n            cvssScore,\n            cvssVector,\n            severity { id },\n            findingTypeId,\n            extraFields\n        }\n        tags(model: \"finding\", id: $id) {\n            tags\n        }\n        extraFieldSpec(where:{targetModel:{_eq:\"reporting.Finding\"}}) {\n            internalName, type\n        }\n    }\n": types.Get_FindingDocument,
@@ -45,7 +45,7 @@ const documents: Documents = {
     "\n    mutation SET_REPORT_OBSERVATION_LINK(\n        $id:bigint!,\n        $title:String!,\n        $description:String!,\n        $tags:[String!]!,\n        $extraFields:jsonb!,\n    ) {\n        update_reportedObservation_by_pk(pk_columns:{id:$id}, _set:{\n            title: $title,\n            description: $description,\n            extraFields: $extraFields,\n        }) {\n            id\n        }\n        setTags(model: \"report_observation_link\", id: $id, tags: $tags) {\n            tags\n        }\n    }\n": types.Set_Report_Observation_LinkDocument,
     "\n    query GET_FINDING_TYPES {\n        findingType(order_by:[{id: asc}]) {\n            id, findingType\n        }\n    }\n": types.Get_Finding_TypesDocument,
     "\n    query GET_SEVERITIES {\n        findingSeverity(order_by:[{id: asc}]) {\n            id, severity\n        }\n    }\n": types.Get_SeveritiesDocument,
-    "\n    query QUERY_EVIDENCE($where: evidence_bool_exp!) {\n        evidence(where:$where) {\n            id, caption, description, friendlyName, document\n        }\n    }\n": types.Query_EvidenceDocument,
+    "\n    query QUERY_EVIDENCE($where: evidence_bool_exp!) {\n        evidence(where:$where) {\n            id, caption, description, friendlyName, document, reportWidthUnit, reportWidthValue\n        }\n    }\n": types.Query_EvidenceDocument,
 };
 
 /**
@@ -121,7 +121,7 @@ export function gql(source: "\n    query GET_SEVERITIES {\n        findingSeveri
 /**
  * The gql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
-export function gql(source: "\n    query QUERY_EVIDENCE($where: evidence_bool_exp!) {\n        evidence(where:$where) {\n            id, caption, description, friendlyName, document\n        }\n    }\n"): (typeof documents)["\n    query QUERY_EVIDENCE($where: evidence_bool_exp!) {\n        evidence(where:$where) {\n            id, caption, description, friendlyName, document\n        }\n    }\n"];
+export function gql(source: "\n    query QUERY_EVIDENCE($where: evidence_bool_exp!) {\n        evidence(where:$where) {\n            id, caption, description, friendlyName, document, reportWidthUnit, reportWidthValue\n        }\n    }\n"): (typeof documents)["\n    query QUERY_EVIDENCE($where: evidence_bool_exp!) {\n        evidence(where:$where) {\n            id, caption, description, friendlyName, document, reportWidthUnit, reportWidthValue\n        }\n    }\n"];
 
 export function gql(source: string) {
   return (documents as any)[source] ?? {};

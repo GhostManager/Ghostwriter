@@ -1,6 +1,7 @@
 import { useContext, useEffect, useId, useRef, useState } from "react";
 import { EvidencesContext } from "../../../../tiptap_gw/evidence";
 import { getCsrfToken } from "../../../../services/csrf";
+import ImageAnnotator from "../../../image_annotator";
 
 type DjangoFormErrors = Record<string, string[]>;
 
@@ -194,6 +195,8 @@ export default function EvidenceUploadForm(props: {
     );
 }
 
+const IMAGE_TYPES = /^image\/(png|jpeg)$/;
+
 function FileInput(props: {
     errors: DjangoFormErrors | null;
     disabled: boolean;
@@ -201,28 +204,37 @@ function FileInput(props: {
 }) {
     const id = useId();
     const fileRef = useRef<HTMLInputElement | null>(null);
-    const [fileName, setFileName] = useState<string | null>(
-        props.initialFile?.name ?? null
-    );
+    const [file, setFile] = useState<File | null>(props.initialFile ?? null);
+    const [annotatorOpen, setAnnotatorOpen] = useState(false);
+
+    // Keep the form's file input in sync with the selected (or edited) file
+    const selectFile = (files: FileList | File | null) => {
+        if (files instanceof File) {
+            const dt = new DataTransfer();
+            dt.items.add(files);
+            files = dt.files;
+        }
+        if (files && fileRef.current) fileRef.current.files = files;
+        setFile(files?.[0] ?? null);
+    };
 
     // Pre-populate the file input when an initial file is provided (paste-to-upload)
     useEffect(() => {
-        if (!props.initialFile || !fileRef.current) return;
-        const dt = new DataTransfer();
-        dt.items.add(props.initialFile);
-        fileRef.current.files = dt.files;
+        if (props.initialFile) selectFile(props.initialFile);
     }, [props.initialFile]);
 
     useEffect(() => {
+        if (annotatorOpen) return;
         const cb = (ev: ClipboardEvent) => {
             if (ev.clipboardData?.files.length != 1) return;
             ev.preventDefault();
-            fileRef.current!.files = ev.clipboardData.files;
-            setFileName(ev.clipboardData.files[0].name);
+            selectFile(ev.clipboardData.files);
         };
         document.addEventListener("paste", cb);
         return () => document.removeEventListener("paste", cb);
-    }, [fileRef]);
+    }, [fileRef, annotatorOpen]);
+
+    const isImage = !!file && IMAGE_TYPES.test(file.type);
 
     return (
         <>
@@ -234,8 +246,7 @@ function FileInput(props: {
                 onDrop={(ev) => {
                     ev.preventDefault();
                     if (ev.dataTransfer.files.length !== 1) return;
-                    fileRef.current!.files = ev.dataTransfer.files;
-                    setFileName(ev.dataTransfer.files[0].name);
+                    selectFile(ev.dataTransfer.files);
                 }}
                 onDragOver={(ev) => {
                     ev.preventDefault();
@@ -250,11 +261,7 @@ function FileInput(props: {
                     disabled={props.disabled}
                     id={id}
                     ref={fileRef}
-                    onChange={(ev) => {
-                        if (ev.target.files?.length)
-                            setFileName(ev.target.files[0].name);
-                        else setFileName(null);
-                    }}
+                    onChange={(ev) => setFile(ev.target.files?.[0] ?? null)}
                 />
                 <label className="gw-evidence-dropzone-label" htmlFor={id}>
                     <span
@@ -265,7 +272,7 @@ function FileInput(props: {
                     </span>
                     <span className="gw-evidence-dropzone-copy">
                         <span className="gw-evidence-dropzone-title">
-                            {fileName ?? "Choose, drop, or paste a file"}
+                            {file?.name ?? "Choose, drop, or paste a file"}
                         </span>
                         <span className="gw-evidence-dropzone-help">
                             TXT, LOG, MD, PNG, JPG, or JPEG
@@ -274,6 +281,40 @@ function FileInput(props: {
                 </label>
             </div>
             <ErrorFeedback errors={props.errors?.document} />
+            {isImage && (
+                <div className="gw-evidence-annotate-row">
+                    <button
+                        type="button"
+                        className="btn btn-sm btn-outline-secondary"
+                        disabled={props.disabled}
+                        onClick={() => setAnnotatorOpen(true)}
+                    >
+                        <i className="fas fa-highlighter" aria-hidden="true" />
+                        Edit image before uploading
+                    </button>
+                    <small className="form-text text-muted">
+                        Censor, highlight, or crop it first. Edits are applied
+                        before upload, so the original image never leaves your
+                        browser.
+                    </small>
+                </div>
+            )}
+            {annotatorOpen && file && (
+                <ImageAnnotator
+                    source={file}
+                    saveLabel="Use edited image"
+                    onCancel={() => setAnnotatorOpen(false)}
+                    onSave={async (blob) => {
+                        const stem = file.name.replace(/\.[^.]+$/, "");
+                        selectFile(
+                            new File([blob], stem + ".png", {
+                                type: "image/png",
+                            })
+                        );
+                        setAnnotatorOpen(false);
+                    }}
+                />
+            )}
         </>
     );
 }

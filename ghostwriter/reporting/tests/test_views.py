@@ -22,6 +22,7 @@ from django.utils.encoding import force_str
 
 # 3rd Party Libraries
 import pptx
+from PIL import Image
 from pptx.enum.shapes import MSO_SHAPE_TYPE
 from rest_framework.renderers import JSONRenderer
 
@@ -4261,6 +4262,271 @@ class EvidenceUpdateViewTests(TestCase):
             response.context["cancel_link"],
             reverse("reporting:evidence_detail", kwargs={"pk": self.evidence.pk}),
         )
+
+
+def make_test_image(img_format="PNG", color=(0, 0, 0)):
+    """Return the bytes of a small, valid image in the requested format."""
+    buffer = io.BytesIO()
+    Image.new("RGB", (8, 8), color).save(buffer, format=img_format)
+    return buffer.getvalue()
+
+
+class EvidenceCaptionUpdateViewTests(TestCase):
+    """Collection of tests for :view:`reporting.EvidenceCaptionUpdate`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.evidence = EvidenceFactory(caption="Original caption")
+        cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        cls.uri = reverse(
+            "reporting:evidence_caption_update", kwargs={"pk": cls.evidence.pk}
+        )
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_mgr = Client()
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+        self.assertTrue(
+            self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD)
+        )
+
+    def post_json(self, client, data):
+        return client.post(self.uri, data=json.dumps(data), content_type="application/json")
+
+    def test_view_requires_login_and_permissions(self):
+        response = self.post_json(self.client, {"caption": "New"})
+        self.assertEqual(response.status_code, 302)
+
+        response = self.post_json(self.client_auth, {"caption": "New"})
+        self.assertEqual(response.status_code, 403)
+
+        ProjectAssignmentFactory(
+            operator=self.user, project=self.evidence.report.project
+        )
+        response = self.post_json(self.client_auth, {"caption": "New"})
+        self.assertEqual(response.status_code, 200)
+
+    def test_updates_caption(self):
+        response = self.post_json(self.client_mgr, {"caption": "  Updated caption  "})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["caption"], "Updated caption")
+        self.evidence.refresh_from_db()
+        self.assertEqual(self.evidence.caption, "Updated caption")
+
+    def test_accepts_form_data(self):
+        response = self.client_mgr.post(self.uri, {"caption": "Form caption"})
+        self.assertEqual(response.status_code, 200)
+        self.evidence.refresh_from_db()
+        self.assertEqual(self.evidence.caption, "Form caption")
+
+    def test_rejects_blank_long_and_invalid_captions(self):
+        for data in ({"caption": "   "}, {"caption": "x" * 256}, {"caption": 5}, {}):
+            response = self.post_json(self.client_mgr, data)
+            self.assertEqual(response.status_code, 400)
+            self.assertIn("caption", response.json())
+
+        response = self.client_mgr.post(
+            self.uri, data="not json", content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 400)
+
+        self.evidence.refresh_from_db()
+        self.assertEqual(self.evidence.caption, "Original caption")
+
+    def test_rejects_get(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 405)
+
+
+class EvidenceReportSizeUpdateViewTests(TestCase):
+    """Collection of tests for :view:`reporting.EvidenceReportSizeUpdate`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.evidence = EvidenceFactory()
+        cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        cls.uri = reverse(
+            "reporting:evidence_report_size_update", kwargs={"pk": cls.evidence.pk}
+        )
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_mgr = Client()
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+        self.assertTrue(
+            self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD)
+        )
+
+    def post_json(self, client, data):
+        return client.post(self.uri, data=json.dumps(data), content_type="application/json")
+
+    def test_view_requires_login_and_permissions(self):
+        data = {"unit": "percent", "value": 50}
+        response = self.post_json(self.client, data)
+        self.assertEqual(response.status_code, 302)
+
+        response = self.post_json(self.client_auth, data)
+        self.assertEqual(response.status_code, 403)
+
+        ProjectAssignmentFactory(
+            operator=self.user, project=self.evidence.report.project
+        )
+        response = self.post_json(self.client_auth, data)
+        self.assertEqual(response.status_code, 200)
+
+    def test_sets_and_clears_size(self):
+        response = self.post_json(self.client_mgr, {"unit": "percent", "value": 40})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["report_width_unit"], "percent")
+        self.evidence.refresh_from_db()
+        self.assertEqual(
+            (self.evidence.report_width_unit, self.evidence.report_width_value),
+            ("percent", 40),
+        )
+
+        response = self.post_json(self.client_mgr, {"unit": "px", "value": 640})
+        self.assertEqual(response.status_code, 200)
+        self.evidence.refresh_from_db()
+        self.assertEqual(
+            (self.evidence.report_width_unit, self.evidence.report_width_value),
+            ("px", 640),
+        )
+
+        response = self.post_json(self.client_mgr, {"unit": "", "value": 640})
+        self.assertEqual(response.status_code, 200)
+        self.evidence.refresh_from_db()
+        self.assertEqual(
+            (self.evidence.report_width_unit, self.evidence.report_width_value),
+            ("", None),
+        )
+
+    def test_rejects_invalid_sizes(self):
+        for data in (
+            {"unit": "percent", "value": 0},
+            {"unit": "percent", "value": 101},
+            {"unit": "percent", "value": "50"},
+            {"unit": "percent", "value": 12.5},
+            {"unit": "px", "value": True},
+            {"unit": "px"},
+            {"unit": "inches", "value": 2},
+        ):
+            with self.subTest(data=data):
+                response = self.post_json(self.client_mgr, data)
+                self.assertEqual(response.status_code, 400)
+
+        response = self.client_mgr.post(
+            self.uri, data="not json", content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 400)
+
+        self.evidence.refresh_from_db()
+        self.assertEqual(self.evidence.report_width_unit, "")
+        self.assertIsNone(self.evidence.report_width_value)
+
+    def test_rejects_get(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 405)
+
+
+class EvidenceImageReplaceViewTests(TestCase):
+    """Collection of tests for :view:`reporting.EvidenceImageReplace`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+
+    def setUp(self):
+        self.evidence = EvidenceFactory(
+            document=SimpleUploadedFile("proof.png", make_test_image())
+        )
+        self.uri = reverse(
+            "reporting:evidence_image_replace", kwargs={"pk": self.evidence.pk}
+        )
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_mgr = Client()
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+        self.assertTrue(
+            self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD)
+        )
+
+    def tearDown(self):
+        if self.evidence.document:
+            self.evidence.refresh_from_db()
+            self.evidence.document.delete(save=False)
+
+    def upload(self, client, data, name="edited.png"):
+        return client.post(
+            self.uri, {"document": SimpleUploadedFile(name, data)}, format="multipart"
+        )
+
+    def test_view_requires_login_and_permissions(self):
+        response = self.upload(self.client, make_test_image())
+        self.assertEqual(response.status_code, 302)
+
+        response = self.upload(self.client_auth, make_test_image())
+        self.assertEqual(response.status_code, 403)
+
+        ProjectAssignmentFactory(
+            operator=self.user, project=self.evidence.report.project
+        )
+        response = self.upload(self.client_auth, make_test_image())
+        self.assertEqual(response.status_code, 200)
+
+    def test_replaces_file_and_removes_original(self):
+        old_path = self.evidence.document.path
+        self.assertTrue(os.path.exists(old_path))
+        edited = make_test_image(color=(255, 0, 0))
+
+        response = self.upload(self.client_mgr, edited)
+
+        self.assertEqual(response.status_code, 200)
+        self.evidence.refresh_from_db()
+        self.assertEqual(response.json()["document"], self.evidence.document.name)
+        self.assertTrue(self.evidence.document.name.endswith(".png"))
+        self.assertNotEqual(self.evidence.document.path, old_path)
+        self.assertFalse(os.path.exists(old_path))
+        with self.evidence.document.open("rb") as f:
+            self.assertEqual(f.read(), edited)
+
+    def test_jpeg_upload_uses_jpg_extension(self):
+        response = self.upload(self.client_mgr, make_test_image("JPEG"), "edited.png")
+        self.assertEqual(response.status_code, 200)
+        self.evidence.refresh_from_db()
+        self.assertTrue(self.evidence.document.name.endswith(".jpg"))
+
+    def test_rejects_non_images(self):
+        old_name = self.evidence.document.name
+        for data in (b"not an image", make_test_image("GIF")):
+            response = self.upload(self.client_mgr, data)
+            self.assertEqual(response.status_code, 400)
+            self.assertIn("document", response.json())
+
+        response = self.client_mgr.post(self.uri, {})
+        self.assertEqual(response.status_code, 400)
+
+        self.evidence.refresh_from_db()
+        self.assertEqual(self.evidence.document.name, old_name)
+
+    def test_rejects_text_evidence(self):
+        text_evidence = EvidenceFactory(txt=True)
+        uri = reverse("reporting:evidence_image_replace", kwargs={"pk": text_evidence.pk})
+        response = self.client_mgr.post(
+            uri, {"document": SimpleUploadedFile("edited.png", make_test_image())}
+        )
+        self.assertEqual(response.status_code, 400)
+        text_evidence.document.delete(save=False)
 
 
 class EvidenceDeleteViewTests(TestCase):

@@ -1192,3 +1192,28 @@ class HtmlToDocxWithEvidenceTests(TestCase):
         converter = self.build_converter(report_template=report_template, report_config=report_config)
 
         self.assertEqual(converter.image_width, 6.5)
+
+    def test_image_evidence_uses_report_width(self):
+        report_template = ReportDocxTemplateFactory(evidence_image_width=6.0)
+        cases = [
+            ({}, 6.0),
+            ({"report_width_unit": "", "report_width_value": None}, 6.0),
+            ({"report_width_unit": "percent", "report_width_value": 50}, 3.0),
+            ({"report_width_unit": "px", "report_width_value": 192}, 2.0),
+            # Images are never enlarged past the template's evidence width
+            ({"report_width_unit": "px", "report_width_value": 5000}, 6.0),
+        ]
+        with tempfile.TemporaryDirectory() as temp_dir:
+            evidence_name = "gw-evidence-scaled.png"
+            with open(os.path.join(temp_dir, evidence_name), "wb") as evidence_file:
+                evidence_file.write(self.ONE_PIXEL_PNG)
+
+            for size, expected in cases:
+                with self.subTest(size=size), override_settings(MEDIA_ROOT=temp_dir):
+                    doc = docx.Document()
+                    converter = self.build_converter(report_template=report_template, doc=doc)
+                    converter.make_evidence(
+                        doc.add_paragraph(),
+                        {"path": evidence_name, "friendly_name": "shot", "caption": "", **size},
+                    )
+                    self.assertAlmostEqual(doc.inline_shapes[0].width.inches, expected, places=3)

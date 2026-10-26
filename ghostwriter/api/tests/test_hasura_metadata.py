@@ -210,6 +210,8 @@ EXPECTED_COLLAB_SELECT_PERMISSIONS = {
             "friendly_name",
             "id",
             "report_id",
+            "report_width_unit",
+            "report_width_value",
         ],
         "filter": collab_evidence_filter(),
     },

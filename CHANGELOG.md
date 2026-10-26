@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+* Added an image editor to the rich text editor for censoring (black box, pixelate, blur) and highlighting (rectangle, arrow, pen) image evidence, either before uploading a pasted image or on evidence already in a finding; edits are flattened into the saved image and the original file is deleted
+* Added inline editing of evidence captions directly beneath evidence in the rich text editor
+* Added a crop tool to the evidence image editor; cropped-out areas are discarded when the image is saved
+* Added a per-evidence report size for images, set as a percentage of the template's evidence width or as a width in pixels, from the rich text editor or the evidence form; the aspect ratio is kept and images are never enlarged past the template width (DOCX and PPTX)
+
 ## [7.3.2] - 13 October 2026
 
 ### Fixed

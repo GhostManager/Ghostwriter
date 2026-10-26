@@ -8,6 +8,7 @@ import os
 # Django Imports
 from django.conf import settings
 from django.core.files.storage import FileSystemStorage
+from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.db.models import Q
@@ -51,6 +52,11 @@ class EvidenceImageAlignment(models.TextChoices):
     LEFT = "LEFT", "Left"
     CENTER = "CENTER", "Center"
     RIGHT = "RIGHT", "Right"
+
+
+class EvidenceReportWidthUnit(models.TextChoices):
+    PERCENT = "percent", "Percent of evidence width"
+    PIXELS = "px", "Pixels"
 
 
 class EvidenceImageAlignmentOverride(models.TextChoices):
@@ -1004,10 +1010,28 @@ class Evidence(models.Model):
         blank=True,
         help_text="Describe this evidence to your team",
     )
+    report_width_unit = models.CharField(
+        "Report Size Unit",
+        max_length=10,
+        choices=EvidenceReportWidthUnit.choices,
+        blank=True,
+        default="",
+        help_text="Shrink an image in the report by a percentage of the evidence width or to a width in pixels",
+    )
+    report_width_value = models.PositiveIntegerField(
+        "Report Size",
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(1)],
+        help_text="Percentage (1-100) or width in pixels; the aspect ratio is kept",
+    )
     tags = TaggableManager(blank=True)
     # Foreign Keys
     report = models.ForeignKey("Report", on_delete=models.CASCADE)
     uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+
+    # Pixels are converted to inches at the CSS reference resolution
+    PIXELS_PER_INCH = 96
 
     class Meta:
         ordering = ["report", "document"]
@@ -1025,6 +1049,34 @@ class Evidence(models.Model):
 
     def __str__(self):
         return f"{self.friendly_name} @ {self.document.name}"
+
+    def clean(self):
+        super().clean()
+        if not self.report_width_unit:
+            self.report_width_value = None
+            return
+        if self.report_width_value is None:
+            raise ValidationError({"report_width_value": "Enter a size or choose the full evidence width."})
+        if self.report_width_unit == EvidenceReportWidthUnit.PERCENT and not 1 <= self.report_width_value <= 100:
+            raise ValidationError({"report_width_value": "Percentages must be between 1 and 100."})
+
+    @classmethod
+    def scaled_report_width(cls, unit, value, full_width):
+        """
+        Return the width (in inches) to use for an image in a report, given the evidence's
+        ``report_width_unit`` and ``report_width_value`` and the template's full evidence width.
+
+        Images are only ever scaled down, so the result never exceeds ``full_width``.
+        """
+        if not unit or not value:
+            return full_width
+        if unit == EvidenceReportWidthUnit.PERCENT:
+            width = full_width * value / 100
+        elif unit == EvidenceReportWidthUnit.PIXELS:
+            width = value / cls.PIXELS_PER_INCH
+        else:
+            return full_width
+        return max(0.01, min(full_width, width))
 
     @property
     def filename(self):
