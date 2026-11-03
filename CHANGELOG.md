@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-* Made Hasura's event delivery HTTP pool size configurable with `HASURA_GRAPHQL_EVENTS_HTTP_POOL_SIZE`, defaulting to 100
+* Made Hasura's event delivery HTTP pool size configurable with `HASURA_GRAPHQL_EVENTS_HTTP_POOL_SIZE`, defaulting to 10 to reduce concurrent webhook database demand
 * Upgraded development and production Python containers to 3.11.18 and `dnspython` to 2.9.0
 
 ### Fixed
