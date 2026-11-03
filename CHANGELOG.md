@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+* Upgraded development and production Python containers to 3.11.18 and dnspython to 2.9.0
+
+### Fixed
+
+* Fixed VirusTotal domain checks aborting a batch when a report is not found; missing reports now preserve existing reputation data and report a domain-specific error
+* Fixed activity log monitoring failing on entries without a start date; reviews now use the latest dated entry and treat logs without dated entries as inactive
+
 ## [7.3.2] - 13 October 2026
 
 ### Fixed
