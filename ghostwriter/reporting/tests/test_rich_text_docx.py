@@ -1,8 +1,8 @@
 # Standard Libraries
 import base64
-from io import BytesIO
 import os
 import tempfile
+from io import BytesIO
 from zipfile import ZipFile
 
 # Django Imports
@@ -18,8 +18,14 @@ from lxml import etree
 # Ghostwriter Libraries
 from ghostwriter.commandcenter.models import ReportConfiguration
 from ghostwriter.factories import ReportDocxTemplateFactory
-from ghostwriter.modules.reportwriter.richtext.docx import HtmlToDocx, HtmlToDocxWithEvidence
-from ghostwriter.reporting.models import EvidenceImageAlignment, EvidenceImageAlignmentOverride
+from ghostwriter.modules.reportwriter.richtext.docx import (
+    HtmlToDocx,
+    HtmlToDocxWithEvidence,
+)
+from ghostwriter.reporting.models import (
+    EvidenceImageAlignment,
+    EvidenceImageAlignmentOverride,
+)
 
 WORD_PREFIX = """<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
 <w:document xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas" xmlns:mo="http://schemas.microsoft.com/office/mac/office/2008/main" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:mv="urn:schemas-microsoft-com:mac:vml" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:w10="urn:schemas-microsoft-com:office:word" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup" xmlns:wpi="http://schemas.microsoft.com/office/word/2010/wordprocessingInk" xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml" xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape" mc:Ignorable="w14 wp14"><w:body>"""  # noqa: E501
@@ -136,10 +142,7 @@ class RichTextToDocxTests(SimpleTestCase):
         outer_cell = doc.tables[0].cell(0, 0)
         self.assertEqual(len(outer_cell.tables), 1)
         self.assertEqual(
-            [
-                paragraph.text
-                for paragraph in outer_cell.tables[0].cell(0, 0).paragraphs
-            ],
+            [paragraph.text for paragraph in outer_cell.tables[0].cell(0, 0).paragraphs],
             ["NESTED"],
         )
         self.assertEqual([paragraph.text for paragraph in doc.paragraphs], [])
@@ -161,10 +164,7 @@ class RichTextToDocxTests(SimpleTestCase):
 
                 self.assertEqual(len(doc.tables), 1)
                 self.assertEqual(
-                    [
-                        paragraph.text
-                        for paragraph in doc.tables[0].cell(0, 0).paragraphs
-                    ],
+                    [paragraph.text for paragraph in doc.tables[0].cell(0, 0).paragraphs],
                     ["NESTED"],
                 )
 
@@ -203,10 +203,7 @@ class RichTextToDocxTests(SimpleTestCase):
                 )
 
                 self.assertEqual(
-                    [
-                        paragraph.text
-                        for paragraph in doc.tables[0].cell(0, 0).paragraphs
-                    ],
+                    [paragraph.text for paragraph in doc.tables[0].cell(0, 0).paragraphs],
                     expected_paragraphs,
                 )
                 self.assertEqual([paragraph.text for paragraph in doc.paragraphs], [])
@@ -918,7 +915,9 @@ class FootnoteToDocxTests(SimpleTestCase):
 
     def test_footnote_reference_in_document(self):
         """Test that footnote reference is inserted in the document."""
-        html = '<p>Text with footnote<span class="footnote">The footnote.</span> here.</p>'
+        html = (
+            '<p>Text with footnote<span class="footnote">The footnote.</span> here.</p>'
+        )
         doc = docx.Document()
         HtmlToDocx.run(html, doc, None)
 
@@ -971,6 +970,7 @@ class FootnoteToDocxTests(SimpleTestCase):
                 doc_xml = file.read().decode("utf-8")
 
                 # Extract footnote reference IDs in document order
+                # Standard Libraries
                 import re
 
                 refs = re.findall(r'<w:footnoteReference[^>]*w:id="(\d+)"', doc_xml)
@@ -986,6 +986,7 @@ class FootnoteToDocxTests(SimpleTestCase):
                 footnotes_xml = file.read().decode("utf-8")
 
                 # Verify footnote IDs match document references
+                # Standard Libraries
                 import re
 
                 footnote_ids = re.findall(r'<w:footnote[^>]*w:id="(\d+)"', footnotes_xml)
@@ -1129,9 +1130,7 @@ class HtmlToDocxWithEvidenceTests(TestCase):
                         )
 
                     cell_paragraphs = doc.tables[0].cell(0, 0).paragraphs
-                    body_text = "\n".join(
-                        paragraph.text for paragraph in doc.paragraphs
-                    )
+                    body_text = "\n".join(paragraph.text for paragraph in doc.paragraphs)
                     self.assertNotIn("evidence contents", body_text)
                     self.assertNotIn("Caption", body_text)
                     self.assertIn(
@@ -1148,7 +1147,9 @@ class HtmlToDocxWithEvidenceTests(TestCase):
         report_config = ReportConfiguration.get_solo()
         report_config.evidence_image_alignment = EvidenceImageAlignment.RIGHT
         doc = docx.Document()
-        converter = self.build_converter(report_template=report_template, report_config=report_config, doc=doc)
+        converter = self.build_converter(
+            report_template=report_template, report_config=report_config, doc=doc
+        )
 
         with tempfile.NamedTemporaryFile(suffix=".png") as image_file:
             image_file.write(self.ONE_PIXEL_PNG)
@@ -1165,7 +1166,9 @@ class HtmlToDocxWithEvidenceTests(TestCase):
         report_config = ReportConfiguration.get_solo()
         report_config.evidence_image_alignment = EvidenceImageAlignment.RIGHT
         doc = docx.Document()
-        converter = self.build_converter(report_template=report_template, report_config=report_config, doc=doc)
+        converter = self.build_converter(
+            report_template=report_template, report_config=report_config, doc=doc
+        )
 
         with tempfile.NamedTemporaryFile(suffix=".png") as image_file:
             image_file.write(self.ONE_PIXEL_PNG)
@@ -1180,7 +1183,9 @@ class HtmlToDocxWithEvidenceTests(TestCase):
         report_config = ReportConfiguration.get_solo()
         report_config.evidence_image_width = 4.75
 
-        converter = self.build_converter(report_template=report_template, report_config=report_config)
+        converter = self.build_converter(
+            report_template=report_template, report_config=report_config
+        )
 
         self.assertEqual(converter.image_width, 4.75)
 
@@ -1189,6 +1194,62 @@ class HtmlToDocxWithEvidenceTests(TestCase):
         report_config = ReportConfiguration.get_solo()
         report_config.evidence_image_width = None
 
-        converter = self.build_converter(report_template=report_template, report_config=report_config)
+        converter = self.build_converter(
+            report_template=report_template, report_config=report_config
+        )
 
         self.assertEqual(converter.image_width, 6.5)
+
+
+class DocxEvidenceTableCaptionTests(TestCase):
+    """Tests for {{.table}} tag handling and top-caption placement in DOCX generation."""
+
+    def setUp(self):
+        self.config = ReportConfiguration.get_solo()
+        self.config.table_caption_location = "top"
+        self.config.label_table = "Table"
+        self.config.prefix_table = " * "
+        self.config.save()
+
+        # Create mock report template object
+        self.template = ReportDocxTemplateFactory()
+
+        # Mock evidence mapping as structured in report processing
+        self.mock_evidence = {
+            "Sample Port Scan": {
+                "id": 1,
+                "friendly_name": "Sample Port Scan",
+                "caption": "sample-port-scan-table",
+                "path": "evidence/sample.txt",
+                "is_table": False,
+            }
+        }
+
+    def test_table_tag_renders_top_caption_with_table_label(self):
+        """Verify {{.table}} creates a Table caption above the evidence block."""
+        html_input = '<p><span data-gw-table="Sample Port Scan"></span></p>'
+
+        doc = docx.Document()
+
+        # Standard Libraries
+        from unittest.mock import mock_open, patch
+
+        with patch("builtins.open", mock_open(read_data="PORT 22 OPEN")):
+            with patch("os.path.exists", return_value=True):
+                HtmlToDocxWithEvidence.run(
+                    text=html_input,
+                    doc=doc,
+                    global_report_config=self.config,
+                    evidences=self.mock_evidence,
+                    report_template=self.template,
+                    images=[],
+                )
+
+        paragraphs = doc.paragraphs
+
+        # Assert paragraph 0 contains Table caption text and correct styling
+        self.assertIn("Table", paragraphs[0].text)
+        self.assertIn("Sample-port-scan-table", paragraphs[0].text)
+
+        # Assert paragraph 1 contains the evidence body text directly below
+        self.assertIn("PORT 22 OPEN", paragraphs[1].text)

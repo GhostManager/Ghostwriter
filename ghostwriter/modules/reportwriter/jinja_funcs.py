@@ -2,26 +2,32 @@
 Jinja filters that ghostwriter exposes
 """
 
-from datetime import datetime, timedelta
+# Standard Libraries
 import html
 import logging
 import re
+from datetime import datetime, timedelta
 
+# Django Imports
+from django import forms
+from django.conf import settings
+from django.core.exceptions import ValidationError
+from django.utils import formats
+from django.utils.dateformat import format as dateformat
+
+# 3rd Party Libraries
+import jinja2
 from bs4 import BeautifulSoup
 from dateutil.parser import parse as parse_datetime
 from dateutil.parser._parser import ParserError
-from django.conf import settings
-from django.core.exceptions import ValidationError
-from django import forms
-from django.utils import formats
-from django.utils.dateformat import format as dateformat
-import jinja2
 from markupsafe import Markup
 
+# Ghostwriter Libraries
 from ghostwriter.modules.exceptions import InvalidFilterValue
 from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
 
 logger = logging.getLogger(__name__)
+
 
 # Custom Jinja2 filters for DOCX templates
 def filter_severity(findings, allowlist):
@@ -47,7 +53,9 @@ def filter_severity(findings, allowlist):
             if finding["severity"].lower() in allowlist:
                 filtered_values.append(finding)
     except (KeyError, TypeError):
-        logger.exception("Error parsing ``findings`` as a list of dictionaries: %s", findings)
+        logger.exception(
+            "Error parsing ``findings`` as a list of dictionaries: %s", findings
+        )
         raise InvalidFilterValue(
             "Invalid list of findings passed into `filter_severity()` filter; must be the `{{ findings }}` object"
         )
@@ -77,7 +85,9 @@ def filter_type(findings, allowlist):
             if finding["finding_type"].lower() in allowlist:
                 filtered_values.append(finding)
     except (KeyError, TypeError):
-        logger.exception("Error parsing ``findings`` as a list of dictionaries: %s", findings)
+        logger.exception(
+            "Error parsing ``findings`` as a list of dictionaries: %s", findings
+        )
         raise InvalidFilterValue(
             "Invalid list of findings passed into `filter_type()` filter; must be the `{{ findings }}` object"
         )
@@ -119,7 +129,9 @@ def compromised(targets):
             if target["compromised"]:
                 filtered_targets.append(target)
     except (KeyError, TypeError) as e:
-        logger.exception("Error parsing ``targets`` as a list of dictionaries: %s", targets)
+        logger.exception(
+            "Error parsing ``targets`` as a list of dictionaries: %s", targets
+        )
         raise InvalidFilterValue(
             "Invalid list of targets passed into `compromised()` filter; must be the `{{ targets }}` object"
         ) from e
@@ -142,7 +154,9 @@ def add_days(date, days):
         days = int(days)
     except ValueError as e:
         logger.exception("Error parsing ``days`` as an integer: %s", days)
-        raise InvalidFilterValue(f'Invalid integer ("{days}") passed into the `add_days()` filter') from e
+        raise InvalidFilterValue(
+            f'Invalid integer ("{days}") passed into the `add_days()` filter'
+        ) from e
 
     try:
         date_obj = date if isinstance(date, datetime) else parse_datetime(date)
@@ -169,7 +183,9 @@ def add_days(date, days):
         new_date = dateformat(date_obj, settings.DATE_FORMAT)
     except ParserError as e:
         logger.exception("Error parsing ``date`` as a date: %s", date)
-        raise InvalidFilterValue(f'Invalid date string ("{date}") passed into the `add_days()` filter') from e
+        raise InvalidFilterValue(
+            f'Invalid date string ("{date}") passed into the `add_days()` filter'
+        ) from e
     return new_date
 
 
@@ -186,10 +202,14 @@ def format_datetime(date, new_format=None):
     """
     try:
         date_obj = date if isinstance(date, datetime) else parse_datetime(date)
-        formatted_date = dateformat(date_obj, new_format if new_format is not None else settings.DATE_FORMAT)
+        formatted_date = dateformat(
+            date_obj, new_format if new_format is not None else settings.DATE_FORMAT
+        )
     except ParserError as e:
         logger.exception("Error parsing ``date`` as a date: %s", date)
-        raise InvalidFilterValue(f'Invalid date string ("{date}") passed into the `format_datetime()` filter') from e
+        raise InvalidFilterValue(
+            f'Invalid date string ("{date}") passed into the `format_datetime()` filter'
+        ) from e
     return formatted_date
 
 
@@ -210,14 +230,16 @@ def to_datetime(date, format_str=None):
         if format_str:
             return datetime.strptime(date, format_str)
         return datetime.combine(
-            forms.DateField(
-                input_formats=formats.get_format("DATE_INPUT_FORMATS")
-            ).clean(date),
+            forms.DateField(input_formats=formats.get_format("DATE_INPUT_FORMATS")).clean(
+                date
+            ),
             datetime.min.time(),
         )
     except (ParserError, TypeError, ValueError, ValidationError) as e:
         logger.exception("Error parsing ``date`` with the provided format: %s", date)
-        raise InvalidFilterValue(f'Invalid date and format string ("{date}", "{format_str}") passed into the `to_datetime()` filter') from e
+        raise InvalidFilterValue(
+            f'Invalid date and format string ("{date}", "{format_str}") passed into the `to_datetime()` filter'
+        ) from e
 
 
 def business_days(start_date, end_date):
@@ -232,11 +254,19 @@ def business_days(start_date, end_date):
         End date string or datetime object
     """
     try:
-        start_date = start_date if isinstance(start_date, datetime) else parse_datetime(start_date)
-        end_date = end_date if isinstance(end_date, datetime) else parse_datetime(end_date)
+        start_date = (
+            start_date if isinstance(start_date, datetime) else parse_datetime(start_date)
+        )
+        end_date = (
+            end_date if isinstance(end_date, datetime) else parse_datetime(end_date)
+        )
     except ParserError as e:
-        logger.exception("Error parsing dates with the provided format: %s, %s", start_date, end_date)
-        raise InvalidFilterValue(f'Invalid date strings ("{start_date}", "{end_date}") passed into the `business_days()` filter') from e
+        logger.exception(
+            "Error parsing dates with the provided format: %s, %s", start_date, end_date
+        )
+        raise InvalidFilterValue(
+            f'Invalid date strings ("{start_date}", "{end_date}") passed into the `business_days()` filter'
+        ) from e
 
     # If user passed the dates in the wrong order, swap them
     if start_date > end_date:
@@ -268,10 +298,14 @@ def get_item(lst, index):
         return lst[index]
     except TypeError as e:
         logger.exception("Error getting list index %s from this list: %s", index, lst)
-        raise InvalidFilterValue("Invalid list or string passed into the `get_item()` filter") from e
+        raise InvalidFilterValue(
+            "Invalid list or string passed into the `get_item()` filter"
+        ) from e
     except IndexError as e:
         logger.exception("Error getting index %s from this list: %s", index, lst)
-        raise InvalidFilterValue("Invalid or unavailable index passed into the `get_item()` filter") from e
+        raise InvalidFilterValue(
+            "Invalid or unavailable index passed into the `get_item()` filter"
+        ) from e
 
 
 def regex_search(text, regex):
@@ -321,7 +355,18 @@ def filter_tags(objects, allowlist):
 
 
 def caption(caption_name):
+    """Legacy caption function - defaults to figure captions for backward compatibility."""
     return Markup('<span data-gw-caption="' + html.escape(caption_name) + '"></span>')
+
+
+def figure(caption_name):
+    """Create a figure caption placeholder."""
+    return Markup('<span data-gw-figure="' + html.escape(caption_name) + '"></span>')
+
+
+def table(caption_name):
+    """Create a table caption placeholder."""
+    return Markup('<span data-gw-table="' + html.escape(caption_name) + '"></span>')
 
 
 def ref(ref_name):
@@ -343,7 +388,9 @@ def mk_evidence(context: jinja2.runtime.Context, evidence_name: str) -> Markup:
 
 
 def raw_mk_evidence(evidence_id) -> Markup:
-    return Markup('<span data-gw-evidence="' + html.escape(str(evidence_id)) + '"></span>')
+    return Markup(
+        '<span data-gw-evidence="' + html.escape(str(evidence_id)) + '"></span>'
+    )
 
 
 def replace_blanks(list_of_dicts, placeholder=""):
@@ -362,7 +409,9 @@ def replace_blanks(list_of_dicts, placeholder=""):
                 if value is None:
                     d[key] = placeholder
     except (AttributeError, TypeError) as e:
-        logger.exception("Error parsing ``list_of_dicts`` as a list of dictionaries: %s", list_of_dicts)
+        logger.exception(
+            "Error parsing ``list_of_dicts`` as a list of dictionaries: %s", list_of_dicts
+        )
         raise InvalidFilterValue(
             "Invalid list of dictionaries passed into `replace_blanks()` filter; must be a list of dictionaries"
         ) from e
@@ -382,16 +431,25 @@ def filter_bhe_findings_by_domain(findings, domain_sid):
     """
     filtered_values = []
     try:
-        normalized_domain_sid = domain_sid.lower() if isinstance(domain_sid, str) and domain_sid else None
+        normalized_domain_sid = (
+            domain_sid.lower() if isinstance(domain_sid, str) and domain_sid else None
+        )
         for finding in findings:
             environment_id = finding.get("environment_id")
             normalized_environment_id = (
-                environment_id.lower() if isinstance(environment_id, str) and environment_id else None
+                environment_id.lower()
+                if isinstance(environment_id, str) and environment_id
+                else None
             )
-            if normalized_domain_sid and normalized_environment_id == normalized_domain_sid:
+            if (
+                normalized_domain_sid
+                and normalized_environment_id == normalized_domain_sid
+            ):
                 filtered_values.append(finding)
     except (KeyError, TypeError, AttributeError) as e:
-        logger.exception("Error parsing ``findings`` as a list of dictionaries: %s", findings)
+        logger.exception(
+            "Error parsing ``findings`` as a list of dictionaries: %s", findings
+        )
         raise InvalidFilterValue(
             "Invalid list of findings passed into `filter_bhe_findings_by_domain()` filter; must be the `{{ findings }}` object"
         ) from e
