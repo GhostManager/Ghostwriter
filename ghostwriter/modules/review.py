@@ -128,10 +128,26 @@ class DomainReview:
             }
             req = self.session.get(url, headers=headers)
             if not req.ok:
+                # A missing report is distinct from a failed API request. Only
+                # accept VT's structured error so proxy/endpoint 404s still fail.
+                if req.status_code == 404:
+                    try:
+                        error_code = req.json().get("error", {}).get("code")
+                    except (ValueError, AttributeError):
+                        error_code = None
+                    if error_code == "NotFoundError" and not subdomains:
+                        message = f"VirusTotal has no report for {domain} (HTTP 404, NotFoundError)."
+                        logger.warning(message)
+                        return {"result": "not_found", "error": message}
+
                 message = (
                     f"VirusTotal rejected the API request for {domain} "
-                    f"(HTTP {req.status_code}). Check the configured API key and permissions."
+                    f"(HTTP {req.status_code})."
                 )
+                if req.status_code in (401, 403):
+                    message += " Check the configured API key and permissions."
+                elif req.status_code == 429:
+                    message += " Check the VirusTotal API quota and rate limit."
                 logger.error(message)
                 raise VirusTotalRequestError(message)
 
@@ -183,6 +199,10 @@ class DomainReview:
 
                 # Check domain name with VT's Domain Report
                 vt_results = self.get_domain_report(domain_name)
+                if vt_results["result"] == "not_found":
+                    lab_results[domain.id]["error"] = vt_results["error"]
+                    sleep(self.sleep_time)
+                    continue
                 if vt_results["result"] == "success":
                     logger.info("Received results for %s from VirusTotal", domain_name)
 
