@@ -56,7 +56,11 @@ def review_active_logs(hours: int = 24) -> dict:
 
             # Try to get the latest log entry
             try:
-                latest_log_entry = OplogEntry.objects.filter(oplog_id=log).latest("start_date")
+                # Start dates are nullable, and PostgreSQL sorts NULLs first
+                # when finding the latest entry. Only dated entries establish activity.
+                latest_log_entry = OplogEntry.objects.filter(
+                    oplog_id=log, start_date__isnull=False
+                ).latest("start_date")
             except OplogEntry.DoesNotExist:
                 pass
 
