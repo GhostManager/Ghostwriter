@@ -39,6 +39,7 @@ from ghostwriter.oplog.models import (
     OplogEntryRecording,
     OplogSanitization,
 )
+from ghostwriter.oplog.views import OplogExport
 from ghostwriter.oplog.utils import (
     CAST_GZIP_TOO_LARGE_UPLOAD_MESSAGE,
     get_cast_decompressed_bytes,
@@ -1219,6 +1220,51 @@ class OplogExportViewTests(TestCase):
             self.assertEqual(
                 manifest["entries"][str(entry.id)]["evidence"], [expected_evidence_name]
             )
+
+    def test_json_zip_reserves_manifest_member_name(self):
+        self.oplog.name = "manifest"
+        self.oplog.save()
+        entry = self.OplogEntry.objects.filter(oplog_id=self.oplog).first()
+        evidence = EvidenceFactory()
+        OplogEntryEvidenceFactory(oplog_entry=entry, evidence=evidence)
+
+        response = self.client_mgr.get(f"{self.uri}?format=json&include=evidence")
+
+        with zipfile.ZipFile(io.BytesIO(b"".join(response.streaming_content))) as zf:
+            self.assertEqual(zf.namelist().count("manifest.json"), 1)
+            self.assertIn("oplog-entries.json", zf.namelist())
+            payload = json.loads(zf.read("oplog-entries.json"))
+            self.assertIn("data", payload)
+
+    def test_json_zip_uses_entries_packaged_with_attachments(self):
+        entry = self.OplogEntry.objects.filter(oplog_id=self.oplog).first()
+        evidence = EvidenceFactory()
+        OplogEntryEvidenceFactory(oplog_entry=entry, evidence=evidence)
+        original_write_file_to_zip = OplogExport._write_file_to_zip
+        added_entries = []
+
+        def write_file_and_add_entry(view, zf, field_file, arcname):
+            if not added_entries:
+                added_entries.append(OplogEntryFactory(oplog_id=self.oplog))
+            return original_write_file_to_zip(view, zf, field_file, arcname)
+
+        with patch.object(
+            OplogExport, "_write_file_to_zip", new=write_file_and_add_entry
+        ):
+            response = self.client_mgr.get(f"{self.uri}?format=json&include=evidence")
+
+        with zipfile.ZipFile(io.BytesIO(b"".join(response.streaming_content))) as zf:
+            json_file = next(
+                name
+                for name in zf.namelist()
+                if name.endswith(".json") and name != "manifest.json"
+            )
+            payload = json.loads(zf.read(json_file))
+            exported_ids = {
+                exported_entry["id"]
+                for exported_entry in payload["data"]["oplog"][0]["entries"]
+            }
+            self.assertNotIn(added_entries[0].id, exported_ids)
 
     def test_export_with_recordings(self):
         """GET with ?include=recordings returns a ZIP whose CSV has a recordings column."""

@@ -833,7 +833,7 @@ class OplogExport(RoleBasedAccessControlMixin, SingleObjectMixin, View):
             return export_name
         return f"{export_name}{suffix}"
 
-    def _json_payload(self, obj, include_output=False):
+    def _json_payload(self, entries, include_output=False):
         """Return the field-limited Oplog JSON export payload."""
         field_mapping = {
             "command": "command",
@@ -851,18 +851,18 @@ class OplogExport(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         }
         if include_output:
             field_mapping["output"] = "output"
-        entries = [
+        exported_entries = [
             {
-                export_name: entry[model_name]
+                export_name: getattr(entry, model_name)
                 for export_name, model_name in field_mapping.items()
             }
-            for entry in obj.entries.values(*field_mapping.values())
+            for entry in entries
         ]
-        return {"data": {"oplog": [{"entries": entries}]}}
+        return {"data": {"oplog": [{"entries": exported_entries}]}}
 
-    def _json_response(self, obj, include_output=False):
+    def _json_response(self, obj, entries, include_output=False):
         """Return the field-limited Oplog JSON export."""
-        response = JsonResponse(self._json_payload(obj, include_output))
+        response = JsonResponse(self._json_payload(entries, include_output))
         add_content_disposition_header(
             response, self._export_filename(obj.get_safe_export_name(), "json")
         )
@@ -922,11 +922,16 @@ class OplogExport(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         export_name = obj.get_safe_export_name()
         csv_filename = self._export_filename(export_name, "csv")
         json_filename = self._export_filename(export_name, "json")
+        zip_json_filename = (
+            "oplog-entries.json"
+            if json_filename.casefold() == "manifest.json"
+            else json_filename
+        )
 
         # If no attachments were requested, return the selected format directly.
         if not include_set:
             if export_format == "json":
-                return self._json_response(obj, include_output)
+                return self._json_response(obj, queryset, include_output)
 
             response = HttpResponse(content_type="text/csv")
             add_content_disposition_header(response, csv_filename)
@@ -1017,8 +1022,8 @@ class OplogExport(RoleBasedAccessControlMixin, SingleObjectMixin, View):
 
                 if export_format == "json":
                     zf.writestr(
-                        json_filename,
-                        JsonResponse(self._json_payload(obj, include_output)).content,
+                        zip_json_filename,
+                        JsonResponse(self._json_payload(queryset, include_output)).content,
                     )
                 else:
                     # Extend field_names with attachment columns when relevant.
