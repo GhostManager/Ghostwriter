@@ -305,7 +305,18 @@
                   <button type="button" class="btn-close ms-auto align-self-start" data-bs-dismiss="modal" aria-label="Close"></button>
               </div>
               <div class="modal-body">
-                  <p>Select what to include with the export. If no attachments are selected, a plain CSV will be returned.</p>
+                  <p>Select an export format and what to include. Exports with attachments are downloaded as a ZIP file. Otherwise, a plain CSV or JSON file is downloaded.</p>
+                  <fieldset class="mb-3">
+                      <legend class="fs-6 mb-2">Export format</legend>
+                      <div class="form-check form-check-inline">
+                          <input class="form-check-input" type="radio" name="export-format" id="export-format-csv" value="csv" checked>
+                          <label class="form-check-label" for="export-format-csv">CSV</label>
+                      </div>
+                      <div class="form-check form-check-inline">
+                          <input class="form-check-input" type="radio" name="export-format" id="export-format-json" value="json">
+                          <label class="form-check-label" for="export-format-json">JSON</label>
+                      </div>
+                  </fieldset>
                   <div class="mb-3">
                       <div class="form-check form-switch">
                           <input type="checkbox" class="form-check-input" id="export-recordings">
@@ -314,6 +325,10 @@
                       <div class="form-check form-switch mt-2">
                           <input type="checkbox" class="form-check-input" id="export-evidence">
                           <label class="form-check-label" for="export-evidence">Include linked evidence files</label>
+                      </div>
+                      <div class="form-check form-switch mt-2">
+                          <input type="checkbox" class="form-check-input" id="export-include-output">
+                          <label class="form-check-label" for="export-include-output">Include command output</label>
                       </div>
                   </div>
               </div>

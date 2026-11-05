@@ -83,11 +83,15 @@
                   <td class="align-middle text-end js-export-oplog" data-label="Export"
                       oplog-id="{{ log.pk }}" oplog-name="{{ log.name }}"
                       export_url="{% url 'oplog:oplog_export' log.id %}">
-                    <div class="library-row-actions">
+                    <div class="library-row-actions oplog-export-actions">
                       <button type="button" class="report-row-action"
                               title="Export {{ log.name }}" aria-label="Export {{ log.name }}">
                         <i class="fas fa-file-export" aria-hidden="true"></i>
                       </button>
+                      <a href="{% url 'oplog:oplog_export' log.id %}?format=json" class="report-row-action"
+                         title="Export {{ log.name }} as JSON" aria-label="Export {{ log.name }} as JSON">
+                        <i class="fas fa-file-code" aria-hidden="true"></i>
+                      </a>
                     </div>
                   </td>
                 </tr>
@@ -136,21 +140,11 @@
 
     <!-- Export Oplog with JS -->
     <script>
-        function download(url, filename) {
-            fetch(url).then(function (t) {
-                return t.blob().then((b) => {
-                    var a = document.createElement("a");
-                    a.href = URL.createObjectURL(b);
-                    a.setAttribute("download", filename);
-                    a.click();
-                });
-            });
-        }
-
-        $(".js-export-oplog").on("click", function () {
-            let id = $(this).attr('oplog-id')
-            let name = $(this).attr('oplog-name')
-            let export_url = $(this).attr('export_url')
+        $(".js-export-oplog button.report-row-action").on("click", function () {
+            let exportCell = $(this).closest('.js-export-oplog')
+            let id = exportCell.attr('oplog-id')
+            let name = exportCell.attr('oplog-name')
+            let export_url = exportCell.attr('export_url')
             let base_name = `${name}-log-export-${id}.csv`
             let filename = generateDownloadName(base_name);
             download(export_url, filename);
