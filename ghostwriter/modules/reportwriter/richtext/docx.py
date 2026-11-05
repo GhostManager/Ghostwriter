@@ -870,7 +870,6 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
                     "Try opening it, exporting as desired type, and re-uploading it."
                 )
                 raise ReportExportTemplateError(error_msg) from e
-
     def make_image(self, par, name: str, file_path: str):
         if not os.path.isabs(file_path):
             file_path = os.path.join(settings.MEDIA_ROOT, file_path)
@@ -879,14 +878,11 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
 
         try:
             self._make_image(par, file_path)
-        except UnrecognizedImageError:
-            logger.exception(
-                "Image file at %s was not recognized as an image file", file_path
-            )
+        except UnrecognizedImageError as exc:
+            logger.exception("Image file at %s was not recognized as an image file", file_path)
             raise ReportExportTemplateError(
-                "Image %s was not recognized as an image file. Try opening it, exporting as desired type, and re-uploading it.",
-                name,
-            )
+                f"Image {name} was not recognized as an image file. Try opening it, exporting as desired type, and re-uploading it."
+            ) from exc
 
     def _make_image(self, par, file_path: str):
         par.alignment = self.image_alignment
