@@ -1095,18 +1095,22 @@ class OplogExportViewTests(TestCase):
 
     def test_csv_export_includes_command_output_when_requested(self):
         entry = self.OplogEntry.objects.filter(oplog_id=self.oplog).first()
-        entry.output = "first output line\nsecond output line"
+        entry.output = "first output line\r\nsecond output line\t\x1b[31m"
         entry.save(update_fields=["output"])
 
         response = self.client_mgr.get(f"{self.uri}?include_output=true")
 
+        self.assertEqual(len(response.content.decode("utf-8").splitlines()), 6)
         reader = csv.DictReader(io.StringIO(response.content.decode("utf-8")))
         self.assertIn("output", reader.fieldnames)
         rows = list(reader)
         exported_entry = next(
             row for row in rows if row["entry_identifier"] == entry.entry_identifier
         )
-        self.assertEqual(exported_entry["output"], entry.output)
+        self.assertEqual(
+            exported_entry["output"],
+            "first output line\\r\\nsecond output line\\t\\x1b[31m",
+        )
 
     def test_json_export_includes_command_output_when_requested(self):
         entry = self.OplogEntry.objects.filter(oplog_id=self.oplog).first()
@@ -1302,6 +1306,29 @@ class OplogExportViewTests(TestCase):
                 [expected_recording_name],
             )
             self.assertEqual(manifest["entries"][str(entry.id)]["evidence"], [])
+
+    def test_csv_zip_sanitizes_command_output(self):
+        entry = self.OplogEntry.objects.filter(oplog_id=self.oplog).first()
+        entry.output = "first output line\nsecond output line\x1b[31m"
+        entry.save(update_fields=["output"])
+        OplogEntryRecordingFactory(oplog_entry=entry)
+
+        response = self.client_mgr.get(
+            f"{self.uri}?include=recordings&include_output=true"
+        )
+
+        with zipfile.ZipFile(io.BytesIO(b"".join(response.streaming_content))) as zf:
+            csv_name = self._assert_single_csv_file(zf)
+            _, rows = self._read_zip_csv(zf, csv_name)
+            exported_entry = next(
+                row
+                for row in rows
+                if row["entry_identifier"] == entry.entry_identifier
+            )
+            self.assertEqual(
+                exported_entry["output"],
+                "first output line\\nsecond output line\\x1b[31m",
+            )
 
     def test_zip_export_sanitizes_csv_member_name(self):
         self.oplog.name = r"..\nested/evil"
