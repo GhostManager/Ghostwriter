@@ -767,10 +767,22 @@ class OplogEntryDelete(RoleBasedAccessControlMixin, DeleteView):
 
 
 class OplogExport(RoleBasedAccessControlMixin, SingleObjectMixin, View):
-    """Export the :oplog:`oplog.Entries` for an individual :model:`oplog.Oplog` in a csv format."""
+    """Export Oplog entries as CSV, attachment ZIPs, or JSON."""
 
     model = Oplog
+    valid_export_formats = {"csv", "json"}
     valid_include_values = {"recordings", "evidence", "all"}
+    valid_include_output_values = {"", "true", "false"}
+    csv_output_control_escapes = {
+        "\\": r"\\",
+        "\a": r"\a",
+        "\b": r"\b",
+        "\t": r"\t",
+        "\n": r"\n",
+        "\v": r"\v",
+        "\f": r"\f",
+        "\r": r"\r",
+    }
     attachment_chunk_size = 1024 * 1024
     recoverable_attachment_errors = (OSError, RuntimeError, TypeError, ValueError)
     path_lookup_errors = (
@@ -824,17 +836,103 @@ class OplogExport(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         raise RuntimeError("Could not generate a unique archive name")
 
     @staticmethod
-    def _csv_export_filename(export_name):
-        """Return a CSV filename without duplicating a .csv suffix."""
-        if export_name.lower().endswith(".csv"):
+    def _export_filename(export_name, extension):
+        """Return an export filename without duplicating its extension."""
+        suffix = f".{extension}"
+        if export_name.lower().endswith(suffix):
             return export_name
-        return f"{export_name}.csv"
+        return f"{export_name}{suffix}"
+
+    @classmethod
+    def _sanitize_csv_output(cls, value):
+        """Escape terminal control characters to keep CSV records on one line."""
+        if value is None:
+            return ""
+        return "".join(
+            cls.csv_output_control_escapes.get(
+                character,
+                f"\\x{ord(character):02x}"
+                if ord(character) < 32 or 127 <= ord(character) <= 159
+                else character,
+            )
+            for character in str(value)
+        )
+
+    def _csv_entry_values(self, entry, field_names, attachments_map=None):
+        """Return one CSV row, resolving tags and attachment paths."""
+        attachments = (attachments_map or {}).get(str(entry.id), {})
+        tag_names = ", ".join(tag.name for tag in entry.tags.all())
+        values = []
+        for field in field_names:
+            if field == "oplog_id":
+                values.append(entry.oplog_id.id)
+            elif field == "tags":
+                values.append(tag_names)
+            elif field == "output":
+                values.append(self._sanitize_csv_output(entry.output))
+            elif field in {"recordings", "evidence"}:
+                values.append(", ".join(attachments.get(field, [])))
+            else:
+                values.append(getattr(entry, field))
+        return values
+
+    def _json_payload(self, entries, include_output=False):
+        """Return the field-limited Oplog JSON export payload."""
+        field_mapping = {
+            "command": "command",
+            "description": "description",
+            "destIp": "dest_ip",
+            "endDate": "end_date",
+            "extraFields": "extra_fields",
+            "id": "id",
+            "operatorName": "operator_name",
+            "sourceIp": "source_ip",
+            "startDate": "start_date",
+            "tool": "tool",
+            "updatedAt": "updated_at",
+            "userContext": "user_context",
+        }
+        if include_output:
+            field_mapping["output"] = "output"
+        exported_entries = [
+            {
+                export_name: getattr(entry, model_name)
+                for export_name, model_name in field_mapping.items()
+            }
+            for entry in entries
+        ]
+        return {"data": {"oplog": [{"entries": exported_entries}]}}
+
+    def _json_response(self, obj, entries, include_output=False):
+        """Return the field-limited Oplog JSON export."""
+        response = JsonResponse(self._json_payload(entries, include_output))
+        add_content_disposition_header(
+            response, self._export_filename(obj.get_safe_export_name(), "json")
+        )
+        return response
 
     def get(self, *args, **kwargs):
         obj = self.get_object()
 
+        export_format = (self.request.GET.get("format") or "csv").lower()
+        if export_format not in self.valid_export_formats:
+            return HttpResponse(
+                f"Invalid export format: {export_format}",
+                status=400,
+                content_type="text/plain",
+            )
+
+        include_output_param = (self.request.GET.get("include_output") or "").lower()
+        if include_output_param not in self.valid_include_output_values:
+            return HttpResponse(
+                f"Invalid include_output value: {include_output_param}",
+                status=400,
+                content_type="text/plain",
+            )
+        include_output = include_output_param == "true"
+
         # Determine whether attachments should be included. Accepted values:
-        # - no param / empty: CSV only (existing behavior)
+        # - no param / empty: export file only
         # - include=recordings
         # - include=evidence
         # - include=all
@@ -858,30 +956,32 @@ class OplogExport(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         field_names = [field.name for field in opts.fields]
         if "id" in field_names:
             field_names.remove("id")
+        if not include_output and "output" in field_names:
+            field_names.remove("output")
         # Add the tags field to the list of fields
         if "tags" not in field_names:
             field_names.append("tags")
 
         export_name = obj.get_safe_export_name()
-        csv_filename = self._csv_export_filename(export_name)
+        csv_filename = self._export_filename(export_name, "csv")
+        json_filename = self._export_filename(export_name, "json")
+        zip_json_filename = (
+            "oplog-entries.json"
+            if json_filename.casefold() == "manifest.json"
+            else json_filename
+        )
 
-        # If no attachments requested, return original CSV response for compatibility
+        # If no attachments were requested, return the selected format directly.
         if not include_set:
+            if export_format == "json":
+                return self._json_response(obj, queryset, include_output)
+
             response = HttpResponse(content_type="text/csv")
             add_content_disposition_header(response, csv_filename)
             writer = csv.writer(response)
             writer.writerow(field_names)
             for entry in queryset:
-                tag_names = ", ".join(tag.name for tag in entry.tags.all())
-                values = []
-                for field in field_names:
-                    if field == "oplog_id":
-                        values.append(getattr(entry, field).id)
-                    elif field == "tags":
-                        values.append(tag_names)
-                    else:
-                        values.append(getattr(entry, field))
-                writer.writerow(values)
+                writer.writerow(self._csv_entry_values(entry, field_names))
             return response
 
         # Build the ZIP in a spooled temp file so small exports stay in memory and
@@ -954,46 +1054,30 @@ class OplogExport(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                             "evidence": attachments_map[str(entry.id)]["evidence"],
                         }
 
-                # After attachments are added, build CSV text including attachment columns
-                # Extend field_names with attachment columns when relevant
-                if "recordings" in include_set or "all" in include_set:
-                    if "recordings" not in field_names:
-                        field_names.append("recordings")
-                if "evidence" in include_set or "all" in include_set:
-                    if "evidence" not in field_names:
-                        field_names.append("evidence")
+                if export_format == "json":
+                    zf.writestr(
+                        zip_json_filename,
+                        JsonResponse(self._json_payload(queryset, include_output)).content,
+                    )
+                else:
+                    # Extend field_names with attachment columns when relevant.
+                    if "recordings" in include_set or "all" in include_set:
+                        if "recordings" not in field_names:
+                            field_names.append("recordings")
+                    if "evidence" in include_set or "all" in include_set:
+                        if "evidence" not in field_names:
+                            field_names.append("evidence")
 
-                csv_buf = io.StringIO()
-                csv_writer = csv.writer(csv_buf)
-                csv_writer.writerow(field_names)
-                for entry in queryset:
-                    tag_names = ", ".join(tag.name for tag in entry.tags.all())
-                    values = []
-                    for field in field_names:
-                        if field == "oplog_id":
-                            values.append(getattr(entry, field).id)
-                        elif field == "tags":
-                            values.append(tag_names)
-                        elif field == "recordings":
-                            values.append(
-                                ", ".join(
-                                    attachments_map.get(str(entry.id), {}).get(
-                                        "recordings", []
-                                    )
-                                )
+                    csv_buf = io.StringIO()
+                    csv_writer = csv.writer(csv_buf)
+                    csv_writer.writerow(field_names)
+                    for entry in queryset:
+                        csv_writer.writerow(
+                            self._csv_entry_values(
+                                entry, field_names, attachments_map
                             )
-                        elif field == "evidence":
-                            values.append(
-                                ", ".join(
-                                    attachments_map.get(str(entry.id), {}).get(
-                                        "evidence", []
-                                    )
-                                )
-                            )
-                        else:
-                            values.append(getattr(entry, field))
-                    csv_writer.writerow(values)
-                zf.writestr(csv_filename, csv_buf.getvalue().encode("utf-8"))
+                        )
+                    zf.writestr(csv_filename, csv_buf.getvalue().encode("utf-8"))
 
                 # Add manifest.json for mapping and metadata
                 zf.writestr("manifest.json", json.dumps(manifest, indent=2))
