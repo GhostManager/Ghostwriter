@@ -16,6 +16,7 @@ import jinja2.nodes
 import jinja2.runtime
 import jinja2.sandbox
 
+# Ghostwriter Libraries
 from ghostwriter.modules.reportwriter import jinja_funcs
 
 logger = logging.getLogger(__name__)
@@ -225,10 +226,15 @@ def prepare_jinja2_env(debug=False):
     env.filters["regex_search"] = jinja_funcs.regex_search
     env.filters["filter_tags"] = jinja_funcs.filter_tags
     env.filters["replace_blanks"] = jinja_funcs.replace_blanks
-    env.filters[
-        "filter_bhe_findings_by_domain"
-    ] = jinja_funcs.filter_bhe_findings_by_domain
+    env.filters["filter_bhe_findings_by_domain"] = (
+        jinja_funcs.filter_bhe_findings_by_domain
+    )
     env.filters["translate_domain_sid"] = jinja_funcs.translate_domain_sid
+
+    # Register caption functions as globals
+    env.globals["caption"] = jinja_funcs.caption
+    env.globals["figure"] = jinja_funcs.figure
+    env.globals["table"] = jinja_funcs.table
 
     if debug:
         return env, undefined_vars
@@ -239,6 +245,7 @@ def report_generation_queryset():
     """
     Gets a queryset of Reports with `select_related` and `prefetch_related` options optimal for report generation.
     """
+    # Ghostwriter Libraries
     from ghostwriter.reporting.models import (  # pylint: disable=import-outside-toplevel
         Report,
     )

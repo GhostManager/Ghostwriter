@@ -117,6 +117,17 @@ def _extract_jinja_literal_fragments(text: str) -> tuple[str, dict[str, str]]:
         literal_fragments[placeholder] = str(node)
         node.replace_with(placeholder)
 
+    # Handle data-gw-figure and data-gw-table nodes
+    for node in soup.find_all(attrs={"data-gw-figure": True}):
+        placeholder = f"GWJINJALITERAL{secrets.token_hex(24)}"
+        literal_fragments[placeholder] = str(node)
+        node.replace_with(placeholder)
+
+    for node in soup.find_all(attrs={"data-gw-table": True}):
+        placeholder = f"GWJINJALITERAL{secrets.token_hex(24)}"
+        literal_fragments[placeholder] = str(node)
+        node.replace_with(placeholder)
+
     for node in soup.find_all(True):
         for attribute in JINJA_LITERAL_VALUE_ATTRIBUTES:
             if attribute not in node.attrs:
@@ -175,6 +186,14 @@ def rich_text_template(
             return jinja_funcs.caption("")
         elif contents.startswith("caption "):
             return jinja_funcs.caption(contents[8:].strip())
+        elif contents == "figure":
+            return jinja_funcs.figure("")
+        elif contents.startswith("figure "):
+            return jinja_funcs.figure(contents[7:].strip())
+        elif contents == "table":
+            return jinja_funcs.table("")
+        elif contents.startswith("table "):
+            return jinja_funcs.table(contents[6:].strip())
         return "{{ _old_dot_vars[" + repr(contents.strip()) + "]}}"
 
     # Replace items with old dot syntax
@@ -183,9 +202,7 @@ def rich_text_template(
     text = re.sub(r"\{\{\s*\.([^\{\}]*?)\s*\}\}", replace_old_tag, text)
 
     # Replace editor page breaks with something that the parser can easily pick up
-    text = text.replace(
-        "<p><!-- pagebreak --></p>", '<br data-gw-pagebreak="true" />'
-    )
+    text = text.replace("<p><!-- pagebreak --></p>", '<br data-gw-pagebreak="true" />')
 
     # Replace `{%li foreach %}`-esque prefixes. This is similar to what python-docx-template does.
     soup = bs4.BeautifulSoup(text, "html.parser")
@@ -212,9 +229,7 @@ def _process_prefix(input_str: str, soup: bs4.BeautifulSoup, prefix: str):
     in the passed-in soup.
     """
 
-    regex = re.compile(
-        r"^\s*(\{%|\{\{)\s*" + re.escape(prefix) + r"\b(.*)(%\}|\}\})\s*$"
-    )
+    regex = re.compile(r"^\s*(\{%|\{\{)\s*" + re.escape(prefix) + r"\b(.*)(%\}|\}\})\s*$")
     # Store in list since we mutate the nodes
     matching_strings = list(soup.find_all(string=regex))
     for node in matching_strings:
@@ -254,9 +269,7 @@ class RichTextBase(ABC):
         """
 
     @staticmethod
-    def deep_copy_process_html(
-        value: Any, process_html: Callable[["RichTextBase"], Any]
-    ):
+    def deep_copy_process_html(value: Any, process_html: Callable[["RichTextBase"], Any]):
         """
         Deep copies a value, mapping any `RichTextBase` subclasses through `process_html`.
         """
@@ -303,9 +316,7 @@ class LazilyRenderedTemplate(RichTextBase):
     ):
         super().__init__()
         if not isinstance(template, CompiledRichTextTemplate):
-            raise TypeError(
-                "LazilyRenderedTemplate requires a CompiledRichTextTemplate"
-            )
+            raise TypeError("LazilyRenderedTemplate requires a CompiledRichTextTemplate")
         self._template = template
         self._context = context
         self.location = location

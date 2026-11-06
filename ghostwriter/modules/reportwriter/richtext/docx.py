@@ -21,14 +21,8 @@ from lxml import etree
 # Ghostwriter Libraries
 from ghostwriter.commandcenter.models import ReportConfiguration
 from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
-from ghostwriter.modules.reportwriter.extensions import (
-    IMAGE_EXTENSIONS,
-    TEXT_EXTENSIONS,
-)
-from ghostwriter.modules.reportwriter.richtext.ooxml import (
-    BaseHtmlToOOXML,
-    parse_styles,
-)
+from ghostwriter.modules.reportwriter.extensions import IMAGE_EXTENSIONS, TEXT_EXTENSIONS
+from ghostwriter.modules.reportwriter.richtext.ooxml import BaseHtmlToOOXML, parse_styles
 from ghostwriter.reporting.models import EvidenceImageAlignment, ReportTemplate
 
 logger = logging.getLogger(__name__)
@@ -57,6 +51,7 @@ class HtmlToDocx(BaseHtmlToOOXML):
     """
     Converts HTML to a word document
     """
+
     doc: DocumentObject
     p_style: str
 
@@ -157,7 +152,10 @@ class HtmlToDocx(BaseHtmlToOOXML):
             try:
                 run.style = "CodeInline"
             except KeyError:
-                logger.debug("The DOCX template does not define the CodeInline style.", exc_info=True)
+                logger.debug(
+                    "The DOCX template does not define the CodeInline style.",
+                    exc_info=True,
+                )
             run.font.no_proof = True
         if style.get("highlight"):
             run.font.highlight_color = WD_COLOR_INDEX.YELLOW
@@ -426,9 +424,9 @@ class HtmlToDocx(BaseHtmlToOOXML):
         tblw.attrib[
             "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}type"
         ] = "pct"
-        tblw.attrib[
-            "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}w"
-        ] = "5000"
+        tblw.attrib["{http://schemas.openxmlformats.org/wordprocessingml/2006/main}w"] = (
+            "5000"
+        )
         for row_idx, _ in enumerate(table.rows):
             for cell_idx, _ in enumerate(table.rows[row_idx].cells):
                 table.rows[row_idx].cells[cell_idx]._tc.tcPr.tcW.type = "auto"
@@ -469,15 +467,24 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
     ):
         super().__init__(doc, report_template.p_style)
         self.evidences = evidences
+        self.evidences_by_friendly_name = {
+            evidence["friendly_name"]: evidence for evidence in evidences.values()
+        }
         self.images = images
         self.report_template = report_template
         self.global_report_config = global_report_config
         self.plural_acronym_pattern = re.compile(r"^[^a-z]+(:?s|'s)$")
-        self.current_bookmark_id = 1000 # Hopefully won't conflict with templates
-        self.title_case_exceptions = self.global_report_config.title_case_exceptions.split(",")
-        effective_alignment = self.report_template.get_effective_evidence_image_alignment(self.global_report_config)
+        self.current_bookmark_id = 1000  # Hopefully won't conflict with templates
+        self.title_case_exceptions = (
+            self.global_report_config.title_case_exceptions.split(",")
+        )
+        effective_alignment = self.report_template.get_effective_evidence_image_alignment(
+            self.global_report_config
+        )
         self.image_alignment = EVIDENCE_IMAGE_ALIGNMENT_MAP[effective_alignment]
-        self.image_width = self.report_template.get_effective_evidence_image_width(self.global_report_config)
+        self.image_width = self.report_template.get_effective_evidence_image_width(
+            self.global_report_config
+        )
 
     def text(self, el, *, par=None, **kwargs):
         if par is not None and getattr(par, "_gw_is_caption", False):
@@ -490,11 +497,35 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
                 evidence = self.evidences[int(el.attrs["data-gw-evidence"])]
             except (KeyError, ValueError):
                 return
-            self.make_evidence(par, evidence)
-        elif "data-gw-caption" in el.attrs:
-            ref_name = el.attrs["data-gw-caption"]
-            self.make_caption(par, self.global_report_config.label_figure, ref_name or None)
+            as_table = "data-gw-table-evidence" in el.attrs
+            self.make_evidence(par, evidence, as_table=as_table)
+        elif "data-gw-caption" in el.attrs or "data-gw-figure" in el.attrs:
+            ref_name = el.attrs.get("data-gw-caption") or el.attrs.get("data-gw-figure")
+            self.make_caption(
+                par, self.global_report_config.label_figure, ref_name or None
+            )
             par.add_run(self.global_report_config.prefix_figure)
+        elif "data-gw-table" in el.attrs:
+            ref_name = el.attrs["data-gw-table"]
+            inline_caption = el.get_text().strip()
+
+            if ref_name and ref_name in self.evidences_by_friendly_name:
+                evidence = self.evidences_by_friendly_name[ref_name]
+                # Break out to block paragraph for evidence file rendering
+                par_block = self._paragraph_for_block(par)
+                self.make_evidence(
+                    par_block,
+                    evidence,
+                    as_table=True,
+                    inline_caption=inline_caption or None,
+                )
+            else:
+                self.make_caption(
+                    par, self.global_report_config.label_table, ref_name or None
+                )
+                par.add_run(self.global_report_config.prefix_table)
+                if inline_caption:
+                    par.add_run(self.title_except(inline_caption))
         elif "data-gw-ref" in el.attrs:
             ref_name = el.attrs["data-gw-ref"]
             self.text_tracking.force_emit_pending_segment_break()
@@ -506,12 +537,12 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
 
     def tag_table(self, el, **kwargs):
         caption_el = kwargs.get("caption_el") or el.find("caption")
-        caption_bookmark = kwargs.get("caption_bookmark")
+        caption_name = kwargs.get("caption_bookmark")
         if self.global_report_config.table_caption_location == "top":
-            self._mk_table_caption(caption_el, caption_bookmark)
+            self._mk_table_caption(caption_el, caption_name)
         super().tag_table(el, **kwargs)
         if self.global_report_config.table_caption_location == "bottom":
-            self._mk_table_caption(caption_el, caption_bookmark)
+            self._mk_table_caption(caption_el, caption_name)
 
     def tag_div(self, el, *, par=None, **kwargs):
         if "richtext-evidence" in el.attrs.get("class", []):
@@ -522,7 +553,13 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
                 return
 
             par = self._paragraph_for_block(par)
-            self.make_evidence(par, evidence)
+            as_table = (
+                "data-gw-table-evidence" in el.attrs
+                or el.attrs.get("data-type") == "table"
+                or evidence.get("is_table")
+                or "table" in el.attrs.get("class", [])
+            )
+            self.make_evidence(par, evidence, as_table=as_table)
         elif "data-gw-image" in el.attrs:
             name = el.attrs["data-gw-image"]
             if name not in self.images:
@@ -534,18 +571,83 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         elif "data-gw-caption" in el.attrs:
             ref_name = el.attrs["data-gw-caption"]
             par = self._paragraph_for_block(par)
-            self.make_caption(par, self.global_report_config.label_figure, ref_name or None)
+            self.make_caption(
+                par, self.global_report_config.label_figure, ref_name or None
+            )
             par.add_run(self.global_report_config.prefix_figure)
-            par.add_run(el.get_text())
+            caption_text = el.get_text().strip()
+            if caption_text:
+                par.add_run(self.title_except(caption_text))
+        elif "data-gw-figure" in el.attrs:
+            ref_name = el.attrs["data-gw-figure"]
+            par = self._paragraph_for_block(par)
+            self.make_caption(
+                par, self.global_report_config.label_figure, ref_name or None
+            )
+            par.add_run(self.global_report_config.prefix_figure)
+            caption_text = el.get_text().strip()
+            if caption_text:
+                par.add_run(self.title_except(caption_text))
+        elif "data-gw-table" in el.attrs:
+            ref_name = el.attrs["data-gw-table"]
+            caption_text = el.get_text().strip()
+            if ref_name and ref_name in self.evidences_by_friendly_name:
+                evidence = self.evidences_by_friendly_name[ref_name]
+                par = self._paragraph_for_block(par)
+                self.make_evidence(
+                    par, evidence, as_table=True, inline_caption=caption_text or None
+                )
+            else:
+                if caption_text:
+                    par = self._paragraph_for_block(par)
+                    self._mk_table_caption(
+                        None, caption_name=ref_name or None, caption_text=caption_text
+                    )
         else:
             super().tag_div(el, par=par, **kwargs)
 
-    def _mk_table_caption(self, caption_el, caption_bookmark=None):
-        par_caption = self.doc.add_paragraph()
-        self.make_caption(par_caption, self.global_report_config.label_table, caption_bookmark, styles=["Quote", "Caption"])
-        if caption_el is not None:
+    def _mk_table_caption(
+        self, caption_el, caption_name=None, caption_text=None, par=None
+    ):
+        if caption_text and caption_text.strip():
+            caption_str = caption_text.strip()
+        elif caption_name and caption_name.strip():
+            caption_str = caption_name.strip()
+        elif caption_el and caption_el.get_text().strip():
+            caption_str = caption_el.get_text().strip()
+        else:
+            caption_str = ""
+
+        if caption_str:
+            logger.info("Building Table Caption in report: '%s'", caption_str)
+            par_caption = par if par is not None else self.doc.add_paragraph()
+            par_caption._gw_is_caption = True
+            self.make_caption(
+                par_caption,
+                self.global_report_config.label_table,
+                caption_name,
+                styles=["Quote", "Caption"],
+            )
+            par_caption.add_run(self.global_report_config.prefix_table)
+            par_caption.add_run(self.title_except(caption_str))
+        else:
+            logger.debug(
+                "_mk_table_caption skipped generating paragraph because caption_str is empty"
+            )
+
+    def _mk_figure_caption(self, par_caption, ref: str | None, caption_text: str):
+        if caption_text and caption_text.strip():
+            caption_str = caption_text.strip()
+        elif ref and ref.strip():
+            caption_str = ref.strip()
+        else:
+            caption_str = ""
+
+        if caption_str:
+            par_caption._gw_is_caption = True
+            self.make_caption(par_caption, self.global_report_config.label_figure, ref)
             par_caption.add_run(self.global_report_config.prefix_figure)
-            par_caption.add_run(self.title_except(caption_el.get_text()))
+            par_caption.add_run(self.title_except(caption_str))
 
     def is_plural_acronym(self, word):
         """
@@ -565,13 +667,15 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
             for word in word_list:
                 final.append(
                     word
-                    if word in self.title_case_exceptions or word.isupper() or self.is_plural_acronym(word)
+                    if word in self.title_case_exceptions
+                    or word.isupper()
+                    or self.is_plural_acronym(word)
                     else word.capitalize()
                 )
             s = " ".join(final)
         return s
 
-    def make_caption(self, par, label: str, ref: str | None = None, styles = ["Caption"]):
+    def make_caption(self, par, label: str, ref: str | None = None, styles=["Caption"]):
         par._gw_is_caption = True
         for style in styles:
             try:
@@ -585,15 +689,21 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         else:
             ref = f"_Ref{random.randint(10000000, 99999999)}"
 
-        # Start a bookmark run with the figure label
+        # Ensure label has a single trailing space before the sequence field
+        if label and not label.endswith(" "):
+            label_text = label + " "
+        else:
+            label_text = label
+
+        # Start a bookmark run with the figure/table label
         p = par._p
         bookmark_start = OxmlElement("w:bookmarkStart")
         bookmark_start.set(qn("w:name"), ref.replace(" ", "_"))
         bookmark_start.set(qn("w:id"), str(self.current_bookmark_id))
         p.append(bookmark_start)
 
-        # Add the figure label
-        par.add_run(label)
+        # Add the label with trailing space
+        par.add_run(label_text)
 
         # Append XML for a new field character run
         run = par.add_run()
@@ -602,12 +712,14 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         fldChar.set(qn("w:fldCharType"), "begin")
         r.append(fldChar)
 
+        # Clean sequence identifier (strip spaces/special chars) so Word SEQ fields parse cleanly
+        seq_identifier = re.sub(r"[^A-Za-z0-9]", "", label) or "FIGURE"
+
         # Add field code instructions with ``instrText``
         run = par.add_run()
         r = run._r
         instrText = OxmlElement("w:instrText")
-        # Sequential figure with arabic numbers
-        instrText.text = f" SEQ {label} \\* ARABIC"
+        instrText.text = f" SEQ {seq_identifier} \\* ARABIC"
         r.append(instrText)
 
         # An optional ``separate`` value to enforce a space between label and number
@@ -633,10 +745,20 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
 
         self.current_bookmark_id += 1
 
-    def make_evidence(self, par, evidence):
+    def make_evidence(self, par, evidence, as_table=False, inline_caption=None):
         file_path = settings.MEDIA_ROOT + "/" + evidence["path"]
         if not os.path.exists(file_path):
             raise FileNotFoundError(file_path)
+
+        if evidence.get("is_table"):
+            as_table = True
+
+        caption_text = (
+            (inline_caption or "").strip()
+            or (evidence.get("caption") or "").strip()
+            or evidence.get("friendly_name")
+            or "Evidence"
+        )
 
         extension = file_path.split(".")[-1].lower()
         if extension in TEXT_EXTENSIONS:
@@ -656,27 +778,86 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
                 )
                 raise ReportExportTemplateError(error_msg) from err
 
-            if self.global_report_config.figure_caption_location == "top":
-                self._mk_figure_caption(par, evidence["friendly_name"], evidence["caption"])
-                par = self._paragraph_for_block(par)
+            if as_table:
+                caption_location = self.global_report_config.table_caption_location
+            else:
+                caption_location = self.global_report_config.figure_caption_location
 
-            par.text = evidence_text
-            try:
-                par.style = "CodeBlock"
-            except KeyError:
-                par.alignment = WD_ALIGN_PARAGRAPH.LEFT
+            if caption_location == "top":
+                par.text = ""
+                if as_table:
+                    self._mk_table_caption(
+                        None,
+                        caption_name=evidence["friendly_name"],
+                        caption_text=caption_text,
+                        par=par,
+                    )
+                else:
+                    self._mk_figure_caption(par, evidence["friendly_name"], caption_text)
 
-            if self.global_report_config.figure_caption_location == "bottom":
+                body_par = self._paragraph_for_block(par)
+                body_par.text = evidence_text
+                try:
+                    body_par.style = "CodeBlock"
+                except KeyError:
+                    body_par.alignment = WD_ALIGN_PARAGRAPH.LEFT
+
+            else:
+                par.text = evidence_text
+                try:
+                    par.style = "CodeBlock"
+                except KeyError:
+                    par.alignment = WD_ALIGN_PARAGRAPH.LEFT
+
                 par_caption = self._paragraph_for_block(par)
-                self._mk_figure_caption(par_caption, evidence["friendly_name"], evidence["caption"])
+                if as_table:
+                    self._mk_table_caption(
+                        None,
+                        caption_name=evidence["friendly_name"],
+                        caption_text=caption_text,
+                        par=par_caption,
+                    )
+                else:
+                    self._mk_figure_caption(
+                        par_caption, evidence["friendly_name"], caption_text
+                    )
 
         elif extension in IMAGE_EXTENSIONS:
-            if self.global_report_config.figure_caption_location == "top":
-                self._mk_figure_caption(par, evidence["friendly_name"], evidence["caption"])
-                par = self._paragraph_for_block(par)
+            if as_table:
+                caption_location = self.global_report_config.table_caption_location
+            else:
+                caption_location = self.global_report_config.figure_caption_location
 
             try:
-                self._make_image(par, file_path)
+                if caption_location == "top":
+                    par.text = ""
+                    if as_table:
+                        self._mk_table_caption(
+                            None,
+                            caption_name=evidence["friendly_name"],
+                            caption_text=caption_text,
+                            par=par,
+                        )
+                    else:
+                        self._mk_figure_caption(
+                            par, evidence["friendly_name"], caption_text
+                        )
+                    body_par = self._paragraph_for_block(par)
+                    self._make_image(body_par, file_path)
+                else:
+                    self._make_image(par, file_path)
+                    par_caption = self._paragraph_for_block(par)
+                    if as_table:
+                        self._mk_table_caption(
+                            None,
+                            caption_name=evidence["friendly_name"],
+                            caption_text=caption_text,
+                            par=par_caption,
+                        )
+                    else:
+                        self._mk_figure_caption(
+                            par_caption, evidence["friendly_name"], caption_text
+                        )
             except UnrecognizedImageError as e:
                 logger.exception(
                     "Evidence file known as %s (%s) was not recognized as a %s file.",
@@ -689,11 +870,6 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
                     "Try opening it, exporting as desired type, and re-uploading it."
                 )
                 raise ReportExportTemplateError(error_msg) from e
-
-            if self.global_report_config.figure_caption_location == "bottom":
-                par_caption = self._paragraph_for_block(par)
-                self._mk_figure_caption(par_caption, evidence["friendly_name"], evidence["caption"])
-
     def make_image(self, par, name: str, file_path: str):
         if not os.path.isabs(file_path):
             file_path = os.path.join(settings.MEDIA_ROOT, file_path)
@@ -702,9 +878,11 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
 
         try:
             self._make_image(par, file_path)
-        except UnrecognizedImageError:
+        except UnrecognizedImageError as exc:
             logger.exception("Image file at %s was not recognized as an image file", file_path)
-            raise ReportExportTemplateError("Image %s was not recognized as an image file. Try opening it, exporting as desired type, and re-uploading it.", name)
+            raise ReportExportTemplateError(
+                f"Image {name} was not recognized as an image file. Try opening it, exporting as desired type, and re-uploading it."
+            ) from exc
 
     def _make_image(self, par, file_path: str):
         par.alignment = self.image_alignment
@@ -742,11 +920,6 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
             ln_xml.append(solidfill_xml)
             pic_data.append(ln_xml)
 
-    def _mk_figure_caption(self, par_caption, ref: str | None, caption_text: str):
-        self.make_caption(par_caption, self.global_report_config.label_figure, ref)
-        par_caption.add_run(self.global_report_config.prefix_figure)
-        par_caption.add_run(self.title_except(caption_text))
-
     def make_cross_ref(self, par, ref: str):
         ref = normalize_bookmark_name(ref)
 
@@ -761,7 +934,9 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         run = par.add_run()
         r = run._r
         instrText = OxmlElement("w:instrText")
-        instrText.text = ' REF "_Ref{}" \\h '.format(ref.replace("\\", "\\\\").replace('"', '\\"').replace(" ", "_"))
+        instrText.text = ' REF "_Ref{}" \\h '.format(
+            ref.replace("\\", "\\\\").replace('"', '\\"').replace(" ", "_")
+        )
         r.append(instrText)
 
         # An optional ``separate`` value to enforce a space between label and number
@@ -795,7 +970,9 @@ class ListTracking:
 
     @staticmethod
     def q_w(tag):
-        return etree.QName("http://schemas.openxmlformats.org/wordprocessingml/2006/main", tag)
+        return etree.QName(
+            "http://schemas.openxmlformats.org/wordprocessingml/2006/main", tag
+        )
 
     def add_paragraph(self, pg, level: int, is_ordered: bool):
         """
@@ -803,7 +980,9 @@ class ListTracking:
         """
         if level > len(self.level_list_is_ordered):
             raise Exception(
-                "Tried to add level {} to a list with {} existing levels".format(level, len(self.level_list_is_ordered))
+                "Tried to add level {} to a list with {} existing levels".format(
+                    level, len(self.level_list_is_ordered)
+                )
             )
         if level == len(self.level_list_is_ordered):
             self.level_list_is_ordered.append(is_ordered)
@@ -819,7 +998,9 @@ class ListTracking:
         try:
             numbering = doc.part.numbering_part.numbering_definitions._numbering
         except NotImplementedError as e:
-            raise ReportExportTemplateError("Tried to use a list in a template without list styles") from e
+            raise ReportExportTemplateError(
+                "Tried to use a list in a template without list styles"
+            ) from e
         last_used_id = max(
             (int(id) for id in numbering.xpath("w:abstractNum/@w:abstractNumId")),
             default=-1,
@@ -884,6 +1065,11 @@ class ListTracking:
                     # python-docx's deprecated style_id lookup path.
                     par.style = "List Paragraph"
                 except KeyError:
-                    logger.debug("The DOCX template does not define a list paragraph style.", exc_info=True)
-            par._p.get_or_add_pPr().get_or_add_numPr().get_or_add_numId().val = numbering_id
+                    logger.debug(
+                        "The DOCX template does not define a list paragraph style.",
+                        exc_info=True,
+                    )
+            par._p.get_or_add_pPr().get_or_add_numPr().get_or_add_numId().val = (
+                numbering_id
+            )
             par._p.get_or_add_pPr().get_or_add_numPr().get_or_add_ilvl().val = level

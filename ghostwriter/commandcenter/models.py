@@ -1,5 +1,6 @@
 """This contains all the database models for the CommandCenter application."""
 
+# Standard Libraries
 import json
 from dataclasses import dataclass
 from datetime import timedelta
@@ -7,12 +8,12 @@ from typing import Any, Callable, NamedTuple
 from urllib.parse import urlparse
 
 # Django Imports
-from django.db import models
-from django.db.models import F, Max, Q
-from django.db.transaction import atomic
 from django import forms
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator, URLValidator
+from django.db import models
+from django.db.models import F, Max, Q
+from django.db.transaction import atomic
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -23,6 +24,7 @@ from timezone_field import TimeZoneField
 from ghostwriter.modules.reportwriter.forms import JinjaRichTextField
 from ghostwriter.reporting.models import EvidenceImageAlignment
 from ghostwriter.singleton.models import SingletonModel
+
 
 def sanitize(sensitive_thing):
     """
@@ -47,8 +49,13 @@ def sanitize(sensitive_thing):
             )
         # Handle anything else that's long enough to be a key
         elif length > 15:
-            sanitized_string = sensitive_thing[0:4] + "\u2717" * (length - 8) + sensitive_thing[length - 5 : length - 1]
+            sanitized_string = (
+                sensitive_thing[0:4]
+                + "\u2717" * (length - 8)
+                + sensitive_thing[length - 5 : length - 1]
+            )
     return sanitized_string
+
 
 def validate_endpoint(value: str):
     url = urlparse(value)
@@ -59,11 +66,13 @@ def validate_endpoint(value: str):
     if url.path:
         raise ValidationError(_("Paths on endpoint URL are not supported"))
 
+
 class BloodHoundConfiguration(SingletonModel):
     """
     BloodHoundConfiguration represents a global BloodHound API integration that can be used to
     access the BloodHound API of the configured instance.
     """
+
     allow_project_fallback = models.BooleanField(
         default=False,
         verbose_name="Allow Projects to Use Shared Configuration",
@@ -102,7 +111,11 @@ class BloodHoundConfiguration(SingletonModel):
     )
 
     def has_bloodhound_api(self) -> bool:
-        return self.bloodhound_api_root_url != "" and self.bloodhound_api_key_id != "" and self.bloodhound_api_key_token != ""
+        return (
+            self.bloodhound_api_root_url != ""
+            and self.bloodhound_api_key_id != ""
+            and self.bloodhound_api_key_token != ""
+        )
 
     def allows_project_fallback(self) -> bool:
         return self.allow_project_fallback and self.has_bloodhound_api()
@@ -131,8 +144,12 @@ class BloodHoundConfiguration(SingletonModel):
 
 class NamecheapConfiguration(SingletonModel):
     enable = models.BooleanField(default=False)
-    api_key = models.CharField(max_length=255, default="Namecheap API Key", help_text="Your Namecheap API key")
-    username = models.CharField(max_length=255, default="Account Username", help_text="Your Namecheap username")
+    api_key = models.CharField(
+        max_length=255, default="Namecheap API Key", help_text="Your Namecheap API key"
+    )
+    username = models.CharField(
+        max_length=255, default="Account Username", help_text="Your Namecheap username"
+    )
     api_username = models.CharField(
         "API Username",
         max_length=255,
@@ -172,12 +189,16 @@ class ReportConfiguration(SingletonModel):
 
     OUTLINE_DEFAULT_TAGS = ("report", "evidence")
 
-    enable_borders = models.BooleanField(default=False, help_text="Enable borders around images in Word documents")
+    enable_borders = models.BooleanField(
+        default=False, help_text="Enable borders around images in Word documents"
+    )
     border_weight = models.IntegerField(
         default=12700,
         help_text="Weight in EMUs – 12700 is equal to the 1pt weight in Word",
     )
-    border_color = models.CharField("Picture Border Color", max_length=6, default="2D2B6B")
+    border_color = models.CharField(
+        "Picture Border Color", max_length=6, default="2D2B6B"
+    )
 
     prefix_figure = models.CharField(
         "Character Before Figure Captions",
@@ -198,23 +219,8 @@ class ReportConfiguration(SingletonModel):
         default="bottom",
         help_text="Where to place figure captions relative to the figure",
     )
-    evidence_image_alignment = models.CharField(
-        "Default Image Evidence Alignment",
-        max_length=16,
-        choices=EvidenceImageAlignment.choices,
-        default=EvidenceImageAlignment.CENTER,
-        help_text="Default alignment for inserted image evidence in Word reports.",
-    )
-    evidence_image_width = models.FloatField(
-        "Default Evidence Image Width",
-        null=True,
-        blank=True,
-        default=None,
-        validators=[MinValueValidator(0)],
-        help_text='Default width for inserted image evidence in Word reports. If left blank, 6.5" is used.',
-    )
     prefix_table = models.CharField(
-        "Character Before Table Titles",
+        "Character Before Table Captions",
         max_length=255,
         default=" \u2013 ",
         help_text="Unicode characters to place between the label and your table caption in Word reports (include any desired spaces before and after)",
@@ -231,6 +237,21 @@ class ReportConfiguration(SingletonModel):
         choices=[("top", "Top"), ("bottom", "Bottom")],
         default="top",
         help_text="Where to place table captions relative to the table",
+    )
+    evidence_image_alignment = models.CharField(
+        "Default Image Evidence Alignment",
+        max_length=16,
+        choices=EvidenceImageAlignment.choices,
+        default=EvidenceImageAlignment.CENTER,
+        help_text="Default alignment for inserted image evidence in Word reports.",
+    )
+    evidence_image_width = models.FloatField(
+        "Default Evidence Image Width",
+        null=True,
+        blank=True,
+        default=None,
+        validators=[MinValueValidator(0)],
+        help_text='Default width for inserted image evidence in Word reports. If left blank, 6.5" is used.',
     )
     report_filename = models.CharField(
         "Default Name for Report Downloads",
@@ -361,7 +382,9 @@ class ReportConfiguration(SingletonModel):
         """Return the canonical comma-separated storage form for outline tags."""
 
         rules = cls.parse_outline_tags(outline_tags, include_defaults=False)
-        return ",".join([*rules.exact_tags, *(f"{prefix}*" for prefix in rules.prefix_tags)])
+        return ",".join(
+            [*rules.exact_tags, *(f"{prefix}*" for prefix in rules.prefix_tags)]
+        )
 
     @classmethod
     def validate_outline_tags(cls, outline_tags: str | None) -> str:
@@ -380,16 +403,26 @@ class ReportConfiguration(SingletonModel):
             if not token:
                 continue
             if token == "*" or token == ":":
-                raise ValidationError(_("Outline tag wildcard rules must include a prefix before '*' or ':'"))
+                raise ValidationError(
+                    _(
+                        "Outline tag wildcard rules must include a prefix before '*' or ':'"
+                    )
+                )
             if token.count("*") > 1 or "*" in token[:-1]:
-                raise ValidationError(_("Outline tag wildcard rules may only include '*' at the end"))
+                raise ValidationError(
+                    _("Outline tag wildcard rules may only include '*' at the end")
+                )
             if token.endswith("*"):
                 normalized = f"{token[:-1]}*"
                 if normalized == "*":
-                    raise ValidationError(_("Outline tag wildcard rules must include a prefix before '*'"))
+                    raise ValidationError(
+                        _("Outline tag wildcard rules must include a prefix before '*'")
+                    )
             elif token.endswith(":"):
                 if "*" in token or token[:-1].endswith(":"):
-                    raise ValidationError(_("Outline tag ':' prefixes must end with a single trailing ':'"))
+                    raise ValidationError(
+                        _("Outline tag ':' prefixes must end with a single trailing ':'")
+                    )
                 normalized = token
             else:
                 normalized = token
@@ -418,7 +451,9 @@ class ReportConfiguration(SingletonModel):
 
 class SlackConfiguration(SingletonModel):
     enable = models.BooleanField(default=False)
-    webhook_url = models.CharField(max_length=255, default="https://hooks.slack.com/services/<your_webhook_url>")
+    webhook_url = models.CharField(
+        max_length=255, default="https://hooks.slack.com/services/<your_webhook_url>"
+    )
     slack_emoji = models.CharField(
         max_length=255,
         default=":ghost:",
@@ -490,10 +525,18 @@ class CompanyInformation(SingletonModel):
 
 
 class CloudServicesConfiguration(SingletonModel):
-    enable = models.BooleanField(default=False, help_text="Enable to allow the cloud monitoring task to run")
-    aws_key = models.CharField("AWS Access Key", max_length=255, default="Your AWS Access Key")
-    aws_secret = models.CharField("AWS Secret Key", max_length=255, default="Your AWS Secret Key")
-    do_api_key = models.CharField("Digital Ocean API Key", max_length=255, default="Digital Ocean API Key")
+    enable = models.BooleanField(
+        default=False, help_text="Enable to allow the cloud monitoring task to run"
+    )
+    aws_key = models.CharField(
+        "AWS Access Key", max_length=255, default="Your AWS Access Key"
+    )
+    aws_secret = models.CharField(
+        "AWS Secret Key", max_length=255, default="Your AWS Secret Key"
+    )
+    do_api_key = models.CharField(
+        "Digital Ocean API Key", max_length=255, default="Digital Ocean API Key"
+    )
     ignore_tag = models.CharField(
         "Ignore Tags",
         max_length=255,
@@ -526,7 +569,9 @@ class CloudServicesConfiguration(SingletonModel):
 
 
 class VirusTotalConfiguration(SingletonModel):
-    enable = models.BooleanField(default=False, help_text="Enable to allow domain health checks with VirusTotal")
+    enable = models.BooleanField(
+        default=False, help_text="Enable to allow domain health checks with VirusTotal"
+    )
     api_key = models.CharField(max_length=255, default="VirusTotal API Key")
     sleep_time = models.IntegerField(
         default=20,
@@ -582,7 +627,9 @@ class GeneralConfiguration(SingletonModel):
 
 
 class BannerConfiguration(SingletonModel):
-    enable_banner = models.BooleanField(default=False, help_text="Enable the homepage banner to display for all users")
+    enable_banner = models.BooleanField(
+        default=False, help_text="Enable the homepage banner to display for all users"
+    )
     banner_title = models.CharField(
         max_length=255,
         default="",
@@ -606,7 +653,12 @@ class BannerConfiguration(SingletonModel):
         default=False,
         help_text="Display the banner to all users, including unauthenticated users on the login page",
     )
-    expiry_date = models.DateTimeField("Display Until", help_text="Select the date when the banner should stop displaying (leave blank if it should not expire)", blank=True, null=True)
+    expiry_date = models.DateTimeField(
+        "Display Until",
+        help_text="Select the date when the banner should stop displaying (leave blank if it should not expire)",
+        blank=True,
+        null=True,
+    )
 
     def __str__(self):
         return "Banner Settings"
@@ -655,42 +707,54 @@ def float_widget(*args, **kwargs):
 EXTRA_FIELD_TYPES = {
     "checkbox": ExtraFieldType(
         display_name="Checkbox",
-        form_field=lambda *args, **kwargs: forms.BooleanField(required=False, *args, **kwargs),
+        form_field=lambda *args, **kwargs: forms.BooleanField(
+            required=False, *args, **kwargs
+        ),
         form_widget=forms.widgets.CheckboxInput,
         from_str=bool,
         empty_value=lambda: False,
     ),
     "single_line_text": ExtraFieldType(
         display_name="Single-Line of Text",
-        form_field=lambda *args, **kwargs: forms.CharField(required=False, *args, **kwargs),
+        form_field=lambda *args, **kwargs: forms.CharField(
+            required=False, *args, **kwargs
+        ),
         form_widget=forms.widgets.TextInput,
         from_str=lambda s: s,
         empty_value=lambda: "",
     ),
     "rich_text": ExtraFieldType(
         display_name="Formatted Text",
-        form_field=lambda *args, **kwargs: JinjaRichTextField(required=False, *args, **kwargs),
+        form_field=lambda *args, **kwargs: JinjaRichTextField(
+            required=False, *args, **kwargs
+        ),
         form_widget=forms.widgets.Textarea,
         from_str=lambda s: s,
         empty_value=lambda: "",
     ),
     "integer": ExtraFieldType(
         display_name="Integer",
-        form_field=lambda *args, **kwargs: forms.IntegerField(required=False, *args, **kwargs),
+        form_field=lambda *args, **kwargs: forms.IntegerField(
+            required=False, *args, **kwargs
+        ),
         form_widget=forms.widgets.NumberInput,
         from_str=int,
         empty_value=lambda: 0,
     ),
     "float": ExtraFieldType(
         display_name="Number",
-        form_field=lambda *args, **kwargs: forms.FloatField(required=False, *args, **kwargs),
+        form_field=lambda *args, **kwargs: forms.FloatField(
+            required=False, *args, **kwargs
+        ),
         form_widget=float_widget,
         from_str=float,
         empty_value=lambda: 0.0,
     ),
     "json": ExtraFieldType(
         display_name="JSON",
-        form_field=lambda *args, **kwargs: forms.JSONField(required=False, encoder=IndentingJsonEncoder, *args, **kwargs),
+        form_field=lambda *args, **kwargs: forms.JSONField(
+            required=False, encoder=IndentingJsonEncoder, *args, **kwargs
+        ),
         form_widget=lambda: forms.widgets.Textarea(attrs={"class": "no-auto-rich-text"}),
         from_str=json.loads,
         empty_value=lambda: None,
@@ -723,7 +787,8 @@ class ExtraFieldSpec(models.Model):
         validators=[MinValueValidator(1)],
     )
     type = models.CharField(
-        max_length=255, choices=[(key, typ.display_name) for (key, typ) in EXTRA_FIELD_TYPES.items()]
+        max_length=255,
+        choices=[(key, typ.display_name) for (key, typ) in EXTRA_FIELD_TYPES.items()],
     )
     user_default_value = models.TextField(
         verbose_name="Value for New Objects",
@@ -733,7 +798,9 @@ class ExtraFieldSpec(models.Model):
 
     @classmethod
     def for_model(cls, model):
-        return cls.objects.filter(target_model=model._meta.label).order_by(F("position").asc(nulls_last=True), "id")
+        return cls.objects.filter(target_model=model._meta.label).order_by(
+            F("position").asc(nulls_last=True), "id"
+        )
 
     @classmethod
     def for_instance(cls, instance):
@@ -746,7 +813,12 @@ class ExtraFieldSpec(models.Model):
     @classmethod
     def get_last_position(cls, target_model):
         target_model_id = cls._target_model_id(target_model)
-        return cls.objects.filter(target_model=target_model_id).aggregate(max_position=Max("position"))["max_position"] or 0
+        return (
+            cls.objects.filter(target_model=target_model_id).aggregate(
+                max_position=Max("position")
+            )["max_position"]
+            or 0
+        )
 
     @staticmethod
     def _target_model_id(target_model):
@@ -765,8 +837,12 @@ class ExtraFieldSpec(models.Model):
         target_ids = list(queryset.values_list("pk", flat=True))
         max_position = cls.get_last_position(target_model_id)
         offset = max_position + len(target_ids) + 1
-        cls.objects.filter(pk__in=target_ids, target_model=target_model_id).update(position=F("position") + offset)
-        cls.objects.filter(pk__in=target_ids, target_model=target_model_id).update(position=F("position") - offset + delta)
+        cls.objects.filter(pk__in=target_ids, target_model=target_model_id).update(
+            position=F("position") + offset
+        )
+        cls.objects.filter(pk__in=target_ids, target_model=target_model_id).update(
+            position=F("position") - offset + delta
+        )
 
     def _normalize_position(self, target_model_id, current_position=None):
         last_position = self.get_last_position(target_model_id)
@@ -786,8 +862,8 @@ class ExtraFieldSpec(models.Model):
             return EXTRA_FIELD_TYPES[self.type]
         except KeyError as e:
             raise RuntimeError(
-                f"Extra field {self.internal_name!r} on {self.target_model.model_display_name} has unrecognized type {self.type!r}. " +
-                "This may happen if you've downgraded - change the extra field to a supported type."
+                f"Extra field {self.internal_name!r} on {self.target_model.model_display_name} has unrecognized type {self.type!r}. "
+                + "This may happen if you've downgraded - change the extra field to a supported type."
             ) from e
 
     def value_of(self, extra_fields_json):
@@ -821,7 +897,9 @@ class ExtraFieldSpec(models.Model):
                 self.position = self._normalize_position(target_model_id)
                 must_persist_position = True
                 self._shift_positions(
-                    self.__class__.objects.filter(target_model=target_model_id, position__gte=self.position),
+                    self.__class__.objects.filter(
+                        target_model=target_model_id, position__gte=self.position
+                    ),
                     1,
                     target_model_id,
                 )
@@ -835,7 +913,9 @@ class ExtraFieldSpec(models.Model):
                     must_persist_position = True
                     must_persist_target_model = True
                     temp_position = self.get_last_position(current.target_model_id) + 1
-                    self.__class__.objects.filter(pk=self.pk).update(position=temp_position)
+                    self.__class__.objects.filter(pk=self.pk).update(
+                        position=temp_position
+                    )
                     self.__class__._shift_positions(
                         self.__class__.objects.filter(
                             target_model=current.target_model_id,
@@ -846,17 +926,23 @@ class ExtraFieldSpec(models.Model):
                     )
                     self.position = self._normalize_position(target_model_id)
                     self._shift_positions(
-                        self.__class__.objects.filter(target_model=target_model_id, position__gte=self.position),
+                        self.__class__.objects.filter(
+                            target_model=target_model_id, position__gte=self.position
+                        ),
                         1,
                         target_model_id,
                     )
                 else:
-                    requested_position = self._normalize_position(target_model_id, current.position)
+                    requested_position = self._normalize_position(
+                        target_model_id, current.position
+                    )
 
                     if requested_position != current.position:
                         must_persist_position = True
                         temp_position = self.get_last_position(target_model_id) + 1
-                        self.__class__.objects.filter(pk=self.pk).update(position=temp_position)
+                        self.__class__.objects.filter(pk=self.pk).update(
+                            position=temp_position
+                        )
 
                     if requested_position < current.position:
                         self._shift_positions(
@@ -881,7 +967,9 @@ class ExtraFieldSpec(models.Model):
 
                     self.position = requested_position
 
-            if update_fields is not None and (must_persist_position or must_persist_target_model):
+            if update_fields is not None and (
+                must_persist_position or must_persist_target_model
+            ):
                 update_fields = set(update_fields)
                 if must_persist_position:
                     update_fields.add("position")
@@ -899,7 +987,9 @@ class ExtraFieldSpec(models.Model):
             self.__class__._lock_target_model(target_model_id)
             result = super().delete(*args, **kwargs)
             self.__class__._shift_positions(
-                self.__class__.objects.filter(target_model=target_model_id, position__gt=deleted_position),
+                self.__class__.objects.filter(
+                    target_model=target_model_id, position__gt=deleted_position
+                ),
                 -1,
                 target_model_id,
             )
