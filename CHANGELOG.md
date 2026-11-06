@@ -7,6 +7,79 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+* Made Hasura's event delivery HTTP pool size configurable with `HASURA_GRAPHQL_EVENTS_HTTP_POOL_SIZE`, defaulting to 10 to reduce concurrent webhook database demand
+* Upgraded development and production Python containers to 3.11.18 and `dnspython` to 2.9.0
+
+### Fixed
+
+* Fixed VirusTotal domain checks aborting a batch when a report is not found; missing reports now preserve existing reputation data and report a domain-specific error
+* Fixed activity log monitoring failing on entries without a start date; reviews now use the latest dated entry and treat logs without dated entries as inactive
+
+## [7.3.2] - 13 October 2026
+
+### Fixed
+
+* Fixed Word and PowerPoint report exports failing on text outside paragraphs or dropping content in ordinary pasted HTML containers, while preserving supported inline formatting (Fixes #992)
+* Fixed evidence not appearing in generated PPTX reports, including references in supporting finding sections and rich-text extra fields (Fixes #990)
+* Fixed tagged findings, observations, domains, static servers, and activity log entries failing to export from the Django admin console after dependency upgrades (Fixes #991)
+* Fixed the activity log Columns button from rotating with its icon rotates when expanded
+* Fixed ARM64 production image builds by compiling frontend and collaboration bundles on the native build platform
+
+### Changed
+
+* Updated JavaScript dependencies and migrated GraphQL generation to explicit Hasura scalar types
+
+## [7.3.1] - 5 October 2026
+
+### Added
+
+* Added a `Clear all` action for failed task system notifications, preserving task history and current service warnings
+* Added a yellow system warning for regular users with guidance to contact a manager or admin when failed jobs or service issues require attention
+* Added matching `Add` actions beside every `Delete` button in project, client, and server form entries to make repeated entry easier, with balanced action-bar spacing
+
+### Fixed
+
+* Hid legacy TOTP and static recovery code devices from Django Admin to avoid confusion with the newer MFA management section
+* Added `Back to report` navigation to report finding, observation, and extra field editors, independent of working report selection or pinned navigation
+* Refreshed heading and table caption bookmark dialogs, corrected the table dialog title, and enabled keyboard saving with reliable input focus
+* Refreshed the rich text `Edit Link` dialog and kept editor modal backdrops above the working engagement bar and its sticky background strip
+* Moved dashboard health checks to the background with automatic schedule recovery and skipped missed intervals; all users see green, yellow, red, or unavailable indicators, while diagnostics remain restricted to managers and admins
+* Made the entire report-field writing pane editable
+* Placed the scroll-to-top control in compact, balanced page gutters so it cannot cover messages or table actions, with keyboard access and reduced-motion support
+* Made dashboard work rows consistent, using the `Working` report badge to identify items from the current report
+* Kept collaborative editor formatting controls visible below the working engagement bar, with report field writing panes that fill available space and compact help/status footers on larger screens
+
+## [7.3.0] - 30 September 2026
+
+### Added
+
+* Added a working-context application shell with customizable sidebar navigation and quicker access to active engagements and reports
+* Added a new report email field for user profiles
+  * This field overrides the account's email address for reporting functions
+  * If a report email is set, that email address will appear in reports instead of the account's email address
+
+### Changed
+
+* Upgraded the interface from Bootstrap 4 to Bootstrap 5.3 and replaced legacy components and styles with the refreshed design system
+* Redesigned the dashboard and the primary client, project, infrastructure, reporting, operation log, profile, credential, and administration workflows
+  * Updated cards, tables, forms, tabs, modals, menus, filters, empty states, and status presentations for greater consistency and readability
+  * Improved theme support, keyboard and screen-reader accessibility, and navigation behavior in narrow windows
+* Modernized rich-text editing and preview workflows with the refreshed TipTap-based editors
+
+### Security
+
+* Added a report-only Content Security Policy baseline across Django and Nginx as groundwork for future CSP enforcement
+
+## [7.2.7] - 22 September 2026
+
+### Fixed
+
+* Fixed Asciinema recording uploads containing null characters that could cause the recording save transaction to fail.
+
+## [7.2.6] - 10 August 2026
+
 ### Fixed
 
 * Fixed a report finding ordering feedback loop that could generate excessive Hasura events, database writes, and logs after bulk inserts (Closes #924)

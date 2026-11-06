@@ -17,7 +17,6 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import (
     HTML,
     Button,
-    ButtonHolder,
     Column,
     Div,
     Field,
@@ -575,9 +574,9 @@ class ProjectAssignmentForm(forms.ModelForm):
                         """
                     ),
                     Row(
-                        Column("operator", css_class="form-group col-md-6 mb-0"),
-                        Column("role", css_class="form-group col-md-6 mb-0"),
-                        css_class="form-row",
+                        Column("operator", css_class="col-md-6 mb-0"),
+                        Column("role", css_class="col-md-6 mb-0"),
+                        css_class="row g-3",
                     ),
                     Row(
                         Column(
@@ -589,7 +588,7 @@ class ProjectAssignmentForm(forms.ModelForm):
                                     css_class="btn btn-secondary",
                                 ),
                             ),
-                            css_class="form-group col-md-6 mb-0",
+                            css_class="col-md-6 mb-0",
                         ),
                         Column(
                             FieldWithButtons(
@@ -600,25 +599,20 @@ class ProjectAssignmentForm(forms.ModelForm):
                                     css_class="btn btn-secondary",
                                 ),
                             ),
-                            css_class="form-group col-md-6 mb-0",
+                            css_class="col-md-6 mb-0",
                         ),
                     ),
                     "description",
-                    Row(
-                        Column(
-                            Button(
-                                "formset-del-button",
-                                "Delete Assignment",
-                                css_class="btn-outline-danger formset-del-button col-8",
-                            ),
-                            css_class="form-group col-6 offset-md-3",
+                    Field(
+                        "DELETE", style="display: none;", visibility="hidden", template="delete_checkbox.html"
+                    ),
+                    Div(
+                        Button(
+                            "formset-del-button",
+                            "Delete Assignment",
+                            css_class="btn-outline-danger formset-del-button formset-action-button",
                         ),
-                        Column(
-                            Field(
-                                "DELETE", style="display: none;", visibility="hidden", template="delete_checkbox.html"
-                            ),
-                            css_class="form-group col-3 text-center",
-                        ),
+                        css_class="formset-actions",
                     ),
                     css_class="formset",
                 ),
@@ -728,21 +722,16 @@ class ProjectObjectiveForm(forms.ModelForm):
                     ),
                     "description",
                     "result",
-                    Row(
-                        Column(
-                            Button(
-                                "formset-del-button",
-                                "Delete Objective",
-                                css_class="btn-outline-danger formset-del-button col-8",
-                            ),
-                            css_class="form-group col-6 offset-3",
+                    Field(
+                        "DELETE", style="display: none;", visibility="hidden", template="delete_checkbox.html"
+                    ),
+                    Div(
+                        Button(
+                            "formset-del-button",
+                            "Delete Objective",
+                            css_class="btn-outline-danger formset-del-button formset-action-button",
                         ),
-                        Column(
-                            Field(
-                                "DELETE", style="display: none;", visibility="hidden", template="delete_checkbox.html"
-                            ),
-                            css_class="form-group col-3 text-center",
-                        ),
+                        css_class="formset-actions",
                     ),
                     css_class="formset",
                 ),
@@ -813,8 +802,8 @@ class ProjectScopeForm(forms.ModelForm):
                         Column(
                             StrictButton(
                                 "Split Scope to Newlines",
-                                onclick="formatScope($(this).closest('div').parent().nextAll('.form-group').first().find('textarea'))",
-                                data_toggle="tooltip",
+                                onclick="formatScope($(this).closest('div').parent().nextAll('.mb-3').first().find('textarea'))",
+                                data_bs_toggle="tooltip",
                                 title="Split a comma-delimited scope list to newlines",
                                 css_class="btn btn-outline-secondary col-6",
                             ),
@@ -822,21 +811,16 @@ class ProjectScopeForm(forms.ModelForm):
                     ),
                     Field("scope", css_class="empty-form"),
                     "description",
-                    Row(
-                        Column(
-                            Button(
-                                "formset-del-button",
-                                "Delete List",
-                                css_class="btn-outline-danger formset-del-button col-8",
-                            ),
-                            css_class="form-group col-6 offset-3",
+                    Field(
+                        "DELETE", style="display: none;", visibility="hidden", template="delete_checkbox.html"
+                    ),
+                    Div(
+                        Button(
+                            "formset-del-button",
+                            "Delete List",
+                            css_class="btn-outline-danger formset-del-button formset-action-button",
                         ),
-                        Column(
-                            Field(
-                                "DELETE", style="display: none;", visibility="hidden", template="delete_checkbox.html"
-                            ),
-                            css_class="form-group col-3 text-center",
-                        ),
+                        css_class="formset-actions",
                     ),
                     css_class="formset",
                 ),
@@ -905,21 +889,16 @@ class ProjectTargetForm(forms.ModelForm):
                         Column("hostname", css_class="col-md-6"),
                     ),
                     "description",
-                    Row(
-                        Column(
-                            Button(
-                                "formset-del-button",
-                                "Delete Target",
-                                css_class="btn-outline-danger formset-del-button col-8",
-                            ),
-                            css_class="form-group col-6 offset-3",
+                    Field(
+                        "DELETE", style="display: none;", visibility="hidden", template="delete_checkbox.html"
+                    ),
+                    Div(
+                        Button(
+                            "formset-del-button",
+                            "Delete Target",
+                            css_class="btn-outline-danger formset-del-button formset-action-button",
                         ),
-                        Column(
-                            Field(
-                                "DELETE", style="display: none;", visibility="hidden", template="delete_checkbox.html"
-                            ),
-                            css_class="form-group col-3 text-center",
-                        ),
+                        css_class="formset-actions",
                     ),
                     css_class="formset",
                 ),
@@ -946,12 +925,14 @@ class WhiteCardForm(forms.ModelForm):
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
         configure_datetime_local_field(self.fields["issued"])
-        self.fields["issued"].label = "Issued Date & Time"
+        self.fields["issued"].label = "Provided Date & Time"
+        self.fields["title"].label = "Assessment Enablement"
+        self.fields["description"].label = "Supporting Details"
         self.fields["description"].widget.attrs["rows"] = 5
         self.fields["description"].widget.attrs[
             "placeholder"
-        ] = "Additional information about the white card, the reason for it, limitations, how it affects the assessment, etc..."
-        self.fields["title"].widget.attrs["placeholder"] = "Provided Initial Access to PCI Network"
+        ] = "Describe what the client provided or executed, any limitations, and how operators should use it."
+        self.fields["title"].widget.attrs["placeholder"] = "Provided initial access to the PCI network"
         self.helper = FormHelper()
         self.helper.form_show_errors = False
         # Disable the <form> tags because this will be inside an instance of `ProjectForm()`
@@ -1001,21 +982,16 @@ class WhiteCardForm(forms.ModelForm):
                         ),
                     ),
                     "description",
-                    Row(
-                        Column(
-                            Button(
-                                "formset-del-button",
-                                "Delete White Card",
-                                css_class="btn-outline-danger formset-del-button col-8",
-                            ),
-                            css_class="form-group col-6 offset-3",
+                    Field(
+                        "DELETE", style="display: none;", visibility="hidden", template="delete_checkbox.html"
+                    ),
+                    Div(
+                        Button(
+                            "formset-del-button",
+                            "Delete White Card",
+                            css_class="btn-outline-danger formset-del-button formset-action-button",
                         ),
-                        Column(
-                            Field(
-                                "DELETE", style="display: none;", visibility="hidden", template="delete_checkbox.html"
-                            ),
-                            css_class="form-group col-3 text-center",
-                        ),
+                        css_class="formset-actions",
                     ),
                     css_class="formset",
                 ),
@@ -1083,33 +1059,28 @@ class ProjectContactForm(forms.ModelForm):
                         """
                     ),
                     Row(
-                        Column("name", css_class="form-group col-md-6 mb-0"),
-                        Column("job_title", css_class="form-group col-md-6 mb-0"),
-                        css_class="form-row",
+                        Column("name", css_class="col-md-6 mb-0"),
+                        Column("job_title", css_class="col-md-6 mb-0"),
+                        css_class="row g-3",
                     ),
                     Row(
-                        Column("email", css_class="form-group col-md-4 mb-0"),
-                        Column("phone", css_class="form-group col-md-4 mb-0"),
-                        Column("timezone", css_class="form-group col-md-4 mb-0"),
-                        css_class="form-row",
+                        Column("email", css_class="col-md-4 mb-0"),
+                        Column("phone", css_class="col-md-4 mb-0"),
+                        Column("timezone", css_class="col-md-4 mb-0"),
+                        css_class="row g-3",
                     ),
                     SwitchToggle("primary", onchange="cbChange(this)", css_class="js-cb-toggle"),
                     "description",
-                    Row(
-                        Column(
-                            Button(
-                                "formset-del-button",
-                                "Delete Contact",
-                                css_class="btn-outline-danger formset-del-button col-8",
-                            ),
-                            css_class="form-group col-6 offset-3",
+                    Field(
+                        "DELETE", style="display: none;", visibility="hidden", template="delete_checkbox.html"
+                    ),
+                    Div(
+                        Button(
+                            "formset-del-button",
+                            "Delete Contact",
+                            css_class="btn-outline-danger formset-del-button formset-action-button",
                         ),
-                        Column(
-                            Field(
-                                "DELETE", style="display: none;", visibility="hidden", template="delete_checkbox.html"
-                            ),
-                            css_class="form-group col-3 text-center",
-                        ),
+                        css_class="formset-actions",
                     ),
                     css_class="formset",
                 ),
@@ -1156,25 +1127,20 @@ class ProjectInviteForm(forms.ModelForm):
                 ),
                 Div(
                     Row(
-                        Column("user", css_class="form-group col-md-12"),
-                        css_class="form-row",
+                        Column("user", css_class="col-md-12"),
+                        css_class="row g-3",
                     ),
                     "comment",
-                    Row(
-                        Column(
-                            Button(
-                                "formset-del-button",
-                                "Delete Invite",
-                                css_class="btn-outline-danger formset-del-button col-8",
-                            ),
-                            css_class="form-group col-6 offset-3",
+                    Field(
+                        "DELETE", style="display: none;", visibility="hidden", template="delete_checkbox.html"
+                    ),
+                    Div(
+                        Button(
+                            "formset-del-button",
+                            "Delete Invite",
+                            css_class="btn-outline-danger formset-del-button formset-action-button",
                         ),
-                        Column(
-                            Field(
-                                "DELETE", style="display: none;", visibility="hidden", template="delete_checkbox.html"
-                            ),
-                            css_class="form-group col-3 text-center",
-                        ),
+                        css_class="formset-actions",
                     ),
                     css_class="formset",
                 ),
@@ -1338,6 +1304,14 @@ class ProjectForm(forms.ModelForm):
             TabHolder(
                 CustomTab(
                     "Project Information",
+                    HTML(
+                        """
+                        <div class="form-section-heading mb-3">
+                            <h2>Engagement identity</h2>
+                            <p>Connect this work to a client and give operators a recognizable codename.</p>
+                        </div>
+                        """
+                    ),
                     Row(
                         Column(
                             "client",
@@ -1361,21 +1335,21 @@ class ProjectForm(forms.ModelForm):
                         ),
                     ),
                     Row(
-                        Column("start_date", css_class="form-group col-md-6 mb-0"),
-                        Column("end_date", css_class="form-group col-md-6 mb-0"),
-                        css_class="form-row",
+                        Column("start_date", css_class="col-md-6 mb-0"),
+                        Column("end_date", css_class="col-md-6 mb-0"),
+                        css_class="row g-3",
                     ),
                     Row(
-                        Column(Field("start_time", step=1), css_class="form-group col-md-4 mb-0"),
-                        Column(Field("end_time", step=1), css_class="form-group col-md-4 mb-0"),
-                        Column("timezone", css_class="form-group col-md-4 mb-0"),
-                        css_class="form-row",
+                        Column(Field("start_time", step=1), css_class="col-md-4 mb-0"),
+                        Column(Field("end_time", step=1), css_class="col-md-4 mb-0"),
+                        Column("timezone", css_class="col-md-4 mb-0"),
+                        css_class="row g-3",
                     ),
                     Row(
-                        Column("project_type", css_class="form-group col-md-4 mb-0"),
-                        Column("slack_channel", css_class="form-group col-md-4 mb-0"),
-                        Column("tags", css_class="form-group col-md-4 mb-0"),
-                        css_class="form-row",
+                        Column("project_type", css_class="col-md-4 mb-0"),
+                        Column("slack_channel", css_class="col-md-4 mb-0"),
+                        Column("tags", css_class="col-md-4 mb-0"),
+                        css_class="row g-3",
                     ),
                     SwitchToggle("update_checkouts"),
                     "description",
@@ -1384,28 +1358,60 @@ class ProjectForm(forms.ModelForm):
                 ),
                 CustomTab(
                     "Assignments",
-                    Formset("assignments", object_context_name="Assignment"),
-                    Button(
-                        "add-assignment",
-                        "Add Assignment",
-                        css_class="btn-block btn-secondary formset-add-assign mb-2 offset-4 col-4",
+                    Div(
+                        Div(
+                            HTML(
+                                """
+                                <h2>Assignments</h2>
+                                <p>Define each operator's role and working window for this engagement.</p>
+                                """
+                            ),
+                            css_class="collection-toolbar-copy",
+                        ),
+                        Button(
+                            "add-assignment",
+                            "Add Assignment",
+                            css_class="btn-outline-secondary formset-add-assign formset-action-button",
+                        ),
+                        css_class="collection-toolbar mb-3",
                     ),
+                    Formset("assignments", object_context_name="Assignment"),
                     link_css_class="assignment-icon",
                     css_id="assignments",
                 ),
                 CustomTab(
                     "Invites",
-                    Formset("invites", object_context_name="Invite"),
-                    Button(
-                        "add-invite",
-                        "Add Invite",
-                        css_class="btn-block btn-secondary formset-add-invite mb-2 offset-4 col-4",
+                    Div(
+                        Div(
+                            HTML(
+                                """
+                                <h2>Project access</h2>
+                                <p>Grant access to operators who need this engagement but not the entire client workspace.</p>
+                                """
+                            ),
+                            css_class="collection-toolbar-copy",
+                        ),
+                        Button(
+                            "add-invite",
+                            "Grant Access",
+                            css_class="btn-outline-secondary formset-add-invite formset-action-button",
+                        ),
+                        css_class="collection-toolbar mb-3",
                     ),
+                    Formset("invites", object_context_name="Invite"),
                     link_css_class="tab-icon users-icon",
                     css_id="invites",
                 ),
                 CustomTab(
                     "BloodHound Integration",
+                    HTML(
+                        """
+                        <div class="form-section-heading mb-3">
+                            <h2>BloodHound connection</h2>
+                            <p>Use project credentials only when this engagement cannot use the shared configuration.</p>
+                        </div>
+                        """
+                    ),
                     HTML(
                         (
                             "<p>Project-specific settings override the shared global BloodHound configuration.</p>"
@@ -1421,15 +1427,26 @@ class ProjectForm(forms.ModelForm):
                 ),
                 template="tab.html",
                 css_class="nav-justified",
+                css_id="tab-bar",
             ),
-            ButtonHolder(
-                Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
+            Div(
                 HTML(
                     """
-                    <button onclick="window.location.href='{{ cancel_link }}'"
-                    class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    <span class="resource-form-actions-context">
+                        {% if object.pk %}Editing {{ object.codename|default:"project" }}{% else %}Creating a new project{% endif %}
+                    </span>
                     """
                 ),
+                Div(
+                    HTML("""<a href="{{ cancel_link }}" class="btn btn-outline-secondary">Cancel</a>"""),
+                    Submit(
+                        "submit",
+                        "Save Changes" if self.instance.pk else "Create Project",
+                        css_class="btn btn-primary",
+                    ),
+                    css_class="resource-form-actions-buttons",
+                ),
+                css_class="resource-form-actions",
             ),
         )
 
@@ -1490,17 +1507,19 @@ class ProjectNoteForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "post"
-        self.helper.form_show_labels = False
+        self.helper.form_show_labels = True
         self.helper.layout = Layout(
-            Div("note"),
-            ButtonHolder(
-                Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
+            Div("note", css_class="resource-note-field"),
+            Div(
                 HTML(
-                    """
-                    <button onclick="window.location.href='{{ cancel_link }}'"
-                    class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
-                    """
+                    """<span class="resource-form-actions-context">{% if object.pk %}Editing note{% else %}Adding note{% endif %}</span>"""
                 ),
+                Div(
+                    HTML("""<a href="{{ cancel_link }}" class="btn btn-outline-secondary">Cancel</a>"""),
+                    Submit("submit", "Save Note", css_class="btn btn-primary"),
+                    css_class="resource-form-actions-buttons",
+                ),
+                css_class="resource-form-actions resource-note-actions",
             ),
         )
 
@@ -1538,56 +1557,78 @@ class DeconflictionForm(forms.ModelForm):
         configure_datetime_local_field(self.fields["report_timestamp"])
         configure_datetime_local_field(self.fields["alert_timestamp"])
         configure_datetime_local_field(self.fields["response_timestamp"])
-        self.fields["report_timestamp"].label = "Date & Time of Report"
-        self.fields["alert_timestamp"].label = "Date & Time the Alert Triggered"
-        self.fields["response_timestamp"].label = "Date & Time of Your Response"
-        self.fields["title"].label = ""
-        self.fields["status"].label = ""
-        self.fields["alert_source"].label = ""
-        self.fields["description"].label = ""
+        self.fields["report_timestamp"].label = "Client Reported At"
+        self.fields["alert_timestamp"].label = "Detection Triggered At"
+        self.fields["response_timestamp"].label = "Team Responded At"
+        self.fields["title"].label = "Record Title"
+        self.fields["status"].label = "Current Status"
+        self.fields["alert_source"].label = "Detection Source"
+        self.fields["description"].label = "Investigation & Client Closeout Notes"
         self.fields["description"].widget.attrs["rows"] = 5
         self.fields["description"].widget.attrs[
             "placeholder"
-        ] = "Additional information about the alert, source, related activity..."
-        self.fields["title"].widget.attrs["placeholder"] = "Brief and Descriptive Title"
-        self.fields["alert_source"].widget.attrs["placeholder"] = "Source of the Alert – e.g, EDR"
+        ] = "Record the initial report, attribution updates, team response, and any closeout information from the client."
+        self.fields["title"].widget.attrs["placeholder"] = "Brief, descriptive detection title"
+        self.fields["alert_source"].widget.attrs["placeholder"] = "EDR, MDR, user report, or other source"
         self.fields["report_timestamp"].initial = timezone.now()
         self.helper = FormHelper()
         self.helper.form_show_errors = False
+        self.helper.form_class = "resource-edit-form"
         # Layout the form for Bootstrap
         self.helper.layout = Layout(
-            Row(
-                Column("title", css_class="form-group col-12 mb-0"),
-                css_class="form-group",
-            ),
-            Row(
-                Column("status", css_class="form-group col-6 mb-0"),
-                Column("alert_source", css_class="form-group col-6 mb-0"),
-                css_class="form-group",
-            ),
-            HTML(
-                f"""
-                <p>You can update these timestamps as you get more information. Use the server's time zone ({settings.TIME_ZONE}).
-                """
-            ),
-            Row(
-                Column(Field("alert_timestamp", step=1), css_class="form-group col-4 mb-0"),
-                Column(Field("report_timestamp", step=1), css_class="form-group col-4 mb-0"),
-                Column(Field("response_timestamp", step=1), css_class="form-group col-4 mb-0"),
-                css_class="form-group",
-            ),
-            Row(
-                Column("description", css_class="form-group col-12 mb-0"),
-                css_class="form-group",
-            ),
-            ButtonHolder(
-                Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
+            Div(
                 HTML(
                     """
-                    <button onclick="window.location.href='{{ cancel_link }}'"
-                    class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    <div class="resource-form-section-heading">
+                      <span class="resource-form-section-icon"><i class="fas fa-shield-alt" aria-hidden="true"></i></span>
+                      <div>
+                        <h4>Client detection</h4>
+                        <p>Identify what the client detected and the record's current state.</p>
+                      </div>
+                    </div>
                     """
                 ),
+                "title",
+                Row(
+                    Column("status", css_class="col-md-6"),
+                    Column("alert_source", css_class="col-md-6"),
+                    css_class="row g-3",
+                ),
+                css_class="resource-form-card deconfliction-form-card",
+            ),
+            Div(
+                HTML(
+                    f"""
+                    <div class="resource-form-section-heading">
+                      <span class="resource-form-section-icon"><i class="fas fa-clock" aria-hidden="true"></i></span>
+                      <div>
+                        <h4>Attribution &amp; closeout</h4>
+                        <p>Update the timeline and living notes as the team and client provide more information. Times use {settings.TIME_ZONE}.</p>
+                      </div>
+                    </div>
+                    """
+                ),
+                Row(
+                    Column(Field("alert_timestamp", step=1), css_class="col-md-4"),
+                    Column(Field("report_timestamp", step=1), css_class="col-md-4"),
+                    Column(Field("response_timestamp", step=1), css_class="col-md-4"),
+                    css_class="row g-3",
+                ),
+                "description",
+                css_class="resource-form-card deconfliction-form-card",
+            ),
+            Div(
+                HTML("""<span class="resource-form-actions-context">{% if object.pk %}Editing deconfliction record{% else %}Recording a deconfliction event{% endif %}</span>"""),
+                Div(
+                    HTML("""<a href="{{ cancel_link }}" class="btn btn-outline-secondary">Cancel</a>"""),
+                    Submit(
+                        "submit_btn",
+                        "Save Changes" if self.instance.pk else "Record Event",
+                        css_class="btn btn-primary",
+                    ),
+                    css_class="resource-form-actions-buttons",
+                ),
+                css_class="resource-form-actions",
             ),
         )
 
@@ -1649,56 +1690,116 @@ class ProjectComponentForm(forms.ModelForm):
         tabs = [
             CustomTab(
                 "Contacts",
-                Formset("contacts", object_context_name="Contact"),
-                Button(
-                    "add-contact",
-                    "Add Contact",
-                    css_class="btn-block btn-secondary formset-add-contact mb-2 offset-4 col-4",
+                Div(
+                    Div(
+                        HTML(
+                            """
+                            <h2>Project contacts</h2>
+                            <p>People operators coordinate with specifically for this engagement.</p>
+                            """
+                        ),
+                        css_class="collection-toolbar-copy",
+                    ),
+                    Button(
+                        "add-contact",
+                        "Add Contact",
+                        css_class="btn-outline-secondary formset-add-contact formset-action-button",
+                    ),
+                    css_class="collection-toolbar mb-3",
                 ),
+                Formset("contacts", object_context_name="Contact"),
                 link_css_class="poc-icon",
                 css_id="contacts",
             ),
             CustomTab(
                 "White Cards",
-                Formset("whitecards", object_context_name="White Card"),
-                Button(
-                    "add-whitecard",
-                    "Add White Card",
-                    css_class="btn-block btn-secondary formset-add-card mb-2 offset-4 col-4",
+                Div(
+                    Div(
+                        HTML(
+                            """
+                            <h2>White cards</h2>
+                            <p>Record client-provided access, accounts, or actions that keep the assessment moving.</p>
+                            """
+                        ),
+                        css_class="collection-toolbar-copy",
+                    ),
+                    Button(
+                        "add-whitecard",
+                        "Add White Card",
+                        css_class="btn-outline-secondary formset-add-card formset-action-button",
+                    ),
+                    css_class="collection-toolbar mb-3",
                 ),
+                Formset("whitecards", object_context_name="White Card"),
                 link_css_class="tab-icon whitecard-icon",
                 css_id="whitecards",
             ),
             CustomTab(
                 "Scope Lists",
-                Formset("scopes", object_context_name="Scope"),
-                Button(
-                    "add-scope",
-                    "Add Scope List",
-                    css_class="btn-block btn-secondary formset-add-scope mb-2 offset-4 col-4",
+                Div(
+                    Div(
+                        HTML(
+                            """
+                            <h2>Scope lists</h2>
+                            <p>Organize the networks, applications, and assets operators may target.</p>
+                            """
+                        ),
+                        css_class="collection-toolbar-copy",
+                    ),
+                    Button(
+                        "add-scope",
+                        "Add Scope List",
+                        css_class="btn-outline-secondary formset-add-scope formset-action-button",
+                    ),
+                    css_class="collection-toolbar mb-3",
                 ),
+                Formset("scopes", object_context_name="Scope"),
                 link_css_class="tab-icon list-icon",
                 css_id="scopes",
             ),
             CustomTab(
                 "Objectives",
-                Formset("objectives", object_context_name="Objective"),
-                Button(
-                    "add-objective",
-                    "Add Objective",
-                    css_class="btn-block btn-secondary formset-add-obj mb-2 offset-4 col-4",
+                Div(
+                    Div(
+                        HTML(
+                            """
+                            <h2>Objectives</h2>
+                            <p>Define the outcomes operators will pursue and report against.</p>
+                            """
+                        ),
+                        css_class="collection-toolbar-copy",
+                    ),
+                    Button(
+                        "add-objective",
+                        "Add Objective",
+                        css_class="btn-outline-secondary formset-add-obj formset-action-button",
+                    ),
+                    css_class="collection-toolbar mb-3",
                 ),
+                Formset("objectives", object_context_name="Objective"),
                 link_css_class="objective-icon",
                 css_id="objectives",
             ),
             CustomTab(
                 "Targets",
-                Formset("targets", object_context_name="Target"),
-                Button(
-                    "add-target",
-                    "Add Target",
-                    css_class="btn-block btn-secondary formset-add-target mb-2 offset-4 col-4",
+                Div(
+                    Div(
+                        HTML(
+                            """
+                            <h2>Targets</h2>
+                            <p>Track target systems and the context operators need during execution.</p>
+                            """
+                        ),
+                        css_class="collection-toolbar-copy",
+                    ),
+                    Button(
+                        "add-target",
+                        "Add Target",
+                        css_class="btn-outline-secondary formset-add-target formset-action-button",
+                    ),
+                    css_class="collection-toolbar mb-3",
                 ),
+                Formset("targets", object_context_name="Target"),
                 link_css_class="tab-icon list-icon",
                 css_id="targets",
             ),
@@ -1724,14 +1825,19 @@ class ProjectComponentForm(forms.ModelForm):
                 *tabs,
                 template="tab.html",
                 css_class="nav-justified",
+                css_id="tab-bar",
             ),
-            ButtonHolder(
-                Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
+            Div(
                 HTML(
                     """
-                    <button onclick="window.location.href='{{ cancel_link }}'"
-                    class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    <span class="resource-form-actions-context">Editing project components</span>
                     """
                 ),
+                Div(
+                    HTML("""<a href="{{ cancel_link }}" class="btn btn-outline-secondary">Cancel</a>"""),
+                    Submit("submit", "Save Changes", css_class="btn btn-primary"),
+                    css_class="resource-form-actions-buttons",
+                ),
+                css_class="resource-form-actions",
             ),
         )

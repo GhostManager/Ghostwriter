@@ -1,64 +1,100 @@
-{% extends "base_generic_empty.html" %}
+{% extends "base_generic.html" %}
 {% load i18n %}
 {% load crispy_forms_tags %}
 
-{% block pagetitle %}Add Security Key{% endblock %}
+{% block pagetitle %}{% trans "Add security key" %}{% endblock %}
 
-{% block breadcrumbs %}
-  <nav aria-label="breadcrumb">
-    <ul class="breadcrumb">
-      <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-      <li class="breadcrumb-item"><a href="{% url 'users:user_detail' request.user.username %}">Your Profile</a></li>
-      <li class="breadcrumb-item"><a href="{% url 'mfa_index' %}">Manage MFA Settings</a></li>
-      <li class="breadcrumb-item active" aria-current="page">Add Security Key</li>
-    </ul>
-  </nav>
-{% endblock %}
 
 {% block content %}
-  <h2>
-    {% trans "Add Security Key" %}
-  </h2>
+  <div class="resource-form-shell account-profile-editor account-webauthn-add">
+    <form
+      method="post"
+      action="{% url 'mfa_add_webauthn' %}"
+      class="resource-edit-form account-webauthn-add-form"
+    >
+      {% csrf_token %}
 
+      {% if form.errors %}
+        <div class="alert alert-danger account-security-alert" role="alert">
+          <div class="account-security-alert-icon" aria-hidden="true">
+            <i class="fas fa-exclamation-circle"></i>
+          </div>
+          <div>
+            <strong>{% trans "Security key not added" %}</strong>
+            <p>{% trans "Review the settings below and try the browser verification again." %}</p>
+            {% if form.non_field_errors %}{{ form.non_field_errors }}{% endif %}
+          </div>
+        </div>
+      {% endif %}
 
-  <!-- Form Error Section -->
-  {% if form.errors %}
-    <script>
-      {% for field in form %}
-        {% for error in field.errors %}
-          displayToastTop({type: 'error', string: '{{ error|escapejs }}', context: 'form'});
-        {% endfor %}
-      {% endfor %}
-      {% for error in form.non_field_errors %}
-        displayToastTop({type: 'error', string: '{{ error|escapejs }}', context: 'form'});
-      {% endfor %}
-    </script>
-  {% endif %}
+      <section class="resource-form-card account-webauthn-card" aria-labelledby="webauthn-add-heading">
+        <div class="resource-form-section-heading">
+          <span class="resource-form-section-icon account-webauthn-card-icon" aria-hidden="true">
+            <i class="fas fa-fingerprint"></i>
+          </span>
+          <div>
+            <h1 id="webauthn-add-heading">{% trans "Add security key" %}</h1>
+            <p>{% trans "Register a physical security key or a passkey stored on this device." %}</p>
+          </div>
+        </div>
 
-  <!-- Form Section -->
-<div class="row justify-content-center">
-    <div class="col-md-8">
-        <form method="post" action="{% url 'mfa_add_webauthn' %}">
-            {% csrf_token %}
-            {% crispy form %}
-            <button id="mfa_webauthn_add" type="button" class="btn btn-primary col-3">
-                {% trans "Add" %}
-            </button>
-        </form>
-    </div>
-</div>
+        <div class="account-webauthn-expectation" role="note">
+          <span class="account-webauthn-expectation-icon" aria-hidden="true"><i class="fas fa-key"></i></span>
+          <div>
+            <h2>{% trans "What to expect" %}</h2>
+            <p>{% trans "After you continue, your browser will ask you to touch your key or confirm with your device PIN or biometrics." %}</p>
+          </div>
+        </div>
 
-  <!-- WebAuthn Scripts -->
+        <div class="account-webauthn-fields">
+          <div class="account-webauthn-name-field">
+            {{ form.name|as_crispy_field }}
+            <p class="account-webauthn-field-guidance">
+              {% trans "Choose a name that identifies where this key is stored, such as “Office key” or “Laptop passkey.”" %}
+            </p>
+          </div>
+
+          {% if form.passwordless %}
+            <label class="account-webauthn-passwordless" for="{{ form.passwordless.id_for_label }}">
+              {{ form.passwordless }}
+              <span>
+                <strong>{% trans "Allow passwordless sign-in" %}</strong>
+                <span id="{{ form.passwordless.auto_id }}_helptext">
+                  {% trans "Sign in with this key alone. Your device must protect it with a PIN, password, or biometrics." %}
+                </span>
+              </span>
+            </label>
+          {% endif %}
+
+          {{ form.credential }}
+        </div>
+
+        <div class="account-webauthn-privacy">
+          <i class="fas fa-lock" aria-hidden="true"></i>
+          <span>{% trans "Ghostwriter receives a public credential—not your fingerprint, device PIN, or private key." %}</span>
+        </div>
+      </section>
+
+      <div class="resource-form-actions resource-form-actions-compact account-webauthn-actions">
+        <div class="resource-form-actions-buttons">
+          <a class="btn btn-outline-secondary" href="{% url 'mfa_index' %}">{% trans "Cancel" %}</a>
+          <button id="mfa_webauthn_add" type="button" class="btn btn-primary">
+            <i class="fas fa-key" aria-hidden="true"></i> {% trans "Add security key" %}
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+
   {% include "mfa/webauthn/snippets/scripts.html" %}
   {{ js_data|json_script:"js_data" }}
   <script data-allauth-onload="allauth.webauthn.forms.addForm" type="application/json">{
     "ids": {
-        "add": "mfa_webauthn_add",
-        "passwordless": "{{ form.passwordless.auto_id }}",
-        "credential": "{{ form.credential.auto_id }}",
-        "data": "js_data"
+      "add": "mfa_webauthn_add",
+      "passwordless": "{{ form.passwordless.auto_id }}",
+      "credential": "{{ form.credential.auto_id }}",
+      "data": "js_data"
     }
   }
   </script>
-
 {% endblock %}

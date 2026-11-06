@@ -27,6 +27,7 @@ export default function EvidenceUploadForm(props: {
     return (
         <form
             ref={formRef}
+            className="gw-evidence-upload-form"
             onSubmit={(ev) => {
                 ev.preventDefault();
                 setState("loading");
@@ -35,8 +36,14 @@ export default function EvidenceUploadForm(props: {
                 (async () => {
                     const csrf = getCsrfToken();
                     if (!csrf) {
-                        console.error("CSRF token is missing; aborting evidence upload.");
-                        setState({ form: ["CSRF token not found. Please refresh the page."] });
+                        console.error(
+                            "CSRF token is missing; aborting evidence upload."
+                        );
+                        setState({
+                            form: [
+                                "CSRF token not found. Please refresh the page.",
+                            ],
+                        });
                         return;
                     }
                     const headers = new Headers();
@@ -64,9 +71,12 @@ export default function EvidenceUploadForm(props: {
                 });
             }}
         >
-            <div className="modal-body">
+            <div className="modal-body gw-evidence-dialog-body">
                 {state !== "loading" && state?.form && (
-                    <div className="alert alert-danger" role="alert">
+                    <div
+                        className="alert alert-danger gw-evidence-upload-alert"
+                        role="alert"
+                    >
                         <ul>
                             {state.form.map((err, i) => (
                                 <li key={i}>{err}</li>
@@ -75,56 +85,51 @@ export default function EvidenceUploadForm(props: {
                     </div>
                 )}
 
-                <div className="form-group">
-                    <label htmlFor={friendlyNameId}>Friendly Name</label>
-                    <div>
-                        <input
-                            id={friendlyNameId}
-                            name="friendly_name"
-                            className={
-                                "textinput textInput form-control " +
-                                (errors?.friendly_name ? "is-invalid" : "")
-                            }
-                            required
-                            type="text"
-                            maxLength={255}
-                            autoComplete="off"
-                            placeholder="Friendly Name"
-                            disabled={disabled}
-                            value={friendlyName}
-                            onChange={(e) => setFriendlyName(e.target.value)}
-                        />
-                        <ErrorFeedback errors={errors?.friendly_name} />
-                        <small>
-                            Provide a simple name to be used to reference this
-                            evidence
-                        </small>
-                    </div>
+                <div className="form-group gw-evidence-upload-field">
+                    <label htmlFor={friendlyNameId}>Friendly name</label>
+                    <input
+                        id={friendlyNameId}
+                        name="friendly_name"
+                        className={
+                            "textinput textInput form-control " +
+                            (errors?.friendly_name ? "is-invalid" : "")
+                        }
+                        required
+                        type="text"
+                        maxLength={255}
+                        autoComplete="off"
+                        placeholder="e.g., Kerberos ticket request"
+                        disabled={disabled}
+                        value={friendlyName}
+                        onChange={(e) => setFriendlyName(e.target.value)}
+                    />
+                    <ErrorFeedback errors={errors?.friendly_name} />
+                    <small className="form-text text-muted">
+                        Use a short, recognizable name for references in the
+                        editor.
+                    </small>
                 </div>
 
-                <div className="form-group">
+                <div className="form-group gw-evidence-upload-field">
                     <label htmlFor={captionId}>Caption</label>
-                    <div>
-                        <input
-                            id={captionId}
-                            name="caption"
-                            className={
-                                "textinput textInput form-control " +
-                                (errors?.caption ? "is-invalid" : "")
-                            }
-                            required
-                            type="text"
-                            maxLength={255}
-                            autoComplete="off"
-                            placeholder="Caption"
-                            disabled={disabled}
-                        />
-                        <ErrorFeedback errors={errors?.caption} />
-                        <small>
-                            Provide a one line caption to be used in the report
-                            - keep it brief
-                        </small>
-                    </div>
+                    <input
+                        id={captionId}
+                        name="caption"
+                        className={
+                            "textinput textInput form-control " +
+                            (errors?.caption ? "is-invalid" : "")
+                        }
+                        required
+                        type="text"
+                        maxLength={255}
+                        autoComplete="off"
+                        placeholder="Describe what the evidence demonstrates"
+                        disabled={disabled}
+                    />
+                    <ErrorFeedback errors={errors?.caption} />
+                    <small className="form-text text-muted">
+                        This one-line caption appears in the generated report.
+                    </small>
                 </div>
 
                 <input type="hidden" name="tags" value="" />
@@ -137,30 +142,53 @@ export default function EvidenceUploadForm(props: {
                 />
             </div>
 
-            <div className="modal-footer">
+            <div className="modal-footer gw-evidence-dialog-footer">
                 <button
-                    className="btn btn-secondary"
+                    type="button"
+                    className="btn btn-outline-secondary gw-evidence-mode-action"
                     onClick={(e) => {
                         e.preventDefault();
                         props.switchMode();
                     }}
                 >
-                    Select Existing
+                    <i className="fas fa-list" aria-hidden="true" />
+                    Choose existing
                 </button>
-                <input
-                    className="btn btn-primary"
-                    type="submit"
-                    value="Submit"
-                />
-                <button
-                    className="btn btn-outline-secondary"
-                    onClick={(ev) => {
-                        ev.preventDefault();
-                        props.onSubmit(null);
-                    }}
-                >
-                    Cancel
-                </button>
+                <div className="gw-evidence-dialog-primary-actions">
+                    <button
+                        type="button"
+                        className="btn btn-outline-secondary"
+                        onClick={(ev) => {
+                            ev.preventDefault();
+                            props.onSubmit(null);
+                        }}
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        className="btn gw-evidence-primary-action"
+                        type="submit"
+                        disabled={disabled}
+                    >
+                        {disabled ? (
+                            <>
+                                <i
+                                    className="fas fa-spinner fa-spin"
+                                    aria-hidden="true"
+                                />
+                                Uploading…
+                            </>
+                        ) : (
+                            <>
+                                <i
+                                    className="fas fa-upload"
+                                    aria-hidden="true"
+                                />
+                                Upload and insert
+                            </>
+                        )}
+                    </button>
+                </div>
             </div>
         </form>
     );
@@ -198,12 +226,11 @@ function FileInput(props: {
 
     return (
         <>
-            <p>
-                Attach or paste text evidence (*.txt, *.log, or *.md) or image
-                evidence (*.png, *.jpg, or *.jpeg).
-            </p>
             <div
-                className="custom-file"
+                className={
+                    "gw-evidence-dropzone" +
+                    (props.errors?.document ? " is-invalid" : "")
+                }
                 onDrop={(ev) => {
                     ev.preventDefault();
                     if (ev.dataTransfer.files.length !== 1) return;
@@ -214,40 +241,39 @@ function FileInput(props: {
                     ev.preventDefault();
                 }}
             >
-                <div className="form-group">
-                    <div className="mb-2">
-                        <div
-                            className={
-                                "form-control custom-file" +
-                                (props.errors?.document ? "is-invalid" : "")
-                            }
-                            style={{ border: 0 }}
-                        >
-                            <input
-                                name="document"
-                                className="custom-file-input"
-                                type="file"
-                                required
-                                disabled={props.disabled}
-                                id={id}
-                                ref={fileRef}
-                                onChange={(ev) => {
-                                    if (ev.target.files?.length)
-                                        setFileName(ev.target.files[0].name);
-                                    else setFileName(null);
-                                }}
-                            />
-                            <label
-                                className="custom-file-label text-truncate"
-                                htmlFor={id}
-                            >
-                                {fileName ?? "No File Selected"}
-                            </label>
-                        </div>
-                    </div>
-                    <ErrorFeedback errors={props.errors?.document} />
-                </div>
+                <input
+                    name="document"
+                    className="gw-evidence-file-input"
+                    type="file"
+                    accept=".txt,.log,.md,.png,.jpg,.jpeg"
+                    required
+                    disabled={props.disabled}
+                    id={id}
+                    ref={fileRef}
+                    onChange={(ev) => {
+                        if (ev.target.files?.length)
+                            setFileName(ev.target.files[0].name);
+                        else setFileName(null);
+                    }}
+                />
+                <label className="gw-evidence-dropzone-label" htmlFor={id}>
+                    <span
+                        className="gw-evidence-dropzone-icon"
+                        aria-hidden="true"
+                    >
+                        <i className="fas fa-cloud-upload-alt" />
+                    </span>
+                    <span className="gw-evidence-dropzone-copy">
+                        <span className="gw-evidence-dropzone-title">
+                            {fileName ?? "Choose, drop, or paste a file"}
+                        </span>
+                        <span className="gw-evidence-dropzone-help">
+                            TXT, LOG, MD, PNG, JPG, or JPEG
+                        </span>
+                    </span>
+                </label>
             </div>
+            <ErrorFeedback errors={props.errors?.document} />
         </>
     );
 }

@@ -9,6 +9,7 @@ from ghostwriter.modules.reportwriter.base.pptx import SLD_LAYOUT_TITLE_AND_CONT
 from ghostwriter.modules.reportwriter.project.pptx import ProjectSlidesMixin
 from ghostwriter.modules.reportwriter.report.base import ExportReportBase
 from ghostwriter.modules.reportwriter.richtext.pptx import HtmlToPptxWithEvidence
+from ghostwriter.reporting.models import Finding
 
 
 class ExportReportPptx(ExportBasePptx, ExportReportBase, ProjectSlidesMixin):
@@ -191,6 +192,23 @@ class ExportReportPptx(ExportBasePptx, ExportReportBase, ProjectSlidesMixin):
 
             for ev in finding.get("evidence", []):
                 HtmlToPptxWithEvidence.make_evidence(finding_slide, ev)
+
+            for field in (
+                "affected_entities",
+                "impact",
+                "recommendation",
+                "replication_steps",
+                "host_detection_techniques",
+                "network_detection_techniques",
+                "references",
+            ):
+                if finding.get(field, "").strip():
+                    self.render_evidence_pptx(finding[f"{field}_rt"], finding_slide)
+            for field_spec in self.extra_field_specs_for(Finding):
+                if field_spec.type == "rich_text":
+                    self.render_evidence_pptx(
+                        field_spec.value_of(finding["extra_fields"]), finding_slide
+                    )
 
             # Ensure there is at least one paragraph, as required by the spec
             if text_frame is not None and not text_frame.paragraphs:

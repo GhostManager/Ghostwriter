@@ -1,6 +1,6 @@
 {% load crispy_forms_tags %}
 
-<div id="formset-{{ formset.prefix }}" class="formset formset-{{ formset.prefix }}">
+<div id="formset-{{ formset.prefix }}" class="formset formset-{{ formset.prefix }}" data-formset-prefix="{{ formset.prefix }}">
     {% if formset.errors %}
         <script>
             {% for form in formset %}

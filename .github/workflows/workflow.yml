@@ -29,6 +29,29 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  check-collab-graphql-auth:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source code
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: javascript/package-lock.json
+
+      - name: Install JavaScript dependencies
+        working-directory: javascript
+        run: npm ci
+
+      - name: Run collaboration GraphQL authorization regression test
+        working-directory: javascript
+        run: npm run test:collab-graphql-auth
+
   run-unit-tests:
     runs-on: ubuntu-latest
     steps:

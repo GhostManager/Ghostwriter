@@ -2,73 +2,87 @@
 
 {% load i18n %}
 {% load account socialaccount %}
-{% load allauth %}
 {% load crispy_forms_tags %}
 
-{% block title %}Sign In{% endblock %}
+{% block title %}{% trans "Sign In" %}{% endblock %}
 
-{% block inner %}
-  <h2>{% trans "Sign In" %}</h2>
+{% block content %}
+  <div class="auth-challenge-page auth-login-page">
+    <section class="auth-challenge-card auth-login-card" aria-labelledby="auth-login-heading">
+      <div class="auth-challenge-heading">
+        <span class="auth-challenge-icon" aria-hidden="true"><i class="fas fa-user-lock"></i></span>
+        <div>
+          <span class="auth-challenge-eyebrow">{% trans "Operator access" %}</span>
+          <h1 id="auth-login-heading">{% trans "Sign in to Ghostwriter" %}</h1>
+          <p>{% trans "Authenticate to continue to your operator workspace." %}</p>
+        </div>
+      </div>
 
-  <!-- Form Section -->
-  {% get_providers as socialaccount_providers %}
+      {% if form.errors %}
+        <div class="alert alert-danger account-security-alert auth-challenge-alert" role="alert">
+          <div class="account-security-alert-icon" aria-hidden="true"><i class="fas fa-exclamation-circle"></i></div>
+          <div>
+            <strong>{% trans "We could not sign you in" %}</strong>
+            <p>{% trans "Check your username and password, then try again." %}</p>
+            {% if form.non_field_errors %}{{ form.non_field_errors }}{% endif %}
+          </div>
+        </div>
+      {% endif %}
 
-  {% if socialaccount_providers %}
-    <p>
-      {% blocktrans with site.name as site_name %}
-        Please sign in with one of your existing third-party accounts. Or, <a href="{{ signup_url }}">sign up</a> for a
-        {{ site_name }} account and sign in below:
-      {% endblocktrans %}
-    </p>
+      <form class="login auth-challenge-form auth-login-form" method="post" action="{% url 'account_login' %}" novalidate>
+        {% csrf_token %}
 
-    <div class="socialaccount_ballot">
-      <ul class="socialaccount_providers">
-        {% include "socialaccount/snippets/provider_list.html" with process="login" %}
-      </ul>
+        <div class="auth-login-fields">
+          {{ form.login|as_crispy_field }}
+          {{ form.password|as_crispy_field }}
+        </div>
 
-      <div class="login-or">{% trans 'or' %}</div>
-    </div>
+        <div class="auth-login-options">
+          <div class="auth-login-remember">
+            {{ form.remember|as_crispy_field }}
+          </div>
+        </div>
 
-    {% include "socialaccount/snippets/login_extra.html" %}
+        {% if redirect_field_value %}
+          <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">
+        {% endif %}
 
-  {% else %}
-    <p>
-      {% blocktrans %}
-        If you do not have an account yet, then please contact your administrator.
-      {% endblocktrans %}
-    </p>
-  {% endif %}
+        <button class="btn btn-primary auth-challenge-submit" type="submit">
+          <i class="fas fa-arrow-right" aria-hidden="true"></i> {% trans "Sign in" %}
+        </button>
+      </form>
 
-  <!-- Form Error Section -->
-  {% if form.errors %}
-    <script>
-      {% for field in form %}
-        {% for error in field.errors %}
-          displayToastTop({type: 'error', string: '{{ error|escapejs }}', context: 'form'});
-        {% endfor %}
-      {% endfor %}
-      {% for error in form.non_field_errors %}
-        displayToastTop({type: 'error', string: '{{ error|escapejs }}', context: 'form'});
-      {% endfor %}
-    </script>
-  {% endif %}
+      {% if PASSKEY_LOGIN_ENABLED %}
+        <div class="auth-challenge-divider"><span>{% trans "Another sign-in method" %}</span></div>
 
-  <!-- Form Section -->
-  <form class="login" method="POST" action="{% url 'account_login' %}" novalidate>
-    {% crispy form form.helper %}
-    {% if redirect_field_value %}
-      <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}"/>
-    {% endif %}
-    <button class="btn btn-primary col-md-4" type="submit">{% trans "Sign In" %}</button>
-  </form>
+        <div class="auth-challenge-method auth-login-method">
+          <div class="auth-challenge-method-copy">
+            <span class="auth-challenge-method-icon" aria-hidden="true"><i class="fas fa-fingerprint"></i></span>
+            <div>
+              <h2>{% trans "Use a passkey" %}</h2>
+              <p>{% trans "Sign in with a registered security key or this device." %}</p>
+            </div>
+          </div>
+          <button form="mfa_login" type="button" id="passkey_login" class="btn btn-outline-secondary">
+            {% trans "Use passkey" %}
+          </button>
+        </div>
+        {% include "mfa/webauthn/snippets/login_script.html" with button_id="passkey_login" %}
+      {% endif %}
 
-  <!-- WebAuthn/Passkey Login Section -->
-  {% if PASSKEY_LOGIN_ENABLED %}
-  <div class="mt-3">
-    <button form="mfa_login" type="button" id="passkey_login" class="btn btn-outline-primary col-md-4">
-      {% trans "Sign in with a Passkey" %}
-    </button>
-    {% include "mfa/webauthn/snippets/login_script.html" with button_id="passkey_login" %}
+      {% get_providers as socialaccount_providers %}
+      {% if socialaccount_providers %}
+        <div class="auth-challenge-divider"><span>{% trans "Organization sign-in" %}</span></div>
+        <div class="auth-login-social">
+          {% include "socialaccount/snippets/provider_list.html" with process="login" %}
+          {% include "socialaccount/snippets/login_extra.html" %}
+        </div>
+      {% endif %}
+
+      <p class="auth-login-assistance">
+        <i class="fas fa-info-circle" aria-hidden="true"></i>
+        <span>{% trans "Need an account? Contact your Ghostwriter administrator." %}</span>
+      </p>
+    </section>
   </div>
-  {% endif %}
 {% endblock %}

@@ -1,9 +1,12 @@
-FROM node:25.9.0-alpine3.23 AS frontendbuild
+FROM --platform=$BUILDPLATFORM node:25.9.0-alpine3.23 AS frontendbuild
 
+WORKDIR /app
+COPY ./javascript/package.json ./javascript/package-lock.json ./
+RUN --mount=type=cache,target=/root/.npm npm ci
 COPY ./javascript /app
-RUN --mount=type=cache,target=/root/.npm cd /app && npm ci && npm run build-frontend-prod
+RUN npm run build-frontend-prod
 
-FROM python:3.10.20-alpine3.23 AS build
+FROM python:3.11.18-alpine3.23 AS build
 
 COPY ./requirements /requirements
 RUN \
@@ -28,7 +31,7 @@ RUN \
     pip install wheel \
     && pip wheel --wheel-dir=/wheels --no-binary psycopg2 -r /requirements/production.txt
 
-FROM python:3.10.20-alpine3.23
+FROM python:3.11.18-alpine3.23
 
 RUN \
   --mount=type=cache,target=/var/cache/apk/ \

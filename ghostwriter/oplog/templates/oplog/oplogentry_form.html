@@ -4,9 +4,14 @@
 {% block pagetitle %}Operation Log Entry{% endblock %}
 
 {% block content %}
-    <!-- Instruction -->
-    <p>Fill-out this form as completely as possible with information related to this activity:</p>
+    <header class="resource-form-page-heading mb-4">
+        <span class="detail-eyebrow">Operation Log Entry</span>
+        <h1>{% if object.pk %}Edit activity{% else %}Record activity{% endif %}</h1>
+        <p>Capture the action, timing, source, destination, output, and reportable context operators need.</p>
+    </header>
 
     {% comment %} Form section included from inner template {% endcomment %}
-    {% include "oplog/snippets/oplogentry_form_inner.html" with form=form %}
+    <div class="resource-form-shell">
+        {% include "oplog/snippets/oplogentry_form_inner.html" with form=form %}
+    </div>
 {% endblock %}

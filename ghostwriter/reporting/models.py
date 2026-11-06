@@ -370,7 +370,7 @@ class ReportTemplate(models.Model):
         "Template Change Log",
         default="",
         blank=True,
-        help_text="Add a line explaining any file changes",
+        help_text="Track and explain any file changes",
     )
     landscape = models.BooleanField(
         "Landscape Orientation",

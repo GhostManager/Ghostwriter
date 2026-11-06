@@ -9,7 +9,6 @@ properly categorized, has not been flagged in VirusTotal, or tagged with a bad c
 # Standard Libraries
 import logging
 import sys
-import traceback
 from time import sleep
 
 # 3rd Party Libraries
@@ -23,6 +22,10 @@ requests.packages.urllib3.disable_warnings()
 
 # Using __name__ resolves to ghostwriter.modules.review
 logger = logging.getLogger(__name__)
+
+
+class VirusTotalRequestError(RuntimeError):
+    """Raised when a VirusTotal request prevents a health update from completing."""
 
 
 class DomainReview:
@@ -116,29 +119,47 @@ class DomainReview:
             virustotal_endpoint_uri = "/domains/{domain}".format(domain=domain)
 
         url = self.VIRUSTOTAL_BASE_API_URL + virustotal_endpoint_uri
-        results = {"result": "success"}
-        if self.virustotal_config.enable:
-            try:
-                headers = {
-                    "x-apikey": self.virustotal_config.api_key,
-                }
-                req = self.session.get(url, headers=headers)
-                if req.ok:
-                    vt_data = req.json()
-                    results["data"] = vt_data["data"]["attributes"]
-                else:
-                    results["result"] = "error"
-                    results["error"] = "VirusTotal rejected the API key in settings"
-            except Exception:
-                trace = traceback.format_exc()
-                logger.exception("Failed to contact VirusTotal")
-                results["result"] = "error"
-                results["error"] = "{exception}".format(exception=trace)
-        else:
-            results["result"] = "error"
-            results["error"] = "VirusTotal is disabled in settings"
+        if not self.virustotal_config.enable:
+            raise VirusTotalRequestError("VirusTotal is disabled in settings")
 
-        return results
+        try:
+            headers = {
+                "x-apikey": self.virustotal_config.api_key,
+            }
+            req = self.session.get(url, headers=headers)
+            if not req.ok:
+                # A missing report is distinct from a failed API request. Only
+                # accept VT's structured error so proxy/endpoint 404s still fail.
+                if req.status_code == 404:
+                    try:
+                        error_code = req.json().get("error", {}).get("code")
+                    except (ValueError, AttributeError):
+                        error_code = None
+                    if error_code == "NotFoundError" and not subdomains:
+                        message = f"VirusTotal has no report for {domain} (HTTP 404, NotFoundError)."
+                        logger.warning(message)
+                        return {"result": "not_found", "error": message}
+
+                message = (
+                    f"VirusTotal rejected the API request for {domain} "
+                    f"(HTTP {req.status_code})."
+                )
+                if req.status_code in (401, 403):
+                    message += " Check the configured API key and permissions."
+                elif req.status_code == 429:
+                    message += " Check the VirusTotal API quota and rate limit."
+                logger.error(message)
+                raise VirusTotalRequestError(message)
+
+            vt_data = req.json()
+            return {"result": "success", "data": vt_data["data"]["attributes"]}
+        except VirusTotalRequestError:
+            raise
+        except Exception as err:
+            logger.exception("Failed to contact VirusTotal")
+            raise VirusTotalRequestError(
+                f"VirusTotal request for {domain} failed: {err.__class__.__name__}"
+            ) from err
 
     def check_domain_status(self):
         """
@@ -166,21 +187,22 @@ class DomainReview:
                 domain_name = domain.name
                 health = domain.health_status
 
-                # For notifications, track date of the last health check-up
+                # Log the previous check date for context during the review.
                 if domain.last_health_check:
                     logger.info(
                         "Domain has a prior health check-up date: %s",
                         domain.last_health_check,
                     )
-                    last_health_check = domain.last_health_check
-                # If the date is empty (no past checks), limit notifications with the purchase date
                 else:
-                    last_health_check = domain.creation
-                    logger.info("No prior health check so set date to %s", last_health_check)
+                    logger.info("No prior health check; domain purchased on %s", domain.creation)
                 logger.info("Domain is currently considered to be %s", health)
 
                 # Check domain name with VT's Domain Report
                 vt_results = self.get_domain_report(domain_name)
+                if vt_results["result"] == "not_found":
+                    lab_results[domain.id]["error"] = vt_results["error"]
+                    sleep(self.sleep_time)
+                    continue
                 if vt_results["result"] == "success":
                     logger.info("Received results for %s from VirusTotal", domain_name)
 

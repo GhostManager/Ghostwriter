@@ -18,6 +18,7 @@ function FindingForm() {
             status={status}
             connected={connected}
             setEditing={setEditing}
+            tabbed
             extraBottom={
                 <>
                     <div className="form-group col-md-12">
@@ -30,6 +31,10 @@ function FindingForm() {
                                     "findingGuidance"
                                 )}
                             />
+                            <small className="form-text text-muted">
+                                Add reusable context for operators adapting this
+                                finding to an engagement.
+                            </small>
                         </div>
                     </div>
                 </>

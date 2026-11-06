@@ -74,8 +74,8 @@ class ExportBasePptx(ExportBase):
 
     def render_rich_text_pptx(self, rich_text: LazilyRenderedTemplate, slide, shape):
         """
-        Renders a `LazilyRenderedTemplate`, converting the HTML from the TinyMCE rich text editor and inserting it into the passed in shape and slide.
-        Converts HTML from the TinyMCE rich text editor and inserts it into the passed in slide and shape
+        Renders a `LazilyRenderedTemplate`, converting rich-text HTML and inserting it into the passed in shape and slide.
+        Converts rich-text HTML and inserts it into the passed in slide and shape
         """
         ReportExportTemplateError.map_errors(
             lambda: HtmlToPptxWithEvidence.run(
@@ -86,6 +86,17 @@ class ExportBasePptx(ExportBase):
             ),
             getattr(rich_text, "location", None)
         )
+
+    def render_evidence_pptx(self, rich_text: LazilyRenderedTemplate, slide):
+        """Insert evidence from a notes section without adding its prose to the slide."""
+
+        def render():
+            soup = BeautifulSoup(rich_text.render_html(), "lxml")
+            converter = HtmlToPptxWithEvidence(slide, None, self.evidences_by_id)
+            for element in soup.select("div.richtext-evidence, span[data-gw-evidence]"):
+                converter.process(element)
+
+        ReportExportTemplateError.map_errors(render, getattr(rich_text, "location", None))
 
     def process_footers(self):
         """

@@ -304,7 +304,7 @@ function renderAvatarPreview(fileInput, previewDiv) {
     const navbarSection = document.createElement('div');
     const navbarLabel = document.createElement('p');
     const navbarStrong = document.createElement('strong');
-    navbarStrong.textContent = 'Navbar Preview (40x40)';
+    navbarStrong.textContent = 'Navigation preview';
     navbarLabel.appendChild(navbarStrong);
     const navbarImg = document.createElement('img');
     navbarImg.alt = 'Navbar preview';
@@ -317,7 +317,7 @@ function renderAvatarPreview(fileInput, previewDiv) {
     const profileSection = document.createElement('div');
     const profileLabel = document.createElement('p');
     const profileStrong = document.createElement('strong');
-    profileStrong.textContent = 'Profile Preview (250x250)';
+    profileStrong.textContent = 'Profile preview';
     profileLabel.appendChild(profileStrong);
     const profileImg = document.createElement('img');
     profileImg.alt = 'Profile preview';
@@ -363,6 +363,13 @@ function update_project_contacts() {
     console.log("Updating contacts...");
     // Refresh the HTML from the update URL
     $contactsSection.html('').load(update_url, function () {
+      $contactsSection[0].querySelectorAll('.table-row-action[title]').forEach(function (tooltip) {
+        bootstrap.Tooltip.getOrCreateInstance(tooltip, {
+          boundary: document.body,
+          placement: 'top',
+          fallbackPlacements: ['bottom'],
+        });
+      });
     });
   }
 }

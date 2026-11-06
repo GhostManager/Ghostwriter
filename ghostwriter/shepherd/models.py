@@ -265,6 +265,21 @@ class Domain(models.Model):
             time_delta = date.today() - self.creation
         return time_delta.days
 
+    def get_domain_age_display(self):
+        """Return the domain's age as compact, human-readable elapsed time."""
+        age_in_days = self.get_domain_age()
+        years, remaining_days = divmod(age_in_days, 365)
+
+        if not years:
+            return f"{remaining_days} day{'s' if remaining_days != 1 else ''}"
+
+        year_label = "year" if years == 1 else "years"
+        if not remaining_days:
+            return f"{years} {year_label}"
+
+        day_label = "day" if remaining_days == 1 else "days"
+        return f"{years} {year_label}, {remaining_days} {day_label}"
+
     def is_expired(self):
         """
         Check if the domain's expiration DateField value is in the past.

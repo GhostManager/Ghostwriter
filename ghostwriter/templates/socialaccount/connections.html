@@ -1,0 +1,56 @@
+{% extends "account/base.html" %}
+
+{% load i18n socialaccount %}
+
+{% block pagetitle %}{% trans "Account connections" %}{% endblock pagetitle %}
+
+{% block inner %}
+    <div class="auth-challenge-heading">
+        <span class="auth-challenge-icon auth-social-icon" aria-hidden="true"><i class="fas fa-link"></i></span>
+        <div>
+            <span class="auth-challenge-eyebrow">{% trans "Account security" %}</span>
+            <h1>{% trans "Account connections" %}</h1>
+            <p>{% trans "Manage the organization accounts that can be used to sign in to Ghostwriter." %}</p>
+        </div>
+    </div>
+
+    {% if form.accounts %}
+        <form class="auth-journey-form auth-social-connections-form" method="post" action="{% url 'socialaccount_connections' %}">
+            {% csrf_token %}
+            <fieldset class="auth-social-connection-list">
+                <legend class="visually-hidden">{% trans "Connected accounts" %}</legend>
+                {% for acc in form.fields.account.choices %}
+                    {% with account=acc.0.instance.get_provider_account %}
+                        <label class="auth-social-connection" for="id_account_{{ account.account.pk }}">
+                            <input id="id_account_{{ account.account.pk }}" class="form-check-input" type="radio" name="account" value="{{ account.account.pk }}">
+                            <span class="auth-social-connection-icon" aria-hidden="true"><i class="fas fa-building"></i></span>
+                            <span class="auth-social-connection-copy">
+                                <span class="auth-social-connection-name">{{ account }}</span>
+                                <span class="auth-social-connection-provider">{{ account.get_brand.name }}</span>
+                            </span>
+                            <i class="fas fa-unlink auth-social-connection-action" aria-hidden="true"></i>
+                        </label>
+                    {% endwith %}
+                {% endfor %}
+            </fieldset>
+            {{ form.account.errors }}
+            <div class="auth-journey-actions">
+                <button class="btn auth-social-disconnect" type="submit"><i class="fas fa-unlink" aria-hidden="true"></i> {% trans "Remove selected account" %}</button>
+            </div>
+        </form>
+    {% else %}
+        <div class="auth-social-empty">
+            <span class="auth-social-empty-icon" aria-hidden="true"><i class="fas fa-unlink"></i></span>
+            <div>
+                <h2>{% trans "No linked accounts" %}</h2>
+                <p>{% trans "Your password or passkey remains your available sign-in method." %}</p>
+            </div>
+        </div>
+    {% endif %}
+
+    {% get_providers as socialaccount_providers %}
+    {% if socialaccount_providers %}
+        <div class="auth-challenge-divider"><span>{% trans "Add an organization account" %}</span></div>
+        {% include "socialaccount/snippets/provider_list.html" with process="connect" %}
+    {% endif %}
+{% endblock inner %}

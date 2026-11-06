@@ -1,5 +1,6 @@
 
 # Standard Libraries
+import logging
 import os
 
 # Django Imports
@@ -14,6 +15,8 @@ from pptx.util import Inches, Pt
 # Ghostwriter Libraries
 from ghostwriter.modules.reportwriter.extensions import IMAGE_EXTENSIONS, TEXT_EXTENSIONS
 from ghostwriter.modules.reportwriter.richtext.ooxml import BaseHtmlToOOXML
+
+logger = logging.getLogger(__name__)
 
 
 class HtmlToPptx(BaseHtmlToOOXML):
@@ -102,9 +105,20 @@ class HtmlToPptx(BaseHtmlToOOXML):
             if "justify" in par_classes:
                 par.alignment = PP_ALIGN.JUSTIFY
         elif any(r.text for r in par.runs):
-            # Might be in a table or something, add a break to simulate another paragraph.
-            run = par.add_run()
-            run.text = "\n"
+            if par._p is par._parent.paragraphs[-1]._p:
+                # Consecutive paragraphs can share the supplied cell/list paragraph.
+                par.add_run().text = "\n"
+            else:
+                # A nested block appended a paragraph after this one. Continue at
+                # the end of the container so the rendered text remains ordered.
+                level = par.level
+                par = par._parent.add_paragraph()
+                par.level = level
+                if kwargs.get("list_level") is not None:
+                    properties = par._p.get_or_add_pPr()
+                    # Align with list text, clearing the master's hanging indent.
+                    properties.set("indent", "0")
+                    properties.append(OxmlElement("a:buNone"))
 
         self.process_children(el, par=par, **kwargs)
 
@@ -174,20 +188,20 @@ class HtmlToPptx(BaseHtmlToOOXML):
 
 class HtmlToPptxWithEvidence(HtmlToPptx):
     """
-    Augments `HtmlToPptx`, replacing marked spans with evidence figures, captions,
-    and references.
+    Augments `HtmlToPptx`, replacing marked elements with evidence figures,
+    captions, and references.
     """
+
     def __init__(self, slide, shape, evidences):
         super().__init__(slide, shape)
         self.evidences = evidences
 
-    def tag_span(self, el, *, par, **kwargs):
+    def tag_span(self, el, *, par=None, **kwargs):
         if "data-gw-evidence" in el.attrs:
             try:
                 evidence = self.evidences[int(el.attrs["data-gw-evidence"])]
             except (KeyError, ValueError):
                 return
-            par._p.getparent().remove(par._p)
             self.make_evidence(self.slide, evidence)
         elif "data-gw-caption" in el.attrs:
             ref_name = el.attrs["data-gw-caption"]
@@ -207,6 +221,17 @@ class HtmlToPptxWithEvidence(HtmlToPptx):
             self.tag_footnote(el, par=par, **kwargs)
         else:
             super().tag_span(el, par=par, **kwargs)
+
+    def tag_div(self, el, *, par=None, **kwargs):
+        if "richtext-evidence" in el.attrs.get("class", []):
+            try:
+                evidence = self.evidences[int(el.attrs["data-evidence-id"])]
+            except (KeyError, ValueError):
+                logger.exception("Could not get evidence")
+                return
+            self.make_evidence(self.slide, evidence)
+        else:
+            super().tag_div(el, par=par, **kwargs)
 
     @staticmethod
     def make_evidence(slide, evidence):

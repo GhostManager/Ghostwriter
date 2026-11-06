@@ -420,6 +420,11 @@ class HasuraMetadataActionSchemaTests(SimpleTestCase):
         self.assertNotIn("finding", arguments)
         self.assertNotIn("findingId", arguments)
 
+    def test_generate_oplog_token_accepts_an_optional_expiry_date(self):
+        arguments = action_arguments("generateOplogToken")
+
+        self.assertEqual(arguments["expiryDate"], "date")
+
     def test_tag_actions_require_bearer_authentication(self):
         actions_metadata = load_yaml(HASURA_METADATA_DIR / "actions.yaml")
         tag_action_views = {
@@ -444,15 +449,16 @@ class HasuraMetadataActionSchemaTests(SimpleTestCase):
             for node in settings_tree.body
             if isinstance(node, ast.Assign)
             and any(
-                isinstance(target, ast.Name)
-                and target.id == "HASURA_ACTION_SECRET"
+                isinstance(target, ast.Name) and target.id == "HASURA_ACTION_SECRET"
                 for target in node.targets
             )
         )
 
         self.assertIsInstance(assignment.value, ast.Call)
         self.assertEqual(assignment.value.args[0].value, "HASURA_ACTION_SECRET")
-        self.assertNotIn("default", {keyword.arg for keyword in assignment.value.keywords})
+        self.assertNotIn(
+            "default", {keyword.arg for keyword in assignment.value.keywords}
+        )
 
     def test_nginx_blocks_direct_access_to_tag_action_handlers(self):
         config_path = (
@@ -1011,10 +1017,7 @@ class HasuraMetadataUserRoleTests(SimpleTestCase):
         # The user role reaches the Action for per-user capability checks in Django.
         # Hasura's built-in admin role has implicit access to every action.
         self.assertSetEqual(
-            {
-                permission["role"]
-                for permission in delete_action.get("permissions", [])
-            },
+            {permission["role"] for permission in delete_action.get("permissions", [])},
             {"manager", "user"},
         )
         for permission_type in ("insert_permissions", "update_permissions"):

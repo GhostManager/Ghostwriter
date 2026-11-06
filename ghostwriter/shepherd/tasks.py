@@ -387,6 +387,10 @@ def check_domains(domain_id=None):
         change = "no action"
         domain_updates[k] = {}
         domain_updates[k]["domain"] = v["domain"]
+        if "error" in v:
+            domain_updates[k]["change"] = "error"
+            domain_updates["errors"][v["domain"]] = v["error"]
+            continue
         if "vt_results" in lab_results[k]:
             domain_updates[k]["vt_results"] = lab_results[k]["vt_results"]
         try:

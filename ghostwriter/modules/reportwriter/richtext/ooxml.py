@@ -14,6 +14,30 @@ from ghostwriter.modules.reportwriter.base.html_rich_text import (
 logger = logging.getLogger(__name__)
 
 ALLOWED_HYPERLINK_PROTOCOLS = {"http", "https", "mailto", "tel"}
+_INLINE_TAGS = frozenset("a b strong i em u span code sub sup del mark br".split())
+
+
+def _wrap_inline_children(container: bs4.Tag) -> None:
+    """Wrap adjacent orphan text and inline elements, retaining block boundaries."""
+    paragraph = None
+    for child in list(container.children):
+        if isinstance(child, bs4.Comment):
+            continue
+        is_text = isinstance(child, bs4.NavigableString)
+        is_inline = child.name in _INLINE_TAGS and not (
+            child.name == "br" and "data-gw-pagebreak" in child.attrs
+        )
+        if not (is_text or is_inline):
+            paragraph = None
+            continue
+        if paragraph is None:
+            # Whitespace between blocks is not an empty paragraph.
+            if is_text and not child.strip():
+                child.extract()
+                continue
+            paragraph = bs4.Tag(name="p")
+            child.insert_before(paragraph)
+        paragraph.append(child.extract())
 
 
 def set_style_method(tag_name, style_key, style_value=True):
@@ -95,7 +119,7 @@ class TextTracking:
 
 class BaseHtmlToOOXML:
     """
-    Base HTML to OpenOffice XML converter. Converts HTML from the TinyMCE rich
+    Base HTML to OpenOffice XML converter. Converts HTML from the rich
     text to various types of OpenXML documents.
 
     Use a subclass that matches the desired document type.
@@ -116,11 +140,17 @@ class BaseHtmlToOOXML:
         tag = soup.find("body")
         instance = cls(*args, **kwargs)
         if tag is not None:
+            # Normalize rendered block containers once, before document conversion.
+            _wrap_inline_children(tag)
+            for container in tag.find_all(["div", "blockquote", "li", "td", "th"]):
+                _wrap_inline_children(container)
             remove_trailing_empty_paragraphs(tag)
             instance.process_children(tag.children)
         return instance
 
     def process(self, el, **kwargs):
+        if isinstance(el, bs4.Comment):
+            return
         if el.name:
             if hasattr(self, "tag_" + el.name):
                 getattr(self, "tag_" + el.name)(el, **kwargs)
@@ -273,7 +303,8 @@ class BaseHtmlToOOXML:
                 **kwargs,
             )
         else:
-            logger.warning("Don't know how to handle div: %s", el)
+            # Specialized divs retain their document-specific handlers.
+            self.process_children(el.children, **kwargs)
 
     @staticmethod
     def _table_rows(table_el):

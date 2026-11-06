@@ -20,5 +20,5 @@
 {%  block morescripts %}
     {{ block.super }}
     {% include "collab_editing/attrs_snippet.html" %}
-    <script type="module" src="{% static collab_editing_script_path %}"></script>
+    <script type="module" src="{% static collab_editing_script_path %}?v={{ VERSION }}"></script>
 {% endblock %}

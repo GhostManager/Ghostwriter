@@ -691,7 +691,7 @@ EXTRA_FIELD_TYPES = {
     "json": ExtraFieldType(
         display_name="JSON",
         form_field=lambda *args, **kwargs: forms.JSONField(required=False, encoder=IndentingJsonEncoder, *args, **kwargs),
-        form_widget=lambda: forms.widgets.Textarea(attrs={"class": "no-auto-tinymce"}),
+        form_widget=lambda: forms.widgets.Textarea(attrs={"class": "no-auto-rich-text"}),
         from_str=json.loads,
         empty_value=lambda: None,
     ),

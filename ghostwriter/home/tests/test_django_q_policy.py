@@ -5,6 +5,7 @@ import inspect
 import pydoc
 import queue
 from contextlib import nullcontext
+from datetime import timedelta
 from io import StringIO
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
@@ -90,6 +91,36 @@ class FakeTimer:
 
 
 class TaskPolicyTests(SimpleTestCase):
+    def test_policy_requires_boolean_catch_up(self):
+        for catch_up, valid in (
+            (False, True),
+            (True, True),
+            (0, False),
+            ("false", False),
+        ):
+            with self.subTest(catch_up=catch_up), override_settings(
+                GHOSTWRITER_DJANGO_Q_SCHEDULE_TASKS={
+                    TEST_TASK_PATH: {"args": [], "kwargs": {}, "catch_up": catch_up}
+                }
+            ):
+                self.assertEqual(not validate_policy_configuration(), valid)
+
+    def test_policy_rejects_unsafe_or_invalid_server_queue_options(self):
+        for options in (
+            "invalid",
+            {"hook": "os.system"},
+            {"timeout": 0},
+            {"timeout": True},
+            {"save": "false"},
+            {"ack_failure": 1},
+        ):
+            with self.subTest(options=options), override_settings(
+                GHOSTWRITER_DJANGO_Q_SCHEDULE_TASKS={
+                    TEST_TASK_PATH: {"args": [], "kwargs": {}, "q_options": options}
+                }
+            ):
+                self.assertTrue(validate_policy_configuration())
+
     def test_callable_path_accepts_function(self):
         self.assertEqual(callable_path(allowed_test_task), TEST_TASK_PATH)
 
@@ -514,6 +545,62 @@ class RestrictedAdminTests(SimpleTestCase):
 
 
 class SchedulePolicyIntegrationTests(TestCase):
+    def setUp(self):
+        # Isolate scheduler tests from schedules installed by data migrations.
+        Schedule.objects.all().delete()
+        recovery_patcher = patch(
+            "ghostwriter.home.django_q_cluster.ensure_dashboard_health_schedule"
+        )
+        self.ensure_health_schedule = recovery_patcher.start()
+        self.addCleanup(recovery_patcher.stop)
+
+    @patch("ghostwriter.home.django_q_cluster.q_scheduler.close_old_django_connections")
+    @patch(
+        "ghostwriter.home.django_q_cluster.q_scheduler.async_task",
+        return_value="0123456789abcdef0123456789abcdef",
+    )
+    def test_other_tasks_preserve_cluster_catch_up(self, enqueue, _close_connections):
+        original_next_run = timezone.now() - timedelta(days=7)
+        schedule = Schedule.objects.create(
+            func="ghostwriter.home.django_q_tasks.clear_expired_sessions",
+            schedule_type=Schedule.DAILY,
+            repeats=-1,
+            next_run=original_next_run,
+            cluster=Conf.CLUSTER_NAME,
+        )
+
+        with patch.object(Conf, "CATCH_UP", True):
+            restricted_scheduler(broker=Mock())
+
+        schedule.refresh_from_db()
+        self.assertEqual(schedule.next_run, original_next_run + timedelta(days=1))
+        enqueue.assert_called_once()
+
+    @patch("ghostwriter.home.django_q_cluster.q_scheduler.logger")
+    @patch("ghostwriter.home.django_q_cluster.q_scheduler.close_old_django_connections")
+    @patch(
+        "ghostwriter.home.django_q_cluster.q_scheduler.async_task",
+        return_value="0123456789abcdef0123456789abcdef",
+    )
+    def test_monitor_recovery_failure_does_not_block_other_jobs(
+        self, enqueue, _close_connections, logger_mock
+    ):
+        self.ensure_health_schedule.side_effect = RuntimeError("Monitor unavailable")
+        Schedule.objects.create(
+            func="ghostwriter.home.django_q_tasks.clear_expired_sessions",
+            schedule_type=Schedule.ONCE,
+            repeats=1,
+            next_run=timezone.now() - timedelta(seconds=1),
+            cluster=Conf.CLUSTER_NAME,
+        )
+
+        restricted_scheduler(broker=Mock())
+
+        enqueue.assert_called_once()
+        logger_mock.exception.assert_called_once_with(
+            "Could not restore dashboard health schedule"
+        )
+
     def test_model_save_signal_rejects_disallowed_schedule(self):
         with self.assertRaises(ValidationError) as raised:
             Schedule.objects.create(

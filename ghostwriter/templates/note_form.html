@@ -4,7 +4,11 @@
 {% block pagetitle %}Note{% endblock %}
 
 {% block content %}
-    <p>This is a note for <strong>{{ note_object }}</strong>. All notes include a timestamp and the username of the creator.</p>
+    <header class="resource-form-page-heading mb-4">
+        <span class="detail-eyebrow">Note</span>
+        <h1>{% if object.pk %}Edit note{% else %}Add note{% endif %}</h1>
+        <p>Add operator context for {{ note_object }}. Ghostwriter records the author and timestamp automatically.</p>
+    </header>
 
     <!-- Form Error Section -->
     {% if form.errors %}
@@ -20,6 +24,7 @@
         </script>
     {% endif %}
 
-    <!-- Form Section -->
-    {% crispy form form.helper %}
+    <div class="resource-form-shell resource-note-form">
+        {% crispy form form.helper %}
+    </div>
 {% endblock %}

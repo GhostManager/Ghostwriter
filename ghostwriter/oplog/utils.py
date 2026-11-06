@@ -242,7 +242,10 @@ def extract_cast_text(file_data: bytes) -> tuple[str, str | None]:
                 continue
 
             if event[1] in ("i", "o"):
-                clean = _strip_ansi_escapes(str(event[2]))
+                # PostgreSQL text values cannot contain NUL bytes. JSON decodes
+                # asciicast event data such as ``\\u0000`` into a literal NUL,
+                # so remove it before the extracted text is stored for search.
+                clean = _strip_ansi_escapes(str(event[2])).replace("\x00", "")
                 if clean:
                     parts.append(clean)
 

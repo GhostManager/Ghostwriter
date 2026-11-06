@@ -3,19 +3,8 @@
 
 {% block pagetitle %}Service Token Creation{% endblock %}
 
-{% block breadcrumbs %}
-    <nav aria-label="breadcrumb">
-        <ul class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'users:user_detail' request.user.username %}">Your Profile</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Create Service Token</li>
-        </ul>
-    </nav>
-{% endblock %}
 
 {% block content %}
-    <p>Create a scoped service token for an integration or automation workflow.</p>
-
     {% if form.errors %}
         <script>
             {% for field in form %}
@@ -29,7 +18,9 @@
         </script>
     {% endif %}
 
-    {% crispy form form.helper %}
+    <div class="resource-form-shell token-create-editor">
+        {% crispy form form.helper %}
+    </div>
 {% endblock %}
 
 {% block morescripts %}

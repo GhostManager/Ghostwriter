@@ -111,6 +111,7 @@ class UserChangeFormTests(TestCase):
         name=None,
         phone=None,
         timezone=None,
+        report_email="",
         **kwargs,
     ):
         return UserChangeForm(
@@ -118,12 +119,28 @@ class UserChangeFormTests(TestCase):
                 "name": name,
                 "timezone": timezone,
                 "phone": phone,
+                "report_email": report_email,
             },
         )
 
     def test_valid_data(self):
         form = self.form_data(**self.user.__dict__)
         self.assertTrue(form.is_valid())
+
+    def test_report_email_is_optional_and_validated(self):
+        base_data = {
+            "name": self.user.name,
+            "phone": self.user.phone,
+            "timezone": self.user.timezone,
+        }
+        self.assertTrue(self.form_data(**base_data, report_email="").is_valid())
+        self.assertTrue(
+            self.form_data(**base_data, report_email="reports@example.com").is_valid()
+        )
+
+        form = self.form_data(**base_data, report_email="not-an-email")
+        self.assertFalse(form.is_valid())
+        self.assertIn("report_email", form.errors)
 
 class UserMFAAuthenticateFormTests(TestCase):
     """Collection of tests for :form:`users.UserMFAAuthenticateForm`."""

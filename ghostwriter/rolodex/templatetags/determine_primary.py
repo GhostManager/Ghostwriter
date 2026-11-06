@@ -71,6 +71,9 @@ def days_left(value):
     ``value``
         A ``datetime`` value
     """
+    if isinstance(value, datetime.datetime):
+        value = value.date()
+
     today = datetime.date.today()
     delta = value - today
     return delta.days

@@ -1,23 +1,29 @@
 {% extends 'admin/change_form.html' %}
 {% load static %}
 
+{% block extrastyle %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'assets/standalone_tiptap.css' %}?v={{ VERSION }}">
+<style>
+    #extrafieldspec_set-group .tabular fieldset.module {
+        overflow-x: auto;
+    }
+
+    #extrafieldspec_set-group td.field-user_default_value {
+        min-width: 34rem;
+    }
+</style>
+{% endblock %}
+
 {% block admin_change_form_document_ready %}
 {{ block.super }}
 {% include "snippets/editor_shortcuts_config.html" %}
-{% if original.is_collab_editable %}
-    <script type="module" src="{% static 'assets/admin_tiptap.js' %}"></script>
-    <link rel="stylesheet" href="{% static 'assets/collab_common.css' %}">
-{% else %}
-    <script type="text/javascript" src="{% static 'js/tinymce/tinymce.min.js' %}"></script>
-    <script type="text/javascript" src="{% static 'js/tinymce/config.js' %}"></script>
-{% endif %}
+<script type="module" src="{% static 'assets/admin_tiptap.js' %}?v={{ VERSION }}"></script>
 <script type="text/javascript">
     "use strict";
     django.jQuery(function () {
         const $ = django.jQuery;
         const INPUT_TYPES = "input, select, textarea";
-        const IS_COLLAB_EDITABLE = {% if original.is_collab_editable %}true{% else %}false{% endif %};
-
         function swap_control(row, tag, attrs, set_value) {
             let container = $(row).find(".field-user_default_value");
             let existing_input = container.find(INPUT_TYPES);
@@ -57,23 +63,15 @@
                 }
             }),
             "single_line_text": row => swap_control(row, "input", {"type": "text"}),
-            "rich_text": row => {
-                if(IS_COLLAB_EDITABLE) {
-                    swap_control(row, (container, name, id, value) => {
-                        const el = document.createElement("div");
-                        container.append(el);
-                        row._gw_destroyEditor = gwSetupTiptapEditor(el, name, id, value);
-                    });
-                } else {
-                    let new_control = swap_control(row, "textarea", {"class": "no-auto-tinymce"}, (el, value) => el.innerText = value);
-                    let editor = new tinymce.Editor($(new_control).attr("id"), GW_TINYMCE_DEFAULT_CONFIG, tinymce.EditorManager);
-                    editor.render();
-                    //row._gw_destroyEditor = () => editor.destroy();
-                }
-            },
+            "rich_text": row => swap_control(row, (container, name, id, value) => {
+                const el = document.createElement("div");
+                el.classList.add("gw-standalone-editor-host");
+                container.append(el);
+                row._gw_destroyEditor = gwSetupTiptapEditor(el, name, id, value);
+            }),
             "integer": row => swap_control(row, "input", {"type": "number", "step": "1"}),
             "float": row => swap_control(row, "input", {"type": "number"}),
-            "json": row => swap_control(row, "textarea", {"class": "no-auto-tinymce"}, (el, value) => el.innerText = value || "null"),
+            "json": row => swap_control(row, "textarea", {"class": "no-auto-rich-text"}, (el, value) => el.innerText = value || "null"),
         };
 
         function extra_fields_set_default_value_widget(row) {

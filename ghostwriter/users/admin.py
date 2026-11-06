@@ -8,11 +8,21 @@ from django.contrib.auth.models import Group
 from django.contrib.sessions.models import Session
 from django.utils.translation import gettext_lazy as _
 
+# 3rd Party Libraries
+from django_otp.plugins.otp_static.models import StaticDevice
+from django_otp.plugins.otp_totp.models import TOTPDevice
+
 # Ghostwriter Libraries
 from ghostwriter.home.models import UserProfile
 from ghostwriter.users.forms import GroupAdminForm
 
 User = get_user_model()
+
+# Retain the legacy allauth_2fa devices for migration, but direct administrators
+# to allauth.mfa authenticators when managing current MFA enrollment.
+for legacy_device_model in (TOTPDevice, StaticDevice):
+    if admin.site.is_registered(legacy_device_model):
+        admin.site.unregister(legacy_device_model)
 
 
 class SessionAdmin(admin.ModelAdmin):
@@ -42,11 +52,9 @@ class UserAdmin(auth_admin.UserAdmin):
         "is_active",
     )
     list_filter = ("role",)
-    search_fields = ("username", "name", "email")
-
     fieldsets = (
         (_("User Information"), {"fields": ("username", "password", "require_mfa")}),
-        (_("Personal Information"), {"fields": ("name", "email", "phone", "timezone")}),
+        (_("Personal Information"), {"fields": ("name", "email", "report_email", "phone", "timezone")}),
         (
             _("User Permissions"),
             {

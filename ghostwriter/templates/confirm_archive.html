@@ -3,16 +3,31 @@
 {% block pagetitle %}Archive {{ object }}{% endblock %}
 
 {% block content %}
-    <div class="alert alert-danger mt-5" role="alert">
-        <h5 class="alert-heading">Tread Carefully!</h4>
-        You are seeing this message because what you are about to do might have serious consequences.
-    </div>
+  <div class="resource-form-shell archive-confirmation-page">
+    <section class="resource-form-card archive-confirmation-card" aria-labelledby="archive-confirmation-heading">
+      <div class="resource-form-section-heading">
+        <span class="resource-form-section-icon archive-confirmation-icon" aria-hidden="true"><i class="fas fa-archive"></i></span>
+        <div>
+          <span class="detail-eyebrow">Close out report</span>
+          <h1 id="archive-confirmation-heading">Archive {{ object }}</h1>
+          <p>Create a downloadable closeout package for this report.</p>
+        </div>
+      </div>
 
-    <p>Are you sure you want to archive report {{ object }}? This will generate the report, save it, then <em>delete all evidence</em>.</p>
+      <p class="destructive-confirmation-copy">Generated report files and evidence will be saved in the archive. The report will be marked complete and delivered.</p>
+      <div class="destructive-confirmation-warning" role="note">
+        <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+        <p>Ghostwriter generates all report files and saves them alongside evidence in the archive, then marks the report complete and delivered. <strong>Evidence files are deleted off the disk.</strong></p>
+      </div>
 
-    <form action="" method="POST">
+      <form action="" method="post" class="resource-form-actions resource-form-actions-compact archive-confirmation-actions">
         {% csrf_token %}
-        <input type="submit" class="btn btn-danger col-md-2" value="Archive">
-        <a class="btn btn-outline-secondary col-md-2" href="{{cancel_link}}">Cancel</a>
-    </form>
+        <div class="resource-form-actions-context">Review the report before creating its final archive.</div>
+        <div class="resource-form-actions-buttons">
+          <a class="btn btn-outline-secondary" href="{{ cancel_link }}">Cancel</a>
+          <button type="submit" class="btn btn-danger"><i class="fas fa-archive" aria-hidden="true"></i> Archive report</button>
+        </div>
+      </form>
+    </section>
+  </div>
 {% endblock %}

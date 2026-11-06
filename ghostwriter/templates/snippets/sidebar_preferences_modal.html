@@ -1,0 +1,144 @@
+<div
+  class="modal fade sidebar-preferences-modal"
+  id="sidebarPreferencesModal"
+  tabindex="-1"
+  aria-labelledby="sidebarPreferencesModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <form method="post" action="{% url 'home:sidebar_preferences' %}" data-sidebar-preferences-form>
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <input type="hidden" name="order" value="{{ sidebar_navigation.order_value }}" data-sidebar-order>
+        <input type="hidden"
+               name="panel_order"
+               value="{{ sidebar_navigation.panel_order_value }}"
+               data-sidebar-panel-order>
+        <div class="modal-header">
+          <div>
+            <span class="sidebar-preferences-eyebrow">Navigation</span>
+            <h2 class="modal-title" id="sidebarPreferencesModalLabel">Customize sidebar</h2>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="sidebar-preferences-intro">
+            Arrange engagement panels and keep the tools you use close at hand.
+          </p>
+
+          <div class="sidebar-preferences-core" aria-label="Required workspace shortcuts">
+            <span>Always available</span>
+            <div>
+              {% for item in sidebar_navigation.core %}
+                <span class="sidebar-preferences-core-item">
+                  <i class="{{ item.icon }}" aria-hidden="true"></i>
+                  {{ item.label }}
+                </span>
+              {% endfor %}
+            </div>
+          </div>
+
+          <section class="sidebar-preferences-group" aria-labelledby="sidebar-panel-preferences-heading">
+            <div class="sidebar-preferences-group-heading">
+              <div>
+                <h3 id="sidebar-panel-preferences-heading">Engagement panels</h3>
+                <p>These controls use the same visibility and order in the expanded sidebar and compact rail.</p>
+              </div>
+            </div>
+            <div class="sidebar-preferences-list" data-sidebar-panel-list>
+              {% for panel in sidebar_navigation.panels %}
+                <div class="sidebar-preferences-row" data-sidebar-panel-id="{{ panel.id }}">
+                  <div class="sidebar-preferences-item">
+                    <span class="sidebar-preferences-icon"><i class="{{ panel.icon }}" aria-hidden="true"></i></span>
+                    <span>
+                      <strong>{{ panel.label }}</strong>
+                      <small>{{ panel.description }}</small>
+                    </span>
+                  </div>
+                  <div class="sidebar-preferences-controls">
+                    <label class="sidebar-preferences-toggle form-switch" for="sidebar-panel-{{ panel.id }}">
+                      <span>Show</span>
+                      <input
+                        class="form-check-input"
+                        type="checkbox"
+                        role="switch"
+                        name="visible_panels"
+                        value="{{ panel.id }}"
+                        id="sidebar-panel-{{ panel.id }}"
+                        {% if panel.visible %}checked{% endif %}
+                      >
+                    </label>
+                    <div class="btn-group btn-group-sm" role="group" aria-label="Move {{ panel.label }}">
+                      <button type="button"
+                              class="btn sidebar-order-button"
+                              data-sidebar-panel-move="up"
+                              aria-label="Move {{ panel.label }} up">
+                        <i class="fas fa-arrow-up" aria-hidden="true"></i>
+                      </button>
+                      <button type="button"
+                              class="btn sidebar-order-button"
+                              data-sidebar-panel-move="down"
+                              aria-label="Move {{ panel.label }} down">
+                        <i class="fas fa-arrow-down" aria-hidden="true"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          </section>
+
+          <section class="sidebar-preferences-group" aria-labelledby="sidebar-tool-preferences-heading">
+            <div class="sidebar-preferences-group-heading">
+              <div>
+                <h3 id="sidebar-tool-preferences-heading">Tool shortcuts</h3>
+                <p>Tools not shown here remain available under <strong>More tools</strong>.</p>
+              </div>
+            </div>
+            <div class="sidebar-preferences-list" data-sidebar-preferences-list>
+              {% for item in sidebar_navigation.customizable %}
+                <div class="sidebar-preferences-row" data-sidebar-item-id="{{ item.id }}">
+                  <div class="sidebar-preferences-item">
+                    <span class="sidebar-preferences-icon"><i class="{{ item.icon }}" aria-hidden="true"></i></span>
+                    <span>
+                      <strong>{{ item.label }}</strong>
+                      <small>{{ item.description }}</small>
+                    </span>
+                  </div>
+                  <div class="sidebar-preferences-controls">
+                    <label class="sidebar-preferences-toggle form-switch" for="sidebar-pin-{{ item.id }}">
+                      <span>Show</span>
+                      <input
+                        class="form-check-input"
+                        type="checkbox"
+                        role="switch"
+                        name="pinned"
+                        value="{{ item.id }}"
+                        id="sidebar-pin-{{ item.id }}"
+                        {% if item.pinned %}checked{% endif %}
+                      >
+                    </label>
+                    <div class="btn-group btn-group-sm" role="group" aria-label="Move {{ item.label }}">
+                      <button type="button" class="btn sidebar-order-button" data-sidebar-move="up" aria-label="Move {{ item.label }} up">
+                        <i class="fas fa-arrow-up" aria-hidden="true"></i>
+                      </button>
+                      <button type="button" class="btn sidebar-order-button" data-sidebar-move="down" aria-label="Move {{ item.label }} down">
+                        <i class="fas fa-arrow-down" aria-hidden="true"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          </section>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-link me-auto" name="action" value="reset">Reset defaults</button>
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save sidebar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

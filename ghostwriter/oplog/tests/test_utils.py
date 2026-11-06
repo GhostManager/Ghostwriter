@@ -66,6 +66,15 @@ class ExtractCastTextTests(unittest.TestCase):
         self.assertIn("prompt>", text)
         self.assertIn("whoami", text)
 
+    def test_nul_characters_are_removed_from_event_text(self):
+        """NULs decoded from JSON event data cannot be stored by PostgreSQL."""
+        text, warning = extract_cast_text(
+            self._v2('[0.5, "o", "before\\u0000after"]\n')
+        )
+
+        self.assertIsNone(warning)
+        self.assertEqual(text, "beforeafter")
+
     def test_unsupported_version_1_returns_warning(self):
         """asciicast v1 is a different format and not supported."""
         data = b'{"version": 1, "width": 80, "height": 24}\n[0.5, "o", "never"]\n'

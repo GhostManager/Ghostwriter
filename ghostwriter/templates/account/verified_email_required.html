@@ -5,20 +5,23 @@
 {% block head_title %}{% trans "Verify Your E-mail Address" %}{% endblock %}
 
 {% block inner %}
-<h1>{% trans "Verify Your E-mail Address" %}</h1>
+<div class="auth-challenge-heading">
+    <span class="auth-challenge-icon auth-journey-icon-warning" aria-hidden="true"><i class="fas fa-shield-alt"></i></span>
+    <div>
+        <span class="auth-challenge-eyebrow">{% trans "Verification required" %}</span>
+        <h1>{% trans "Verify your email address" %}</h1>
+        <p>{% trans "Ghostwriter needs a verified address before this area can be used." %}</p>
+    </div>
+</div>
 
 {% url 'account_email' as email_url %}
 
-<p>{% blocktrans %}This part of the site requires us to verify that
-you are who you claim to be. For this purpose, we require that you
-verify ownership of your e-mail address. {% endblocktrans %}</p>
+<div class="auth-journey-status auth-journey-status-warning" role="alert">
+    <i class="fas fa-envelope" aria-hidden="true"></i>
+    <p>{% blocktrans %}We sent an email for verification. Open its link before continuing. If it does not arrive within a few minutes, contact your administrator.{% endblocktrans %}</p>
+</div>
 
-<p>{% blocktrans %}We have sent an e-mail to you for
-verification. Please click on the link inside this e-mail. Please
-contact us if you do not receive it within a few minutes.{% endblocktrans %}</p>
-
-<p>{% blocktrans %}<strong>Note:</strong> you can still <a href="{{ email_url }}">change your e-mail address</a>.{% endblocktrans %}</p>
+<p class="auth-journey-intro">{% blocktrans %}You can still <a href="{{ email_url }}">change your email address</a>.{% endblocktrans %}</p>
 
 
 {% endblock %}
-
