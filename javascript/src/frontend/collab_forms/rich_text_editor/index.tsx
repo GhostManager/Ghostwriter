@@ -40,6 +40,7 @@ import Collaboration from "@tiptap/extension-collaboration";
 import CollaborationCaret from "@tiptap/extension-collaboration-caret";
 import EXTENSIONS from "../../../tiptap_gw";
 import LinkButton from "./link";
+import CommentButton from "./comment";
 import HeadingIdButton from "./heading";
 import ColorButton from "./color";
 import { TableCaptionBookmarkButton, TableCellBackgroundColor } from "./table";
@@ -240,6 +241,7 @@ export function Toolbar(props: {
                     <FontAwesomeIcon icon={faCode} />
                 </FormatButton>
                 <LinkButton editor={editor} />
+                <CommentButton editor={editor} />
                 <FormatButton
                     editor={editor}
                     chain={(c) => c.toggleSubscript()}

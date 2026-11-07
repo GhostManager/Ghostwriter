@@ -1989,3 +1989,104 @@ ul.collab-focused-users {
         transition: none;
     }
 }
+
+// Comment mark — active (unresolved) comments get a yellow background
+.gw-comment {
+    background-color: #fff3b0;
+    border-bottom: 2px solid #f0ad00;
+    cursor: pointer;
+}
+
+[data-theme="dark"] .gw-comment {
+    background-color: #4a3e00;
+    border-bottom-color: #c8940a;
+}
+
+// Resolved comments lose the highlight but the data stays in the DOM
+.gw-comment.gw-comment-resolved {
+    background-color: transparent;
+    border-bottom: 2px solid #aaa;
+}
+
+// Comment modal card styles
+.gw-comment-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.gw-comment-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    border: 1px solid var(--gw-border, #dee2e6);
+    border-radius: var(--gw-radius-md, 0.625rem);
+    padding: 0.75rem;
+    color: var(--gw-text-strong, #202428);
+    background-color: var(--gw-surface-muted, #f8f9fa);
+
+    &.gw-comment-card-own {
+        border-inline-start: 3px solid var(--gw-engagement-violet, #6d70a7);
+    }
+}
+
+.gw-comment-card-header {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+.gw-comment-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.gw-comment-meta {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+
+    strong {
+        font-size: 0.9rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    small {
+        font-size: 0.75rem;
+    }
+}
+
+.gw-comment-actions {
+    display: flex;
+    flex-direction: row;
+    gap: 0.25rem;
+    flex-shrink: 0;
+}
+
+.gw-comment-text {
+    margin: 0;
+    font-size: 0.9rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.gw-comment-edit-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.gw-comment-edit-buttons {
+    display: flex;
+    flex-direction: row;
+    gap: 0.25rem;
+}
