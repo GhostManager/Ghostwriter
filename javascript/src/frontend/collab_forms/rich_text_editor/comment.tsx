@@ -5,6 +5,7 @@ import { useEditorState } from "@tiptap/react";
 import { useEffect, useId, useRef, useState } from "react";
 import ReactModal from "react-modal";
 import { type CommentEntry } from "../../../tiptap_gw/comment";
+import { mapCommentRange } from "../../../tiptap_gw/comment_range";
 
 function getCurrentUsername(): string {
     return (
@@ -129,8 +130,31 @@ export default function CommentButton({ editor }: { editor: Editor }) {
     const [newComment, setNewComment] = useState("");
     const newCommentId = useId();
 
-    // Saved when the modal opens so commands always target the correct span
+    const [existingThread, setExistingThread] = useState(false);
+
+    // Map the target through document changes while the modal is open.
     const savedRange = useRef<{ from: number; to: number } | null>(null);
+
+    useEffect(() => {
+        if (!modalOpen) {
+            savedRange.current = null;
+            return;
+        }
+        const onTransaction = ({
+            transaction,
+        }: {
+            transaction: import("@tiptap/pm/state").Transaction;
+        }) => {
+            savedRange.current = mapCommentRange(
+                savedRange.current,
+                transaction.mapping
+            );
+        };
+        editor.on("transaction", onTransaction);
+        return () => {
+            editor.off("transaction", onTransaction);
+        };
+    }, [editor, modalOpen]);
 
     // Open the modal when the user clicks directly on commented text
     useEffect(() => {
@@ -139,16 +163,24 @@ export default function CommentButton({ editor }: { editor: Editor }) {
             const target = e.target;
             if (!(target instanceof Element)) return;
             if (!target.closest(".gw-comment")) return;
-            // rAF lets ProseMirror update the selection before we read it
+            const position = editor.view.posAtCoords({
+                left: e.clientX,
+                top: e.clientY,
+            });
+            if (!position) return;
+            // Explicitly preserve the clicked position when focusing an unfocused editor.
             requestAnimationFrame(() => {
+                if (editor.isDestroyed) return;
+                editor.chain().focus().setTextSelection(position.pos).run();
                 if (!editor.isActive("gwComment")) return;
-                editor.chain().focus().extendMarkRange("gwComment").run();
+                editor.chain().extendMarkRange("gwComment").run();
                 const { from, to } = editor.state.selection;
                 savedRange.current = { from, to };
                 const attrs = editor.getAttributes("gwComment");
                 setComments((attrs.comments as CommentEntry[]) ?? []);
                 setResolved((attrs.resolved as boolean) ?? false);
                 setNewComment("");
+                setExistingThread(true);
                 setModalOpen(true);
             });
         }
@@ -186,6 +218,7 @@ export default function CommentButton({ editor }: { editor: Editor }) {
     }
 
     function openModal() {
+        setExistingThread(editor.isActive("gwComment"));
         if (editor.isActive("gwComment")) {
             editor.chain().focus().extendMarkRange("gwComment").run();
             const { from, to } = editor.state.selection;
@@ -239,7 +272,6 @@ export default function CommentButton({ editor }: { editor: Editor }) {
                     ? {
                           ...c,
                           comment: updatedText,
-                          timestamp: new Date().toISOString(),
                       }
                     : c
             )
@@ -333,7 +365,9 @@ export default function CommentButton({ editor }: { editor: Editor }) {
                             type="button"
                             className="btn btn-primary"
                             disabled={
-                                !newComment.trim() && comments.length === 0
+                                !existingThread &&
+                                !newComment.trim() &&
+                                comments.length === 0
                             }
                             onClick={handleSave}
                         >

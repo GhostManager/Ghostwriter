@@ -1,4 +1,4 @@
-import { Mark } from "@tiptap/core";
+import { Mark, mergeAttributes } from "@tiptap/core";
 
 export interface CommentEntry {
     author: string;
@@ -75,12 +75,11 @@ const GwComment = Mark.create({
         const resolved = "data-gw-comment-resolved" in HTMLAttributes;
         return [
             "span",
-            {
-                ...HTMLAttributes,
+            mergeAttributes(HTMLAttributes, {
                 class: resolved
                     ? "gw-comment gw-comment-resolved"
                     : "gw-comment",
-            },
+            }),
             0,
         ];
     },
