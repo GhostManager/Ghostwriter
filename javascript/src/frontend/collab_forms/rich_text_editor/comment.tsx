@@ -1,3 +1,4 @@
+import { faXmark } from "@fortawesome/free-solid-svg-icons/faXmark";
 import { faComment } from "@fortawesome/free-solid-svg-icons/faComment";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Editor } from "@tiptap/core";
@@ -89,7 +90,7 @@ function CommentCard({
                     </label>
                     <textarea
                         id={fieldId}
-                        className="form-control form-control-sm"
+                        className="form-control form-control-sm no-auto-rich-text"
                         rows={3}
                         value={editText}
                         autoFocus
@@ -129,6 +130,7 @@ export default function CommentButton({ editor }: { editor: Editor }) {
     const [resolved, setResolved] = useState(false);
     const [newComment, setNewComment] = useState("");
     const newCommentId = useId();
+    const titleId = useId();
 
     const [existingThread, setExistingThread] = useState(false);
 
@@ -304,103 +306,126 @@ export default function CommentButton({ editor }: { editor: Editor }) {
                 isOpen={modalOpen}
                 onRequestClose={() => setModalOpen(false)}
                 contentLabel="Comments"
-                className="modal-dialog modal-dialog-centered"
+                aria={{ labelledby: titleId }}
+                className="modal-dialog modal-dialog-centered gw-editor-dialog gw-comment-dialog"
             >
-                <div className="modal-content">
-                    <div className="modal-header">
-                        <h5 className="modal-title">
-                            {hasExistingComments ? "Comments" : "Add Comment"}
-                        </h5>
-                        {resolved && (
-                            <span className="badge bg-success ms-2">
-                                Resolved
+                <div className="modal-content gw-editor-dialog-content">
+                    <div className="modal-header gw-editor-dialog-header">
+                        <div>
+                            <span className="gw-editor-dialog-eyebrow">
+                                Rich text
                             </span>
-                        )}
+                            <h5 id={titleId} className="modal-title">
+                                {existingThread ? "Comments" : "Add Comment"}
+                            </h5>
+                            <p className="gw-editor-dialog-intro">
+                                Review and discuss the selected text.
+                            </p>
+                            {resolved && (
+                                <span className="badge bg-success">
+                                    Resolved
+                                </span>
+                            )}
+                        </div>
+                        <button
+                            type="button"
+                            className="gw-editor-dialog-close"
+                            aria-label="Close comment dialog"
+                            onClick={() => setModalOpen(false)}
+                        >
+                            <FontAwesomeIcon
+                                icon={faXmark}
+                                aria-hidden="true"
+                            />
+                        </button>
                     </div>
                     <form
-                        className="modal-body"
-                        onSubmit={(ev) => {
-                            ev.preventDefault();
+                        className="gw-editor-dialog-form"
+                        onSubmit={(event) => {
+                            event.preventDefault();
                             handleSave();
                         }}
                     >
-                        {hasExistingComments && (
-                            <div className="gw-comment-list mb-3">
-                                {comments.map((entry, i) => (
-                                    <CommentCard
-                                        key={`${entry.author}-${entry.timestamp}`}
-                                        entry={entry}
-                                        currentUser={currentUser}
-                                        onEdit={(text) =>
-                                            handleEditComment(i, text)
-                                        }
-                                        onDelete={() => handleDeleteComment(i)}
-                                    />
-                                ))}
+                        <div className="modal-body gw-editor-dialog-body">
+                            {hasExistingComments && (
+                                <div className="gw-comment-list mb-3">
+                                    {comments.map((entry, i) => (
+                                        <CommentCard
+                                            key={`${entry.author}-${entry.timestamp}`}
+                                            entry={entry}
+                                            currentUser={currentUser}
+                                            onEdit={(text) =>
+                                                handleEditComment(i, text)
+                                            }
+                                            onDelete={() =>
+                                                handleDeleteComment(i)
+                                            }
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                            <div className="gw-editor-dialog-field">
+                                <label htmlFor={newCommentId}>
+                                    {hasExistingComments
+                                        ? "Add a reply"
+                                        : "Comment"}
+                                </label>
+                                <textarea
+                                    id={newCommentId}
+                                    className="form-control no-auto-rich-text"
+                                    rows={4}
+                                    value={newComment}
+                                    autoFocus={!hasExistingComments}
+                                    placeholder={
+                                        hasExistingComments
+                                            ? "Write a reply..."
+                                            : "Write a comment..."
+                                    }
+                                    onChange={(event) =>
+                                        setNewComment(event.target.value)
+                                    }
+                                />
                             </div>
-                        )}
-                        <div className="form-group">
-                            <label htmlFor={newCommentId}>
-                                {hasExistingComments
-                                    ? "Add a reply"
-                                    : "Comment"}
-                            </label>
-                            <textarea
-                                id={newCommentId}
-                                className="form-control"
-                                rows={3}
-                                value={newComment}
-                                autoFocus={!hasExistingComments}
-                                placeholder={
-                                    hasExistingComments
-                                        ? "Write a reply..."
-                                        : "Write a comment..."
+                        </div>
+                        <div className="modal-footer gw-editor-dialog-footer flex-wrap gap-2">
+                            {hasExistingComments && (
+                                <>
+                                    <button
+                                        type="button"
+                                        className="btn btn-outline-danger me-auto"
+                                        onClick={handleRemoveAll}
+                                    >
+                                        Remove All
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="btn btn-outline-secondary"
+                                        onClick={handleResolveToggle}
+                                    >
+                                        {resolved ? "Unresolve" : "Resolve"}
+                                    </button>
+                                </>
+                            )}
+                            <button
+                                type="button"
+                                className="btn btn-outline-secondary"
+                                onClick={() => setModalOpen(false)}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                className="btn gw-editor-primary-action"
+                                disabled={
+                                    !existingThread &&
+                                    !newComment.trim() &&
+                                    comments.length === 0
                                 }
-                                onChange={(e) => setNewComment(e.target.value)}
-                            />
+                            >
+                                Save
+                            </button>
                         </div>
                     </form>
-                    <div className="modal-footer flex-wrap gap-2">
-                        <button
-                            type="button"
-                            className="btn btn-primary"
-                            disabled={
-                                !existingThread &&
-                                !newComment.trim() &&
-                                comments.length === 0
-                            }
-                            onClick={handleSave}
-                        >
-                            Save
-                        </button>
-                        {hasExistingComments && (
-                            <>
-                                <button
-                                    type="button"
-                                    className={`btn ${
-                                        resolved ? "btn-warning" : "btn-success"
-                                    }`}
-                                    onClick={handleResolveToggle}
-                                >
-                                    {resolved ? "Unresolve" : "Resolve"}
-                                </button>
-                                <button
-                                    type="button"
-                                    className="btn btn-danger"
-                                    onClick={handleRemoveAll}
-                                >
-                                    Remove All
-                                </button>
-                            </>
-                        )}
-                        <button
-                            type="button"
-                            className="btn btn-secondary"
-                            onClick={() => setModalOpen(false)}
-                        >
-                            Cancel
-                        </button>
-                    </div>
                 </div>
             </ReactModal>
         </>
