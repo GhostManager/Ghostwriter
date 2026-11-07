@@ -312,9 +312,6 @@ export default function CommentButton({ editor }: { editor: Editor }) {
                 <div className="modal-content gw-editor-dialog-content">
                     <div className="modal-header gw-editor-dialog-header">
                         <div>
-                            <span className="gw-editor-dialog-eyebrow">
-                                Rich text
-                            </span>
                             <h5 id={titleId} className="modal-title">
                                 {existingThread ? "Comments" : "Add Comment"}
                             </h5>
