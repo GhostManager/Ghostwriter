@@ -325,7 +325,6 @@ def validate_headers(imported_data):
             "user_context",
             "command",
             "description",
-            "output",
             "comments",
             "operator_name",
             "tags",
@@ -333,7 +332,12 @@ def validate_headers(imported_data):
     )
     actual_header_count = collections.Counter(imported_data.headers)
     num_extra_fields = actual_header_count.pop("extra_fields", 0)
-    return expected_header_count == actual_header_count and num_extra_fields in (0, 1)
+    num_output_fields = actual_header_count.pop("output", 0)
+    return (
+        expected_header_count == actual_header_count
+        and num_extra_fields in (0, 1)
+        and num_output_fields in (0, 1)
+    )
 
 
 def validate_log_selection(user, oplog_id):

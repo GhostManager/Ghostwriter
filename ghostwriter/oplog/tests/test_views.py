@@ -447,7 +447,11 @@ class OplogEntriesImportTests(TestCase):
             'class="instruction-panel oplog-import-reference-card"',
             count=2,
         )
-        self.assertContains(response, "Required headers")
+        self.assertContains(response, "Required and optional headers")
+        self.assertContains(
+            response,
+            "The <code>output</code> and <code>extra_fields</code> columns are optional",
+        )
         self.assertContains(response, "Timestamp format")
         self.assertContains(response, 'class="oplog-import-page"')
         self.assertContains(response, "Import entries")
@@ -575,6 +579,36 @@ class OplogEntriesImportTests(TestCase):
             self.assertEqual(self.OplogEntry.objects.filter(oplog_id=9000).count(), 0)
             messages = list(get_messages(response.wsgi_request))
             self.assertEqual(str(messages[0]), "Successfully imported log data.")
+
+    def test_import_accepts_csv_without_output_column(self):
+        """Test imports can omit output without overwriting existing output."""
+        entry = self.OplogEntry.objects.filter(oplog_id=self.oplog).first()
+        entry.output = "Existing command output"
+        entry.save(update_fields=["output"])
+        fieldnames = [field for field in self.fieldnames if field != "output"]
+
+        with open(self.filename, "w") as csvfile:
+            writer = csv.DictWriter(
+                csvfile,
+                fieldnames=fieldnames,
+                quoting=csv.QUOTE_MINIMAL,
+                escapechar="\\",
+                delimiter=",",
+            )
+            writer.writeheader()
+            row = self.build_row(entry)
+            row.pop("output")
+            writer.writerow(row)
+
+        with open(self.filename, "r") as csvfile:
+            response = self.client_mgr.post(
+                self.uri, {"csv_file": csvfile, "oplog_id": self.oplog.id}
+            )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, self.redirect_uri)
+        entry.refresh_from_db()
+        self.assertEqual(entry.output, "Existing command output")
 
     def test_empty_csv_and_file_with_invalid_dimensions(self):
         """Test an invalid csv file is handled gracefully."""
