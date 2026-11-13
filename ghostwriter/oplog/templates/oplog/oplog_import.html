@@ -97,9 +97,9 @@
         <article class="instruction-panel oplog-import-reference-card">
           <span class="instruction-panel-icon" aria-hidden="true"><i class="fas fa-file-csv"></i></span>
           <div class="instruction-panel-content">
-            <h3>Required headers</h3>
-            <code class="instruction-code-block">entry_identifier, start_date, end_date, source_ip, dest_ip, tool, user_context, command, description, output, comments, operator_name, tags</code>
-            <p><code>entry_identifier</code> may be empty or unique. An optional <code>extra_fields</code> column accepts a JSON object keyed by extra-field internal name.</p>
+            <h3>Required and optional headers</h3>
+            <code class="instruction-code-block">entry_identifier, start_date, end_date, source_ip, dest_ip, tool, user_context, command, description, comments, operator_name, tags</code>
+            <p><code>entry_identifier</code> may be empty or unique. The <code>output</code> and <code>extra_fields</code> columns are optional; <code>extra_fields</code> accepts a JSON object keyed by extra-field internal name.</p>
           </div>
         </article>
 
