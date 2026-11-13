@@ -5,6 +5,31 @@ description: "Features of the collaborative editor"
 
 Collaborative editing is the star of the show, but the editor contains other features worth exploring.
 
+## Comments for QA Review
+
+Select text and click **Comment** in the toolbar to add a QA note. Click commented text to open its thread, add a reply, or resolve
+or reopen the discussion. Resolving a thread keeps its comments attached to the text.
+
+<Warning>
+Comments are ephemeral QA tools, not an audit trail or a durable review record. Deleting or replacing the text carrying a thread
+can also remove its comments. Removing a comment or thread does not retain a dedicated deletion history. Record important
+decisions, approvals, and required follow-up in a system with durable history.
+</Warning>
+
+Comment content, displayed authors, timestamps, and resolution state are stored inside the editable document. The interface shows
+individual **Edit** and **Delete** controls only for comments whose author matches the current username. Operators with document
+editing access can resolve or reopen threads and use **Remove All** to remove a thread, including other users' comments.
+
+These ownership checks are client-side conveniences, not server-enforced comment permissions. A document editor can modify the
+underlying metadata, including another user's comment text or displayed author. Names and timestamps on comments must not be
+treated as verified attribution, proof of authorship, or evidence of approval. There is no separate comment audit history
+identifying who actually edited, deleted, or resolved a comment.
+
+<Note>
+This is an initial release of the comments system. A database-backed comment system with attribution and history will be explored
+based on feedback.
+</Note>
+
 ## Inserting the Current Date and Time
 
 Type `@today` or its alias `@date` followed by a space or punctuation to insert the current UTC date using Ghostwriter's configured date
