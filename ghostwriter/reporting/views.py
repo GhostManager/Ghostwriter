@@ -1,18 +1,20 @@
 """This contains all the views used by the Reporting application."""
 
 # Standard Libraries
+import json
 import logging
+import mimetypes
 import os
 from datetime import datetime
-import mimetypes
 from os.path import exists
 
 # Django Imports
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ValidationError
 from django.core.files import File
-from django.db import transaction
+from django.db import DatabaseError, transaction
 from django.http import (
     FileResponse,
     Http404,
@@ -23,6 +25,7 @@ from django.http import (
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.urls import reverse
+from django.utils.decorators import method_decorator
 from django.utils.html import escape
 from django.views.generic import View
 from django.views.generic.detail import DetailView, SingleObjectMixin
@@ -34,9 +37,9 @@ from channels.layers import get_channel_layer
 # Ghostwriter Libraries
 from ghostwriter.api.utils import (
     ForbiddenJsonResponse,
+    RoleBasedAccessControlMixin,
     get_archives_list,
     verify_user_is_privileged,
-    RoleBasedAccessControlMixin,
 )
 from ghostwriter.commandcenter.models import ReportConfiguration
 from ghostwriter.home.working_context import record_recent_report
@@ -49,14 +52,17 @@ from ghostwriter.reporting.forms import (
 )
 from ghostwriter.reporting.models import (
     Evidence,
+    EvidenceReportWidthUnit,
     FindingNote,
     LocalFindingNote,
     Report,
     ReportFindingLink,
     ReportObservationLink,
     ReportTemplate,
+    delete_unreferenced_evidence_file,
 )
 from ghostwriter.reporting.resources import FindingResource, ObservationResource
+from ghostwriter.reporting.validators import validate_edited_evidence_image
 
 channel_layer = get_channel_layer()
 
@@ -768,6 +774,7 @@ class EvidenceCreate(RoleBasedAccessControlMixin, CreateView):
         return reverse("reporting:report_detail", args=(report_pk,)) + fragment
 
 
+@method_decorator(transaction.non_atomic_requests, name="dispatch")
 class EvidenceUpdate(RoleBasedAccessControlMixin, UpdateView):
     """
     Update an individual instance of :model:`reporting.Evidence`.
@@ -785,12 +792,52 @@ class EvidenceUpdate(RoleBasedAccessControlMixin, UpdateView):
     model = Evidence
     form_class = EvidenceForm
 
+    def wants_json(self):
+        """
+        Use JSON only for explicitly enhanced evidence-form requests.
+        """
+        return "application/json" in self.request.headers.get("Accept", "")
+
     def test_func(self):
         return self.get_object().report.user_can_edit(self.request.user)
 
     def handle_no_permission(self):
+        if self.wants_json():
+            return ForbiddenJsonResponse()
         messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
+
+    def get(self, request, *args, **kwargs):
+        """
+        Expose the current image revision before opening the page's editor.
+        """
+        if self.wants_json():
+            self.object = self.get_object()
+            response = JsonResponse(
+                {
+                    "document": self.object.document.name,
+                    "download_url": reverse(
+                        "reporting:evidence_download", args=[self.object.pk]
+                    ),
+                }
+            )
+            response["Cache-Control"] = "private, no-store"
+            return response
+        return super().get(request, *args, **kwargs)
+
+    def form_error_response(self, form, status):
+        """
+        Keep enhanced forms in place so their selected files survive errors.
+        """
+        if self.wants_json():
+            return JsonResponse({"errors": form.errors}, status=status)
+        return self.render_to_response(self.get_context_data(form=form), status=status)
+
+    def form_invalid(self, form):
+        """
+        Return field errors in place while preserving the ordinary HTML fallback.
+        """
+        return self.form_error_response(form, 400 if self.wants_json() else 200)
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -809,14 +856,285 @@ class EvidenceUpdate(RoleBasedAccessControlMixin, UpdateView):
     def get_success_url(self):
         return reverse("reporting:evidence_detail", kwargs={"pk": self.object.pk})
 
-    def form_valid(self, form):
-        res = super().form_valid(form)
+    def post(self, request, *args, **kwargs):
+        """
+        Lock the evidence revision and compensate uploaded files if its commit fails.
+        """
+        form = None
+        old_name = None
+        replacing_file = bool(request.FILES.get("document"))
+        try:
+            with transaction.atomic():
+                self.object = self.get_object(
+                    queryset=self.get_queryset().select_for_update()
+                )
+                if not self.object.report.user_can_edit(request.user):
+                    return self.handle_no_permission()
+                old_name = self.object.document.name
+                form = self.get_form()
+                if replacing_file:
+                    expected_document = request.POST.get("expected_document")
+                    missing_revision = expected_document is None or (
+                        expected_document == "" and old_name != ""
+                    )
+                    if missing_revision or expected_document != old_name:
+                        form.is_valid()
+                        message = (
+                            "The original file version is required. Reload the evidence page before uploading."
+                            if missing_revision
+                            else (
+                                "This evidence file changed while you were editing. "
+                                "Reload the page and edit the current file."
+                            )
+                        )
+                        form.add_error("document", message)
+                        self.object.document = old_name
+                        return self.form_error_response(
+                            form, 400 if missing_revision else 409
+                        )
+                if not form.is_valid():
+                    self.object.document = old_name
+                    return self.form_invalid(form)
+                response = self.form_valid(form)
+                if replacing_file and self.object.document.name != old_name:
+                    transaction.on_commit(
+                        lambda: EvidenceImageReplace.cleanup_file(old_name)
+                    )
+        except (DatabaseError, OSError):
+            if form is None or old_name is None:
+                logger.exception(
+                    "Failed loading evidence for update %s", self.kwargs["pk"]
+                )
+                message = "The evidence could not be saved. Please try again."
+                if self.wants_json():
+                    return JsonResponse({"errors": {"__all__": [message]}}, status=503)
+                return HttpResponse(message, status=503)
+            document = self.object.document
+            if replacing_file and document._committed and document.name != old_name:
+                EvidenceImageReplace.cleanup_file(document.name)
+            self.object.document = old_name
+            logger.exception("Failed saving evidence update %s", self.kwargs["pk"])
+            form.add_error(None, "The evidence could not be saved. Please try again.")
+            return self.form_error_response(form, 503)
+
         messages.success(
-            self.request,
+            request,
             "Successfully updated {}.".format(self.object.friendly_name),
             extra_tags="alert-success",
         )
-        return res
+        if self.wants_json():
+            return JsonResponse({"redirect_url": self.get_success_url()})
+        return response
+
+
+class EvidenceCaptionUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    """
+    Update the caption of an individual :model:`reporting.Evidence` from the rich text editor
+    and return the result as JSON.
+    """
+
+    model = Evidence
+
+    def test_func(self):
+        return self.get_object().report.user_can_edit(self.request.user)
+
+    def handle_no_permission(self):
+        """
+        Return a JSON forbidden response when evidence editing is not permitted.
+        """
+        return ForbiddenJsonResponse()
+
+    def post(self, *args, **kwargs):
+        """
+        Validate and update the caption of an accessible evidence record.
+        """
+        obj = self.get_object()
+        if self.request.content_type == "application/json":
+            try:
+                caption = json.loads(self.request.body).get("caption")
+            except (ValueError, AttributeError):
+                return JsonResponse({"caption": ["Invalid request body."]}, status=400)
+        else:
+            caption = self.request.POST.get("caption")
+
+        if not isinstance(caption, str) or not caption.strip():
+            return JsonResponse({"caption": ["A caption is required."]}, status=400)
+        caption = caption.strip()
+        max_length = Evidence._meta.get_field("caption").max_length
+        if len(caption) > max_length:
+            return JsonResponse(
+                {"caption": [f"Captions must be {max_length} characters or fewer."]},
+                status=400,
+            )
+
+        obj.caption = caption
+        obj.save(update_fields=["caption"])
+        return JsonResponse({"pk": obj.pk, "caption": obj.caption})
+
+
+class EvidenceReportSizeUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    """
+    Update how large an individual :model:`reporting.Evidence` image appears in generated reports
+    from the rich text editor and return the result as JSON.
+
+    Expects JSON with ``unit`` (``percent``, ``px``, or an empty string for the full evidence width)
+    and ``value``.
+    """
+
+    model = Evidence
+
+    def test_func(self):
+        return self.get_object().report.user_can_edit(self.request.user)
+
+    def handle_no_permission(self):
+        """
+        Return a JSON forbidden response when evidence editing is not permitted.
+        """
+        return ForbiddenJsonResponse()
+
+    def post(self, *args, **kwargs):
+        """
+        Validate and save the requested report image width.
+        """
+        obj = self.get_object()
+        try:
+            data = json.loads(self.request.body)
+            unit = data.get("unit") or ""
+            value = data.get("value")
+        except (ValueError, AttributeError):
+            return JsonResponse(
+                {"report_width_value": ["Invalid request body."]}, status=400
+            )
+
+        if unit not in EvidenceReportWidthUnit.values and unit != "":
+            return JsonResponse(
+                {"report_width_unit": ["Choose percent or pixels."]}, status=400
+            )
+        if unit and (isinstance(value, bool) or not isinstance(value, int)):
+            return JsonResponse(
+                {"report_width_value": ["Enter a whole number."]}, status=400
+            )
+
+        obj.report_width_unit = unit
+        obj.report_width_value = value if unit else None
+        try:
+            obj.full_clean(exclude=["document", "tags", "report", "uploaded_by"])
+        except ValidationError as err:
+            return JsonResponse(err.message_dict, status=400)
+
+        obj.save(update_fields=["report_width_unit", "report_width_value"])
+        return JsonResponse(
+            {
+                "pk": obj.pk,
+                "report_width_unit": obj.report_width_unit,
+                "report_width_value": obj.report_width_value,
+            }
+        )
+
+
+@method_decorator(transaction.non_atomic_requests, name="dispatch")
+class EvidenceImageReplace(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    """
+    Replace the image file of an individual :model:`reporting.Evidence` with an edited copy
+    (e.g., redacted or annotated in the rich text editor) and return the result as JSON.
+
+    Require ``expected_document`` to match the version opened by the editor. Delete
+    the previous file after commit; failed cleanup is retried by the Hasura event.
+
+    This view owns its transaction instead of using ``ATOMIC_REQUESTS`` so it can
+    compensate a failed commit by removing the newly written storage object.
+    """
+
+    model = Evidence
+    allowed_formats = {"PNG": "png", "JPEG": "jpg"}
+
+    def test_func(self):
+        return self.get_object().report.user_can_edit(self.request.user)
+
+    def handle_no_permission(self):
+        """
+        Return a JSON forbidden response when evidence editing is not permitted.
+        """
+        return ForbiddenJsonResponse()
+
+    def post(self, *args, **kwargs):
+        """
+        Replace the expected image revision and retire the old file after commit.
+        """
+        expected_document = self.request.POST.get("expected_document")
+        if not expected_document:
+            return JsonResponse(
+                {
+                    "document": [
+                        "The original image version is required. Reopen the editor."
+                    ]
+                },
+                status=400,
+            )
+
+        upload = self.request.FILES.get("document")
+        if upload is None:
+            return JsonResponse(
+                {"document": ["You must provide an image file."]}, status=400
+            )
+        try:
+            img_format = validate_edited_evidence_image(upload)
+        except ValidationError as error:
+            return JsonResponse(
+                {"document": error.messages},
+                status=413 if error.code == "file_too_large" else 400,
+            )
+
+        new_name = None
+        try:
+            with transaction.atomic():
+                obj = get_object_or_404(
+                    self.get_queryset().select_for_update(), pk=self.kwargs["pk"]
+                )
+                if not obj.report.user_can_edit(self.request.user):
+                    return ForbiddenJsonResponse()
+                if obj.document.name != expected_document:
+                    return JsonResponse(
+                        {
+                            "document": [
+                                "This image changed while you were editing. Reopen it and try again."
+                            ]
+                        },
+                        status=409,
+                    )
+                old_name = obj.document.name
+                if os.path.splitext(old_name)[1].lower() not in (".png", ".jpg", ".jpeg"):
+                    return JsonResponse(
+                        {"document": ["Only image evidence can be edited."]}, status=400
+                    )
+                stem = os.path.splitext(os.path.basename(old_name))[0]
+                obj.document.save(
+                    f"{stem}.{self.allowed_formats[img_format]}", File(upload), save=False
+                )
+                new_name = obj.document.name
+                obj.save(update_fields=["document", "upload_date"])
+                transaction.on_commit(lambda: self.cleanup_file(old_name))
+        except (DatabaseError, OSError):
+            # Storage writes are not rolled back by the database transaction.
+            if new_name:
+                self.cleanup_file(new_name)
+            logger.exception("Failed replacing evidence image %s", self.kwargs["pk"])
+            return JsonResponse(
+                {"document": ["The image could not be saved. Please try again."]},
+                status=503,
+            )
+
+        return JsonResponse({"pk": obj.pk, "document": obj.document.name})
+
+    @staticmethod
+    def cleanup_file(name):
+        """
+        Attempt immediate cleanup without hiding a committed save on storage failure.
+        """
+        try:
+            delete_unreferenced_evidence_file(name)
+        except (DatabaseError, OSError):
+            logger.exception("Failed deleting obsolete evidence file %s", name)
 
 
 class EvidenceDelete(RoleBasedAccessControlMixin, DeleteView):
@@ -885,6 +1203,18 @@ class EvidenceDownload(RoleBasedAccessControlMixin, SingleObjectMixin, View):
 
     def get(self, *args, **kwargs):
         obj = self.get_object()
+        expected_document = self.request.GET.get("expected_document")
+        if expected_document is not None and obj.document.name != expected_document:
+            response = JsonResponse(
+                {
+                    "document": [
+                        "This image changed. Open the editor again to load the latest image."
+                    ]
+                },
+                status=409,
+            )
+            response["Cache-Control"] = "private, no-store"
+            return response
         file_path = obj.document.path
         if os.path.exists(file_path):
             # Detect the content type
@@ -905,6 +1235,8 @@ class EvidenceDownload(RoleBasedAccessControlMixin, SingleObjectMixin, View):
 
             # Add security headers to mitigate XSS risks
             response["X-Content-Type-Options"] = "nosniff"
+            if expected_document is not None:
+                response["Cache-Control"] = "private, no-store"
             if inline_view:
                 # Additional hardening for inline content
                 response["Content-Security-Policy"] = "default-src 'none'; img-src 'self'"

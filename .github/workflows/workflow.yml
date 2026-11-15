@@ -52,6 +52,14 @@ jobs:
         working-directory: javascript
         run: npm run test:collab-graphql-auth
 
+      - name: Install Chromium for image editor tests
+        working-directory: javascript
+        run: npx playwright install --with-deps chromium
+
+      - name: Run image editor browser regressions
+        working-directory: javascript
+        run: npm run test:image-editor
+
   run-unit-tests:
     runs-on: ubuntu-latest
     steps:

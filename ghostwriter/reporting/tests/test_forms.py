@@ -249,6 +249,8 @@ class BaseEvidenceFormTests:
         caption=None,
         description=None,
         evidence_queryset=None,
+        report_width_unit="",
+        report_width_value=None,
         **kwargs,
     ):
         if not evidence_queryset:
@@ -259,6 +261,8 @@ class BaseEvidenceFormTests:
                 "friendly_name": friendly_name,
                 "caption": caption,
                 "description": description,
+                "report_width_unit": report_width_unit,
+                "report_width_value": report_width_value,
             },
             files={
                 "document": document,
@@ -282,6 +286,68 @@ class BaseEvidenceFormTests:
         errors = form["document"].errors.as_data()
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0].code, "incomplete")
+
+    def test_report_size_accepts_percent_pixels_and_full_width(self):
+        for unit, value in (("percent", "50"), ("px", "640"), ("", "")):
+            with self.subTest(unit=unit, value=value):
+                evidence = self.evidence_dict.copy()
+                evidence.update(
+                    friendly_name="Sized Evidence",
+                    report_width_unit=unit,
+                    report_width_value=value,
+                )
+                form = self.form_data(**evidence)
+                self.assertTrue(form.is_valid(), form.errors)
+                instance = form.save(commit=False)
+                self.assertEqual(instance.report_width_unit, unit)
+                self.assertEqual(
+                    instance.report_width_value, int(value) if unit else None
+                )
+
+    def test_report_size_rejects_invalid_values(self):
+        for unit, value in (
+            ("percent", ""),
+            ("percent", "0"),
+            ("percent", "101"),
+            ("percent", "12.5"),
+            ("px", "-1"),
+            ("px", ""),
+            ("px", "text"),
+            ("inches", "2"),
+        ):
+            with self.subTest(unit=unit, value=value):
+                evidence = self.evidence_dict.copy()
+                evidence.update(
+                    friendly_name="Invalid Size",
+                    report_width_unit=unit,
+                    report_width_value=value,
+                )
+                form = self.form_data(**evidence)
+                self.assertFalse(form.is_valid())
+                self.assertTrue(
+                    {"report_width_unit", "report_width_value"}.intersection(form.errors)
+                )
+
+    def test_report_size_can_be_cleared_when_updating_evidence(self):
+        self.evidence.report_width_unit = "percent"
+        self.evidence.report_width_value = 50
+        self.evidence.save(update_fields=["report_width_unit", "report_width_value"])
+        form = EvidenceForm(
+            instance=self.evidence,
+            data={
+                "friendly_name": self.evidence.friendly_name,
+                "caption": self.evidence.caption,
+                "description": self.evidence.description,
+                "report_width_unit": "",
+                "report_width_value": "50",
+            },
+            evidence_queryset=self.evidence_queryset,
+        )
+        self.assertTrue(form.is_valid(), form.errors)
+        form.save()
+        self.evidence.refresh_from_db()
+        self.assertEqual(self.evidence.report_width_unit, "")
+        self.assertIsNone(self.evidence.report_width_value)
 
     def test_duplicate_friendly_name(self):
         new_evidence = self.evidence_dict.copy()

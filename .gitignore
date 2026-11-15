@@ -293,3 +293,5 @@ ghostwriter-cli
 
 # Ignore any QA testing artifacts
 .playwright-mcp/*
+# Local browser reports, traces, and screenshots
+/test-artifacts/

@@ -4116,6 +4116,8 @@ class GraphqlEvidenceUpdateEventTests(TestCase):
 
     def test_graphql_evidence_delete_event(self):
         self.assertTrue(os.path.exists(self.deleted_evidence.document.path))
+        # Hasura delivers DELETE after the database row has actually been removed.
+        self.deleted_evidence.delete()
         response = self.client.post(
             self.uri,
             content_type="application/json",

@@ -19,7 +19,8 @@
         "build-collab-server-prod": "vite build -c vite.config.collab_server.ts --mode production",
         "build-collab-server-dev": "NODE_ENV=development vite build -c vite.config.collab_server.ts --mode development",
         "run-collab-server-dev": "node --inspect=0.0.0.0:9229 ./dist_collab_server/index.js",
-        "run-collab-server-prod": "node ./dist_collab_server/index.js"
+        "run-collab-server-prod": "node ./dist_collab_server/index.js",
+        "test:image-editor": "tsc --noEmit -p tsconfig.image-editor.json && playwright test -c playwright.image-editor.config.ts"
     },
     "devDependencies": {
         "@graphql-codegen/cli": "^7.4.6",

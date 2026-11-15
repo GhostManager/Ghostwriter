@@ -40,13 +40,14 @@
 
   // Detect when a file is pasted into the page and update the input and preview
   $(window).on('paste', function (e) {
+    if (fileInput.disabled || fileInput.dataset.gwImageEditorOpen === "true") return;
     // Use event.originalEvent.clipboard for newer Chrome versions
     let pastedFileObj = (e.clipboardData || e.originalEvent.clipboardData);
 
     if (pastedFileObj.files.length) {
       fileInput.files = pastedFileObj.files
       filenameLabel.querySelector('span').textContent = fileInput.files[0].name
-      renderPreview(fileInput, previewDiv)
+      fileInput.dispatchEvent(new Event("change", { bubbles: true }));
     }
   });
   // Detect when a file is dragged into the page and update the input and preview

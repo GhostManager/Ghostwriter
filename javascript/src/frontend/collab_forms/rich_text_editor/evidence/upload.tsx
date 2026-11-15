@@ -1,6 +1,7 @@
 import { useContext, useEffect, useId, useRef, useState } from "react";
 import { EvidencesContext } from "../../../../tiptap_gw/evidence";
 import { getCsrfToken } from "../../../../services/csrf";
+import ImageAnnotator from "../../../image_annotator";
 
 type DjangoFormErrors = Record<string, string[]>;
 
@@ -8,6 +9,7 @@ export default function EvidenceUploadForm(props: {
     onSubmit: (id: number | null) => void;
     switchMode: () => void;
     initialFile?: File;
+    onBusyChange?: (busy: boolean) => void;
 }) {
     const evidences = useContext(EvidencesContext)!;
     const [state, setState] = useState<null | DjangoFormErrors | "loading">(
@@ -18,11 +20,14 @@ export default function EvidenceUploadForm(props: {
         props.initialFile ? props.initialFile.name.replace(/\.[^.]+$/, "") : ""
     );
     const formRef = useRef<HTMLFormElement | null>(null);
+    const submitting = useRef(false);
     const friendlyNameId = useId();
     const captionId = useId();
 
     const disabled = state === "loading";
     const errors = state !== "loading" ? state : null;
+
+    useEffect(() => () => props.onBusyChange?.(false), [props.onBusyChange]);
 
     return (
         <form
@@ -30,6 +35,9 @@ export default function EvidenceUploadForm(props: {
             className="gw-evidence-upload-form"
             onSubmit={(ev) => {
                 ev.preventDefault();
+                if (submitting.current) return;
+                submitting.current = true;
+                props.onBusyChange?.(true);
                 setState("loading");
                 const data = new FormData(formRef.current!);
 
@@ -44,6 +52,8 @@ export default function EvidenceUploadForm(props: {
                                 "CSRF token not found. Please refresh the page.",
                             ],
                         });
+                        submitting.current = false;
+                        props.onBusyChange?.(false);
                         return;
                     }
                     const headers = new Headers();
@@ -56,18 +66,33 @@ export default function EvidenceUploadForm(props: {
                     });
                     if (res.status === 200) {
                         const body = await res.json();
-                        await evidences?.poll();
+                        try {
+                            await evidences.poll();
+                        } catch {
+                            // The evidence already exists. A failed refresh must
+                            // not offer another upload of the same edited file.
+                            console.warn(
+                                "Evidence uploaded, but its preview could not be refreshed."
+                            );
+                        }
+                        props.onBusyChange?.(false);
                         props.onSubmit(body.pk);
                     } else if (res.status === 400) {
                         const body = await res.json();
                         console.error(body);
                         setState(body);
+                        submitting.current = false;
+                        props.onBusyChange?.(false);
                     } else {
                         setState({ form: ["Could not create evidence"] });
+                        submitting.current = false;
+                        props.onBusyChange?.(false);
                     }
                 })().catch((err) => {
                     console.error(err);
                     setState({ form: ["Could not create evidence"] });
+                    submitting.current = false;
+                    props.onBusyChange?.(false);
                 });
             }}
         >
@@ -146,6 +171,7 @@ export default function EvidenceUploadForm(props: {
                 <button
                     type="button"
                     className="btn btn-outline-secondary gw-evidence-mode-action"
+                    disabled={disabled}
                     onClick={(e) => {
                         e.preventDefault();
                         props.switchMode();
@@ -158,6 +184,7 @@ export default function EvidenceUploadForm(props: {
                     <button
                         type="button"
                         className="btn btn-outline-secondary"
+                        disabled={disabled}
                         onClick={(ev) => {
                             ev.preventDefault();
                             props.onSubmit(null);
@@ -194,6 +221,8 @@ export default function EvidenceUploadForm(props: {
     );
 }
 
+const IMAGE_TYPES = /^image\/(png|jpeg)$/;
+
 function FileInput(props: {
     errors: DjangoFormErrors | null;
     disabled: boolean;
@@ -201,28 +230,48 @@ function FileInput(props: {
 }) {
     const id = useId();
     const fileRef = useRef<HTMLInputElement | null>(null);
-    const [fileName, setFileName] = useState<string | null>(
-        props.initialFile?.name ?? null
-    );
+    const [file, setFile] = useState<File | null>(props.initialFile ?? null);
+    const [annotatorOpen, setAnnotatorOpen] = useState(false);
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!file || !IMAGE_TYPES.test(file.type)) {
+            setPreviewUrl(null);
+            return;
+        }
+        const url = URL.createObjectURL(file);
+        setPreviewUrl(url);
+        return () => URL.revokeObjectURL(url);
+    }, [file]);
+
+    // Keep the form's file input in sync with the selected (or edited) file
+    const selectFile = (files: FileList | File | null) => {
+        if (files instanceof File) {
+            const dt = new DataTransfer();
+            dt.items.add(files);
+            files = dt.files;
+        }
+        if (files && fileRef.current) fileRef.current.files = files;
+        setFile(files?.[0] ?? null);
+    };
 
     // Pre-populate the file input when an initial file is provided (paste-to-upload)
     useEffect(() => {
-        if (!props.initialFile || !fileRef.current) return;
-        const dt = new DataTransfer();
-        dt.items.add(props.initialFile);
-        fileRef.current.files = dt.files;
+        if (props.initialFile) selectFile(props.initialFile);
     }, [props.initialFile]);
 
     useEffect(() => {
+        if (annotatorOpen || props.disabled) return;
         const cb = (ev: ClipboardEvent) => {
             if (ev.clipboardData?.files.length != 1) return;
             ev.preventDefault();
-            fileRef.current!.files = ev.clipboardData.files;
-            setFileName(ev.clipboardData.files[0].name);
+            selectFile(ev.clipboardData.files[0]);
         };
         document.addEventListener("paste", cb);
         return () => document.removeEventListener("paste", cb);
-    }, [fileRef]);
+    }, [annotatorOpen, props.disabled]);
+
+    const isImage = !!file && IMAGE_TYPES.test(file.type);
 
     return (
         <>
@@ -233,9 +282,9 @@ function FileInput(props: {
                 }
                 onDrop={(ev) => {
                     ev.preventDefault();
-                    if (ev.dataTransfer.files.length !== 1) return;
-                    fileRef.current!.files = ev.dataTransfer.files;
-                    setFileName(ev.dataTransfer.files[0].name);
+                    if (props.disabled || ev.dataTransfer.files.length !== 1)
+                        return;
+                    selectFile(ev.dataTransfer.files);
                 }}
                 onDragOver={(ev) => {
                     ev.preventDefault();
@@ -250,11 +299,7 @@ function FileInput(props: {
                     disabled={props.disabled}
                     id={id}
                     ref={fileRef}
-                    onChange={(ev) => {
-                        if (ev.target.files?.length)
-                            setFileName(ev.target.files[0].name);
-                        else setFileName(null);
-                    }}
+                    onChange={(ev) => setFile(ev.target.files?.[0] ?? null)}
                 />
                 <label className="gw-evidence-dropzone-label" htmlFor={id}>
                     <span
@@ -264,8 +309,11 @@ function FileInput(props: {
                         <i className="fas fa-cloud-upload-alt" />
                     </span>
                     <span className="gw-evidence-dropzone-copy">
-                        <span className="gw-evidence-dropzone-title">
-                            {fileName ?? "Choose, drop, or paste a file"}
+                        <span
+                            className="gw-evidence-dropzone-title"
+                            aria-live="polite"
+                        >
+                            {file?.name ?? "Choose, drop, or paste a file"}
                         </span>
                         <span className="gw-evidence-dropzone-help">
                             TXT, LOG, MD, PNG, JPG, or JPEG
@@ -274,6 +322,47 @@ function FileInput(props: {
                 </label>
             </div>
             <ErrorFeedback errors={props.errors?.document} />
+            {previewUrl && (
+                <img
+                    className="gw-evidence-upload-preview"
+                    src={previewUrl}
+                    alt="Selected evidence preview"
+                />
+            )}
+            {isImage && (
+                <div className="gw-evidence-annotate-row">
+                    <button
+                        type="button"
+                        className="btn btn-sm btn-outline-secondary"
+                        disabled={props.disabled}
+                        onClick={() => setAnnotatorOpen(true)}
+                    >
+                        <i className="fas fa-highlighter" aria-hidden="true" />
+                        Edit image before uploading
+                    </button>
+                    <small className="form-text text-muted">
+                        Censor, highlight, or crop it first. Edits are applied
+                        before upload, so the original image never leaves your
+                        browser.
+                    </small>
+                </div>
+            )}
+            {annotatorOpen && file && (
+                <ImageAnnotator
+                    source={file}
+                    saveLabel="Use edited image"
+                    onCancel={() => setAnnotatorOpen(false)}
+                    onSave={async (blob) => {
+                        const stem = file.name.replace(/\.[^.]+$/, "");
+                        selectFile(
+                            new File([blob], stem + ".png", {
+                                type: "image/png",
+                            })
+                        );
+                        setAnnotatorOpen(false);
+                    }}
+                />
+            )}
         </>
     );
 }

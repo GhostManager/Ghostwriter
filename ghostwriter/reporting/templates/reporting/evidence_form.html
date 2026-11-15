@@ -1,4 +1,5 @@
 {% extends "base_generic.html" %}
+{% load static %}
 
 {% block pagetitle %}Evidence Form{% endblock %}
 
@@ -18,6 +19,19 @@
         </div>
       {% endif %}
     </header>
+    {% if object %}
+      <div id="evidence-image-editor" class="mb-3"
+           data-source="{% url 'reporting:evidence_download' object.id %}?v={{ object.document.name|urlencode }}"
+           data-filename="{{ object.document.name }}"></div>
+    {% endif %}
     {% include "reporting/evidence_form_template.html" with form=form %}
   </div>
+{% endblock %}
+
+{% block morescripts %}
+  {{ block.super }}
+  {% if object %}
+    <link rel="stylesheet" href="{% static 'assets/collab_common.css' %}?v={{ VERSION }}">
+    <script type="module" src="{% static 'assets/evidence_image_editor.js' %}?v={{ VERSION }}"></script>
+  {% endif %}
 {% endblock %}
