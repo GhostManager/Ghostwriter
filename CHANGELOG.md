@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+* Added evidence image editing before upload and from report/evidence edit pages, with cropping, opaque redaction, fixed-size pixelation, and annotations
+* Added inline evidence captions and per-evidence report image sizes, expressed as a percentage or pixels
+* Added image editing keyboard shortcuts and regression tests for image editing, stale saves, and evidence cleanup
+* Added image annotation lines, custom colors with an image pipette, Shift-constrained lines/arrows and square rectangles, and automatically numbered circular markers
+
+### Fixed
+
+* Preserved staged evidence image edits through form validation errors and fetched the latest saved image when reopening the editor
+* Reduced image-editor canvas allocations without reducing image resolution or PNG detail, and extended obsolete-file cleanup retries with actionable failure logs
+* Fixed invalid-field tab selection using an unsupported jQuery selector
+
 ## [7.3.3] - 13 November 2026
 
 ### Added

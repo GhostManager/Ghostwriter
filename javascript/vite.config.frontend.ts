@@ -21,6 +21,8 @@ export default defineConfig(({ mode }) => {
                         "./src/frontend/collab_forms/forms/report_field.tsx",
                     collab_forms_project_collabnote:
                         "./src/frontend/collab_forms/forms/project_collabnote.tsx",
+                    evidence_image_editor:
+                        "./src/frontend/evidence_image_editor.tsx",
                     admin_tiptap: "./src/frontend/admin_tiptap.tsx",
                     standalone_tiptap: "./src/frontend/standalone_tiptap.tsx",
                     standalone_tiptap_loader:

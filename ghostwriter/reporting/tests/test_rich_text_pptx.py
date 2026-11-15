@@ -771,6 +771,31 @@ class HtmlToPptxWithEvidenceTests(SimpleTestCase):
         self.assertEqual(len(slide.shapes), initial_shape_count)
         log_exception.assert_called_once_with("Could not get evidence")
 
+    def test_image_report_size_controls_picture_dimensions(self):
+        cases = (
+            ({}, 4.5),
+            ({"report_width_unit": "", "report_width_value": None}, 4.5),
+            ({"report_width_unit": "percent", "report_width_value": 50}, 2.25),
+            ({"report_width_unit": "px", "report_width_value": 192}, 2.0),
+            ({"report_width_unit": "px", "report_width_value": 5000}, 4.5),
+        )
+        with tempfile.TemporaryDirectory() as temp_dir:
+            evidence_name = "sized-evidence.png"
+            with open(os.path.join(temp_dir, evidence_name), "wb") as evidence_file:
+                evidence_file.write(self.ONE_PIXEL_PNG)
+            for size, expected_width in cases:
+                with self.subTest(size=size), override_settings(MEDIA_ROOT=temp_dir):
+                    presentation = pptx.Presentation()
+                    slide = presentation.slides.add_slide(presentation.slide_layouts[1])
+                    HtmlToPptxWithEvidence.make_evidence(
+                        slide, {"path": evidence_name, **size}
+                    )
+                    picture = slide.shapes[-1]
+                    self.assertEqual(picture.shape_type, MSO_SHAPE_TYPE.PICTURE)
+                    self.assertAlmostEqual(picture.width.inches, expected_width, places=3)
+                    # The square fixture must retain its aspect ratio at every size.
+                    self.assertEqual(picture.height, picture.width)
+
     def test_adjacent_legacy_markers_preserve_surrounding_text(self):
         presentation = pptx.Presentation()
         slide = presentation.slides.add_slide(presentation.slide_layouts[1])

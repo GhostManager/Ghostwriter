@@ -40,6 +40,7 @@ from ghostwriter.reporting.models import (
     ReportTemplate,
     Severity,
 )
+from ghostwriter.reporting.validators import validate_edited_evidence_image
 from ghostwriter.rolodex.models import Project
 
 
@@ -279,6 +280,9 @@ class EvidenceForm(forms.ModelForm):
     :model:`reporting.ReportFindingLink`.
     """
 
+    expected_document = forms.CharField(required=False, widget=forms.HiddenInput)
+    document_was_edited = forms.BooleanField(required=False, widget=forms.HiddenInput)
+
     class Meta:
         model = Evidence
         fields = (
@@ -286,6 +290,8 @@ class EvidenceForm(forms.ModelForm):
             "document",
             "description",
             "caption",
+            "report_width_unit",
+            "report_width_value",
             "tags",
         )
         widgets = {
@@ -298,6 +304,10 @@ class EvidenceForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.evidence_queryset = kwargs.pop("evidence_queryset", None)
         super().__init__(*args, **kwargs)
+        self.fields["expected_document"].initial = (
+            self.instance.document.name if self.instance.pk else ""
+        )
+        self.fields["document_was_edited"].initial = False
         self.fields["caption"].required = True
         self.fields["caption"].widget.attrs["autocomplete"] = "off"
         self.fields["caption"].widget.attrs["placeholder"] = "Report Caption"
@@ -307,6 +317,10 @@ class EvidenceForm(forms.ModelForm):
         self.fields["friendly_name"].widget.attrs["placeholder"] = "Friendly Name"
         self.fields["description"].widget.attrs["placeholder"] = "Brief Description or Note"
         self.fields["document"].label = ""
+        self.fields["report_width_unit"].choices = [("", "Full evidence width")] + [
+            choice for choice in self.fields["report_width_unit"].choices if choice[0]
+        ]
+        self.fields["report_width_value"].widget.attrs["placeholder"] = "e.g., 50"
         submit_label = "Save Changes" if self.instance.pk else "Upload Evidence"
         submit = Submit("submit-button", submit_label, css_class="btn btn-primary")
         cancel_button = HTML(
@@ -322,6 +336,8 @@ class EvidenceForm(forms.ModelForm):
         self.helper.form_id = "evidence-upload-form"
         self.helper.form_class = "resource-edit-form"
         self.helper.layout = Layout(
+            "expected_document",
+            "document_was_edited",
             Div(
                 Div(
                     HTML(
@@ -341,6 +357,11 @@ class EvidenceForm(forms.ModelForm):
                         css_class="row g-3",
                     ),
                     "caption",
+                    Row(
+                        Column("report_width_unit", css_class="col-md-6"),
+                        Column("report_width_value", css_class="col-md-6"),
+                        css_class="row g-3",
+                    ),
                     "description",
                     css_class="resource-form-card",
                 ),
@@ -386,6 +407,25 @@ class EvidenceForm(forms.ModelForm):
                 css_class="resource-form-actions resource-form-actions-compact",
             ),
         )
+
+    def clean(self):
+        """
+        Prevent a validation retry from silently discarding a staged image edit.
+        """
+        cleaned_data = super().clean()
+        if cleaned_data.get("document_was_edited") and not self.files.get("document"):
+            self.add_error(
+                "document",
+                _(
+                    "Image edits were not saved. Re-edit the image or select the edited file again before saving."
+                ),
+            )
+        elif cleaned_data.get("document_was_edited"):
+            try:
+                validate_edited_evidence_image(self.files["document"])
+            except ValidationError as error:
+                self.add_error("document", error)
+        return cleaned_data
 
     def clean_document(self):
         document = self.cleaned_data["document"]

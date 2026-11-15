@@ -13,6 +13,7 @@ export default function EvidenceModal(props: {
     const [uploadMode, setUploadMode] = useState<boolean>(
         props.initialFile != null
     );
+    const [uploading, setUploading] = useState(false);
 
     let content;
     if (uploadMode) {
@@ -21,6 +22,7 @@ export default function EvidenceModal(props: {
                 initialFile={props.initialFile}
                 switchMode={() => setUploadMode(false)}
                 onSubmit={props.setEvidenceId}
+                onBusyChange={setUploading}
             />
         );
     } else {
@@ -45,7 +47,9 @@ export default function EvidenceModal(props: {
     return (
         <ReactModal
             isOpen
-            onRequestClose={() => props.setEvidenceId(null)}
+            onRequestClose={() => {
+                if (!uploading) props.setEvidenceId(null);
+            }}
             contentLabel={title}
             className="modal-dialog modal-dialog-centered gw-evidence-dialog"
         >
@@ -64,6 +68,7 @@ export default function EvidenceModal(props: {
                         type="button"
                         className="gw-evidence-dialog-close"
                         aria-label="Close"
+                        disabled={uploading}
                         onClick={() => props.setEvidenceId(null)}
                     >
                         <i className="fas fa-times" aria-hidden="true" />

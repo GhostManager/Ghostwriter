@@ -24,6 +24,143 @@ piece of evidence from a list or upload a new piece of evidence.
 After inserting your evidence, a preview block will appear in the editor so you can see the evidence you have inserted and understand how it
 will look in line with your other content.
 
+### Editing Image Evidence
+
+The evidence image editor supports PNG and JPEG images. It can crop a screenshot,
+cover sensitive areas, or add highlights without leaving the reporting editor.
+
+To edit an image before uploading it:
+
+1. Open the evidence upload window with the paperclip button.
+2. Choose, drop, or paste a PNG or JPEG image. The dialog shows a preview of the
+   selected image; pasting another image replaces the preview and pending upload.
+3. Click **Edit image before uploading**.
+4. Make your edits and click **Use edited image**.
+5. Complete the evidence details and upload the file.
+
+The edited file replaces the selection in the upload form. Editing alone does not
+upload the image. Canceling the image editor keeps the selected file unchanged.
+
+For evidence already inserted in an editable reporting field, click **Edit image**
+beside its preview. Save with **Replace evidence image**. An evidence file belongs
+to the report: replacing it changes every reference to that evidence in the report,
+including references in other findings and report fields.
+
+The available tools are:
+
+| Tool | Action |
+| --- | --- |
+| Black box | Cover the selected area with solid black pixels |
+| Pixelate | Replace the selected area with an opaque, generated mosaic |
+| Rectangle | Outline an area with the selected highlight color |
+| Line | Draw a straight line with the selected annotation color |
+| Arrow | Point to a detail with the selected annotation color |
+| Number marker | Place a numbered circle; each placement advances the number |
+| Pen | Draw a freehand highlight |
+| Crop | Select the area to keep; drawing another crop replaces the previous crop |
+
+Select a tool and drag over the image. For **Number marker**, click the position
+where the numbered circle should appear. **Undo**, **Redo**, and **Remove all edits**
+apply while the editor is open. Undo also supports `Ctrl+Z` (`Cmd+Z` on macOS);
+redo supports `Ctrl+Shift+Z`, `Cmd+Shift+Z`, or `Ctrl+Y`.
+
+Hold **Shift** while drawing a Line or Arrow to snap it to horizontal, vertical,
+or 45-degree diagonal directions. Hold Shift while drawing a Rectangle to make it
+a square. Release Shift before finishing the drag to return to an unconstrained
+shape. A constrained shape remains inside the image; Crop and the censor tools
+keep their ordinary selection behavior.
+
+Use the preset swatches or **Custom annotation color** to choose a color for Lines,
+Arrows, Rectangles, Pen strokes, and Number markers. **Pick color from image**
+activates the pipette: click a pixel in the image or a committed annotation to use
+its color. Sampling does not add an annotation or change the next marker number.
+A fully transparent pixel cannot supply a color. Press Escape to cancel sampling
+without closing the editor. The pipette works inside the image; it does not sample
+other applications or require an external color service.
+
+Number markers start at **1** each time the image editor opens. Placement advances
+the counter to 2, 3, and so on. Undoing a marker allows its number to be reused;
+Redo restores the same numbered marker. Removing all edits resets numbering to 1.
+Saved markers are flattened into image pixels, so opening a previously saved image
+does not recover its earlier marker counter or editable shapes.
+
+The separate **Edit evidence** page also provides **Edit evidence image** for PNG
+and JPEG files. Each opening fetches the latest saved image, or preserves a replacement
+already selected in the form.
+**Use edited image** puts the result into the form and refreshes its preview without
+submitting other fields. Select **Save Changes** to persist it; leaving the page
+before saving discards the pending image edits. Choosing a text replacement hides
+the image-edit button.
+While the image editor is open, the evidence form blocks file replacement and
+submission. Cancel leaves the original pending file unchanged. Validation errors
+appear in place and retain the edited file: correct the fields and save again.
+The ordinary HTML form remains available without JavaScript, but a server-rendered
+validation response cannot restore a selected file; a retry cannot silently omit
+an edited image. Both replacement paths reject saves based on an older revision.
+
+
+**Black box** and **Pixelate** replace selected pixels completely. Pixelate defaults
+to **Blend with border**: it samples 4–8 broad color segments along each of the four
+visible exterior borders, sampling a four-pixel band to reduce colored text-edge
+fringes, and uses them to color solid **15×15-pixel blocks**. The
+colors transition across blocks; there is no continuous blur or fine detail inside a
+block. Both border blending and Neutral use the same block size across image sizes. Covered pixels are not used. Transparent or unavailable border segments
+use neighboring sampled colors, with a neutral fallback if no colors are available.
+
+**Colors are fixed when the selection is placed.** Drawing another region, cropping,
+changing themes, or using Undo/Redo does not recolor an existing pixelation. Preview,
+placement, and export use the same captured colors. Choose **Neutral** under
+**Pixelate colors** before drawing for a fixed palette without image sampling. The
+choice applies to new selections.
+
+Border blending retains colors that were visible when the region was placed. Later
+redactions or crops cannot retract those already captured colors; Neutral avoids
+that dependency. Blur is unavailable. Cover the complete secret, including its edge
+pixels. Selection size, visible context, and earlier exports/backups remain separate
+from the selected pixels being replaced.
+
+Saving exports a lossless PNG at the source resolution, except for an intentional
+crop. Canvas buffers are reused and released when editing finishes; large images
+still need more browser memory, and PNG can be larger than a JPEG source.
+Cropped-out pixels are not
+included in that PNG. Replacing existing evidence schedules the previous file for
+removal after the database save succeeds. There is no editor command to restore
+the original after saving. Failed cleanup is retried by Hasura up to 60 times at
+60-second intervals after the initial delivery. If all attempts fail, a critical
+log identifies the event to redeliver after restoring storage access. A saved edit
+is not a guarantee that every earlier copy has been deleted.
+Existing report exports, archives, downloaded files, and backups are separate copies
+and are not rewritten by an image edit.
+
+If another operator replaces the same image while you are editing, saving your stale
+version is rejected. Close it and select **Edit image** again; opening fetches the
+latest revision immediately. Pending operations are not merged into another
+operator's saved image. On the separate evidence page, a selected replacement is
+kept as unsaved work; reload the page to discard it and edit the latest server image.
+
+### Captions and Image Size
+
+Click an evidence caption beneath its preview to edit it. Press Enter or leave the
+field to save; press Escape to cancel the edit. This updates the caption on the
+shared evidence record throughout the report, rather than only the selected reference.
+
+Use **Report size** beside an image preview, or the **Report Size Unit** and
+**Report Size** fields in the evidence form, to choose how wide the image appears
+in generated Word and PowerPoint reports. Use **Apply** in the preview control,
+or save the evidence form, to store the size:
+
+| Setting | Meaning |
+| --- | --- |
+| Full evidence width | Use the output format's normal evidence width |
+| Percent of evidence width | Use a whole-number percentage from 1 to 100 |
+| Pixels | Convert a positive whole-number width at 96 pixels per inch |
+
+Word uses the report template's evidence width, falling back to the global report
+configuration. PowerPoint uses its existing 4.5-inch evidence area. A requested width
+is capped at the output format's full evidence width, and the image's aspect ratio
+is preserved. Sizing changes the report layout without changing the stored image's
+pixel dimensions. Selecting full evidence width clears a previously saved size.
+
 ### Inserting Captions
 
 You can insert a caption by clicking the hamburger menu and then _Insert Caption_. The form will ask you to enter a reference name. A custom

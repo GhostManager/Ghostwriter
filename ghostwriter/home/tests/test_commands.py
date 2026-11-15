@@ -159,6 +159,10 @@ class GenerateTestDataCommandTests(TransactionTestCase):
         self.assertGreaterEqual(Observation.objects.count(), 2)
         self.assertGreaterEqual(ReportObservationLink.objects.count(), 2)
         self.assertEqual(Evidence.objects.count(), len(DEMO_EVIDENCE_TEXT_SAMPLES))
+        self.assertFalse(Evidence.objects.exclude(report_width_unit="").exists())
+        self.assertFalse(
+            Evidence.objects.filter(report_width_value__isnull=False).exists()
+        )
         evidence_names = set(Evidence.objects.values_list("friendly_name", flat=True))
         self.assertIn("Nmap Service Scan - portal.gbi.example", evidence_names)
         self.assertIn("Burp Response - GBI Profile Notes", evidence_names)

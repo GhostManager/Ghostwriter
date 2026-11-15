@@ -2083,9 +2083,11 @@ class Command(BaseCommand):
                     caption,
                     description,
                     report_id,
-                    uploaded_by_id
+                    uploaded_by_id,
+                    report_width_unit,
+                    report_width_value
                 )
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 [
                     document_path,
@@ -2095,6 +2097,8 @@ class Command(BaseCommand):
                     description,
                     report.pk,
                     uploaded_by.pk,
+                    "",
+                    None,
                 ],
             )
 

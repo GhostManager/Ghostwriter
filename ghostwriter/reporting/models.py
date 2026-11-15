@@ -4,9 +4,11 @@
 import json
 import logging
 import os
+from uuid import uuid4
 
 # Django Imports
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.core.files.storage import FileSystemStorage
 from django.core.validators import MinValueValidator
 from django.db import models
@@ -51,6 +53,14 @@ class EvidenceImageAlignment(models.TextChoices):
     LEFT = "LEFT", "Left"
     CENTER = "CENTER", "Center"
     RIGHT = "RIGHT", "Right"
+
+
+class EvidenceReportWidthUnit(models.TextChoices):
+    """
+    Select the unit used to size an evidence image in generated reports.
+    """
+    PERCENT = "percent", "Percent of evidence width"
+    PIXELS = "px", "Pixels"
 
 
 class EvidenceImageAlignmentOverride(models.TextChoices):
@@ -739,6 +749,7 @@ class Report(models.Model):
 
     @classmethod
     def user_viewable(cls, user):
+        # Ghostwriter Libraries
         from ghostwriter.rolodex.models import Project
         if user.is_privileged:
             return cls.objects.all()
@@ -968,8 +979,18 @@ class ReportFindingLink(models.Model):
 
 
 def set_evidence_upload_destination(this, filename):
-    """Sets the `upload_to` destination to the evidence folder for the report ID."""
-    return os.path.join("evidence", str(this.report_id), filename)
+    """
+    Give each evidence upload its own immutable path while preserving its filename.
+    """
+    return os.path.join("evidence", str(this.report_id), uuid4().hex, filename)
+
+
+def delete_unreferenced_evidence_file(name):
+    """
+    Delete an obsolete evidence file only when no current evidence references it.
+    """
+    if name and not Evidence.objects.filter(document=name).exists():
+        Evidence._meta.get_field("document").storage.delete(name)
 
 
 class Evidence(models.Model):
@@ -981,7 +1002,7 @@ class Evidence(models.Model):
         upload_to=set_evidence_upload_destination,
         validators=[validate_evidence_extension],
         blank=True,
-        max_length=255,
+        max_length=512,
     )
     friendly_name = models.CharField(
         "Friendly Name",
@@ -1004,10 +1025,31 @@ class Evidence(models.Model):
         blank=True,
         help_text="Describe this evidence to your team",
     )
+    report_width_unit = models.CharField(
+        "Report Size Unit",
+        max_length=10,
+        choices=EvidenceReportWidthUnit.choices,
+        blank=True,
+        default="",
+        db_default="",
+        help_text="Shrink an image in the report by a percentage of the evidence width or to a width in pixels",
+    )
+    report_width_value = models.PositiveIntegerField(
+        "Report Size",
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(1)],
+        help_text="Percentage (1-100) or width in pixels; the aspect ratio is kept",
+    )
     tags = TaggableManager(blank=True)
     # Foreign Keys
     report = models.ForeignKey("Report", on_delete=models.CASCADE)
-    uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
+    )
+
+    # Pixels are converted to inches at the CSS reference resolution
+    PIXELS_PER_INCH = 96
 
     class Meta:
         ordering = ["report", "document"]
@@ -1017,7 +1059,24 @@ class Evidence(models.Model):
             models.UniqueConstraint(
                 fields=["report", "friendly_name"],
                 name="reporting_evidence_unique_report_friendly_name",
-            )
+            ),
+            models.CheckConstraint(
+                condition=(
+                    Q(report_width_unit="", report_width_value__isnull=True)
+                    | Q(
+                        report_width_unit="percent",
+                        report_width_value__isnull=False,
+                        report_width_value__gte=1,
+                        report_width_value__lte=100,
+                    )
+                    | Q(
+                        report_width_unit="px",
+                        report_width_value__isnull=False,
+                        report_width_value__gte=1,
+                    )
+                ),
+                name="reporting_evidence_valid_report_width",
+            ),
         ]
 
     def get_absolute_url(self):
@@ -1025,6 +1084,44 @@ class Evidence(models.Model):
 
     def __str__(self):
         return f"{self.friendly_name} @ {self.document.name}"
+
+    def clean(self):
+        """
+        Validate the report image width and clear values when full width is selected.
+        """
+        super().clean()
+        if not self.report_width_unit:
+            self.report_width_value = None
+            return
+        if self.report_width_value is None:
+            raise ValidationError(
+                {"report_width_value": "Enter a size or choose the full evidence width."}
+            )
+        if (
+            self.report_width_unit == EvidenceReportWidthUnit.PERCENT
+            and not 1 <= self.report_width_value <= 100
+        ):
+            raise ValidationError(
+                {"report_width_value": "Percentages must be between 1 and 100."}
+            )
+
+    @classmethod
+    def scaled_report_width(cls, unit, value, full_width):
+        """
+        Return the width (in inches) to use for an image in a report, given the evidence's
+        ``report_width_unit`` and ``report_width_value`` and the template's full evidence width.
+
+        Images are only ever scaled down, so the result never exceeds ``full_width``.
+        """
+        if not unit or not value:
+            return full_width
+        if unit == EvidenceReportWidthUnit.PERCENT:
+            width = full_width * value / 100
+        elif unit == EvidenceReportWidthUnit.PIXELS:
+            width = value / cls.PIXELS_PER_INCH
+        else:
+            return full_width
+        return max(0.01, min(full_width, width))
 
     @property
     def filename(self):

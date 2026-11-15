@@ -4,7 +4,6 @@
 import io
 import json
 import logging
-import os
 import uuid
 from asgiref.sync import async_to_sync
 from base64 import b64encode
@@ -18,7 +17,7 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, get_user_model
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.core.files.base import ContentFile
-from django.db import transaction
+from django.db import DatabaseError, transaction
 from django.db.models import Q
 from django.db.utils import IntegrityError
 from django.http import HttpRequest, JsonResponse
@@ -81,6 +80,7 @@ from ghostwriter.reporting.models import (
     ReportFindingLink,
     ReportObservationLink,
     ReportTemplate,
+    delete_unreferenced_evidence_file,
 )
 from ghostwriter.reporting.views2.report_finding_link import get_position
 from ghostwriter.rolodex.models import (
@@ -2205,6 +2205,7 @@ class GraphqlEvidenceUpdateEvent(HasuraEventView):
     """
 
     def post(self, request, *args, **kwargs):
+        cleanup_failed = False
         delete_old_evidence = True
         if self.event["op"] == "UPDATE":
             if self.old_data["document"] == self.new_data["document"]:
@@ -2214,19 +2215,43 @@ class GraphqlEvidenceUpdateEvent(HasuraEventView):
             delete_old_evidence = True
 
         if delete_old_evidence:
-            path = os.path.join(settings.MEDIA_ROOT, self.old_data["document"])
-            if os.path.exists(path):
-                try:
-                    os.remove(path)
-                    logger.info(
-                        "Deleted old evidence file %s", self.old_data["document"]
-                    )
-                except Exception:  # pragma: no cover
-                    logger.exception(
-                        "Failed deleting old evidence file for %s event: %s",
-                        self.event["op"],
-                        self.old_data["document"],
-                    )
+            try:
+                with transaction.atomic():
+                    delete_unreferenced_evidence_file(self.old_data["document"])
+            except (DatabaseError, OSError):
+                delivery = self.data.get("delivery_info")
+                if not isinstance(delivery, dict):
+                    delivery = {}
+                current_retry = delivery.get("current_retry")
+                max_retries = delivery.get("max_retries")
+                if type(current_retry) is not int or current_retry < 0:
+                    current_retry = None
+                if type(max_retries) is not int or max_retries < 0:
+                    max_retries = None
+                exhausted = (
+                    current_retry is not None
+                    and max_retries is not None
+                    and current_retry >= max_retries
+                )
+                recovery = (
+                    "Automatic retries exhausted. Restore storage access and redeliver "
+                    "this EvidenceUpdate event in Hasura."
+                    if exhausted
+                    else "Returning HTTP 503 so Hasura can retry cleanup."
+                )
+                logger.log(
+                    logging.CRITICAL if exhausted else logging.ERROR,
+                    "Failed deleting obsolete evidence file %s for evidence %s "
+                    "(event %s, retry %s/%s). %s",
+                    self.old_data["document"],
+                    self.old_data["id"],
+                    self.data.get("id", "unknown"),
+                    current_retry if current_retry is not None else "unknown",
+                    max_retries if max_retries is not None else "unknown",
+                    recovery,
+                    exc_info=True,
+                )
+                cleanup_failed = True
 
         update_references = True
         if self.event["op"] == "UPDATE":
@@ -2268,8 +2293,12 @@ class GraphqlEvidenceUpdateEvent(HasuraEventView):
 
             update_instances = []
             if self.old_data["report_id"]:
-                report_instance = Report.objects.get(id=self.old_data["report_id"])
-                update_instances.extend(report_instance.reportfindinglink_set.all())
+                # Cascading report deletion can remove the parent before delivery.
+                report_instance = Report.objects.filter(
+                    id=self.old_data["report_id"]
+                ).first()
+                if report_instance is not None:
+                    update_instances.extend(report_instance.reportfindinglink_set.all())
 
             for instance in update_instances:
                 try:
@@ -2303,6 +2332,10 @@ class GraphqlEvidenceUpdateEvent(HasuraEventView):
                         self.data["id"],
                     )
 
+        if cleanup_failed:
+            return JsonResponse(
+                {"error": "Evidence cleanup is temporarily unavailable."}, status=503
+            )
         return JsonResponse(self.data, status=self.status)
 
 

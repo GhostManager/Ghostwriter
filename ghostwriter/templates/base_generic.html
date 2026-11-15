@@ -1149,7 +1149,7 @@
   <script>
     // Open tab with the first invalid/missing field on submission but before POST
     $('[id^="submit-id-"]').click(function () {
-      $(':input:invalid').each(function () {
+      $(document.querySelectorAll(":invalid")).each(function () {
         // Find the tab-pane that this element is inside, and get the id
         let $closest = $(this).closest('.tab-pane');
         let id = $closest.attr('id');
