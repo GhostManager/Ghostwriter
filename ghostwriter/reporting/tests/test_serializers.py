@@ -228,6 +228,23 @@ class ReportDataSerializerTests(TestCase):
             for entry in log["entries"]:
                 self.assertIsNotNone(entry["tool"])
 
+    def test_export_serializes_log_entries_without_per_entry_queries(self):
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        from ghostwriter.modules.reportwriter import report_generation_queryset
+        from ghostwriter.oplog.models import OplogEntryRecording
+
+        log = self.project.oplog_set.get()
+        OplogEntryFactory.create_batch(3, oplog_id=log)
+        report = report_generation_queryset().get(pk=self.report.pk)
+        with CaptureQueriesContext(connection) as queries:
+            data = ReportDataSerializer(report).data
+        self.assertEqual(len(data["logs"][0]["entries"]), 4)
+        self.assertFalse(
+            any(OplogEntryRecording._meta.db_table in query["sql"] for query in queries)
+        )
+
     def test_team_entries_are_ordered_by_role_position_then_operator_name(self):
         project = ProjectFactory()
         report = ReportFactory(project=project)

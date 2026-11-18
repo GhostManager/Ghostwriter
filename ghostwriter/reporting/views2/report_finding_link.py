@@ -25,6 +25,7 @@ from ghostwriter.commandcenter.templatetags.extra_fields import expand_evidence_
 from ghostwriter.commandcenter.utils import has_rich_text_content, render_rich_text_value, wrap_plain_value
 from ghostwriter.commandcenter.views import CollabModelUpdate, ExtraFieldRichTextPreviewView
 from ghostwriter.modules.reportwriter.base import ReportExportError, ReportExportTemplateError
+from ghostwriter.modules.reportwriter.log_dependencies import preview_template_variables
 from ghostwriter.modules.reportwriter.report.json import ExportReportJson
 from ghostwriter.reporting.forms import AssignReportFindingForm
 from ghostwriter.reporting.models import Finding, FindingType, Report, ReportFindingLink, Severity
@@ -233,8 +234,12 @@ class ReportFindingLinkExtraFieldRichTextPreview(ExtraFieldRichTextPreviewView):
     model = ReportFindingLink
     extra_field_spec_model = Finding
 
-    def build_exporter(self, obj):
-        return ExportReportJson(obj.report)
+    def build_exporter(self, obj, preview_extra_field):
+        return ExportReportJson(
+            obj.report,
+            inspect_templates=preview_template_variables,
+            preview_extra_field=preview_extra_field,
+        )
 
     def extract_rendered_field(self, exporter, base_context, field_name):
         pk = self.kwargs["pk"]
@@ -289,6 +294,7 @@ class ReportFindingLinkPreview(RoleBasedAccessControlMixin, SingleObjectMixin, V
             exporter = ExportReportJson(
                 report,
                 include_bloodhound=report.include_bloodhound_data,
+                inspect_templates=preview_template_variables,
             )
             base_context = exporter.map_rich_texts()
         except ReportExportTemplateError as error:

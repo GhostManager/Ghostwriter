@@ -24,6 +24,7 @@ from ghostwriter.commandcenter.templatetags.extra_fields import expand_evidence_
 from ghostwriter.commandcenter.utils import has_rich_text_content, render_rich_text_value, wrap_plain_value
 from ghostwriter.commandcenter.views import CollabModelUpdate
 from ghostwriter.modules.reportwriter.base import ReportExportError, ReportExportTemplateError
+from ghostwriter.modules.reportwriter.log_dependencies import preview_template_variables
 from ghostwriter.modules.reportwriter.report.json import ExportReportJson
 from ghostwriter.reporting.forms import AssignReportObservationForm
 from ghostwriter.reporting.models import Observation, Report, ReportObservationLink
@@ -251,6 +252,7 @@ class ReportObservationLinkPreview(RoleBasedAccessControlMixin, SingleObjectMixi
             exporter = ExportReportJson(
                 report,
                 include_bloodhound=report.include_bloodhound_data,
+                inspect_templates=preview_template_variables,
             )
             base_context = exporter.map_rich_texts()
         except ReportExportTemplateError as error:

@@ -150,17 +150,8 @@ def remove_trailing_empty_paragraphs(body):
         break
 
 
-def rich_text_template(
-    env: jinja2.Environment,
-    text: str,
-) -> CompiledRichTextTemplate:
-    """
-    Compile rich text into Ghostwriter's sandboxed rich-text template wrapper.
-
-    Literal data is excluded from Jinja parsing and restored after rendering.
-    """
-    _require_report_sandbox(env)
-
+def prepare_rich_text_source(text: str) -> tuple[str, dict[str, str]]:
+    """Normalize rich text exactly as the Jinja renderer expects."""
     # Remove generated literal data from the source before any normalization can
     # assemble or interpret Jinja delimiters.
     text, literal_fragments = _extract_jinja_literal_fragments(text)
@@ -194,6 +185,35 @@ def rich_text_template(
     _process_prefix(text, soup, "tr")
     _process_prefix(text, soup, "td")
     text = str(soup)
+
+    return text, literal_fragments
+
+
+def render_literal_rich_text(env: ReportSandboxedEnvironment, text: str) -> str | None:
+    """Render normalized prose, or return None if it needs template rendering."""
+    _require_report_sandbox(env)
+    source, literal_fragments = prepare_rich_text_source(text)
+    try:
+        if any(token != "data" for _, token, _ in env.lex(source)):
+            return None
+    except jinja2.TemplateSyntaxError:
+        # The full renderer reports syntax errors with field context.
+        return None
+    return CompiledRichTextTemplate(env.from_string(source), literal_fragments).render()
+
+
+def rich_text_template(
+    env: jinja2.Environment,
+    text: str,
+) -> CompiledRichTextTemplate:
+    """
+    Compile rich text into Ghostwriter's sandboxed rich-text template wrapper.
+
+    Literal data is excluded from Jinja parsing and restored after rendering.
+    """
+    _require_report_sandbox(env)
+
+    text, literal_fragments = prepare_rich_text_source(text)
 
     # Compile
     try:

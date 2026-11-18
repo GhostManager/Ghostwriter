@@ -7,15 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
-
-* Made Hasura's event delivery HTTP pool size configurable with `HASURA_GRAPHQL_EVENTS_HTTP_POOL_SIZE`, defaulting to 10 to reduce concurrent webhook database demand
-* Upgraded development and production Python containers to 3.11.18 and `dnspython` to 2.9.0
+## [7.3.4] - 18 November 2026
 
 ### Fixed
 
-* Fixed VirusTotal domain checks aborting a batch when a report is not found; missing reports now preserve existing reputation data and report a domain-specific error
-* Fixed activity log monitoring failing on entries without a start date; reviews now use the latest dated entry and treat logs without dated entries as inactive
+* Reduced Word report generation time for projects with large activity logs
+  * Exports skip activity entries when templates do not need them, fetch just the tool names for templates that only use the tool list, and preload tags and terminal recording metadata when loading full entries
+* Sped up blank and formatted prose extra-field previews by skipping report serialization
+  * Previews that render Jinja, including full finding and observation previews, load activity log data only when the rendered content requires it.
+
+## [7.3.3] - 13 November 2026
+
+### Added
+
+* Added JSON activity log exports, including a quick download action and optional evidence and recording attachments in a ZIP archive (PR #1004)
+* Added an opt-in command output option for CSV and JSON activity log exports; output is omitted by default (PR #1004)
+
+### Changed
+
+* Made Hasura's event delivery HTTP pool size configurable with `HASURA_GRAPHQL_EVENTS_HTTP_POOL_SIZE`, defaulting to 10 to reduce concurrent webhook database demand (PR #1003)
+* Upgraded development and production Python containers to 3.11.18 and `dnspython` to 2.9.0 (PR #1003)
+* Escaped newlines and terminal control characters in exported CSV command output to keep output on one physical line (PR #1004)
+
+### Fixed
+
+* Fixed VirusTotal domain checks aborting a batch when a report is not found; missing reports now preserve existing reputation data and report a domain-specific error (PR #1003)
+* Fixed activity log monitoring failing on entries without a start date; reviews now use the latest dated entry and treat logs without dated entries as inactive (PR #1003)
+* Allowed activity log CSV imports without an `output` column, preserving existing command output when updating matching entries (PR #1004)
+* Prevented JSON activity log exports from colliding with the ZIP attachment manifest and kept exported entries consistent with packaged attachments (PR #1004)
 
 ## [7.3.2] - 13 October 2026
 

@@ -235,24 +235,28 @@ def prepare_jinja2_env(debug=False):
     return env
 
 
-def report_generation_queryset():
-    """
-    Gets a queryset of Reports with `select_related` and `prefetch_related` options optimal for report generation.
-    """
-    from ghostwriter.reporting.models import (  # pylint: disable=import-outside-toplevel
-        Report,
+def oplog_entries_prefetch(prefix=""):
+    """Load entries, their tags, and recording metadata for export."""
+    from django.db.models import Prefetch
+
+    from ghostwriter.oplog.models import OplogEntry
+
+    return Prefetch(
+        f"{prefix}oplog_set__entries",
+        queryset=OplogEntry.objects.select_related("recording").prefetch_related("tags"),
     )
 
-    return (
-        Report.objects.all()
-        .prefetch_related(
-            "tags",
-            "reportfindinglink_set",
-            "reportobservationlink_set",
-            "evidence_set",
-            "project__oplog_set",
-            "project__oplog_set__entries",
-            "project__oplog_set__entries__tags",
-        )
-        .select_related()
-    )
+
+def report_generation_queryset(*, include_logs=True):
+    """Build the report export queryset, optionally deferring activity logs."""
+    from ghostwriter.reporting.models import Report
+
+    queryset = Report.objects.prefetch_related(
+        "tags",
+        "reportfindinglink_set",
+        "reportobservationlink_set",
+        "evidence_set",
+    ).select_related()
+    if include_logs:
+        queryset = queryset.prefetch_related(oplog_entries_prefetch("project__"))
+    return queryset

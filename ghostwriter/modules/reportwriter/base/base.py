@@ -24,8 +24,10 @@ from ghostwriter.modules.reportwriter.base import (
 from ghostwriter.modules.reportwriter.base.html_rich_text import (
     HtmlRichText,
     LazilyRenderedTemplate,
+    prepare_rich_text_source,
     rich_text_template,
 )
+from ghostwriter.modules.reportwriter.log_dependencies import template_variables
 
 logger = logging.getLogger(__name__)
 
@@ -65,13 +67,16 @@ class ExportBase:
         input_object: Any,
         *,
         is_raw: bool = False,
+        preview_extra_field: tuple[str, str] | None = None,
         jinja_debug: bool = False,
         object_serializer: Callable[[Any], Any] | None = None,
     ):
         self.evidences_by_id = {}
         self.extra_fields_spec_cache = {}
-        self.preview_extra_field_model_label = None
-        self.preview_extra_field_name = None
+        self.preview_extra_field_model_label, self.preview_extra_field_name = (
+            preview_extra_field or (None, None)
+        )
+        self._rich_text_dependencies: set[str] | None = None
 
         if jinja_debug:
             self.jinja_env, self.jinja_undefined_variables = prepare_jinja2_env(debug=True)
@@ -89,6 +94,24 @@ class ExportBase:
                 else input_object
             )
         self.data = materialize_jinja_context(serialized_data)
+
+    def inspect_log_dependencies(self, inspect_templates, data):
+        """Collect dependencies from the same templates the renderer registers."""
+        required = inspect_templates(self.jinja_env)
+        if "logs" in required:
+            return required
+
+        # Walk the light context without compiling or rendering templates.
+        # map_rich_texts copies the input and registers evidence as a side effect.
+        self.data = materialize_jinja_context({**data, "logs": [], "tools": []})
+        self._rich_text_dependencies = required
+        try:
+            self.map_rich_texts()
+        finally:
+            del self.data
+            self._rich_text_dependencies = None
+            self.evidences_by_id.clear()
+        return required
 
     def extra_field_specs_for(self, model: Model) -> Iterable[ExtraFieldSpec]:
         """
@@ -118,13 +141,19 @@ class ExportBase:
 
     def create_lazy_template(
         self, location: str | None, text: str | None, context: dict, **kwargs
-    ) -> LazilyRenderedTemplate:
+    ) -> LazilyRenderedTemplate | str:
         """
         Creates a `LazilyRenderedTemplate` that will `text` as a jinja template when needed.
 
         Implementations of `map_rich_texts` should call this on rich text fields, replacing the rich text field
         with its return value.
         """
+        if self._rich_text_dependencies is not None:
+            if text and "logs" not in self._rich_text_dependencies and ("{" in text or "&" in text):
+                source, _ = prepare_rich_text_source(text)
+                self._rich_text_dependencies.update(template_variables(self.jinja_env, source))
+            return text or ""
+
         return LazilyRenderedTemplate(
             ReportExportTemplateError.map_errors(
                 lambda: rich_text_template(self.jinja_env, text or "", **kwargs),

@@ -3694,6 +3694,22 @@ class ReportFindingLinkPreviewTests(TestCase):
             self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD)
         )
 
+    def test_preview_loads_activity_data_only_when_referenced(self):
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        log = OplogFactory(project=self.report.project)
+        OplogEntryFactory(oplog_id=log, tool="Preview Tool")
+        with CaptureQueriesContext(connection) as queries:
+            response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(any('FROM "oplog_oplogentry"' in query["sql"] for query in queries))
+
+        self.rfl.description = "<p>Log entries: {{ logs[0].entries | length }}</p>"
+        self.rfl.save(update_fields=["description"])
+        response = self.client_mgr.get(self.uri)
+        self.assertContains(response, "Log entries: 1")
+
     def test_requires_login(self):
         response = self.client.get(self.uri)
         self.assertEqual(response.status_code, 302)
@@ -3847,6 +3863,22 @@ class ReportObservationLinkPreviewTests(TestCase):
             self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD)
         )
 
+    def test_preview_loads_activity_data_only_when_referenced(self):
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        log = OplogFactory(project=self.report.project)
+        OplogEntryFactory(oplog_id=log, tool="Preview Tool")
+        with CaptureQueriesContext(connection) as queries:
+            response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(any('FROM "oplog_oplogentry"' in query["sql"] for query in queries))
+
+        self.rol.description = "<p>Log entries: {{ tools | join(', ') }}</p>"
+        self.rol.save(update_fields=["description"])
+        response = self.client_mgr.get(self.uri)
+        self.assertContains(response, "Log entries: preview tool")
+
     def test_requires_login(self):
         response = self.client.get(self.uri)
         self.assertEqual(response.status_code, 302)
@@ -3996,6 +4028,142 @@ class ExtraFieldRichTextPreviewPermissionTests(TestCase):
         )
         response = self.client_mgr.get(uri)
         self.assertEqual(response.status_code, 404)
+
+    def test_empty_field_skips_exporter(self):
+        from unittest.mock import patch
+
+        for value in ({}, {"test_rt": "<p><br></p>"}):
+            with self.subTest(value=value):
+                Report.objects.filter(pk=self.report.pk).update(extra_fields=value)
+                with patch(
+                    "ghostwriter.reporting.views2.report.ReportExtraFieldRichTextPreview.build_exporter"
+                ) as build_exporter:
+                    response = self.client_mgr.get(self.uri)
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.content, b"")
+                build_exporter.assert_not_called()
+
+    def test_formatted_preview_skips_exporter_and_expands_markers(self):
+        from unittest.mock import patch
+
+        Report.objects.filter(pk=self.report.pk).update(
+            extra_fields={"test_rt": '<p><strong>Prose</strong> <span data-gw-ref="figure">ref</span></p>'}
+        )
+        with patch(
+            "ghostwriter.reporting.views2.report.ReportExtraFieldRichTextPreview.build_exporter"
+        ) as build_exporter:
+            response = self.client_mgr.get(self.uri)
+
+        self.assertContains(response, "<strong>Prose</strong>")
+        self.assertContains(response, f"{ReportConfiguration.get_solo().label_figure} #")
+        self.assertNotContains(response, "data-gw-ref")
+        build_exporter.assert_not_called()
+
+    def test_populated_preview_loads_logs_only_when_needed(self):
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        log = OplogFactory(project=self.report.project)
+        OplogEntryFactory(oplog_id=log, tool="Synthetic Tool")
+        for value, expected, expects_query in (
+            ("<p>Literal content</p>", "Literal content", False),
+            ("<p>{{ tools | join(', ') }}</p>", "synthetic tool", True),
+            ("<p>{{ logs[0].entries | length }}</p>", "<p>1</p>", True),
+            ("<p>&#123;&#123; logs[0].entries | length }}</p>", "<p>1</p>", True),
+        ):
+            with self.subTest(value=value):
+                Report.objects.filter(pk=self.report.pk).update(extra_fields={"test_rt": value})
+                with CaptureQueriesContext(connection) as queries:
+                    response = self.client_mgr.get(self.uri)
+                self.assertContains(response, expected)
+                entry_queries = [
+                    query["sql"] for query in queries if 'FROM "oplog_oplogentry"' in query["sql"]
+                ]
+                self.assertEqual(bool(entry_queries), expects_query)
+                if "tools" in value:
+                    self.assertEqual(len(entry_queries), 1)
+                    self.assertNotIn('"output"', entry_queries[0])
+
+    def test_preview_does_not_treat_report_title_as_template_source(self):
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        log = OplogFactory(project=self.report.project)
+        OplogEntryFactory(oplog_id=log)
+        for title in ("Training notes: {{", "Training notes: {{ logs | length }}"):
+            with self.subTest(title=title):
+                Report.objects.filter(pk=self.report.pk).update(
+                    title=title, extra_fields={"test_rt": "<p>{{ title }}</p>"}
+                )
+                with CaptureQueriesContext(connection) as queries:
+                    response = self.client_mgr.get(self.uri)
+                self.assertContains(response, title)
+                self.assertFalse(
+                    any('FROM "oplog_oplogentry"' in query["sql"] for query in queries)
+                )
+
+    def test_docx_loads_logs_for_indirect_extra_field_reference(self):
+        from tempfile import TemporaryDirectory
+        from unittest.mock import PropertyMock, patch
+
+        from django.db import connection
+        from django.db.models.fields.files import FieldFile
+        from django.test.utils import CaptureQueriesContext
+        from docx import Document
+
+        log = OplogFactory(project=self.report.project)
+        OplogEntryFactory(oplog_id=log)
+        Report.objects.filter(pk=self.report.pk).update(title="Training notes: {{")
+        uri = reverse("reporting:generate_docx", kwargs={"pk": self.report.pk})
+        with TemporaryDirectory() as directory:
+            document_path = os.path.join(directory, "test.docx")
+            document = Document()
+            paragraph = document.add_paragraph()
+            paragraph.add_run("{{p extra_fields.")
+            paragraph.add_run("test_rt }}")
+            document.save(document_path)
+            with patch.object(FieldFile, "path", new_callable=PropertyMock, return_value=document_path):
+                for value, expected, expects_query in (
+                    ("<p>Literal content</p>", "Literal content", False),
+                    ("<p>Entry count: {{ logs[0].entries | length }}</p>", "Entry count: 1", True),
+                ):
+                    with self.subTest(value=value):
+                        Report.objects.filter(pk=self.report.pk).update(extra_fields={"test_rt": value})
+                        with CaptureQueriesContext(connection) as queries:
+                            response = self.client_mgr.get(uri)
+                        self.assertEqual(response.status_code, 200)
+                        self.assertIn("wordprocessingml.document", response["Content-Type"])
+                        output = Document(io.BytesIO(response.content))
+                        self.assertIn(expected, " ".join(paragraph.text for paragraph in output.paragraphs))
+                        self.assertEqual(
+                            any('FROM "oplog_oplogentry"' in query["sql"] for query in queries),
+                            expects_query,
+                        )
+
+    def test_word_dependencies_include_headers_and_filename(self):
+        from tempfile import TemporaryDirectory
+
+        from docx import Document
+
+        from ghostwriter.modules.reportwriter import prepare_jinja2_env
+        from ghostwriter.modules.reportwriter.report.docx import _word_template_variables
+
+        with TemporaryDirectory() as directory:
+            document_path = os.path.join(directory, "test.docx")
+            document = Document()
+            document.sections[0].header.paragraphs[0].text = "{{ tools | join(', ') }}"
+            document.save(document_path)
+            env = prepare_jinja2_env()
+            self.assertEqual(
+                _word_template_variables(document_path, "{{ report_date }}", env),
+                {"tools", "report_date"},
+            )
+            document.core_properties.subject = "{{ client.name }}"
+            document.save(document_path)
+            self.assertEqual(
+                _word_template_variables(document_path, "report", env),
+                {"tools", "logs"},
+            )
 
     def test_template_error_returns_200_with_error_message(self):
         self.report.extra_fields = {
