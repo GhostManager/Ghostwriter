@@ -33,9 +33,9 @@ from ghostwriter.commandcenter.models import BloodHoundConfiguration, ExtraField
 from ghostwriter.commandcenter.views import CollabModelUpdate, ExtraFieldJsonView, ExtraFieldRichTextPreviewView
 from ghostwriter.home.working_context import record_recent_report
 from ghostwriter.modules.exceptions import MissingTemplate
-from ghostwriter.modules.reportwriter import report_generation_queryset
 from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
 from ghostwriter.modules.reportwriter.log_dependencies import preview_template_variables
+from ghostwriter.modules.reportwriter.querysets import report_generation_queryset
 from ghostwriter.modules.reportwriter.report.docx import ExportReportDocx
 from ghostwriter.modules.reportwriter.report.json import ExportReportJson
 from ghostwriter.modules.reportwriter.report.pptx import ExportReportPptx

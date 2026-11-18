@@ -7,21 +7,27 @@ import os
 import re
 import zipfile
 from datetime import datetime, timedelta, timezone
+from tempfile import TemporaryDirectory
+from unittest.mock import MagicMock, PropertyMock, patch
 from xml.etree import ElementTree
 
 # Django Imports
 from django.contrib.messages import get_messages
 from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db import connection
+from django.db.models.fields.files import FieldFile
 from django.template.loader import render_to_string
 from django.test import Client, SimpleTestCase, TestCase
 from django.test import override_settings
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils.dateformat import format as dateformat
 from django.utils.encoding import force_str
 
 # 3rd Party Libraries
 import pptx
+from docx import Document
 from pptx.enum.shapes import MSO_SHAPE_TYPE
 from rest_framework.renderers import JSONRenderer
 
@@ -61,6 +67,7 @@ from ghostwriter.factories import (
 )
 from ghostwriter.modules.custom_serializers import ReportDataSerializer
 from ghostwriter.modules.exceptions import InvalidFilterValue
+from ghostwriter.modules.reportwriter import prepare_jinja2_env
 from ghostwriter.modules.reportwriter.jinja_funcs import (
     add_days,
     compromised,
@@ -77,6 +84,7 @@ from ghostwriter.modules.reportwriter.jinja_funcs import (
     strip_html,
     translate_domain_sid,
 )
+from ghostwriter.modules.reportwriter.report.docx import _word_template_variables
 from ghostwriter.reporting.models import (
     Evidence,
     EvidenceImageAlignmentOverride,
@@ -3606,7 +3614,6 @@ class ExpandEvidenceAndSanitizeTests(TestCase):
         self.assertNotIn("__GW_IMAGE_PREVIEW_", result)
 
     def test_image_marker_with_client_logo(self):
-        from unittest.mock import MagicMock, PropertyMock, patch
         from ghostwriter.commandcenter.templatetags.extra_fields import (
             expand_evidence_and_sanitize,
         )
@@ -3695,9 +3702,6 @@ class ReportFindingLinkPreviewTests(TestCase):
         )
 
     def test_preview_loads_activity_data_only_when_referenced(self):
-        from django.db import connection
-        from django.test.utils import CaptureQueriesContext
-
         log = OplogFactory(project=self.report.project)
         OplogEntryFactory(oplog_id=log, tool="Preview Tool")
         with CaptureQueriesContext(connection) as queries:
@@ -3864,9 +3868,6 @@ class ReportObservationLinkPreviewTests(TestCase):
         )
 
     def test_preview_loads_activity_data_only_when_referenced(self):
-        from django.db import connection
-        from django.test.utils import CaptureQueriesContext
-
         log = OplogFactory(project=self.report.project)
         OplogEntryFactory(oplog_id=log, tool="Preview Tool")
         with CaptureQueriesContext(connection) as queries:
@@ -4030,8 +4031,6 @@ class ExtraFieldRichTextPreviewPermissionTests(TestCase):
         self.assertEqual(response.status_code, 404)
 
     def test_empty_field_skips_exporter(self):
-        from unittest.mock import patch
-
         for value in ({}, {"test_rt": "<p><br></p>"}):
             with self.subTest(value=value):
                 Report.objects.filter(pk=self.report.pk).update(extra_fields=value)
@@ -4044,8 +4043,6 @@ class ExtraFieldRichTextPreviewPermissionTests(TestCase):
                 build_exporter.assert_not_called()
 
     def test_formatted_preview_skips_exporter_and_expands_markers(self):
-        from unittest.mock import patch
-
         Report.objects.filter(pk=self.report.pk).update(
             extra_fields={"test_rt": '<p><strong>Prose</strong> <span data-gw-ref="figure">ref</span></p>'}
         )
@@ -4060,9 +4057,6 @@ class ExtraFieldRichTextPreviewPermissionTests(TestCase):
         build_exporter.assert_not_called()
 
     def test_populated_preview_loads_logs_only_when_needed(self):
-        from django.db import connection
-        from django.test.utils import CaptureQueriesContext
-
         log = OplogFactory(project=self.report.project)
         OplogEntryFactory(oplog_id=log, tool="Synthetic Tool")
         for value, expected, expects_query in (
@@ -4085,9 +4079,6 @@ class ExtraFieldRichTextPreviewPermissionTests(TestCase):
                     self.assertNotIn('"output"', entry_queries[0])
 
     def test_preview_does_not_treat_report_title_as_template_source(self):
-        from django.db import connection
-        from django.test.utils import CaptureQueriesContext
-
         log = OplogFactory(project=self.report.project)
         OplogEntryFactory(oplog_id=log)
         for title in ("Training notes: {{", "Training notes: {{ logs | length }}"):
@@ -4103,14 +4094,6 @@ class ExtraFieldRichTextPreviewPermissionTests(TestCase):
                 )
 
     def test_docx_loads_logs_for_indirect_extra_field_reference(self):
-        from tempfile import TemporaryDirectory
-        from unittest.mock import PropertyMock, patch
-
-        from django.db import connection
-        from django.db.models.fields.files import FieldFile
-        from django.test.utils import CaptureQueriesContext
-        from docx import Document
-
         log = OplogFactory(project=self.report.project)
         OplogEntryFactory(oplog_id=log)
         Report.objects.filter(pk=self.report.pk).update(title="Training notes: {{")
@@ -4141,13 +4124,6 @@ class ExtraFieldRichTextPreviewPermissionTests(TestCase):
                         )
 
     def test_word_dependencies_include_headers_and_filename(self):
-        from tempfile import TemporaryDirectory
-
-        from docx import Document
-
-        from ghostwriter.modules.reportwriter import prepare_jinja2_env
-        from ghostwriter.modules.reportwriter.report.docx import _word_template_variables
-
         with TemporaryDirectory() as directory:
             document_path = os.path.join(directory, "test.docx")
             document = Document()
@@ -5986,8 +5962,6 @@ class GenerateReportTests(TestCase):
         )
 
     def test_view_xlsx_prepares_supporting_evidence_names_once(self):
-        from unittest.mock import patch
-
         from ghostwriter.reporting.views2 import report as report_views
 
         class CountingExportReportXlsx(report_views.ExportReportXlsx):

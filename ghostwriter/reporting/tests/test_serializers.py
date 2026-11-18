@@ -5,7 +5,9 @@ from datetime import date
 
 # Django Imports
 from django.conf import settings
+from django.db import connection
 from django.test import TestCase
+from django.test.utils import CaptureQueriesContext
 from django.utils import dateformat
 
 # 3rd Party Libraries
@@ -32,6 +34,8 @@ from ghostwriter.factories import (
     UserFactory,
 )
 from ghostwriter.modules.custom_serializers import FullProjectSerializer, ReportDataSerializer
+from ghostwriter.modules.reportwriter.querysets import report_generation_queryset
+from ghostwriter.oplog.models import OplogEntryRecording
 
 logging.disable(logging.CRITICAL)
 
@@ -229,12 +233,6 @@ class ReportDataSerializerTests(TestCase):
                 self.assertIsNotNone(entry["tool"])
 
     def test_export_serializes_log_entries_without_per_entry_queries(self):
-        from django.db import connection
-        from django.test.utils import CaptureQueriesContext
-
-        from ghostwriter.modules.reportwriter import report_generation_queryset
-        from ghostwriter.oplog.models import OplogEntryRecording
-
         log = self.project.oplog_set.get()
         OplogEntryFactory.create_batch(3, oplog_id=log)
         report = report_generation_queryset().get(pk=self.report.pk)

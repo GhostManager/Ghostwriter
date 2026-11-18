@@ -3,7 +3,7 @@
 from django.db.models import prefetch_related_objects
 from jinja2 import meta
 
-from ghostwriter.modules.reportwriter import oplog_entries_prefetch
+from ghostwriter.modules.reportwriter.querysets import oplog_entries_prefetch
 from ghostwriter.oplog.models import OplogEntry
 
 LOG_KEYS = ("logs", "tools")
