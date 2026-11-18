@@ -10134,6 +10134,10 @@ a.report-item-title {
   justify-content: flex-end;
 }
 
+.oplog-export-actions {
+  gap: 0.2rem;
+}
+
 .library-filters .filter-accordion-group {
   margin: 0 !important;
   overflow: hidden;

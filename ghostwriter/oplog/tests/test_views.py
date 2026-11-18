@@ -39,6 +39,7 @@ from ghostwriter.oplog.models import (
     OplogEntryRecording,
     OplogSanitization,
 )
+from ghostwriter.oplog.views import OplogExport
 from ghostwriter.oplog.utils import (
     CAST_GZIP_TOO_LARGE_UPLOAD_MESSAGE,
     get_cast_decompressed_bytes,
@@ -109,6 +110,14 @@ class OplogListViewTests(TestCase):
         self.assertNotContains(response, "buttonHolder")
         self.assertNotContains(response, 'id="oplog-library-results-title"')
 
+    def test_oplog_list_exposes_json_export(self):
+        oplog = OplogFactory()
+        response = self.client_mgr.get(self.uri)
+        export_url = reverse("oplog:oplog_export", kwargs={"pk": oplog.pk})
+
+        self.assertContains(response, f'href="{export_url}?format=json"')
+        self.assertContains(response, f'aria-label="Export {oplog.name} as JSON"')
+
     def test_oplog_list_values(self):
         OplogFactory.create_batch(5)
         test_log = self.Oplog.objects.all()[0]
@@ -172,6 +181,16 @@ class OplogListEntriesTests(TestCase):
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "oplog/oplog_detail.html")
+
+    def test_view_exposes_csv_and_json_export_format_controls(self):
+        response = self.client_mgr.get(self.uri)
+
+        self.assertContains(response, 'name="export-format"')
+        self.assertContains(response, 'id="export-format-csv"')
+        self.assertContains(response, 'id="export-format-json"')
+        self.assertContains(response, 'value="csv" checked')
+        self.assertContains(response, 'value="json"')
+        self.assertContains(response, 'id="export-include-output"')
 
     def test_view_includes_entry_defaults_controls(self):
         response = self.client_mgr.get(self.uri)
@@ -428,7 +447,11 @@ class OplogEntriesImportTests(TestCase):
             'class="instruction-panel oplog-import-reference-card"',
             count=2,
         )
-        self.assertContains(response, "Required headers")
+        self.assertContains(response, "Required and optional headers")
+        self.assertContains(
+            response,
+            "The <code>output</code> and <code>extra_fields</code> columns are optional",
+        )
         self.assertContains(response, "Timestamp format")
         self.assertContains(response, 'class="oplog-import-page"')
         self.assertContains(response, "Import entries")
@@ -556,6 +579,36 @@ class OplogEntriesImportTests(TestCase):
             self.assertEqual(self.OplogEntry.objects.filter(oplog_id=9000).count(), 0)
             messages = list(get_messages(response.wsgi_request))
             self.assertEqual(str(messages[0]), "Successfully imported log data.")
+
+    def test_import_accepts_csv_without_output_column(self):
+        """Test imports can omit output without overwriting existing output."""
+        entry = self.OplogEntry.objects.filter(oplog_id=self.oplog).first()
+        entry.output = "Existing command output"
+        entry.save(update_fields=["output"])
+        fieldnames = [field for field in self.fieldnames if field != "output"]
+
+        with open(self.filename, "w") as csvfile:
+            writer = csv.DictWriter(
+                csvfile,
+                fieldnames=fieldnames,
+                quoting=csv.QUOTE_MINIMAL,
+                escapechar="\\",
+                delimiter=",",
+            )
+            writer.writeheader()
+            row = self.build_row(entry)
+            row.pop("output")
+            writer.writerow(row)
+
+        with open(self.filename, "r") as csvfile:
+            response = self.client_mgr.post(
+                self.uri, {"csv_file": csvfile, "oplog_id": self.oplog.id}
+            )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, self.redirect_uri)
+        entry.refresh_from_db()
+        self.assertEqual(entry.output, "Existing command output")
 
     def test_empty_csv_and_file_with_invalid_dimensions(self):
         """Test an invalid csv file is handled gracefully."""
@@ -1028,10 +1081,81 @@ class OplogExportViewTests(TestCase):
         self.assertIsNotNone(reader.fieldnames)
         self.assertNotIn("recordings", reader.fieldnames)
         self.assertNotIn("evidence", reader.fieldnames)
+        self.assertNotIn("output", reader.fieldnames)
         self.assertIn("oplog_id", reader.fieldnames)
         self.assertIn("tags", reader.fieldnames)
         rows = list(reader)
         self.assertEqual(len(rows), 5)
+
+    def test_json_export_omits_command_output(self):
+        entry = self.OplogEntry.objects.filter(oplog_id=self.oplog).first()
+        entry.output = "first output line\nsecond output line"
+        entry.save(update_fields=["output"])
+
+        response = self.client_mgr.get(f"{self.uri}?format=json")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get("Content-Type"), "application/json")
+        self.assertIn('filename="', response.get("Content-Disposition"))
+        self.assertIn(".json", response.get("Content-Disposition"))
+
+        payload = response.json()
+        self.assertEqual(set(payload), {"data"})
+        self.assertEqual(len(payload["data"]["oplog"]), 1)
+        exported_entries = payload["data"]["oplog"][0]["entries"]
+        exported_entry = next(
+            item for item in exported_entries if item["id"] == entry.id
+        )
+        self.assertEqual(
+            set(exported_entry),
+            {
+                "command",
+                "description",
+                "destIp",
+                "endDate",
+                "extraFields",
+                "id",
+                "operatorName",
+                "sourceIp",
+                "startDate",
+                "tool",
+                "userContext",
+                "updatedAt",
+            },
+        )
+        self.assertEqual(exported_entry["command"], entry.command)
+        self.assertNotIn("output", exported_entry)
+        self.assertNotIn("first output line", response.content.decode("utf-8"))
+
+    def test_csv_export_includes_command_output_when_requested(self):
+        entry = self.OplogEntry.objects.filter(oplog_id=self.oplog).first()
+        entry.output = "first output line\r\nsecond output line\t\x1b[31m"
+        entry.save(update_fields=["output"])
+
+        response = self.client_mgr.get(f"{self.uri}?include_output=true")
+
+        self.assertEqual(len(response.content.decode("utf-8").splitlines()), 6)
+        reader = csv.DictReader(io.StringIO(response.content.decode("utf-8")))
+        self.assertIn("output", reader.fieldnames)
+        rows = list(reader)
+        exported_entry = next(
+            row for row in rows if row["entry_identifier"] == entry.entry_identifier
+        )
+        self.assertEqual(
+            exported_entry["output"],
+            "first output line\\r\\nsecond output line\\t\\x1b[31m",
+        )
+
+    def test_json_export_includes_command_output_when_requested(self):
+        entry = self.OplogEntry.objects.filter(oplog_id=self.oplog).first()
+        entry.output = "first output line\nsecond output line"
+        entry.save(update_fields=["output"])
+
+        response = self.client_mgr.get(f"{self.uri}?format=json&include_output=true")
+
+        exported_entries = response.json()["data"]["oplog"][0]["entries"]
+        exported_entry = next(item for item in exported_entries if item["id"] == entry.id)
+        self.assertEqual(exported_entry["output"], entry.output)
 
     def test_csv_export_sanitizes_filename(self):
         self.oplog.name = r"../reports\evil"
@@ -1052,6 +1176,18 @@ class OplogExportViewTests(TestCase):
         self.assertIn('filename="evil.csv"', response.get("Content-Disposition"))
         self.assertNotIn('filename="evil.csv.csv"', response.get("Content-Disposition"))
 
+    def test_json_export_does_not_duplicate_json_extension(self):
+        self.oplog.name = r"../reports\evil.json"
+        self.oplog.save()
+
+        response = self.client_mgr.get(f"{self.uri}?format=json")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('filename="evil.json"', response.get("Content-Disposition"))
+        self.assertNotIn(
+            'filename="evil.json.json"', response.get("Content-Disposition")
+        )
+
     def test_csv_export_escapes_quotes_in_content_disposition_filename(self):
         self.oplog.name = r'../reports/evil"name'
         self.oplog.save()
@@ -1069,6 +1205,104 @@ class OplogExportViewTests(TestCase):
         self.assertIn(
             "Invalid include value(s): recording", force_str(response.content)
         )
+
+    def test_export_rejects_invalid_format(self):
+        response = self.client_mgr.get(f"{self.uri}?format=xml")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.get("Content-Type"), "text/plain")
+        self.assertIn("Invalid export format: xml", force_str(response.content))
+
+    def test_export_rejects_invalid_include_output_value(self):
+        response = self.client_mgr.get(f"{self.uri}?include_output=yes")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.get("Content-Type"), "text/plain")
+        self.assertIn(
+            "Invalid include_output value: yes", force_str(response.content)
+        )
+
+    def test_json_export_with_attachments_returns_zip(self):
+        entry = self.OplogEntry.objects.filter(oplog_id=self.oplog).first()
+        entry.output = "recorded command output"
+        entry.save(update_fields=["output"])
+        evidence = EvidenceFactory()
+        OplogEntryEvidenceFactory(oplog_entry=entry, evidence=evidence)
+
+        response = self.client_mgr.get(
+            f"{self.uri}?format=json&include=evidence&include_output=true"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get("Content-Type"), "application/zip")
+        self.assertIn("_attachments.zip", response.get("Content-Disposition"))
+        with zipfile.ZipFile(io.BytesIO(b"".join(response.streaming_content))) as zf:
+            json_files = [
+                name
+                for name in zf.namelist()
+                if name.endswith(".json") and name != "manifest.json"
+            ]
+            self.assertEqual(len(json_files), 1)
+            payload = json.loads(zf.read(json_files[0]))
+            self.assertIn("data", payload)
+            exported_entries = payload["data"]["oplog"][0]["entries"]
+            exported_entry = next(
+                item for item in exported_entries if item["id"] == entry.id
+            )
+            self.assertEqual(exported_entry["output"], entry.output)
+            expected_evidence_name = (
+                f"evidence/{entry.id}_{os.path.basename(evidence.document.name)}"
+            )
+            self.assertIn(expected_evidence_name, zf.namelist())
+            manifest = json.loads(zf.read("manifest.json"))
+            self.assertEqual(
+                manifest["entries"][str(entry.id)]["evidence"], [expected_evidence_name]
+            )
+
+    def test_json_zip_reserves_manifest_member_name(self):
+        self.oplog.name = "manifest"
+        self.oplog.save()
+        entry = self.OplogEntry.objects.filter(oplog_id=self.oplog).first()
+        evidence = EvidenceFactory()
+        OplogEntryEvidenceFactory(oplog_entry=entry, evidence=evidence)
+
+        response = self.client_mgr.get(f"{self.uri}?format=json&include=evidence")
+
+        with zipfile.ZipFile(io.BytesIO(b"".join(response.streaming_content))) as zf:
+            self.assertEqual(zf.namelist().count("manifest.json"), 1)
+            self.assertIn("oplog-entries.json", zf.namelist())
+            payload = json.loads(zf.read("oplog-entries.json"))
+            self.assertIn("data", payload)
+
+    def test_json_zip_uses_entries_packaged_with_attachments(self):
+        entry = self.OplogEntry.objects.filter(oplog_id=self.oplog).first()
+        evidence = EvidenceFactory()
+        OplogEntryEvidenceFactory(oplog_entry=entry, evidence=evidence)
+        original_write_file_to_zip = OplogExport._write_file_to_zip
+        added_entries = []
+
+        def write_file_and_add_entry(view, zf, field_file, arcname):
+            if not added_entries:
+                added_entries.append(OplogEntryFactory(oplog_id=self.oplog))
+            return original_write_file_to_zip(view, zf, field_file, arcname)
+
+        with patch.object(
+            OplogExport, "_write_file_to_zip", new=write_file_and_add_entry
+        ):
+            response = self.client_mgr.get(f"{self.uri}?format=json&include=evidence")
+
+        with zipfile.ZipFile(io.BytesIO(b"".join(response.streaming_content))) as zf:
+            json_file = next(
+                name
+                for name in zf.namelist()
+                if name.endswith(".json") and name != "manifest.json"
+            )
+            payload = json.loads(zf.read(json_file))
+            exported_ids = {
+                exported_entry["id"]
+                for exported_entry in payload["data"]["oplog"][0]["entries"]
+            }
+            self.assertNotIn(added_entries[0].id, exported_ids)
 
     def test_export_with_recordings(self):
         """GET with ?include=recordings returns a ZIP whose CSV has a recordings column."""
@@ -1106,6 +1340,29 @@ class OplogExportViewTests(TestCase):
                 [expected_recording_name],
             )
             self.assertEqual(manifest["entries"][str(entry.id)]["evidence"], [])
+
+    def test_csv_zip_sanitizes_command_output(self):
+        entry = self.OplogEntry.objects.filter(oplog_id=self.oplog).first()
+        entry.output = "first output line\nsecond output line\x1b[31m"
+        entry.save(update_fields=["output"])
+        OplogEntryRecordingFactory(oplog_entry=entry)
+
+        response = self.client_mgr.get(
+            f"{self.uri}?include=recordings&include_output=true"
+        )
+
+        with zipfile.ZipFile(io.BytesIO(b"".join(response.streaming_content))) as zf:
+            csv_name = self._assert_single_csv_file(zf)
+            _, rows = self._read_zip_csv(zf, csv_name)
+            exported_entry = next(
+                row
+                for row in rows
+                if row["entry_identifier"] == entry.entry_identifier
+            )
+            self.assertEqual(
+                exported_entry["output"],
+                "first output line\\nsecond output line\\x1b[31m",
+            )
 
     def test_zip_export_sanitizes_csv_member_name(self):
         self.oplog.name = r"..\nested/evil"

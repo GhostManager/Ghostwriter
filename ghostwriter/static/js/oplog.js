@@ -1583,24 +1583,32 @@ $(document).ready(function () {
     // --- Export ---
     $('#exportEntries').click(function () {
         // Open modal with a clean set of export options each time.
+        $('#export-format-csv').prop('checked', true);
         $('#export-recordings').prop('checked', false);
         $('#export-evidence').prop('checked', false);
+        $('#export-include-output').prop('checked', false);
         $('#export-modal').modal('show');
     });
 
     $('#exportModalDownload').click(function () {
+        let exportFormat = $('input[name="export-format"]:checked').val();
         let includeRecordings = $('#export-recordings').prop('checked');
         let includeEvidence = $('#export-evidence').prop('checked');
+        let includeOutput = $('#export-include-output').prop('checked');
         let includeParts = [];
         if (includeRecordings) includeParts.push('recordings');
         if (includeEvidence) includeParts.push('evidence');
         let includeParam = includeParts.join(',');
 
-        let filenameExt = includeParam ? 'zip' : 'csv';
+        let filenameExt = includeParam ? 'zip' : exportFormat;
         let filename = generateDownloadName(oplog_name + '-log-export-' + oplog_id.toString() + '.' + filenameExt);
         let export_url = $splitContainer.attr('data-oplog-export-url');
-        if (includeParam) {
-            export_url += '?include=' + encodeURIComponent(includeParam);
+        let exportParams = new URLSearchParams();
+        if (exportFormat === 'json') exportParams.set('format', 'json');
+        if (includeParam) exportParams.set('include', includeParam);
+        if (includeOutput) exportParams.set('include_output', 'true');
+        if (exportParams.size) {
+            export_url += '?' + exportParams.toString();
         }
         // Close modal then initiate download
         $('#export-modal').modal('hide');
