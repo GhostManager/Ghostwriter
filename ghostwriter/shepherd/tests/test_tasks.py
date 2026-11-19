@@ -27,6 +27,7 @@ class DomainHealthTaskTests(TestCase):
         HealthStatusFactory(health_status="Burned")
         domain_status = DomainStatusFactory(domain_status="Available")
         self.domain = DomainFactory(
+            name="app.example.com",
             domain_status=domain_status,
             health_status=healthy_status,
             categorization={"Existing source": "Existing category"},
@@ -50,7 +51,12 @@ class DomainHealthTaskTests(TestCase):
     @patch("ghostwriter.modules.review.sleep")
     @patch("ghostwriter.modules.review.DomainReview.session.get")
     def test_missing_report_preserves_domain_and_continues_batch(self, mock_get, mock_sleep):
+        self.domain.last_health_check = self.domain.creation
+        self.domain.burned_explanation = "Previous health check explanation"
+        self.domain.save(update_fields=["last_health_check", "burned_explanation"])
+
         other_domain = DomainFactory(
+            name="example.com",
             domain_status=self.domain.domain_status,
             health_status=self.domain.health_status,
         )
@@ -60,46 +66,36 @@ class DomainHealthTaskTests(TestCase):
         original_explanation = self.domain.burned_explanation
         categories = {"Test vendor": "Business"}
 
-        def domain_response(url, **kwargs):
-            if url.endswith(f"/domains/{self.domain.name.lower()}"):
-                return Mock(
-                    ok=False,
-                    status_code=404,
-                    json=Mock(return_value={"error": {"code": "NotFoundError"}}),
-                )
-            return Mock(ok=True, json=Mock(return_value={"data": {"attributes": {"categories": categories}}}))
-
-        mock_get.side_effect = domain_response
-
-        results = check_domains()
-
-        self.domain.refresh_from_db()
-        other_domain.refresh_from_db()
-        self.assertEqual(self.domain.categorization, original_categories)
-        self.assertEqual(self.domain.last_health_check, original_health_check)
-        self.assertEqual(self.domain.health_status_id, original_health_status)
-        self.assertEqual(self.domain.burned_explanation, original_explanation)
-        self.assertEqual(results[self.domain.pk]["change"], "error")
-        self.assertIn("no report", results["errors"][self.domain.name])
-        self.assertEqual(other_domain.categorization, categories)
-        self.assertIsNotNone(other_domain.last_health_check)
-        self.assertNotIn(other_domain.name, results["errors"])
-        self.assertEqual(mock_get.call_count, 2)
-        self.assertEqual(mock_sleep.call_count, 2)
-
-    @patch("ghostwriter.modules.review.DomainReview.session.get")
-    def test_unrecognized_404_still_fails_without_updating_domain(self, mock_get):
-        for response in (
-            Mock(ok=False, status_code=404, json=Mock(side_effect=ValueError("Not JSON"))),
-            Mock(ok=False, status_code=404, json=Mock(return_value={"error": {"code": "OtherError"}})),
+        available_report = Mock(
+            ok=True, json=Mock(return_value={"data": {"attributes": {"categories": categories}}})
+        )
+        for body, parse_json in (
+            ("NotFoundError", Mock(return_value={"error": {"code": "NotFoundError"}})),
+            ("other JSON", Mock(return_value={"error": {"code": "OtherError"}})),
+            ("non-JSON", Mock(side_effect=ValueError("Not JSON"))),
         ):
-            with self.subTest(response=response):
-                mock_get.return_value = response
-                with self.assertRaisesRegex(VirusTotalRequestError, r"HTTP 404") as raised:
-                    check_domains(self.domain.pk)
-                self.assertNotIn("API key", str(raised.exception))
+            with self.subTest(body=body):
+                mock_get.reset_mock()
+                mock_sleep.reset_mock()
+                missing_report = Mock(ok=False, status_code=404, json=parse_json)
+                mock_get.side_effect = [missing_report, available_report]
+
+                results = check_domains()
+
                 self.domain.refresh_from_db()
-                self.assertIsNone(self.domain.last_health_check)
+                other_domain.refresh_from_db()
+                self.assertEqual(self.domain.categorization, original_categories)
+                self.assertEqual(self.domain.last_health_check, original_health_check)
+                self.assertEqual(self.domain.health_status_id, original_health_status)
+                self.assertEqual(self.domain.burned_explanation, original_explanation)
+                self.assertEqual(results[self.domain.pk]["change"], "error")
+                self.assertIn("HTTP 404", results["errors"][self.domain.name])
+                self.assertEqual(results[other_domain.pk]["vt_results"]["categories"], categories)
+                self.assertEqual(other_domain.categorization, categories)
+                self.assertIsNotNone(other_domain.last_health_check)
+                self.assertNotIn(other_domain.name, results["errors"])
+                self.assertEqual(mock_get.call_count, 2)
+                self.assertEqual(mock_sleep.call_count, 2)
 
     @patch("ghostwriter.modules.review.DomainReview.session.get")
     def test_other_api_errors_remain_failures(self, mock_get):

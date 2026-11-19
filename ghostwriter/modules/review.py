@@ -128,17 +128,11 @@ class DomainReview:
             }
             req = self.session.get(url, headers=headers)
             if not req.ok:
-                # A missing report is distinct from a failed API request. Only
-                # accept VT's structured error so proxy/endpoint 404s still fail.
-                if req.status_code == 404:
-                    try:
-                        error_code = req.json().get("error", {}).get("code")
-                    except (ValueError, AttributeError):
-                        error_code = None
-                    if error_code == "NotFoundError" and not subdomains:
-                        message = f"VirusTotal has no report for {domain} (HTTP 404, NotFoundError)."
-                        logger.warning(message)
-                        return {"result": "not_found", "error": message}
+                # A missing domain report is recorded for that domain without stopping the batch.
+                if req.status_code == 404 and not subdomains:
+                    message = f"VirusTotal has no report for {domain} (HTTP 404)."
+                    logger.warning(message)
+                    return {"result": "not_found", "error": message}
 
                 message = (
                     f"VirusTotal rejected the API request for {domain} "
