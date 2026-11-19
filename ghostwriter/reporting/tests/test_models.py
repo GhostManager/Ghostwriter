@@ -1,11 +1,14 @@
 # Standard Libraries
 from datetime import timedelta
+from io import BytesIO
+from tempfile import TemporaryDirectory
 import logging
 import os
 import json
 
 # 3rd Party Libraries
 import factory
+from docx import Document
 
 # Django Imports
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -355,6 +358,31 @@ class ReportTemplateModelTests(TestCase):
         _, errors = ExportReportDocx.lint(report_template)
 
         self.assertNotIn("Template rendering failed unexpectedly", errors)
+
+    def test_docx_lint_explains_unsupported_string_format_methods(self):
+        expressions = {
+            "format": '{{ "{}".format("Example") }}',
+            "format_map": '{{ "{name}".format_map({"name": "Example"}) }}',
+        }
+        with TemporaryDirectory() as media_root, self.settings(MEDIA_ROOT=media_root):
+            for method, expression in expressions.items():
+                with self.subTest(method=method):
+                    docx = Document()
+                    docx.add_paragraph(expression)
+                    buffer = BytesIO()
+                    docx.save(buffer)
+                    report_template = ReportDocxTemplateFactory(
+                        document=SimpleUploadedFile("format-template.docx", buffer.getvalue())
+                    )
+
+                    results = report_template.lint()
+
+                    self.assertEqual(results["result"], "failed")
+                    (message,) = results["errors"]
+                    self.assertIn(f"String method .{method}() is unavailable", message)
+                    self.assertIn("use the Jinja |format filter with % placeholders", message)
+                    self.assertTrue(message.endswith("The error occurred in the DOCX template."), message)
+                    self.assertNotIn("0x", message)
 
     def test_update_upload_date_signal(self):
         # Create a template with an initial document
