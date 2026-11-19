@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { Mapping, StepMap } from "@tiptap/pm/transform";
+import { mapCommentRange } from "./comment_range";
 
 import type { JSONContent } from "@tiptap/core";
 import { generateHTML, generateJSON } from "@tiptap/html/server";
@@ -146,3 +148,74 @@ const unsafeOutput = generateHTML(unsafeLinkJson, extensions);
 assert.doesNotMatch(unsafeOutput, /javascript:/i);
 
 console.log("Ghostwriter legacy HTML compatibility checks passed.");
+
+// Comment marks must preserve their text and metadata across server serialization.
+const commentEntries = [
+    {
+        author: "Unknown",
+        comment: "Review this",
+        timestamp: "2026-11-06T12:00:00Z",
+    },
+];
+for (const resolved of [false, true]) {
+    const marked = {
+        type: "doc",
+        content: [
+            {
+                type: "paragraph",
+                content: [
+                    {
+                        type: "text",
+                        text: "Commented text",
+                        marks: [
+                            {
+                                type: "gwComment",
+                                attrs: { comments: commentEntries, resolved },
+                            },
+                        ],
+                    },
+                ],
+            },
+        ],
+    };
+    const html = generateHTML(marked, extensions);
+    assert.ok(html.includes("Commented text"));
+    const roundTrip = walk(generateJSON(html, extensions)).find(
+        (n) => n.text === "Commented text"
+    );
+    assert.deepEqual(
+        { ...roundTrip?.marks?.find((m) => m.type === "gwComment")?.attrs },
+        { comments: commentEntries, resolved }
+    );
+}
+
+// These mappings also occur when a collaborator edits while the dialog is open.
+const target = { from: 5, to: 10 };
+assert.deepEqual(
+    mapCommentRange(target, new Mapping([new StepMap([1, 0, 3])])),
+    { from: 8, to: 13 }
+);
+assert.deepEqual(
+    mapCommentRange(target, new Mapping([new StepMap([7, 0, 3])])),
+    { from: 5, to: 13 }
+);
+assert.deepEqual(
+    mapCommentRange(target, new Mapping([new StepMap([5, 0, 3])])),
+    { from: 8, to: 13 }
+);
+assert.deepEqual(
+    mapCommentRange(target, new Mapping([new StepMap([10, 0, 3])])),
+    target
+);
+assert.deepEqual(
+    mapCommentRange(target, new Mapping([new StepMap([1, 2, 0])])),
+    { from: 3, to: 8 }
+);
+assert.equal(
+    mapCommentRange(target, new Mapping([new StepMap([5, 5, 0])])),
+    null
+);
+assert.equal(
+    mapCommentRange(null, new Mapping([new StepMap([1, 0, 5])])),
+    null
+);
