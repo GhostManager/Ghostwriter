@@ -11,13 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-* Fixed VirusTotal domain health checks aborting when a domain-report request returned HTTP 404 without the expected error body. The task records a per-domain error, preserves the domain's existing health data, and continues checking the remaining domains
+* Fixed VirusTotal domain health checks aborting when a domain report request returned HTTP 404 without the expected error body
+  * The task records a per-domain error, preserves the domain's existing health data, and continues checking the remaining domains
 * Fixed low-contrast evidence names, captions, and blockquotes in dark-mode rich-text editors by matching the surrounding text color (Closes #1009)
 * Made DOCX lint errors for unsupported `.format()` and `.format_map()` calls name the method and suggest Jinja’s `|format` filter
 
 ### Security
 
-* Updated the NGINX container base image to `nginx:1.30.7-alpine` to fix CVE-2026-123007 (NGINX2Root). [NGINX security advisory](https://nginx.org/en/security_advisories.html)
+* Updated the NGINX container base image to `nginx:1.30.7-alpine` to fix CVE-2026-123007 (NGINX2Root; [NGINX security advisory](https://nginx.org/en/security_advisories.html))
 
 ## [7.3.4] - 18 November 2026
 
