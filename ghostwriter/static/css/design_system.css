@@ -26,6 +26,13 @@
   --gw-surface-muted: #f3f5f7;
   --gw-border: #dfe3e8;
   --gw-text-strong: #303943;
+  --gw-text-muted: #696969;
+  --gw-text-success: #286b45;
+  --gw-text-warning: #805b1b;
+  --gw-text-danger: #963d44;
+  --gw-text-info: #4b5f9c;
+  --gw-text-context: #5d6095;
+  --gw-focus-outline: #363866;
   --gw-shadow-xs: 0 1px 2px rgba(20, 27, 36, 0.06);
   --gw-shadow-sm: 0 2px 8px rgba(20, 27, 36, 0.08);
   --gw-shadow-md: 0 12px 30px rgba(20, 27, 36, 0.14);
@@ -43,6 +50,13 @@
   --gw-surface-muted: #2b2e31;
   --gw-border: #3b3f43;
   --gw-text-strong: #f0f1f2;
+  --gw-text-muted: #adadad;
+  --gw-text-success: #8bd3a3;
+  --gw-text-warning: var(--gw-signal-amber);
+  --gw-text-danger: #f5a3a9;
+  --gw-text-info: #a7b3ed;
+  --gw-text-context: #aaaadd;
+  --gw-focus-outline: #c5c9ef;
   --gw-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.22);
   --gw-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.28);
   --gw-shadow-md: 0 12px 30px rgba(0, 0, 0, 0.38);
@@ -772,7 +786,7 @@ textarea.form-control {
 
 .form-text,
 .text-muted {
-  color: color-mix(in srgb, var(--main-txt-color) 72%, transparent) !important;
+  color: var(--gw-text-muted) !important;
 }
 
 .extra-field-form-group {
@@ -1308,7 +1322,7 @@ textarea.form-control {
 }
 
 .report-state-help {
-  color: color-mix(in srgb, var(--main-txt-color) 62%, transparent);
+  color: var(--gw-text-muted);
   font-size: 0.75rem;
   line-height: 1.35;
 }
@@ -1322,19 +1336,19 @@ textarea.form-control {
 }
 
 .project-status-summary.is-upcoming {
-  color: var(--gw-context-blue);
+  color: var(--gw-text-info);
 }
 
 .project-status-summary.is-in-progress {
-  color: var(--gw-engagement-violet);
+  color: var(--gw-text-context);
 }
 
 .project-status-summary.is-awaiting-completion {
-  color: var(--gw-signal-amber);
+  color: var(--gw-text-warning);
 }
 
 .project-status-summary.is-complete {
-  color: var(--gw-signal-green);
+  color: var(--gw-text-success);
 }
 
 .project-status-summary + .report-state-help {
@@ -2639,7 +2653,7 @@ a.report-item-title {
 .table > thead > tr > th {
   padding-top: 0.65rem;
   padding-bottom: 0.65rem;
-  color: color-mix(in srgb, var(--main-txt-color) 78%, transparent);
+  color: var(--gw-text-muted);
   background: var(--gw-surface-muted);
   border-bottom: 1px solid var(--gw-border);
   font-size: 0.75rem;
@@ -5028,7 +5042,7 @@ a.report-item-title {
 
 .resource-edit-intro {
   max-width: 72ch;
-  color: color-mix(in srgb, var(--main-txt-color) 70%, transparent);
+  color: var(--gw-text-muted);
   line-height: 1.5;
   text-align: left;
 }
@@ -10100,7 +10114,7 @@ a.report-item-title {
 .library-page-heading-main > p {
   max-width: 68ch;
   margin: 0.4rem 0 0;
-  color: color-mix(in srgb, var(--main-txt-color) 72%, transparent);
+  color: var(--gw-text-muted);
   line-height: 1.5;
   text-align: left;
 }
@@ -10396,7 +10410,7 @@ a.report-item-title {
 }
 
 .column-picker-toggle:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--primary-color) 72%, transparent);
+  outline: 2px solid var(--gw-focus-outline);
   outline-offset: -2px;
 }
 
@@ -10409,7 +10423,7 @@ a.report-item-title {
 
 .column-picker-heading > i {
   flex: 0 0 auto;
-  color: var(--primary-color);
+  color: var(--gw-text-success);
 }
 
 .column-picker-title,
@@ -10424,14 +10438,14 @@ a.report-item-title {
 
 .column-picker-summary {
   margin-top: 0.08rem;
-  color: color-mix(in srgb, var(--main-txt-color) 62%, transparent);
+  color: var(--gw-text-muted);
   font-size: 0.75rem;
   font-weight: 400;
 }
 
 .column-picker-chevron {
   flex: 0 0 auto;
-  color: color-mix(in srgb, var(--main-txt-color) 60%, transparent);
+  color: var(--gw-text-muted);
   font-size: 0.75rem;
   transition: transform 160ms ease;
 }
@@ -10447,7 +10461,7 @@ a.report-item-title {
 
 .column-picker-help {
   margin: 0 0 0.7rem;
-  color: color-mix(in srgb, var(--main-txt-color) 68%, transparent);
+  color: var(--gw-text-muted);
   font-size: 0.78rem;
   text-align: left;
 }
@@ -10673,25 +10687,25 @@ a.report-item-title {
 }
 
 .library-tag-success {
-  color: color-mix(in srgb, #2f9e68 82%, var(--gw-text-strong));
+  color: var(--gw-text-success);
   background: color-mix(in srgb, #2f9e68 12%, var(--gw-surface));
   border-color: color-mix(in srgb, #2f9e68 32%, var(--gw-border));
 }
 
 .library-tag-warning {
-  color: color-mix(in srgb, #d49332 78%, var(--gw-text-strong));
+  color: var(--gw-text-warning);
   background: color-mix(in srgb, #d49332 12%, var(--gw-surface));
   border-color: color-mix(in srgb, #d49332 32%, var(--gw-border));
 }
 
 .library-tag-danger {
-  color: color-mix(in srgb, #d85b62 80%, var(--gw-text-strong));
+  color: var(--gw-text-danger);
   background: color-mix(in srgb, #d85b62 12%, var(--gw-surface));
   border-color: color-mix(in srgb, #d85b62 32%, var(--gw-border));
 }
 
 .library-tag-info {
-  color: color-mix(in srgb, var(--primary-color) 78%, var(--gw-text-strong));
+  color: var(--gw-text-success);
   background: color-mix(in srgb, var(--primary-color) 10%, var(--gw-surface));
   border-color: color-mix(in srgb, var(--primary-color) 28%, var(--gw-border));
 }
@@ -10709,21 +10723,25 @@ a.report-item-title {
 }
 
 .library-tag-context {
-  color: var(--gw-engagement-violet);
+  color: var(--gw-text-context);
   background: color-mix(in srgb, var(--gw-engagement-violet) 11%, var(--gw-surface));
   border-color: color-mix(in srgb, var(--gw-engagement-violet) 34%, var(--gw-border));
 }
 
 .library-tag-neutral {
-  color: color-mix(in srgb, var(--main-txt-color) 76%, transparent);
+  color: var(--gw-text-muted);
 }
 
 .finding-severity-badge {
   --finding-severity-color: var(--gw-information-slate);
 
-  color: color-mix(in srgb, var(--finding-severity-color) 78%, var(--gw-text-strong));
+  color: color-mix(in srgb, var(--finding-severity-color) 43%, var(--gw-ghost-ink));
   background: color-mix(in srgb, var(--finding-severity-color) 11%, var(--gw-surface));
   border-color: color-mix(in srgb, var(--finding-severity-color) 32%, var(--gw-border));
+}
+
+[data-theme="dark"] .finding-severity-badge {
+  color: color-mix(in srgb, var(--finding-severity-color) 78%, var(--gw-text-strong));
 }
 
 .finding-severity-critical {

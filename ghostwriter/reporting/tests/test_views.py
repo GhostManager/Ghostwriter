@@ -6275,7 +6275,8 @@ class GenerateReportTests(TestCase):
         messages = list(get_messages(response.wsgi_request))
         self.assertEqual(
             str(messages[0]),
-            "Error: The word template could not be found on the server – try uploading it again. Occurred in the DOCX template",
+            "Error: The word template could not be found on the server – try uploading it again. "
+            "The error occurred in the DOCX template.",
         )
 
         self.report.docx_template = good_template

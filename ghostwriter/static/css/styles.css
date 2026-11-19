@@ -2458,7 +2458,6 @@ td p {
 ----------------------------------------------------- */
 
 .dropdown-info {
-  color: #fff;
   cursor: help;
 }
 
@@ -4816,10 +4815,6 @@ input[type="color"]:focus,
 [data-theme="dark"] .editor-menubar button.is-active {
   background-color: var(--primary-color);
   color: #fff;
-}
-
-[data-theme="dark"] .tiptap blockquote p {
-  color: black;
 }
 
 [data-theme="dark"] .collab-edit-toolbar-menu {

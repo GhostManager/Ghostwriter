@@ -1,5 +1,7 @@
 
 import logging
+import re
+
 import jinja2
 
 from ghostwriter.modules.exceptions import InvalidFilterValue
@@ -31,27 +33,22 @@ class ReportExportError(Exception):
         self.code_context = code_context
 
     def __str__(self) -> str:
-        text = self.display_text
-        ends_with_period = text.rstrip()[-1:] == "."
+        if not self.location and not self.code_context:
+            return self.display_text
+
+        text = self.display_text.rstrip()
+        if text.endswith((".", "!", "?")):
+            text += " The error occurred"
 
         if self.location:
-            if ends_with_period:
-                text += " Occurred in "
-            else:
-                text += " in "
-            text += self.location
+            text += f" in {self.location}"
 
         if self.code_context:
             if self.location:
-                text += ", near `"
-            elif ends_with_period:
-                text += " Occurred near `"
-            else:
-                text += " near `"
-            text += self.code_context
-            text += "`"
+                text += ","
+            text += f" near `{self.code_context}`"
 
-        return text
+        return f"{text}."
 
 class ReportExportTemplateError(ReportExportError):
     """
@@ -79,6 +76,31 @@ class ReportExportTemplateError(ReportExportError):
             raise ReportExportTemplateError(f"Template syntax error: {err}", location) from err
         except InvalidFilterValue as err:
             raise ReportExportTemplateError(f"Invalid filter value: {err.message}", location) from err
+        except jinja2.exceptions.SecurityError as err:
+            message = str(err)
+            # Jinja reports a rejected call using the callable's repr. Its
+            # wrappers for string format methods include a Python address.
+            formatter = re.fullmatch(r"<function str\.(format(?:_map)?) at 0x[0-9a-fA-F]+> is not safely callable", message)
+            if formatter:
+                method = formatter[1]
+                message = (
+                    f"String method .{method}() is unavailable in report templates. "
+                    f"Search for .{method} in the template. For simple substitutions, "
+                    'use the Jinja |format filter with % placeholders, such as {{ "%s"|format(value) }}.'
+                )
+            elif message.endswith(" is not safely callable"):
+                message = (
+                    "A template expression calls an unsupported function or method. "
+                    "Use a supported Ghostwriter template helper or Jinja filter."
+                )
+            elif message.startswith("access to attribute "):
+                message = f"Template error: {message}"
+            else:
+                message = (
+                    "The template uses an unsupported operation. "
+                    "Review the template expressions and use supported Ghostwriter helpers or Jinja filters."
+                )
+            raise ReportExportTemplateError(message, location) from err
         except jinja2.TemplateError as err:
             raise ReportExportTemplateError(f"Template error: {err}", location) from err
         except ZeroDivisionError as err:
