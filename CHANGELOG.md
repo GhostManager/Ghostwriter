@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [7.3.5] - 19 November 2026
+
+### Fixed
+
+* Fixed VirusTotal domain health checks aborting when a domain-report request returned HTTP 404 without the expected error body. The task records a per-domain error, preserves the domain's existing health data, and continues checking the remaining domains.
+
+### Security
+
+* Updated the NGINX container base image to `nginx:1.30.7-alpine` to fix CVE-2026-123007 (NGINX2Root). [NGINX security advisory](https://nginx.org/en/security_advisories.html)
+
 ## [7.3.4] - 18 November 2026
 
 ### Fixed
