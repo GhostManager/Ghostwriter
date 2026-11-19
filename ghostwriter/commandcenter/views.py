@@ -240,11 +240,11 @@ class ExtraFieldRichTextPreviewView(RoleBasedAccessControlMixin, SingleObjectMix
             type="rich_text",
         )
 
-        value = spec.value_of(obj.extra_fields)
-        if isinstance(value, str) and value.strip() in ("", "<p></p>", "<p> </p>", "<p><br></p>"):
-            return HttpResponse("", content_type="text/html")
-
         try:
+            value = spec.value_of(obj.extra_fields)
+            if isinstance(value, str) and value.strip() in ("", "<p></p>", "<p> </p>", "<p><br></p>"):
+                return HttpResponse("", content_type="text/html")
+
             html = render_literal_rich_text(prepare_jinja2_env(), value) if isinstance(value, str) else None
             if html is None:
                 exporter = self.build_exporter(obj, (spec_model._meta.label, field_name))

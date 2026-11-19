@@ -4030,6 +4030,15 @@ class ExtraFieldRichTextPreviewPermissionTests(TestCase):
         response = self.client_mgr.get(uri)
         self.assertEqual(response.status_code, 404)
 
+    def test_malformed_extra_fields_returns_generic_preview_error(self):
+        Report.objects.filter(pk=self.report.pk).update(extra_fields=17)
+
+        response = self.client_mgr.get(self.uri)
+
+        self.assertContains(response, "Preview Error")
+        self.assertContains(response, "An unexpected error occurred while rendering this preview.")
+        self.assertNotContains(response, "TypeError")
+
     def test_empty_field_skips_exporter(self):
         for value in ({}, {"test_rt": "<p><br></p>"}):
             with self.subTest(value=value):
