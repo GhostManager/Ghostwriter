@@ -10,7 +10,11 @@ def oplog_entries_prefetch(prefix=""):
     """Load entries, their tags, and recording metadata for export."""
     return Prefetch(
         f"{prefix}oplog_set__entries",
-        queryset=OplogEntry.objects.select_related("recording").prefetch_related("tags"),
+        queryset=(
+            OplogEntry.objects.select_related("recording")
+            .defer("recording__recording_text")
+            .prefetch_related("tags")
+        ),
     )
 
 
