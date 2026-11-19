@@ -84,9 +84,9 @@ class ExportDocxBase(ExportBase):
     ):
         if "jinja_debug" not in kwargs:
             kwargs["jinja_debug"] = linting
+        self.report_template = report_template
         super().__init__(object, **kwargs)
         self.linting = linting
-        self.report_template = report_template
         self.image_replacements = image_replacements or {}
 
         # Create Word document writer using the specified template file

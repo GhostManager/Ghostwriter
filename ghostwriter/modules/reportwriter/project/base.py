@@ -1,5 +1,6 @@
 from collections import ChainMap
 import copy
+from functools import partial
 
 from ghostwriter.commandcenter.models import ExtraFieldSpec
 from ghostwriter.modules.custom_serializers import FullProjectSerializer
@@ -7,15 +8,16 @@ from ghostwriter.modules.linting_utils import LINTER_CONTEXT
 from ghostwriter.modules.reportwriter import jinja_funcs
 from ghostwriter.modules.reportwriter.base.base import ExportBase
 from ghostwriter.modules.reportwriter.base.html_rich_text import HtmlRichText, offset_headings
+from ghostwriter.modules.reportwriter.log_dependencies import serialize_with_log_dependencies
 from ghostwriter.oplog.models import OplogEntry
 from ghostwriter.reporting.models import Report
 from ghostwriter.rolodex.models import Client, Project
 from ghostwriter.shepherd.models import Domain, StaticServer
 
 
-def serialize_project(project):
+def serialize_project(project, *, inspect_context=None):
     """Serialize a project for export without depending on exporter state."""
-    return FullProjectSerializer(project).data
+    return serialize_with_log_dependencies(FullProjectSerializer(project), project, inspect_context)
 
 
 class ExportProjectBase(ExportBase):
@@ -26,8 +28,13 @@ class ExportProjectBase(ExportBase):
     contexts.
     """
 
-    def __init__(self, *args, **kwargs):
-        kwargs["object_serializer"] = serialize_project
+    def __init__(self, *args, inspect_templates=None, **kwargs):
+        inspect_context = (
+            partial(self.inspect_log_dependencies, inspect_templates)
+            if inspect_templates is not None
+            else None
+        )
+        kwargs["object_serializer"] = partial(serialize_project, inspect_context=inspect_context)
         super().__init__(*args, **kwargs)
 
     def map_rich_texts(self):

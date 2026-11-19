@@ -490,6 +490,7 @@
   font-size: 0.62rem;
   font-weight: 700;
   letter-spacing: 0.1em;
+  text-align: start;
   text-transform: uppercase;
 }
 
@@ -580,7 +581,6 @@
 }
 
 .sidebar-navigation-more-group h3 {
-  padding-left: 2.6rem;
   font-size: 0.58rem;
 }
 

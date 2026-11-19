@@ -33,8 +33,9 @@ from ghostwriter.commandcenter.models import BloodHoundConfiguration, ExtraField
 from ghostwriter.commandcenter.views import CollabModelUpdate, ExtraFieldJsonView, ExtraFieldRichTextPreviewView
 from ghostwriter.home.working_context import record_recent_report
 from ghostwriter.modules.exceptions import MissingTemplate
-from ghostwriter.modules.reportwriter import report_generation_queryset
 from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
+from ghostwriter.modules.reportwriter.log_dependencies import preview_template_variables
+from ghostwriter.modules.reportwriter.querysets import report_generation_queryset
 from ghostwriter.modules.reportwriter.report.docx import ExportReportDocx
 from ghostwriter.modules.reportwriter.report.json import ExportReportJson
 from ghostwriter.modules.reportwriter.report.pptx import ExportReportPptx
@@ -609,8 +610,12 @@ class ReportExtraFieldJson(ExtraFieldJsonView):
 class ReportExtraFieldRichTextPreview(ExtraFieldRichTextPreviewView):
     model = Report
 
-    def build_exporter(self, obj):
-        return ExportReportJson(obj)
+    def build_exporter(self, obj, preview_extra_field):
+        return ExportReportJson(
+            report_generation_queryset(include_logs=False).get(pk=obj.pk),
+            inspect_templates=preview_template_variables,
+            preview_extra_field=preview_extra_field,
+        )
 
     def get_report_for_evidence(self, obj):
         return obj
@@ -942,15 +947,7 @@ class ReportTemplateDownload(RoleBasedAccessControlMixin, SingleObjectMixin, Vie
 class GenerateReportBase(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """Base class for report generation"""
     model = Report
-    queryset = Report.objects.all().prefetch_related(
-        "tags",
-        "reportfindinglink_set",
-        "reportobservationlink_set",
-        "evidence_set",
-        "project__oplog_set",
-        "project__oplog_set__entries",
-        "project__oplog_set__entries__tags",
-    ).select_related()
+    queryset = report_generation_queryset()
 
     object: Report
     include_bloodhound: bool
@@ -998,6 +995,7 @@ class GenerateReportDOCX(GenerateReportBase):
     """Generate a DOCX report for an individual :model:`reporting.Report`."""
 
     model = Report
+    queryset = report_generation_queryset(include_logs=False)
 
     def test_func(self):
         return self.object.user_can_view(self.request.user)
@@ -1053,8 +1051,14 @@ class GenerateReportDOCX(GenerateReportBase):
         # Template available and passes linting checks, so proceed with generation
 
         try:
-            exporter = ExportReportDocx(obj, report_template=report_template, include_bloodhound=self.include_bloodhound)
-            report_name = exporter.render_filename(report_template.filename_override or report_config.report_filename)
+            filename_template = report_template.filename_override or report_config.report_filename
+            exporter = ExportReportDocx(
+                obj,
+                report_template=report_template,
+                include_bloodhound=self.include_bloodhound,
+                filename_template=filename_template,
+            )
+            report_name = exporter.render_filename(filename_template)
             docx = exporter.run()
         except ReportExportTemplateError as error:
             logger.error(

@@ -233,26 +233,3 @@ def prepare_jinja2_env(debug=False):
     if debug:
         return env, undefined_vars
     return env
-
-
-def report_generation_queryset():
-    """
-    Gets a queryset of Reports with `select_related` and `prefetch_related` options optimal for report generation.
-    """
-    from ghostwriter.reporting.models import (  # pylint: disable=import-outside-toplevel
-        Report,
-    )
-
-    return (
-        Report.objects.all()
-        .prefetch_related(
-            "tags",
-            "reportfindinglink_set",
-            "reportobservationlink_set",
-            "evidence_set",
-            "project__oplog_set",
-            "project__oplog_set__entries",
-            "project__oplog_set__entries__tags",
-        )
-        .select_related()
-    )

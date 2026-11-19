@@ -5,7 +5,10 @@ from datetime import date
 
 # Django Imports
 from django.conf import settings
+from django.db import connection
 from django.test import TestCase
+from django.test.utils import CaptureQueriesContext
+from django.urls import reverse
 from django.utils import dateformat
 
 # 3rd Party Libraries
@@ -32,6 +35,8 @@ from ghostwriter.factories import (
     UserFactory,
 )
 from ghostwriter.modules.custom_serializers import FullProjectSerializer, ReportDataSerializer
+from ghostwriter.modules.reportwriter.querysets import report_generation_queryset
+from ghostwriter.oplog.models import OplogEntryRecording
 
 logging.disable(logging.CRITICAL)
 
@@ -227,6 +232,33 @@ class ReportDataSerializerTests(TestCase):
         for log in report_json["logs"]:
             for entry in log["entries"]:
                 self.assertIsNotNone(entry["tool"])
+
+    def test_export_serializes_log_entries_without_per_entry_queries(self):
+        log = self.project.oplog_set.get()
+        entries = OplogEntryFactory.create_batch(3, oplog_id=log)
+        recording = OplogEntryRecording.objects.create(
+            oplog_entry=entries[0],
+            recording_file="exports/test.cast",
+            recording_text="Terminal transcript",
+        )
+        with CaptureQueriesContext(connection) as prefetch_queries:
+            report = report_generation_queryset().get(pk=self.report.pk)
+        recording_table = OplogEntryRecording._meta.db_table
+        recording_queries = [
+            query["sql"] for query in prefetch_queries if recording_table in query["sql"]
+        ]
+        self.assertEqual(len(recording_queries), 1)
+        self.assertNotIn('"recording_text"', recording_queries[0])
+
+        with CaptureQueriesContext(connection) as queries:
+            data = ReportDataSerializer(report).data
+        serialized_entries = data["logs"][0]["entries"]
+        self.assertEqual(len(serialized_entries), 4)
+        self.assertIn(
+            reverse("oplog:oplog_entry_recording_download", kwargs={"pk": recording.pk}),
+            [entry["recording_url"] for entry in serialized_entries],
+        )
+        self.assertFalse(any(recording_table in query["sql"] for query in queries))
 
     def test_team_entries_are_ordered_by_role_position_then_operator_name(self):
         project = ProjectFactory()

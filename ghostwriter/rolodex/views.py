@@ -49,6 +49,7 @@ from ghostwriter.commandcenter.views import CollabModelUpdate, ExtraFieldJsonVie
 from ghostwriter.modules import codenames
 from ghostwriter.modules.model_utils import to_dict
 from ghostwriter.modules.reportwriter.base import ReportExportTemplateError
+from ghostwriter.modules.reportwriter.log_dependencies import preview_template_variables
 from ghostwriter.modules.reportwriter.project.json import ExportProjectJson
 from ghostwriter.modules.shared import add_content_disposition_header
 from ghostwriter.modules.shared import get_tags_for_queryset
@@ -1781,8 +1782,12 @@ class ProjectExtraFieldJson(ExtraFieldJsonView):
 class ProjectExtraFieldRichTextPreview(ExtraFieldRichTextPreviewView):
     model = Project
 
-    def build_exporter(self, obj):
-        return ExportProjectJson(obj)
+    def build_exporter(self, obj, preview_extra_field):
+        return ExportProjectJson(
+            obj,
+            inspect_templates=preview_template_variables,
+            preview_extra_field=preview_extra_field,
+        )
 
     def extract_rendered_field(self, exporter, base_context, field_name):
         value = base_context.get("project", {}).get("extra_fields", {}).get(field_name)

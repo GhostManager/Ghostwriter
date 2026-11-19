@@ -11,6 +11,7 @@ from ghostwriter.modules.linting_utils import LINTER_CONTEXT
 from ghostwriter.modules.reportwriter import jinja_funcs
 from ghostwriter.modules.reportwriter.base.base import ExportBase
 from ghostwriter.modules.reportwriter.base.html_rich_text import HtmlAndObject
+from ghostwriter.modules.reportwriter.log_dependencies import serialize_with_log_dependencies
 from ghostwriter.modules.reportwriter.project.base import ExportProjectBase
 from ghostwriter.oplog.models import OplogEntry
 from ghostwriter.reporting.models import Finding, Observation, Report
@@ -18,15 +19,13 @@ from ghostwriter.rolodex.models import Client, Project
 from ghostwriter.shepherd.models import Domain, StaticServer
 
 
-def serialize_report(report, *, include_bloodhound=True):
+def serialize_report(report, *, include_bloodhound=True, inspect_context=None):
     """Serialize a report for export without depending on exporter state."""
     excludes = ["id"]
     if not include_bloodhound:
         excludes.append("bloodhound")
-    return ReportDataSerializer(
-        report,
-        exclude=excludes,
-    ).data
+    serializer = ReportDataSerializer(report, exclude=excludes)
+    return serialize_with_log_dependencies(serializer, report.project, inspect_context)
 
 
 class ExportReportBase(ExportBase):
@@ -38,11 +37,17 @@ class ExportReportBase(ExportBase):
     """
     include_bloodhound: bool
 
-    def __init__(self, *args, include_bloodhound=True, **kwargs):
+    def __init__(self, *args, include_bloodhound=True, inspect_templates=None, **kwargs):
         self.include_bloodhound = include_bloodhound
+        inspect_context = (
+            partial(self.inspect_log_dependencies, inspect_templates)
+            if inspect_templates is not None
+            else None
+        )
         kwargs["object_serializer"] = partial(
             serialize_report,
             include_bloodhound=include_bloodhound,
+            inspect_context=inspect_context,
         )
         super().__init__(*args, **kwargs)
 

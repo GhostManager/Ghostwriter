@@ -29,7 +29,9 @@ from ghostwriter.api.utils import (
 from ghostwriter.commandcenter.models import ExtraFieldSpec, ReportConfiguration
 from ghostwriter.commandcenter.templatetags.extra_fields import expand_evidence_and_sanitize
 from ghostwriter.modules.custom_serializers import ExtraFieldsSpecSerializer
+from ghostwriter.modules.reportwriter import prepare_jinja2_env
 from ghostwriter.modules.reportwriter.base import ReportExportError, ReportExportTemplateError
+from ghostwriter.modules.reportwriter.base.html_rich_text import render_literal_rich_text
 
 logger = logging.getLogger(__name__)
 GENERIC_RICH_TEXT_PREVIEW_ERROR_HTML = (
@@ -197,7 +199,7 @@ class ExtraFieldRichTextPreviewView(RoleBasedAccessControlMixin, SingleObjectMix
     #: against a different model (e.g. ``Finding`` for ``ReportFindingLink``).
     extra_field_spec_model = None
 
-    def build_exporter(self, obj):
+    def build_exporter(self, obj, preview_extra_field):
         """
         Return an ``ExportBase`` subclass instance whose ``map_rich_texts``
         method produces ``LazilyRenderedTemplate`` objects for rich-text
@@ -227,28 +229,27 @@ class ExtraFieldRichTextPreviewView(RoleBasedAccessControlMixin, SingleObjectMix
         """Return the :model:`rolodex.Client` for image resolution, or ``None``."""
         return None
 
-    def prepare_exporter_for_preview(self, exporter, spec_model, field_name):
-        """Limit extra-field rich-text compilation to the requested preview field."""
-        exporter.preview_extra_field_model_label = spec_model._meta.label
-        exporter.preview_extra_field_name = field_name
-        return exporter
-
     def get(self, request, *args, **kwargs):
         obj = self.get_object()
         field_name = kwargs["extra_field_name"]
 
         spec_model = self.extra_field_spec_model or self.model
-        get_object_or_404(
+        spec = get_object_or_404(
             ExtraFieldSpec.for_model(spec_model),
             internal_name=field_name,
             type="rich_text",
         )
 
         try:
-            exporter = self.build_exporter(obj)
-            exporter = self.prepare_exporter_for_preview(exporter, spec_model, field_name)
-            base_context = exporter.map_rich_texts()
-            html = self.extract_rendered_field(exporter, base_context, field_name)
+            value = spec.value_of(obj.extra_fields)
+            if isinstance(value, str) and value.strip() in ("", "<p></p>", "<p> </p>", "<p><br></p>"):
+                return HttpResponse("", content_type="text/html")
+
+            html = render_literal_rich_text(prepare_jinja2_env(), value) if isinstance(value, str) else None
+            if html is None:
+                exporter = self.build_exporter(obj, (spec_model._meta.label, field_name))
+                base_context = exporter.map_rich_texts()
+                html = self.extract_rendered_field(exporter, base_context, field_name)
         except ReportExportTemplateError as error:
             logger.warning(
                 "Template error rendering rich-text preview for %s field %s: %s",

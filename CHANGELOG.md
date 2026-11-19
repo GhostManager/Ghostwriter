@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [7.3.4] - 18 November 2026
+
+### Fixed
+
+* Reduced Word report generation time for projects with large activity logs
+  * Exports skip activity entries when templates do not need them, fetch just the tool names for templates that only use the tool list, and preload tags and terminal recording metadata when loading full entries
+* Sped up blank and formatted prose extra-field previews by skipping report serialization
+  * Previews that render Jinja, including full finding and observation previews, load activity log data only when the rendered content requires it.
+
 ## [7.3.3] - 13 November 2026
 
 ### Added

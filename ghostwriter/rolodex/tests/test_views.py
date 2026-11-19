@@ -2210,6 +2210,8 @@ class ProjectDetailViewTests(TestCase):
         self.assertNotIn("broken_notes", content)
 
     def test_richtext_preview_unexpected_export_error_returns_generic_error(self):
+        self.project.extra_fields[self.richtext_extra_field.internal_name] = "<p>{{ project.codename }}</p>"
+        self.project.save(update_fields=["extra_fields"])
         ProjectAssignmentFactory(
             project=self.project,
             operator=UserFactory(),

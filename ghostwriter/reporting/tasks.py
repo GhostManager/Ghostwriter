@@ -7,7 +7,7 @@ from datetime import date
 
 
 # Ghostwriter Libraries
-from ghostwriter.modules.reportwriter import report_generation_queryset
+from ghostwriter.modules.reportwriter.querysets import report_generation_queryset
 from ghostwriter.reporting.archive import archive_report
 
 # Using __name__ resolves to ghostwriter.reporting.tasks
