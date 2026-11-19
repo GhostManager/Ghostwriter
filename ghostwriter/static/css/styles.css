@@ -4818,8 +4818,6 @@ input[type="color"]:focus,
   color: #fff;
 }
 
-[data-theme="dark"] .richtext-evidence-name,
-[data-theme="dark"] .richtext-evidence-caption,
 [data-theme="dark"] .tiptap blockquote p {
   color: black;
 }
