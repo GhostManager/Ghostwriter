@@ -8,7 +8,7 @@ tzdata==2024.1
 
 # Django
 # ------------------------------------------------------------------------------
-django==5.2.14  # https://www.djangoproject.com/
+django==5.2.19  # https://www.djangoproject.com/
 django-environ==0.10.0  # https://github.com/joke2k/django-environ
 django-model-utils==5.0.0  # https://github.com/jazzband/django-model-utils
 django-allauth[mfa]==65.18.0  # https://github.com/pennersr/django-allauth
