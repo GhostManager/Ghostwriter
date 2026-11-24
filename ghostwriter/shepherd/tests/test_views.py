@@ -457,6 +457,20 @@ class DomainDetailViewTests(TestCase):
         )
         self.assertNotContains(response, 'class="dropdown-menu-btn"')
 
+    def test_domain_description_preserves_empty_table_headers_and_cells(self):
+        self.domain.description = (
+            "<p></p><table><thead><tr><th>First</th><th></th><th>Last</th></tr></thead>"
+            "<tbody><tr><td>Left</td><td><p></p></td><td>Right</td></tr></tbody></table>"
+        )
+        self.domain.save(update_fields=["description"])
+
+        response = self.client_auth.get(self.uri)
+        soup = BeautifulSoup(response.content, "html.parser")
+        description = soup.select_one("#domainDescription[data-rich-text-tables]")
+        self.assertIsNone(description.select_one(":scope > p"))
+        self.assertEqual([cell.get_text(strip=True) for cell in description.select("th")], ["First", "", "Last"])
+        self.assertEqual([cell.get_text(strip=True) for cell in description.select("td")], ["Left", "", "Right"])
+
     def test_view_handles_list_category_values(self):
         self.domain.categorization = {"source": "demo", "categories": ["business", "technology"]}
         self.domain.save()
@@ -1110,6 +1124,18 @@ class ServerDetailViewTests(TestCase):
             reverse("shepherd:server_note_add", kwargs={"pk": self.server.pk}),
         )
         self.assertNotContains(response, 'class="dropdown-menu-btn"')
+
+    def test_server_description_preserves_a_blank_table(self):
+        self.server.description = '<p></p><table><tbody><tr><td colspan="2"></td></tr></tbody></table>'
+        self.server.save(update_fields=["description"])
+
+        response = self.client_auth.get(self.uri)
+        soup = BeautifulSoup(response.content, "html.parser")
+        description = soup.select_one('[aria-labelledby="server-description-heading"] [data-rich-text-tables]')
+        self.assertIsNone(description.select_one(":scope > p"))
+        cell = description.select_one("table tbody tr td")
+        self.assertEqual(cell["colspan"], "2")
+        self.assertEqual(cell.get_text(strip=True), "")
 
     def test_server_details_display_the_saved_description(self):
         self.server.description = "Server detail context"

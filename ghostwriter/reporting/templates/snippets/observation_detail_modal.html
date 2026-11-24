@@ -11,7 +11,7 @@
         <button type="button" class="btn-close detail-preview-modal-close" data-bs-dismiss="modal" aria-label="Close">
         </button>
       </div>
-      <div class="modal-body">
+      <div class="modal-body" data-rich-text-tables>
 
         {% if observation.tags.all %}<div class="detail-preview-modal-tags">{% for tag in observation.tags.all %}<span class="detail-preview-modal-tag">{{ tag.name }}</span>{% endfor %}</div>{% endif %}
 

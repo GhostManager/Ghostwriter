@@ -35,7 +35,7 @@
         <div id="collapseGuidance" class="collapse" aria-labelledby="finding-guidance-toggle">
             <div class="report-finding-guidance-body">
                 {% if reportfindinglink.finding_guidance and reportfindinglink.finding_guidance != "<p></p>" %}
-                    <div class="detail-prose rich-text-field-preview">{{ reportfindinglink.finding_guidance|bleach }}</div>
+                    <div class="detail-prose rich-text-field-preview" data-rich-text-tables>{{ reportfindinglink.finding_guidance|bleach }}</div>
                 {% else %}
                     <p class="report-finding-guidance-empty">No guidance was provided for this finding in the library.</p>
                 {% endif %}

@@ -107,11 +107,11 @@ def count_incomplete_objectives(queryset):
 
 @register.filter(name="strip_empty_tags")
 def strip_empty_tags(content):
-    """Strip empty tags from HTML content."""
+    """Strip empty tags from HTML content while preserving table structure."""
     soup = BeautifulSoup(content, "lxml")
-    for x in soup.find_all():
-        if len(x.get_text(strip=True)) == 0:
-            x.extract()
+    for tag in soup.find_all():
+        if not tag.get_text(strip=True) and tag.name != "table" and not tag.find_parent("table") and not tag.find("table"):
+            tag.extract()
     return soup.prettify()
 
 

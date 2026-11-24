@@ -4735,6 +4735,42 @@ a.report-item-title {
   margin-bottom: 0;
 }
 
+.project-description-content:has(table) {
+  max-width: none;
+}
+
+.project-description-content:has(table) > :not(table, :has(table)) {
+  max-width: 75ch;
+}
+
+.rich-text-table {
+  max-width: 100%;
+  margin-block: 1rem;
+}
+
+.rich-text-table:last-child {
+  margin-bottom: 0;
+}
+
+.rich-text-table:focus-visible {
+  outline: 2px solid var(--gw-focus-outline);
+  outline-offset: 2px;
+}
+
+.rich-text-table > table {
+  margin-block: 0;
+}
+
+[data-rich-text-tables] .rich-text-table :is(th, td) {
+  text-align: start;
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+
+[data-rich-text-tables] .rich-text-table :is(th, td) > :last-child {
+  margin-bottom: 0;
+}
+
 .detail-panel-quiet {
   background: color-mix(in srgb, var(--gw-surface) 70%, transparent);
   box-shadow: none;
@@ -9004,7 +9040,7 @@ a.report-item-title {
     grid-column: 1 / -1;
   }
 
-  .project-overview-layout {
+  .project-overview-layout:not(:has(.project-description-content table)) {
     grid-template-columns: minmax(0, 2fr) minmax(20rem, 1fr);
     align-items: stretch;
   }
@@ -11881,6 +11917,11 @@ a.report-item-title {
   border: 1px solid var(--gw-border);
   border-radius: var(--gw-radius-md);
   overflow: hidden;
+}
+
+.evidence-detail-metadata:has([data-rich-text-tables] table) {
+  table-layout: fixed;
+  overflow-wrap: anywhere;
 }
 
 .evidence-detail-metadata > :not(caption) > * > * {

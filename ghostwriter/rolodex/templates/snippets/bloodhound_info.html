@@ -362,7 +362,7 @@
                             {% if item.finding.assets.short_description %}
                             <section class="bhe-finding-detail-section">
                                 <h6>Description</h6>
-                                <div class="detail-prose rich-text-field-preview">{{ item.finding.assets.short_description|bleach }}</div>
+                                <div class="detail-prose rich-text-field-preview" data-rich-text-tables>{{ item.finding.assets.short_description|bleach }}</div>
                             </section>
                             {% endif %}
 
@@ -417,7 +417,7 @@
                             {% if item.finding.assets.short_remediation %}
                             <section class="bhe-finding-detail-section">
                                 <h6>Remediation</h6>
-                                <div class="detail-prose rich-text-field-preview">{{ item.finding.assets.short_remediation|bleach }}</div>
+                                <div class="detail-prose rich-text-field-preview" data-rich-text-tables>{{ item.finding.assets.short_remediation|bleach }}</div>
                             </section>
                             {% endif %}
 
@@ -427,13 +427,13 @@
                                 {% if item.finding.assets.long_description %}
                                 <section class="bhe-finding-detail-section">
                                     <h6>Technical background</h6>
-                                    <div class="detail-prose rich-text-field-preview">{{ item.finding.assets.long_description|bleach }}</div>
+                                    <div class="detail-prose rich-text-field-preview" data-rich-text-tables>{{ item.finding.assets.long_description|bleach }}</div>
                                 </section>
                                 {% endif %}
                                 {% if item.finding.assets.long_remediation %}
                                 <section class="bhe-finding-detail-section">
                                     <h6>Detailed remediation</h6>
-                                    <div class="detail-prose rich-text-field-preview">{{ item.finding.assets.long_remediation|bleach }}</div>
+                                    <div class="detail-prose rich-text-field-preview" data-rich-text-tables>{{ item.finding.assets.long_remediation|bleach }}</div>
                                 </section>
                                 {% endif %}
                             </details>
@@ -442,7 +442,7 @@
                             {% if item.finding.assets.references %}
                             <section class="bhe-finding-detail-section bhe-finding-references">
                                 <h6>References</h6>
-                                <div class="detail-prose rich-text-field-preview">{{ item.finding.assets.references|bleach }}</div>
+                                <div class="detail-prose rich-text-field-preview" data-rich-text-tables>{{ item.finding.assets.references|bleach }}</div>
                             </section>
                             {% endif %}
                         </div>

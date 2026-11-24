@@ -22,7 +22,7 @@
           </p>
 
         {% if poc.description %}
-          <p>{{ poc.description|bleach|safe }}</p>
+          <div data-rich-text-tables>{{ poc.description|bleach|safe }}</div>
         {% else %}
           <p>No additional information available.</p>
         {% endif %}

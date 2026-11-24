@@ -77,7 +77,7 @@
                 <h5 id="server-description-heading">Additional information</h5>
               </div>
             </div>
-            <div class="detail-prose">
+            <div class="detail-prose" data-rich-text-tables>
               {% if staticserver.description %}
                 {{ staticserver.description|strip_empty_tags|bleach }}
               {% else %}
@@ -211,7 +211,7 @@
           <div class="note-card-list">
             {% for note in staticserver.servernote_set.all reversed %}
               <article id="note-container-{{ note.id }}" class="note-card">
-                <div class="note-card-body">{{ note.note|bleach }}</div>
+                <div class="note-card-body" data-rich-text-tables>{{ note.note|bleach }}</div>
                 <footer class="note-card-footer">
                   {% if request.user == note.operator or request.user|is_privileged %}
                     <div class="note-card-actions" aria-label="Note actions">

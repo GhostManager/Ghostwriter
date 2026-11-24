@@ -132,7 +132,7 @@
                 <h4 id="project-description-heading">Project Description</h4>
               </div>
             </div>
-            <div id="projectDescription" class="detail-prose">
+            <div id="projectDescription" class="detail-prose project-description-content" data-rich-text-tables>
               {% if project.description %}
                 {{ project.description|bleach }}
               {% else %}
@@ -333,7 +333,7 @@
                       {% endif %}
                     </div>
                   </header>
-                  <div class="whitecard-description">
+                  <div class="whitecard-description" data-rich-text-tables>
                     {% if card.description %}
                       {{ card.description|bleach }}
                     {% else %}
@@ -1207,7 +1207,7 @@
                     <section class="deconfliction-notes" aria-labelledby="deconfliction-notes-{{ event.id }}">
                       <span class="detail-eyebrow">Living record</span>
                       <h6 id="deconfliction-notes-{{ event.id }}">Investigation &amp; client closeout</h6>
-                      <div class="deconfliction-notes-content">
+                      <div class="deconfliction-notes-content" data-rich-text-tables>
                         {% if event.description %}
                           {{ event.description|bleach }}
                         {% else %}
@@ -1411,7 +1411,7 @@
           <div class="note-card-list">
             {% for note in project.projectnote_set.all reversed %}
               <article id="note-container-{{ note.id }}" class="note-card">
-                <div class="note-card-body">
+                <div class="note-card-body" data-rich-text-tables>
                   {{ note.note|bleach }}
                 </div>
 
@@ -2211,6 +2211,7 @@
         taskList.attr('aria-busy', 'true');
         $.get(url, function (data) {
           taskList.html(data);
+          window.gwInitRichTextTables?.(taskList[0]);
           prepareTodoList();
         }).always(function () {
           taskList.removeAttr('aria-busy');

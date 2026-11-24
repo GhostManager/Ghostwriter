@@ -96,7 +96,7 @@
                 <h4 id="client-description-heading">Additional Information</h4>
               </div>
             </div>
-            <div class="detail-prose">
+            <div class="detail-prose" data-rich-text-tables>
               {% if client.description %}
                 {{ client.description|bleach }}
               {% else %}
@@ -112,7 +112,7 @@
                 <h4 id="client-address-heading">Business Address</h4>
               </div>
             </div>
-            <div class="address detail-prose">
+            <div class="address detail-prose" data-rich-text-tables>
               {% if client.address %}
                 {{ client.address|bleach }}
               {% else %}
@@ -551,7 +551,7 @@
           <div class="note-card-list">
             {% for note in client.clientnote_set.all reversed %}
               <article id="note-container-{{ note.id }}" class="note-card">
-                <div class="note-card-body">
+                <div class="note-card-body" data-rich-text-tables>
                   {{ note.note|bleach }}
                 </div>
 
