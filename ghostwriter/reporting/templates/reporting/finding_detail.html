@@ -108,7 +108,7 @@
                 <i class="fas fa-align-left finding-section-icon" aria-hidden="true"></i>
               </div>
               {% if finding.description %}
-                <div class="detail-prose rich-text-field-preview">{{ finding.description|bleach }}</div>
+                <div class="detail-prose rich-text-field-preview" data-rich-text-tables>{{ finding.description|bleach }}</div>
               {% else %}
                 <div class="empty-state">
                   <p class="empty-state-title">Description needed</p>
@@ -126,7 +126,7 @@
                 <i class="fas fa-bolt finding-section-icon" aria-hidden="true"></i>
               </div>
               {% if finding.impact %}
-                <div class="detail-prose rich-text-field-preview">{{ finding.impact|bleach }}</div>
+                <div class="detail-prose rich-text-field-preview" data-rich-text-tables>{{ finding.impact|bleach }}</div>
               {% else %}
                 <div class="empty-state">
                   <p class="empty-state-title">Impact needed</p>
@@ -144,7 +144,7 @@
                 <i class="fas fa-tools finding-section-icon" aria-hidden="true"></i>
               </div>
               {% if finding.mitigation %}
-                <div class="detail-prose rich-text-field-preview">{{ finding.mitigation|bleach }}</div>
+                <div class="detail-prose rich-text-field-preview" data-rich-text-tables>{{ finding.mitigation|bleach }}</div>
               {% else %}
                 <div class="empty-state">
                   <p class="empty-state-title">Recommendations needed</p>
@@ -163,7 +163,7 @@
                   </div>
                   <i class="fas fa-compass finding-section-icon" aria-hidden="true"></i>
                 </div>
-                <div class="detail-prose rich-text-field-preview">{{ finding.finding_guidance|bleach }}</div>
+                <div class="detail-prose rich-text-field-preview" data-rich-text-tables>{{ finding.finding_guidance|bleach }}</div>
               </section>
             {% endif %}
           </div>
@@ -185,13 +185,13 @@
                   {% if finding.host_detection_techniques %}
                     <section class="finding-subsection" aria-labelledby="finding-host-detection-heading">
                       <h5 id="finding-host-detection-heading"><i class="fas fa-desktop" aria-hidden="true"></i>Host Detection</h5>
-                      <div class="detail-prose rich-text-field-preview">{{ finding.host_detection_techniques|bleach }}</div>
+                      <div class="detail-prose rich-text-field-preview" data-rich-text-tables>{{ finding.host_detection_techniques|bleach }}</div>
                     </section>
                   {% endif %}
                   {% if finding.network_detection_techniques %}
                     <section class="finding-subsection" aria-labelledby="finding-network-detection-heading">
                       <h5 id="finding-network-detection-heading"><i class="fas fa-network-wired" aria-hidden="true"></i>Network Detection</h5>
-                      <div class="detail-prose rich-text-field-preview">{{ finding.network_detection_techniques|bleach }}</div>
+                      <div class="detail-prose rich-text-field-preview" data-rich-text-tables>{{ finding.network_detection_techniques|bleach }}</div>
                     </section>
                   {% endif %}
                 </div>
@@ -212,7 +212,7 @@
                 <i class="fas fa-list-ol finding-section-icon" aria-hidden="true"></i>
               </div>
               {% if finding.replication_steps %}
-                <div class="detail-prose rich-text-field-preview">{{ finding.replication_steps|bleach }}</div>
+                <div class="detail-prose rich-text-field-preview" data-rich-text-tables>{{ finding.replication_steps|bleach }}</div>
               {% else %}
                 <div class="empty-state">
                   <p class="empty-state-title">Replication steps needed</p>
@@ -230,7 +230,7 @@
                 <i class="fas fa-book-open finding-section-icon" aria-hidden="true"></i>
               </div>
               {% if finding.references %}
-                <div class="detail-prose rich-text-field-preview">{{ finding.references|bleach }}</div>
+                <div class="detail-prose rich-text-field-preview" data-rich-text-tables>{{ finding.references|bleach }}</div>
               {% else %}
                 <div class="empty-state">
                   <p class="empty-state-title">No references provided</p>
@@ -313,7 +313,7 @@
             <div class="note-card-list">
               {% for note in finding.findingnote_set.all reversed %}
                 <article id="note-container-{{ note.id }}" class="note-card">
-                  <div class="note-card-body rich-text-field-preview">{{ note.note|bleach }}</div>
+                  <div class="note-card-body rich-text-field-preview" data-rich-text-tables>{{ note.note|bleach }}</div>
                   <footer class="note-card-footer">
                     {% if request.user == note.operator or request.user|is_privileged %}
                       <div class="note-card-actions" aria-label="Note actions">

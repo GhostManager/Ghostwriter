@@ -95,7 +95,7 @@
             </div>
             <div class="detail-field">
               <dt>Description</dt>
-              <dd>{% if evidence.description %}{{ evidence.description|bleach }}{% else %}<span class="detail-empty">Not provided</span>{% endif %}</dd>
+              <dd data-rich-text-tables>{% if evidence.description %}{{ evidence.description|bleach }}{% else %}<span class="detail-empty">Not provided</span>{% endif %}</dd>
             </div>
           </dl>
         </aside>

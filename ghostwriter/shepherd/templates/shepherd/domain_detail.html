@@ -105,7 +105,7 @@
               </div>
             </div>
             {% if domain.description %}
-              <div id="domainDescription" class="detail-prose">{{ domain.description|strip_empty_tags|bleach }}</div>
+              <div id="domainDescription" class="detail-prose" data-rich-text-tables>{{ domain.description|strip_empty_tags|bleach }}</div>
             {% else %}
               <div class="empty-state">
                 <p class="empty-state-title">No domain description yet</p>
@@ -205,7 +205,7 @@
               <div class="detail-panel-header">
                 <div><span class="detail-eyebrow">Health review</span><h5 id="domain-burned-heading">Why this domain is burned</h5></div>
               </div>
-              <div class="detail-prose">
+              <div class="detail-prose" data-rich-text-tables>
                 {% if domain.burned_explanation %}
                   {{ domain.burned_explanation|bleach|linebreaks }}
                 {% else %}
@@ -378,7 +378,7 @@
           <div class="note-card-list">
             {% for note in domain.domainnote_set.all reversed %}
               <article id="note-container-{{ note.id }}" class="note-card">
-                <div class="note-card-body">{{ note.note|bleach }}</div>
+                <div class="note-card-body" data-rich-text-tables>{{ note.note|bleach }}</div>
                 <footer class="note-card-footer">
                   {% if request.user == note.operator or request.user|is_privileged %}
                     <div class="note-card-actions" aria-label="Note actions">

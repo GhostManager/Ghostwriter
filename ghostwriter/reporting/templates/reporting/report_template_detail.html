@@ -134,7 +134,7 @@
           </div>
         </div>
         {% if reporttemplate.description %}
-          <div class="detail-prose rich-text-field-preview">{{ reporttemplate.description|bleach }}</div>
+          <div class="detail-prose rich-text-field-preview" data-rich-text-tables>{{ reporttemplate.description|bleach }}</div>
         {% else %}
           <div class="empty-state">
             <p class="empty-state-title">No description provided</p>
@@ -157,7 +157,7 @@
           <i class="fas fa-history template-detail-section-icon" aria-hidden="true"></i>
         </div>
         {% if reporttemplate.changelog %}
-          <div class="detail-prose rich-text-field-preview">{{ reporttemplate.changelog|bleach }}</div>
+          <div class="detail-prose rich-text-field-preview" data-rich-text-tables>{{ reporttemplate.changelog|bleach }}</div>
         {% else %}
           <div class="empty-state">
             <p class="empty-state-title">No changelog entries</p>

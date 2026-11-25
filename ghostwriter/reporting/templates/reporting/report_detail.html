@@ -1113,7 +1113,8 @@
               const remaining = Math.max(0, 350 - (performance.now() - loadingStartedAt));
               setTimeout(function () {
                 if (!$('#finding-preview-modal').hasClass('show')) return;
-                $body.html('<div class="rich-text-field-preview report-object-preview">' + html + '</div>');
+                $body.html('<div class="rich-text-field-preview report-object-preview" data-rich-text-tables>' + html + '</div>');
+                window.gwInitRichTextTables?.($body[0]);
                 $body.find('[data-bs-toggle="tooltip"]').tooltip();
               }, remaining);
             })
@@ -1193,7 +1194,8 @@
               const remaining = Math.max(0, 350 - (performance.now() - loadingStartedAt));
               setTimeout(function () {
                 if (!$('#observation-preview-modal').hasClass('show')) return;
-                $body.html('<div class="rich-text-field-preview report-object-preview">' + html + '</div>');
+                $body.html('<div class="rich-text-field-preview report-object-preview" data-rich-text-tables>' + html + '</div>');
+                window.gwInitRichTextTables?.($body[0]);
                 $body.find('[data-bs-toggle="tooltip"]').tooltip();
               }, remaining);
             })

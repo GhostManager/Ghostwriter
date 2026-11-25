@@ -1804,6 +1804,23 @@ class ProjectDetailViewTests(TestCase):
         self.assertNotContains(response, "project-details-table offset-2 col-8")
         self.assertNotContains(response, "projectDescriptionDropdown")
 
+    def test_project_description_renders_sanitized_tables_for_responsive_layout(self):
+        self.project.description = (
+            '<p>Project context</p><table class="table"><caption>Activities</caption>'
+            '<thead><tr><th scope="col">Expected action</th></tr></thead>'
+            '<tbody><tr><td onclick="alert(1)">Review activity</td></tr></tbody></table>'
+        )
+        self.project.save(update_fields=["description"])
+
+        response = self.client_mgr.get(self.uri)
+        self.assertContains(response, "/static/js/rich-text-tables.js")
+        soup = BeautifulSoup(response.content, "html.parser")
+        description = soup.select_one("#projectDescription.project-description-content[data-rich-text-tables]")
+        self.assertEqual(description.select_one("caption").get_text(), "Activities")
+        self.assertEqual(description.select_one("th")["scope"], "col")
+        self.assertEqual(description.select_one("td").get_text(), "Review activity")
+        self.assertNotIn("onclick", description.select_one("td").attrs)
+
     def test_project_sections_use_inline_actions_and_shared_empty_states(self):
         response = self.client_mgr.get(self.uri)
 

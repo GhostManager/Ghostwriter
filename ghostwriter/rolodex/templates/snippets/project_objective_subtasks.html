@@ -7,7 +7,7 @@
     <div class="objective-context-grid">
       <section class="objective-context-panel objective-description" aria-labelledby="objective-{{ objective.id }}-description-heading">
         <h6 id="objective-{{ objective.id }}-description-heading">Objective description</h6>
-        <div class="objective-context-content">
+        <div class="objective-context-content" data-rich-text-tables>
         {% if objective.description %}
           {{ objective.description|bleach }}
         {% else %}
@@ -18,7 +18,7 @@
     {% if objective.result %}
       <section class="objective-context-panel objective-result" aria-labelledby="objective-{{ objective.id }}-result-heading">
         <h6 id="objective-{{ objective.id }}-result-heading">Objective result</h6>
-        <div class="objective-context-content">
+        <div class="objective-context-content" data-rich-text-tables>
           {{ objective.result|bleach }}
         </div>
       </section>

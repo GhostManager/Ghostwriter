@@ -67,7 +67,7 @@
                 <i class="fas fa-align-left finding-section-icon" aria-hidden="true"></i>
               </div>
               {% if observation.description %}
-                <div class="detail-prose rich-text-field-preview">{{ observation.description|bleach }}</div>
+                <div class="detail-prose rich-text-field-preview" data-rich-text-tables>{{ observation.description|bleach }}</div>
               {% else %}
                 <div class="empty-state">
                   <p class="empty-state-title">Description needed</p>

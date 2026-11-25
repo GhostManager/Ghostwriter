@@ -68,7 +68,7 @@
             {% if evidence.description %}
               <tr>
                 <td class="evidence-detail-metadata-label align-top">Description:</td>
-                <td class="text-start">{{ evidence.description|bleach }}</td>
+                <td class="text-start" data-rich-text-tables>{{ evidence.description|bleach }}</td>
               </tr>
             {% endif %}
           </table>

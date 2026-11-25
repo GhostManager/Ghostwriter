@@ -39,8 +39,9 @@
                 return;
               }
               $content.empty().html(
-                '<div class="rich-text-field-preview">' + html + '</div>'
+                '<div class="rich-text-field-preview" data-rich-text-tables>' + html + '</div>'
               );
+              window.gwInitRichTextTables?.($content[0]);
             }, remainingLoadingMs);
           })
           .catch(error => {
